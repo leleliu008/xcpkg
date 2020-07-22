@@ -991,11 +991,11 @@ COMMAND:
     prefix PACKAGE        --show the installation direcotory of a formula or the ipkg home.
     homepage PACKAGE      --visit the homepage of a formula or the ipkg project.
     
-    env  PACKAGE --device=phone --min-version=8.0 --arch=armv7s -v
+    env DEVICE PACKAGE [--min-version=8.0 --arch=armv7s -v -x]
     
-    install   PACKAGE... [--device=phone --min-version=8.0 --archs=armv7s -v -x]     --install packages.
-    reinstall PACKAGE... [--device=phone --min-version=8.0 --archs=armv7s -v -x]     --reinstall packages.
-    upgrade   PACKAGE... [--device=phone --min-version=8.0 --archs=armv7s -v -x]     --upgrade packages.
+    install   DEVICE PACKAGE... [--min-version=8.0 --archs=armv7s,arm64 -v -x]     --install packages.
+    reinstall DEVICE PACKAGE... [--min-version=8.0 --archs=armv7s,armv7 -v -x]     --reinstall packages.
+    upgrade   DEVICE PACKAGE... [--min-version=10.13 --archs=x86_64,i386 -v -x]    --upgrade packages.
 
     uninstall PACKAGE...                          --uninstall packages.
     info      PACKAGE...                          --print the information of packages.
