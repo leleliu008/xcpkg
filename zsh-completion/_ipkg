@@ -1,0 +1,199 @@
+#compdef ipkg
+
+_commands=(
+    '-h:print the help infomation of ipkg command.'
+    '--help:print the help infomation of ipkg command.'
+    'help:print the help infomation of ipkg command.'
+    '-V:print the version of ipkg and NDK.'
+    '--version:print the version of ipkg and NDK.'
+    'version:print the version of ipkg and NDK.'
+    'search:search packages can be installed.'
+    'list:list the target platforms, target CPU arch, available, installed and outdated packages.'
+    'tree:list contents of a installed package directory in a tree-like format.'
+    'info:print the basic infomation of packages.'
+    'cat:view the formula source code of a package.'
+    'edit:edit the formula source code of a package.'
+    'env:print the environment variable settings.'
+    'install:install packages.'
+    'reinstall:reinstall packages.'
+    'uninstall:uninstall packages.'
+    'cleanup:cleanup the unused cache.'
+    'update:update the formula repository.'
+    'upgrade:upgrade the outdated packages.'
+    'fetch:download formula resources of a package to the cache.'
+    'homepage:visit the homepage of a formula or the ipkg project.'
+    'prefix:show the installation direcotory of a formula or the ipkg home.'
+    'pack:pack a installed package.'
+    'logs:print the logs of a installed package.'
+    'is:check something. easy to write script.'
+    'create-framework:create framework.'
+    'min-version:get the min-version of the support device.'
+)
+
+_list=(
+    'devices:list the supportted target devices, platforms, archs.'
+    'versions:list the supportted versions of target devices.'
+    'platforms:list the supportted platforms of target devices.'
+    'archs:list the supportted archs of target devices.'
+    'available:list the available packages.'
+    'installed:list the installed packages.'
+    'outdated:list the installed packages which can be upgraded.'
+)
+
+function _ipkg_list() {
+    _describe 'list' _list
+}
+
+function _ipkg_list_option() {
+    }
+
+function _ipkg_commands() {
+    _describe 'command' _commands
+}
+
+function _ipkg_available_packages() {
+    local -a _available_packages
+    _available_packages=($(ipkg list available -q))
+    _describe 'available-packages' _available_packages
+}
+
+function _ipkg_installed_packages() {
+    local -a _installed_packages
+    _installed_packages=($(ipkg list installed -q))
+    _describe 'installed-packages' _installed_packages
+}
+
+function _ipkg_outdated_packages() {
+    local -a _outdated_packages
+    _outdated_packages=($(ipkg list outdated -q))
+    _describe 'outdated-packages' _outdated_packages
+}
+
+function _ipkg_get_arch_list_by_platform() {
+    case $3 in
+        AppleTVOS) echo arm64;;
+        WatchOS)   echo arm64_32 armv7k;;
+        iPhoneOS)  echo arm64e arm64 armv7s armv7;;
+        MacOSX)    echo x86_64;;
+        *Simulator)echo x86_64 i386;;
+    esac
+}
+
+function _ipkg_get_arch_list_by_device() {
+    case $2 in
+        mac)   echo 86_64;;
+        tv)    echo arm64;;
+        watch) echo arm64_32 armv7k;;
+        phone) echo arm64e arm64 armv7s armv7;;
+    esac
+}
+
+function _ipkg_get_arch_values_by_device() {
+    case $6 in
+        mac)   _arguments ':arch:(x86_64)';;
+        tv)    _arguments ':arch:(arm64)';;
+        watch) _values -s , arm64_32 armv7k;;
+        phone) _values -s , arm64e arm64 armv7s armv7;;
+    esac
+}
+
+function _ipkg() {
+    local context state state_descr line
+    typeset -A opt_args
+
+    _arguments \
+        '1: :_ipkg_commands' \
+        '*:: :->option'
+
+    case $state in
+        option)
+            case $words[1] in
+                list)
+                    _arguments \
+                        ':list:_ipkg_list' \
+                        '*:: :->list-option'
+                    case $state in
+                        list-option)
+                            case $words[1] in
+                                available|installed|outdated)
+                                    _arguments '-q[quiet mode. do not report error log]';;
+                                archs|versions)
+                                    _arguments ':device:($(ipkg list devices))';;
+                                devices)
+                                    _arguments '--table[show more infomation]';;
+                            esac
+                    esac
+                    ;;
+                tree)
+                    _arguments ':package-name:_ipkg_available_packages'
+                    ;;
+                info)
+                    _arguments '*:package-name:_ipkg_available_packages'
+                    ;;
+                cat|edit|fetch|homepage)
+                    _arguments ':package-name:_ipkg_available_packages'
+                    ;;
+                prefix|pack|create-framework)
+                    _arguments ':package-name:_ipkg_installed_packages'
+                    ;;
+                logs)
+                    _arguments \
+                        '1:package-name:_ipkg_installed_packages' \
+                        '2:platform:($(ipkg list platforms))' \
+                        '3:arch:($(_ipkg_get_arch_list_by_platform $words))'
+                    ;;
+                min-version)
+                    _arguments \
+                        ':device:($(ipkg list devices))'
+                    ;;
+                env)
+                    _arguments \
+                        '1:device:($(ipkg list devices))' \
+                        '2:package-name:_ipkg_available_packages' \
+                        '--min-version=-[set min-version of target device]:min-version:($(ipkg list versions $words[2]))' \
+                        '--arch=-[set target CPU arch]:arch:($(_ipkg_get_arch_list_by_device $words))' \
+                        '(--verbose -v)'{--verbose,-v}'[verbose output log]' \
+                        '(--xtrace -x)'{--xtrace,-x}'[trace execution of commands]'
+                    ;;
+                install)
+                    _arguments \
+                        '1:device:($(ipkg list devices))' \
+                        '2:package-name:_ipkg_available_packages' \
+                        '--min-version=-[set min-version of target device]:min-version:($(ipkg list versions $words[2]))' \
+                        '--archs=-[set target CPU arch]:archs:_ipkg_get_arch_values_by_device $words' \
+                        '--simulator[also build for simulator]' \
+                        '(--verbose -v)'{--verbose,-v}'[verbose output log]' \
+                        '(--xtrace -x)'{--xtrace,-x}'[trace execution of commands]'
+                    ;;
+                reinstall)
+                    _arguments \
+                        '1:device:($(ipkg list devices))' \
+                        '2:package-name:_ipkg_installed_packages' \
+                        '--min-version=-[set min-version of target device]:min-version:($(ipkg list versions $words[2]))' \
+                        '--archs=-[set target CPU arch]:archs:_ipkg_get_arch_values_by_device $words' \
+                        '--simulator[also build for simulator]' \
+                        '(--verbose -v)'{--verbose,-v}'[verbose output log]' \
+                        '(--xtrace -x)'{--xtrace,-x}'[trace execution of commands]'
+                    ;;
+                upgrade)
+                    _arguments \
+                        ':package-name:_ipkg_outdated_packages' \
+                        '(--verbose -v)'{--verbose,-v}'[verbose output log]' \
+                        '(--xtrace -x)'{--xtrace,-x}'[trace execution of commands]'
+                    ;;
+                uninstall)
+                    _arguments '*:package-name:_ipkg_installed_packages'
+                    ;;
+                is)
+                    _arguments \
+                        '1: :(available installed outdated)' \
+                        '2:package-name:_ipkg_available_packages'
+                    ;;
+                *);;
+            esac
+            ;;
+        *);;
+    esac
+}
+
+_ipkg "$@"
