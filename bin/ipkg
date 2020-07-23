@@ -733,7 +733,7 @@ list_support_devices_archs() {
             watch)  msg "arm64_32 armv7k\n";;
             tv)     msg "arm64\n";;
             mac)    msg "x86_64\n";;
-            *)      die "$1 : can't recognized device.\n"
+            *)      die "$1 : device isn't recognized.\n"
         esac
     fi
 }
@@ -750,7 +750,7 @@ list_support_devices_versions() {
             watch)  msg "2.0 2.1 2.2 3.0 3.1 3.2 4.0 4.1 4.2 4.3 5.0 5.1 5.2 5.3 6.0 6.1 6.2\n";;
             tv)     msg "9.0 9.1 9.2 10.0 10.1 10.2 11.0 11.1 11.2 11.3 11.4 12.0 12.1 12.3 12.4 13.0 13.1 13.2 13.3\n";;
             mac)    msg "10.6 10.7 10.8 10.9 10.10 10.11 10.12 10.13 10.14 10.15\n";;
-            *)      die "$1 : can't recognized device.\n"
+            *)      die "$1 : device isn't recognized.\n"
         esac
     fi
 }
