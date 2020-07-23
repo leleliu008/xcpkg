@@ -912,6 +912,7 @@ EOF
 
 create_framework_for_packages() {
     [ -z "$1" ] && die_from_packages_is_not_provided
+    
     for TARGET_PACKAGE in $@
     do
         create_framework_for_a_package "$TARGET_PACKAGE"
@@ -923,6 +924,7 @@ create_framework_for_a_package() {
 
     DIR_INSTALL_PACKAGE="$DIR_FORMULA/$TARGET_PACKAGE"
     load_formula_of_a_package "$1"
+    
     if command -v create_framework > /dev/null ; then
         create_framework
     else
