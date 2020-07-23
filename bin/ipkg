@@ -349,88 +349,55 @@ uninstall_a_package() {
 }
 
 list_available_packages() {
-    if [ -n "$2" ] ; then
-        die "list available command only accept -q argument.\n"
-    fi
-     
-    if [ -n "$1" -a "$1" != '-q' ] ; then
-        die "list available command only accept -q argument.\n"
-    fi
-    
+    unset SILENT
+
+    case $# in
+        0)  ;;
+        1)  if [ "$1" = '-q' ] ; then
+                SILENT=true
+            else
+                die "list available command only accept -q argument.\n"
+            fi
+            ;;
+        *)  die "list available command only accept -q argument.\n"
+    esac
+
     [ -d "$DIR_FORMULA" ] || {
-        if [ "$1" = '-q' ] ; then
-            exit
+        if [ "$SILENT" = 'true' ] ; then
+            update_formula_repository >/dev/null 2>&1
         else
             update_formula_repository
         fi
     }
     
-    cd "$DIR_FORMULA" || {
-        if [ "$1" = '-q' ] ; then
-            exit
-        else
-            die "$DIR_FORMULA is not exist.\n"
-        fi
-    }
-     
-    for item in *.sh
+    if [ "$SILENT" = 'true' ] ; then
+        cd "$DIR_FORMULA" 2>/dev/null || exit 1
+    else
+        cd "$DIR_FORMULA" || exit 1
+    fi
+    
+    for item in $(ls *.sh | sed 's/.sh//g')
     do 
-        printf "$item\n" | sed 's/.sh//g'
+        printf "$item\n"
     done
 }
 
 list_installed_packages() {
-    if [ -n "$2" ] ; then
-        die "list installed command only accept -q argument.\n"
-    fi
-    
-    if [ -n "$1" -a "$1" != '-q' ] ; then
-        die "list installed command only accept -q argument.\n"
-    fi
-    
-    [ -d "$DIR_PKG" ] || {
-        [ "$1" = '-q' ] || warn "no any package installed.\n"
-        exit
-    }
-    
-    cd "$DIR_PKG" || {
-        [ "$1" = '-q' ] || warn "no any package installed.\n"
-        exit
-    }
-    
-    for packageName in *
+    for packageName in $(cd "$DIR_PKG" 2>/dev/null || exit 1; ls)
     do
         if is_package_installed "$packageName" ; then
-            msg "$packageName\n"
+            printf "$packageName\n"
         fi
     done
 }
 
 list_outdated_packages() {
-    if [ -n "$2" ] ;then
-        die "list outdated command only accept -q argument.\n"
-    fi
-
-    if [ -n "$1" -a "$1" != '-q' ] ; then
-        die "list outdated command only accept -q argument.\n"
-    fi
-
-    [ -d "$DIR_PKG" ] || {
-        [ "$1" = '-q' ] || warn "no any package installed.\n"
-        exit
-    }
-    
-    cd "$DIR_PKG" || {
-        [ "$1" = '-q' ] || warn "no any package installed.\n"
-        exit
-    }
-    
-    for packageName in *
+    for packageName in $(cd "$DIR_PKG" 2>/dev/null || exit 1; ls)
     do
         is_package_available "$packageName" || continue
         is_package_installed "$packageName" || continue
         if is_package_outdated "$packageName" ; then
-            msg "$packageName\n"
+            printf "$packageName\n"
         fi
     done
 }

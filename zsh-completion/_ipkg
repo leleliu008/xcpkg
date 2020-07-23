@@ -59,13 +59,13 @@ function _ipkg_available_packages() {
 
 function _ipkg_installed_packages() {
     local -a _installed_packages
-    _installed_packages=($(ipkg list installed -q))
+    _installed_packages=($(ipkg list installed))
     _describe 'installed-packages' _installed_packages
 }
 
 function _ipkg_outdated_packages() {
     local -a _outdated_packages
-    _outdated_packages=($(ipkg list outdated -q))
+    _outdated_packages=($(ipkg list outdated))
     _describe 'outdated-packages' _outdated_packages
 }
 
@@ -115,7 +115,7 @@ function _ipkg() {
                     case $state in
                         list-option)
                             case $words[1] in
-                                available|installed|outdated)
+                                available)
                                     _arguments '-q[quiet mode. do not report error log]';;
                                 archs|versions)
                                     _arguments ':device:($(ipkg list devices))';;
