@@ -85,12 +85,10 @@ I have provide a zsh-completion script for `ipkg`. when you've typed `ipkg` then
 *   list the installed packages
         
         ipkg list installed
-        ipkg list installed -q
         
 *   list the outdated packages
         
         ipkg list outdated
-        ipkg list outdated -q
         
 *   is the specified package available ?
         
