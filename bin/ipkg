@@ -79,7 +79,7 @@ getvalue() {
 }
 
 is_exist_and_executable() {
-    [ -f "$1" ] || die "$1 is not exsit.\n"
+    [ -f "$1" ] || die "$1 is not exist.\n"
     [ -x "$1" ] || die "$1 is not executable.\n"
 }
 
@@ -369,7 +369,7 @@ list_available_packages() {
         if [ "$1" = '-q' ] ; then
             exit
         else
-            die "$DIR_FORMULA is not exsit.\n"
+            die "$DIR_FORMULA is not exist.\n"
         fi
     }
      
@@ -560,11 +560,13 @@ edit_formula_of_a_package() {
     
     is_package_available "$1" || die_from_package_is_not_available "$1"
     
-    [ -z "$EDITOR" ] || EDITOR='vi'
-    command -v "$EDITOR" > /dev/null || EDITOR='vim'
-    command -v "$EDITOR" > /dev/null || EDITOR='nano'
-    command -v "$EDITOR" > /dev/null || EDITOR='open'
-    command -v "$EDITOR" > /dev/null || die "please config EDITOR environment\n"
+    [ -z "$EDITOR" ] &&
+    EDITOR=$(command -v vi) ||
+    EDITOR=$(command -v vim) ||
+    EDITOR=$(command -v nvim) ||
+    EDITOR=$(command -v open) ||
+    die "please config EDITOR environment\n"
+    
     "$EDITOR" "$DIR_FORMULA/$1.sh"
 }
 
@@ -591,10 +593,9 @@ update_formula_repository() {
 }
 
 upgrade_packages() {
-    [ -z "$TARGET_PACKAGE_LIST" ] && {
-        TARGET_PACKAGE_LIST=$(list_outdated_packages)
-        [ -z "$TARGET_PACKAGE_LIST" ] && return 0
-    }
+    [ -z "$TARGET_PACKAGE_LIST" ] && TARGET_PACKAGE_LIST=$(list_outdated_packages)
+    [ -z "$TARGET_PACKAGE_LIST" ] && return 0
+
     reinstall_packages
 }
 
@@ -625,12 +626,11 @@ cleanup() {
 search_packages() {
     [ -z "$1" ] && die "please provide a keyword.\n"
     [ -d "$DIR_FORMULA" ] || update_formula_repository
-    cd "$DIR_FORMULA" && {
-        for item in *.sh
-        do
-            basename "$item" ".sh" | grep "$*"
-        done
-    }
+    
+    for item in $(cd "$DIR_FORMULA" || exit 1; ls -1 *.sh | sed 's/.sh//g')
+    do
+        msg "$item" | grep "$*"
+    done
 }
 
 open_homepage_of_a_package() {
