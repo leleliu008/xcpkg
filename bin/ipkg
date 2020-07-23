@@ -1083,10 +1083,8 @@ parse_params() {
 }
 
 main() {
-    if [ "$(uname -s)" != 'Darwin' ] ; then
-        die "this software can only run on macOS.\n"
-    fi
-
+    [ "$(uname -s)" = 'Darwin' ] || die "this software can only run on macOS.\n"
+    
     TIMESTAMP_UNIX=$(date +%s)
      
     case $1 in
