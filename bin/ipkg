@@ -251,7 +251,7 @@ install_packages() {
         get_dependencies_of_a_package "$TARGET_PACKAGE"
     done
     
-    for TARGET_PACKAGE in $(printf "$DEPENDENCIES $TARGET_PACKAGE_LIST")
+    for TARGET_PACKAGE in $DEPENDENCIES $TARGET_PACKAGE_LIST
     do
         is_target_package_platform_arch_installed &&
         success "$TARGET_PACKAGE is already installed." &&
@@ -263,23 +263,34 @@ install_packages() {
 install_a_package() {
     fetch_a_package "$1"
     
-    is_sha256sum_match "$SRC_FILE_PATH" "$sha256" || die_from_sha256sum_mismatch
-
-    [ -d "$DIR_PKG/$1/$TARGET_PLATFORM/$TARGET_ARCH" ] && rm -rf "$DIR_PKG/$1/$TARGET_PLATFORM/$TARGET_ARCH"
-    
-    DIR_SRC=$(mktemp -d) &&
-    cd "$DIR_SRC" &&
-    info "uncompressing $SRC_FILE_PATH" &&
-    uncompress "$SRC_FILE_PATH" "$SRC_FILE_NAME_EXT" &&
-    success "uncompressed in $DIR_SRC" &&
-    install_a_package_for_real_device_and_simulator "$1" &&
-    install_a_package_success "$1" &&
-    rm -rf "$DIR_SRC"
+    is_sha256sum_match "$SRC_FILE_PATH" "$sha256" || die_from_sha256sum_mismatch 
+     
+    if DIR_SRC=$(mktemp -d) ; then
+        cd "$DIR_SRC" || exit 1
+    else
+        die "create DIR_SRC directory failed."
+    fi
+     
+    info "uncompressing $SRC_FILE_PATH"
+    if uncompress "$SRC_FILE_PATH" "$SRC_FILE_NAME_EXT" ; then
+        success "uncompressed in $DIR_SRC"
+    else
+        die "uncompress $SRC_FILE_PATH failed."
+    fi
+     
+    if command -v prepare > /dev/null ; then 
+        prepare || die "build $1 failed!"
+    fi
+     
+    if install_a_package_for_real_device_and_simulator "$1" ; then
+        install_a_package_success "$1"
+        rm -rf "$DIR_SRC"
+    else
+        die "build $1 failed!"
+    fi
 }
 
 install_a_package_for_real_device_and_simulator() {
-    unset "build_$TIMESTAMP_UNIX"
-    
     install_a_package_for_all_target_arch "$1"
     
     [ "$SIMULATOR" = 'true' ] || return 0
@@ -290,7 +301,7 @@ install_a_package_for_real_device_and_simulator() {
         AppleTVOS)TARGET_PLATFORM='AppleTVSimulator';;
     esac
     
-    TARGET_ARCH_LIST=$(printf 'i386 x86_64')
+    TARGET_ARCH_LIST='i386 x86_64'
     install_a_package_for_all_target_arch "$1"
 }
 
@@ -302,15 +313,10 @@ install_a_package_for_all_target_arch() {
 }
 
 install_a_package_for_one_target_arch() {
-    make_env "$1" || die "build $1/$TARGET_PLATFORM/$TARGET_ARCH failed!"
-    
-    if command -v prepare > /dev/null ; then 
-        if eval test -z "$"build_$TIMESTAMP_UNIX ; then
-            eval "build_$TIMESTAMP_UNIX='true'"
-            prepare || die "build $1/$TARGET_PLATFORM/$TARGET_ARCH failed!"
-        fi
-    fi
+    make_env "$1" || die "build $1/$TARGET_PLATFORM/$TARGET_ARCH failed!" 
      
+    [ -d "$DIR_INSTALL_PREFIX" ] && rm -rf "$DIR_INSTALL_PREFIX"
+    
     if build ; then
         cat > "$DIR_INSTALL_PREFIX/installed" <<EOF
 installed_time=$TIMESTAMP_UNIX
@@ -336,9 +342,14 @@ install_a_package_success() {
 tree_a_installed_package() {
     DIR_INSTALL_PACKAGE="$DIR_PKG/$1"
     [ -d "$DIR_INSTALL_PACKAGE" ] || die_from_package_is_not_installed "$1"
+    
     shift
-    command -v tree > /dev/null || die "please install tree utility."
-    tree $@ --dirsfirst "$DIR_INSTALL_PACKAGE"
+    
+    if command -v tree > /dev/null ; then
+        tree $@ --dirsfirst "$DIR_INSTALL_PACKAGE"
+    else
+        die "please install tree utility."
+    fi
 }
 
 uninstall_packages() {
@@ -385,14 +396,16 @@ list_available_packages() {
         cd "$DIR_FORMULA" || exit 1
     fi
     
-    for item in $(ls *.sh | sed 's/.sh//g')
+    for item in $(ls *.sh | sed 's/\.sh//g')
     do 
         echo "$item"
     done
 }
 
 list_installed_packages() {
-    for packageName in $(cd "$DIR_PKG" 2>/dev/null || exit 1; ls)
+    cd "$DIR_PKG" 2>/dev/null || exit 1
+    
+    for packageName in *
     do
         if is_package_installed "$packageName" ; then
             echo "$packageName"
@@ -401,7 +414,9 @@ list_installed_packages() {
 }
 
 list_outdated_packages() {
-    for packageName in $(cd "$DIR_PKG" 2>/dev/null || exit 1; ls)
+    cd "$DIR_PKG" 2>/dev/null || exit 1
+    
+    for packageName in *
     do
         is_package_available "$packageName" || continue
         is_package_installed "$packageName" || continue
@@ -418,7 +433,8 @@ info_packages() {
     
     if [ -z "$1" ] ; then
         [ -d "$DIR_FORMULA" ] || update_formula_repository
-        TARGET_PACKAGE_LIST=$(cd "$DIR_FORMULA" || exit 1; ls *.sh | sed 's/.sh//g')
+        cd "$DIR_FORMULA" || exit 1
+        TARGET_PACKAGE_LIST=$(ls *.sh | sed 's/\.sh//g')
     else
         TARGET_PACKAGE_LIST=$@
     fi
@@ -445,7 +461,7 @@ info_a_package() {
     [ -z "$dependencies" ] || {
         msg "depend_on :"
         unset DEPENDENCIES
-        for dependencyPkgName in $(printf "$dependencies")
+        for dependencyPkgName in $dependencies
         do
             if [ -z "$DEPENDENCIES" ] ; then
                 DEPENDENCIES=true
@@ -604,7 +620,7 @@ search_packages() {
     [ -z "$1" ] && die "please provide a keyword."
     [ -d "$DIR_FORMULA" ] || update_formula_repository
     
-    for item in $(cd "$DIR_FORMULA" || exit 1; ls -1 *.sh | sed 's/.sh//g')
+    for item in $(cd "$DIR_FORMULA" || exit 1; ls -1 *.sh | sed 's/\.sh//g')
     do
         printf "$item" | grep "$*" || true
     done
@@ -709,15 +725,17 @@ list_support_devices() {
     case $# in
         0)  echo "tv mac watch phone";;
         1)  if [ "$1" = '--table' ] ; then
-                echo "┌────────┬───────────┬───────────────────────────┐"
-                echo "│ device │ platform  │ arch                      │"
-                echo "│        │           │                           │"
-                echo "│   tv   │ AppleTVOS │ arm64                     │"
-                echo "│  watch │ WatchOS   │ arm64_32 armv7k           │"
-                echo "│  phone │ iPhoneOS  │ armv7 armv7s arm64 arm64e │"
-                echo "│   mac  │ MacOSX    │ x86_64                    │"
-                echo "│        │ *Simulator│ x86_64 i386               │"
-                echo "└────────┴───────────┴───────────────────────────┘"
+                cat <<EOF
+┌────────┬───────────┬───────────────────────────┐
+│ device │ platform  │ arch                      │
+│        │           │                           │
+│   tv   │ AppleTVOS │ arm64                     │
+│  watch │ WatchOS   │ arm64_32 armv7k           │
+│  phone │ iPhoneOS  │ armv7 armv7s arm64 arm64e │
+│   mac  │ MacOSX    │ x86_64                    │
+│        │ *Simulator│ x86_64 i386               │
+└────────┴───────────┴───────────────────────────┘
+EOF
             else
                 die "list devices command only accept --table argument."
             fi
@@ -862,7 +880,7 @@ make_env() {
     
     LDFLAGS="-arch $TARGET_ARCH -isysroot $SYSROOT"
      
-    for item in $(printf "$DEPENDENCIES")
+    for item in $DEPENDENCIES
     do
         item2=$(printf "$item" | tr '-' '_')
         ITEM_DIR_INSTALL_PREFIX="$DIR_PKG/$item/$TARGET_PLATFORM/$TARGET_ARCH"
@@ -1091,7 +1109,6 @@ parse_params() {
         else
             TARGET_ARCH_LIST=$(printf "$TARGET_ARCH_LIST" | tr ',' ' ')
         fi
-        TARGET_PACKAGE_LIST=$(printf "$TARGET_PACKAGE_LIST")
     fi
 }
 
