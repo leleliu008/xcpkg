@@ -190,57 +190,182 @@ die_from_sha256sum_mismatch() {
     die "sha256sum mismatch."
 }
 
-fetch_internal() {
-    [ -d "$DIR_DOWNLOAD" ] || mkdir -p "$DIR_DOWNLOAD"
-    cd "$DIR_DOWNLOAD" || exit 1
-    
+fetch_via_curl() {
+    info "Fetching $FETCH_URL"
+
+    if curl -L -o "$FETCH_OUTPUT_FILE_PATH" "$FETCH_URL" ; then
+        success "Fetched $FETCH_OUTPUT_FILE_PATH"
+    else
+        die "Fetched $FETCH_URL failed."
+    fi
+}
+
+fetch_via_wget() {
+    info "Fetching $FETCH_URL"
+
+    if wget -O "$FETCH_OUTPUT_FILE_PATH" "$FETCH_URL" ; then
+        success "Fetched $FETCH_URL success."
+    else
+        die "Fetched $FETCH_URL failed."
+    fi
+}
+
+fetch_via_tools() {
     if command -v curl > /dev/null ; then
-        info "Downloding $url" &&
-        curl -LO "$url" &&
-        success "Downloaded $SRC_FILE_PATH"
+        fetch_via_curl
     elif command -v wget > /dev/null ; then
-        info "Downloding $url" &&
-        wget "$url" &&
-        success "Downloaded $SRC_FILE_PATH"
+        fetch_via_wget
     else
         die "please install curl or wget."
     fi
 }
 
-fetch_if_needed() {
-    SRC_FILE_NAME=$(basename "$url") && 
-    SRC_FILE_NAME_EXT=$(printf "$SRC_FILE_NAME" | awk -F. '{print $NF}') && 
-    SRC_FILE_PATH="$DIR_DOWNLOAD/$SRC_FILE_NAME"
-        
-    if [ -f "$SRC_FILE_PATH" ] ; then
-        if is_sha256sum_match "$SRC_FILE_PATH" "$sha256" ; then
-            info "$SRC_FILE_PATH is already downloaded."
+#fetch url [--output-dir=DIR | --output-file=FILE --sha256=SHA256]
+fetch() {
+    unset FETCH_URL
+    unset FETCH_OUTPUT_DIR
+    unset FETCH_OUTPUT_FILE_PATH
+    unset FETCH_OUTPUT_FILE_SHA256
+
+    FETCH_URL="$1"
+    if [ -z "$FETCH_URL" ] ; then
+        die "please specify a fetch url."
+    fi
+
+    shift
+
+    while [ -n "$1" ]
+    do
+        case $1 in
+            --sha256=*)
+                FETCH_OUTPUT_FILE_SHA256=$(getvalue "$1")
+                ;;
+            --output-dir=*)
+                FETCH_OUTPUT_DIR=$(getvalue "$1")
+                if [ -z "$FETCH_OUTPUT_DIR" ] ; then
+                    die "--output-dir argument's value must be not empty."
+                fi
+                ;;
+            --output-file=*)
+                FETCH_OUTPUT_FILE_PATH=$(getvalue "$1")
+                if [ -z "$FETCH_OUTPUT_FILE_PATH" ] ; then
+                    die "--output-file argument's value must be not empty."
+                fi
+                ;;
+        esac
+        shift
+    done
+
+    if [ -z "$FETCH_OUTPUT_DIR" ] ; then
+        FETCH_OUTPUT_DIR="$PWD"
+    fi
+
+    if [ -z "$FETCH_OUTPUT_FILE_PATH" ] ; then
+        FETCH_OUTPUT_FILE_PATH="$FETCH_OUTPUT_DIR/$(basename "$FETCH_URL")"
+    else
+        case $FETCH_OUTPUT_FILE_PATH in
+            /*) ;;
+            \~*)FETCH_OUTPUT_FILE_PATH="${HOME}$(printf "$FETCH_OUTPUT_FILE_PATH" | awk '{print(substr($0, 1))}')" ;;
+            *)  FETCH_OUTPUT_FILE_PATH="$FETCH_OUTPUT_DIR/$FETCH_OUTPUT_FILE_PATH" ;;
+        esac
+    fi
+    
+    echo
+    info "FETCH_OUTPUT_FILE_PATH   = $FETCH_OUTPUT_FILE_PATH"
+    info "FETCH_OUTPUT_FILE_SHA256 = $FETCH_OUTPUT_FILE_SHA256"
+    
+    if [ -f "$FETCH_OUTPUT_FILE_PATH" ] ; then
+        if [ -n "$FETCH_OUTPUT_FILE_SHA256" ] && is_sha256sum_match "$FETCH_OUTPUT_FILE_PATH" "$FETCH_OUTPUT_FILE_SHA256" ; then
+            success "$FETCH_OUTPUT_FILE_PATH is already downloaded."
         else
-            rm "$SRC_FILE_PATH" && fetch_internal
+            rm "$FETCH_OUTPUT_FILE_PATH" && fetch_via_tools
         fi
     else
-        fetch_internal
+        fetch_via_tools
     fi
+}
+
+fetch_config_url() {
+    echo "http://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.$1;hb=HEAD"
+}
+
+fetch_config_xx() {
+    if [ -z "$2" ] ; then
+        fetch $(fetch_config_url $1) --output-file=config.$1
+    else
+        fetch $(fetch_config_url $1) --output-file=config.$1 --output-dir=$2
+    fi
+}
+
+fetch_config_sub() {
+    fetch_config_xx sub $1
+}
+
+fetch_config_guess() {
+    fetch_config_xx guess $1
 }
 
 fetch_a_package() {
     load_formula_of_a_package "$1"
-    fetch_if_needed
+    fetch "$url" --sha256="$sha256" --output-dir="$DIR_DOWNLOAD"
 }
 
 uncompress() {
-    case "$2" in
-        zip) unzip "$1";;
-        xz|gz|bz2) tar xf "$1" --strip-components 1;;
-        *) false;;
+    case $1 in
+        *.zip)
+            unzip "$1";;
+        *.xz|*.gz|*.bz2|*.tgz|*.txz)
+            tar xf "$1" --strip-components 1;;
+        *)  die "$1 : extension isn't recognized. the supported extensions are .zip .xz .gz .bz2 .tgz .txz";;
     esac
 }
 
+gen_system2_call() {
+    if [ -z "$1" ] ; then
+        SYSTEM2_CALL_DIR="$PWD"
+    else
+        SYSTEM2_CALL_DIR="$1"
+    fi
+
+    cat > "$SYSTEM2_CALL_DIR/system2.c" <<EOF
+#ifndef SYSTEM2_C
+#define SYSTEM2_C
+#include <stdlib.h>
+#include <unistd.h>
+#include <spawn.h>
+#include <sys/wait.h>
+
+extern char **environ;
+
+int system2(char *cmd) {
+  char const *argv[] = {"sh", "-c", cmd, NULL};
+
+  pid_t pid;
+  int status;
+  status = posix_spawn(&pid, "/bin/sh", NULL, NULL, argv, environ);
+  if (0 == status) {
+      return waitpid(pid, &status, 0);
+  }
+  return status;
+}
+#endif
+EOF
+}
+
 is_target_package_platform_arch_installed() {
+    TARGET_PLATFORM=$(get_target_platform_by_device false)
     for TARGET_ARCH in $TARGET_ARCH_LIST
     do
         is_package_platform_arch_installed "$TARGET_PACKAGE" "$TARGET_PLATFORM" "$TARGET_ARCH" || return 1
     done
+    
+    [ "$HAS_SIMULATOR" = 'true' ] && {
+        TARGET_PLATFORM=$(get_target_platform_by_device true)
+        for TARGET_ARCH in i386 x86_64
+        do
+            is_package_platform_arch_installed "$TARGET_PACKAGE" "$TARGET_PLATFORM" "$TARGET_ARCH" || return 1
+        done
+    }
 }
 
 install_packages() {
@@ -251,31 +376,32 @@ install_packages() {
         get_dependencies_of_a_package "$TARGET_PACKAGE"
     done
     
-    for TARGET_PACKAGE in $DEPENDENCIES $TARGET_PACKAGE_LIST
+    for TARGET_PACKAGE in $DEPENDENCY_PACKAGE_LIST $TARGET_PACKAGE_LIST
     do
-        is_target_package_platform_arch_installed &&
-        success "$TARGET_PACKAGE is already installed." &&
-        continue
-        install_a_package "$TARGET_PACKAGE"
+        if is_target_package_platform_arch_installed ; then
+            success "$TARGET_PACKAGE is already installed."
+        else
+            install_a_package "$TARGET_PACKAGE"
+        fi
     done
 }
 
 install_a_package() {
     fetch_a_package "$1"
     
-    is_sha256sum_match "$SRC_FILE_PATH" "$sha256" || die_from_sha256sum_mismatch 
-     
+    is_sha256sum_match "$FETCH_OUTPUT_FILE_PATH" "$sha256" || die_from_sha256sum_mismatch 
+    
     if DIR_SRC=$(mktemp -d) ; then
         cd "$DIR_SRC" || exit 1
     else
         die "create DIR_SRC directory failed."
     fi
      
-    info "uncompressing $SRC_FILE_PATH"
-    if uncompress "$SRC_FILE_PATH" "$SRC_FILE_NAME_EXT" ; then
+    info "uncompressing $FETCH_OUTPUT_FILE_PATH"
+    if uncompress "$FETCH_OUTPUT_FILE_PATH" ; then
         success "uncompressed in $DIR_SRC"
     else
-        die "uncompress $SRC_FILE_PATH failed."
+        die "uncompress $FETCH_OUTPUT_FILE_PATH failed."
     fi
      
     if command -v prepare > /dev/null ; then 
@@ -291,25 +417,21 @@ install_a_package() {
 }
 
 install_a_package_for_real_device_and_simulator() {
-    install_a_package_for_all_target_arch "$1"
+    unset FOR_SIMULATOR
     
-    [ "$SIMULATOR" = 'true' ] || return 0
-    
-    case $TARGET_PLATFORM in
-        iPhoneOS) TARGET_PLATFORM='iPhoneSimulator';;
-        WatchOS)  TARGET_PLATFORM='WatchSimulator';;
-        AppleTVOS)TARGET_PLATFORM='AppleTVSimulator';;
-    esac
-    
-    TARGET_ARCH_LIST='i386 x86_64'
-    install_a_package_for_all_target_arch "$1"
-}
-
-install_a_package_for_all_target_arch() {
     for TARGET_ARCH in $TARGET_ARCH_LIST
     do
         install_a_package_for_one_target_arch "$1"
     done
+     
+    [ "$HAS_SIMULATOR" = 'true' ] && {
+        FOR_SIMULATOR=true 
+        
+        for TARGET_ARCH in i386 x86_64
+        do
+            install_a_package_for_one_target_arch "$1"
+        done
+    }
 }
 
 install_a_package_for_one_target_arch() {
@@ -321,7 +443,7 @@ install_a_package_for_one_target_arch() {
         cat > "$DIR_INSTALL_PREFIX/installed" <<EOF
 installed_time=$TIMESTAMP_UNIX
 installed_pkg_version=$version
-installed_min_version=$PLATFORM_MIN_VERSION
+installed_min_version=$TARGET_PLATFORM_MIN_VERSION
 installed_xc_version='$XCODE_VERSION'
 EOF
     else
@@ -707,7 +829,7 @@ get_dependencies_of_a_package() {
     for dependencyPkgName in $(get_direct_dependencies_of_a_package "$1")
     do
         is_package_available "$dependencyPkgName" || die_from_package_is_not_available "$dependencyPkgName"
-        DEPENDENCIES="$dependencyPkgName $DEPENDENCIES"
+        DEPENDENCY_PACKAGE_LIST="$dependencyPkgName $DEPENDENCY_PACKAGE_LIST"
         get_dependencies_of_a_package "$dependencyPkgName"
     done
 }
@@ -794,9 +916,31 @@ get_support_device_min_version() {
     fi
 }
 
+get_target_platform_by_device() {
+    if [ "$1" = 'true' ] ; then
+        case $TARGET_DEVICE in
+            phone) echo iPhoneSimulator;;
+            watch) echo WatchSimulator;;
+            tv)    echo AppleTVSimulator;;
+            mac)   die "mac no simulator";;
+            *)     die "device must be one of tv|watch|phone|mac";;
+        esac
+    else 
+        case $TARGET_DEVICE in
+            phone) echo iPhoneOS;;
+            watch) echo WatchOS;;
+            tv)    echo AppleTVOS;;
+            mac)   echo MacOSX;;
+            *)     die "device must be one of tv|watch|phone|mac";;
+        esac
+    fi
+}
+
 make_env() {
     is_package_available "$1" || die_from_package_is_not_available "$1"
-     
+    
+    TARGET_PLATFORM=$(get_target_platform_by_device "$FOR_SIMULATOR")
+    
     if [ 'arm64' = "$TARGET_ARCH" ] ; then
         TARGET_HOST='arm-ios-darwin'
     else
@@ -856,7 +1000,7 @@ make_env() {
     info "           STRIP = $STRIP"
     
     platformLower="$(printf "$TARGET_PLATFORM" | awk '{print(tolower($0))}')"
-    CFLAGS="-arch $TARGET_ARCH -isysroot $SYSROOT -m${platformLower}-version-min=$PLATFORM_MIN_VERSION -Os -pipe -Qunused-arguments"
+    CFLAGS="-arch $TARGET_ARCH -isysroot $SYSROOT -m${platformLower}-version-min=$TARGET_PLATFORM_MIN_VERSION -Os -pipe -Qunused-arguments"
     [ "$VERBOSE" = 'true' ] && CFLAGS="$CFLAGS -v"
     export CFLAGS="$CFLAGS"
     export CXXFLAGS="$CFLAGS"
@@ -880,7 +1024,7 @@ make_env() {
     
     LDFLAGS="-arch $TARGET_ARCH -isysroot $SYSROOT"
      
-    for item in $DEPENDENCIES
+    for item in $DEPENDENCY_PACKAGE_LIST
     do
         item2=$(printf "$item" | tr '-' '_')
         ITEM_DIR_INSTALL_PREFIX="$DIR_PKG/$item/$TARGET_PLATFORM/$TARGET_ARCH"
@@ -916,10 +1060,16 @@ make_env() {
         mkdir -p "$DIR_BUILD"
 
         cat > "$CMAKE_TOOLCHAIN_FILE" <<EOF
-set(CMAKE_C_COMPILER "$CC")
-set(CMAKE_CXX_COMPILER "$CXX")
+set(CMAKE_SYSTEM_NAME Darwin)
+set(CMAKE_SYSTEM_PROCESSOR $TARGET_ARCH)
 
+set(CMAKE_ASM_COMPILER $AS)
+set(CMAKE_ASM_FLAGS "-arch $TARGET_ARCH")
+
+set(CMAKE_C_COMPILER "$CC")
 set(CMAKE_C_FLAGS "$CFLAGS $CPPFLAGS")
+
+set(CMAKE_CXX_COMPILER "$CXX")
 set(CMAKE_CXX_FLAGS "$CXXFLAGS $CPPFLAGS")
 
 set(CMAKE_AR "$AR")
@@ -1021,20 +1171,20 @@ parse_params() {
     unset TARGET_HOST
     unset TARGET_DEVICE
     unset TARGET_PLATFORM
-    unset PLATFORM_MIN_VERSION
-    unset SIMULATOR
+    unset TARGET_PLATFORM_MIN_VERSION
+    
     unset VERBOSE
     unset COMMAND
     
+    unset HAS_SIMULATOR
+    unset FOR_SIMULATOR
+
     COMMAND="$1"
     TARGET_DEVICE="$2"
     
     case $TARGET_DEVICE in
-        phone) TARGET_PLATFORM='iPhoneOS';;
-        watch) TARGET_PLATFORM='WatchOS';;
-        tv)    TARGET_PLATFORM='AppleTVOS';;
-        mac)   TARGET_PLATFORM='MacOSX';;
-        *)     die "device must be one of tv|watch|phone|mac";;
+        phone|watch|tv|mac);;
+        *)  die "device must be one of tv|watch|phone|mac";;
     esac
     
     shift 2
@@ -1043,13 +1193,13 @@ parse_params() {
     do
         case $1 in
             --min-version=*)
-                PLATFORM_MIN_VERSION=$(getvalue "$1")
+                TARGET_PLATFORM_MIN_VERSION=$(getvalue "$1")
                 ;;
             --simulator)
                 if [ "$TARGET_DEVICE" = 'mac' ] ; then
                     warn "mac no simulator."
                 else
-                    SIMULATOR=true
+                    HAS_SIMULATOR=true
                 fi
                 ;;
             --arch=*)
@@ -1092,9 +1242,9 @@ parse_params() {
         shift
     done
      
-    [ -z "$PLATFORM_MIN_VERSION" ] && {
-        PLATFORM_MIN_VERSION=$(get_support_device_min_version "$TARGET_DEVICE")
-        warn "--min-version=VALUE argument is not specified. use default value [$PLATFORM_MIN_VERSION]."
+    [ -z "$TARGET_PLATFORM_MIN_VERSION" ] && {
+        TARGET_PLATFORM_MIN_VERSION=$(get_support_device_min_version "$TARGET_DEVICE")
+        warn "--min-version=VALUE argument is not specified. use default value [$TARGET_PLATFORM_MIN_VERSION]."
     }
     
     if [ "$COMMAND" = 'env' ] ; then
