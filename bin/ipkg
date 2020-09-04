@@ -1043,7 +1043,12 @@ make_env() {
     
     platformLower="$(printf "$TARGET_PLATFORM" | awk '{print(tolower($0))}')"
     CFLAGS="-arch $TARGET_ARCH -isysroot $SYSROOT -m${platformLower}-version-min=$TARGET_PLATFORM_MIN_VERSION -Os -pipe -Qunused-arguments"
-    [ "$VERBOSE" = 'true' ] && CFLAGS="$CFLAGS -v"
+
+    [ "$VERBOSE" = 'true' ] && {
+        export CFLAGS="$CFLAGS -v"
+        export PKG_CONFIG_DEBUG_SPEW=set
+    }
+    
     export CFLAGS="$CFLAGS"
     export CXXFLAGS="$CFLAGS"
     
@@ -1065,10 +1070,12 @@ make_env() {
     esac
     
     LDFLAGS="-arch $TARGET_ARCH -isysroot $SYSROOT"
+    PKG_CONFIG_PATH=''
      
     for item in $DEPENDENCY_PACKAGE_LIST
     do
         item2=$(printf "$item" | tr '-' '_')
+
         ITEM_DIR_INSTALL_PREFIX="$DIR_PKG/$item/$TARGET_PLATFORM/$TARGET_ARCH"
         ITEM_DIR_INCLUDE="$ITEM_DIR_INSTALL_PREFIX/include"
         ITEM_DIR_LIB="$ITEM_DIR_INSTALL_PREFIX/lib"
@@ -1076,13 +1083,16 @@ make_env() {
         eval "${item2}_DIR_INSTALL_PREFIX='$ITEM_DIR_INSTALL_PREFIX'"
         eval "${item2}_DIR_INCLUDE='$ITEM_DIR_INCLUDE'"
         eval "${item2}_DIR_LIB='$ITEM_DIR_LIB'"
+        
         CPPFLAGS="-I$ITEM_DIR_INCLUDE $CPPFLAGS"
         LDFLAGS="-L$ITEM_DIR_LIB $LDFLAGS"
+        PKG_CONFIG_PATH="$PKG_CONFIG_PATH:$ITEM_DIR_LIB/pkgconfig"
     done
     
     export CPPFLAGS="$CPPFLAGS -Qunused-arguments"
     export LDFLAGS="$LDFLAGS"
-     
+    export PKG_CONFIG_PATH="$PKG_CONFIG_PATH"
+    
     info "        CFLAGS   = $CFLAGS"
     info "        CXXFLAGS = $CXXFLAGS"
     info "        CPPFLAGS = $CPPFLAGS"
@@ -1092,6 +1102,7 @@ make_env() {
     info "       DIR_BUILD = $DIR_BUILD"
     info "DIR_INSTALL_PACKAGE = $DIR_INSTALL_PACKAGE"
     info "DIR_INSTALL_PREFIX  = $DIR_INSTALL_PREFIX"
+    info "PKG_CONFIG_PATH = $PKG_CONFIG_PATH"
      
     [ -z "$DIR_BUILD" ] || {
         CMAKE_TOOLCHAIN_FILE="$DIR_BUILD/toolchain.cmake"
