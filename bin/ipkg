@@ -242,7 +242,8 @@ fetch_config_xx() {
 }
 
 fetch_config_sub() {
-    fetch_config_xx sub $1
+    fetch_config_xx sub $1 &&
+    sed_in_place 's/arm64-*/arm64-*|arm64e-*/g' "$FETCH_OUTPUT_FILE_PATH"
 }
 
 fetch_config_guess() {
@@ -767,16 +768,13 @@ load_installed_info_of_a_package() {
 
 ########################################################################
 
-gen_system2_call() {
-    if [ -z "$1" ] ; then
-        SYSTEM2_CALL_DIR="$PWD"
-    else
-        SYSTEM2_CALL_DIR="$1"
-    fi
+gen_c_file_stub_system() {
+    mkdir -p "$DIR_SRC/$TIMESTAMP_UNIX"
+    C_FILE_STUB_SYSTEM="$DIR_SRC/$TIMESTAMP_UNIX/stub-system.c"
+    cat > "$C_FILE_STUB_SYSTEM" <<EOF
+#ifndef SYSTEM_STUB_C
+#define SYSTEM_STUB_C
 
-    cat > "$SYSTEM2_CALL_DIR/system2.c" <<EOF
-#ifndef SYSTEM2_C
-#define SYSTEM2_C
 #include <stdlib.h>
 #include <unistd.h>
 #include <spawn.h>
@@ -784,7 +782,11 @@ gen_system2_call() {
 
 extern char **environ;
 
-int system2(char *cmd) {
+#ifdef __cplusplus
+    extern "C" {
+#endif
+
+int stub_system(char *cmd) {
   char const *argv[] = {"sh", "-c", cmd, NULL};
 
   pid_t pid;
@@ -795,6 +797,11 @@ int system2(char *cmd) {
   }
   return status;
 }
+
+#ifdef __cplusplus
+    }
+#endif
+
 #endif
 EOF
 }
@@ -1052,7 +1059,7 @@ make_env() {
     export CFLAGS="$CFLAGS"
     export CXXFLAGS="$CFLAGS"
     
-    CPPFLAGS="-isysroot $SYSROOT"
+    CPPFLAGS="-isysroot $SYSROOT -Qunused-arguments"
     
     case $TARGET_ARCH in
         armv7*)
@@ -1071,7 +1078,7 @@ make_env() {
     
     LDFLAGS="-arch $TARGET_ARCH -isysroot $SYSROOT"
     PKG_CONFIG_PATH=''
-     
+    
     for item in $DEPENDENCY_PACKAGE_LIST
     do
         item2=$(printf "$item" | tr '-' '_')
@@ -1089,7 +1096,7 @@ make_env() {
         PKG_CONFIG_PATH="$PKG_CONFIG_PATH:$ITEM_DIR_LIB/pkgconfig"
     done
     
-    export CPPFLAGS="$CPPFLAGS -Qunused-arguments"
+    export CPPFLAGS="$CPPFLAGS"
     export LDFLAGS="$LDFLAGS"
     export PKG_CONFIG_PATH="$PKG_CONFIG_PATH"
     
