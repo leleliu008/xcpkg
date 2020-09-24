@@ -747,8 +747,6 @@ info_a_package() {
                 echo "using xcode : $installed_xc_version"
             done
         done
-    else
-        echo "installed : ${COLOR_RED}✘${COLOR_OFF}"
     fi
 }
 
@@ -1091,7 +1089,7 @@ make_env() {
     
       CFLAGS="-isysroot $SYSROOT -Qunused-arguments -arch $TARGET_ARCH -Os -pipe -m${platformLower}-version-min=$TARGET_PLATFORM_MIN_VERSION"
     CPPFLAGS="-isysroot $SYSROOT -Qunused-arguments"
-     LDFLAGS="-isysroot $SYSROOT -arch $TARGET_ARCH"
+     LDFLAGS="-isysroot $SYSROOT -arch $TARGET_ARCH -m${platformLower}-version-min=$TARGET_PLATFORM_MIN_VERSION"
     PKG_CONFIG_PATH=''
 
     case $TARGET_ARCH in
@@ -1144,6 +1142,7 @@ make_env() {
     export CPPFLAGS="$CPPFLAGS"
     export LDFLAGS="$LDFLAGS"
     export PKG_CONFIG_PATH="$PKG_CONFIG_PATH"
+    export PKG_CONFIG_LIBDIR="$DIR_PKG"
     
     info "        CFLAGS   = $CFLAGS"
     info "        CXXFLAGS = $CXXFLAGS"
@@ -1154,7 +1153,8 @@ make_env() {
     info "       DIR_BUILD = $DIR_BUILD"
     info "DIR_INSTALL_PACKAGE = $DIR_INSTALL_PACKAGE"
     info "DIR_INSTALL_PREFIX  = $DIR_INSTALL_PREFIX"
-    info "PKG_CONFIG_PATH = $PKG_CONFIG_PATH"
+    info "PKG_CONFIG_PATH     = $PKG_CONFIG_PATH"
+    info "PKG_CONFIG_LIBDIR   = $PKG_CONFIG_LIBDIR"
 
     info "-------------------------------------------------------"
 }
