@@ -40,11 +40,10 @@ I have provide a zsh-completion script for `ipkg`. when you've typed `ipkg` then
         
 *   install packages
         
-        ipkg install phone curl
-        ipkg install phone curl bzip2 --min-version=8.0 --archs=armv7,armv7s,arm64,arm64e --simulator -v -x
-        ipkg install watch curl bzip2 --min-version=5.0 --archs=armv7k,arm64_32 --simulator -v -x
-        ipkg install tv    curl bzip2 --min-version=9.0 --simulator -v -x
-        ipkg install mac   curl bzip2 --min-version=10.13
+        ipkg install curl
+        ipkg install curl bzip2
+        ipkg install curl bzip2 --rule=xx
+        ipkg install curl bzip2 -v --xtrace --verbose --keep-working-dir
         
 *   reinstall packages
         
@@ -60,22 +59,68 @@ I have provide a zsh-completion script for `ipkg`. when you've typed `ipkg` then
         
         ipkg upgrade curl
         ipkg upgrade curl bzip2 -v
+        
+*   view the formula of a package
 
-*   view the formula source code of a package
+        ipkg formula view curl
         
-        ipkg cat curl
+*   edit the formula of a package
+
+        ipkg formula edit curl
         
-*   edit the formula source code of a package
+*   create a formula
+
+        ipkg formula create curl
         
-        ipkg edit curl
+*   delete a formula
+
+        ipkg formula delete curl
         
-*   list the supported target devices
+*   rename a formula to new name
+
+        ipkg formula rename curl curl7
         
-        ipkg list devices
+*   view a rule
+
+        ipkg rule view curl
         
-*   list the supported target platforms
+*   edit a rule
+
+        ipkg rule edit curl
+        
+*   create a rule
+
+        ipkg rule create xx
+        
+*   delete a formula
+
+        ipkg rule delete xx
+        
+*   rename a rule to new name
+
+        ipkg rule rename xx yy
+        
+*   list rules
+        
+        ipkg rule list
+         
+*   list the supported platforms
         
         ipkg list platforms
+        
+*   list the supported archs
+
+        ipkg list archs
+        ipkg list archs iPhoneOS
+        
+*   list the supported abis
+
+        ipkg list abis
+        
+*   list the supported versions
+
+        ipkg list versions
+        ipkg list versions iPhoneOS
         
 *   list the available packages
         
@@ -106,13 +151,6 @@ I have provide a zsh-completion script for `ipkg`. when you've typed `ipkg` then
         
         ipkg tree curl
         
-*   print the environment variable settings
-        
-        ipkg env curl --device=phone --min-version=8.0   --arch=armv7s
-        ipkg env curl --device=watch --min-version=6.2   --arch=armv7k
-        ipkg env curl --device=tv    --min-version=8.0   --arch=arm64
-        ipkg env curl --device=mac   --min-version=10.14 --arch=x86_64
-
 *   update the [formula repository](https://github.com/leleliu008/ipkg-formula)
         
         ipkg update
@@ -123,8 +161,8 @@ I have provide a zsh-completion script for `ipkg`. when you've typed `ipkg` then
         
 *   print the logs of a installed package
         
-        ipkg logs curl iPhoneOS armv7s
-        ipkg logs curl iPhoneOS arm64
+        ipkg logs curl iPhoneOS/armv7s
+        ipkg logs curl iPhoneOS/arm64
         
 *   pack a installed package
         

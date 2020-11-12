@@ -11,9 +11,8 @@ _commands=(
     'list:list the target platforms, target CPU arch, available, installed and outdated packages.'
     'tree:list contents of a installed package directory in a tree-like format.'
     'info:print the basic infomation of packages.'
-    'cat:view the formula source code of a package.'
-    'edit:edit the formula source code of a package.'
-    'env:print the environment variable settings.'
+    'rule:view, edit a rule or create a new rule.'
+    'formula:view,edit the formula of a package.'
     'install:install packages.'
     'reinstall:reinstall packages.'
     'uninstall:uninstall packages.'
@@ -27,14 +26,14 @@ _commands=(
     'logs:print the logs of a installed package.'
     'is:check something. easy to write script.'
     'create-framework:create framework.'
-    'min-version:get the min-version of the support device.'
+    'min-version:get the min-version of the specified platform, or all platforms.'
 )
 
 _list=(
-    'devices:list the supportted target devices, platforms, archs.'
-    'versions:list the supportted versions of target devices.'
-    'platforms:list the supportted platforms of target devices.'
-    'archs:list the supportted archs of target devices.'
+    'rules:list the rules.'
+    'versions:list the supportted versions of target platforms.'
+    'platforms:list the supportted platforms of target platforms.'
+    'archs:list the supportted archs of target platforms.'
     'available:list the available packages.'
     'installed:list the installed packages.'
     'outdated:list the installed packages which can be upgraded.'
@@ -43,9 +42,6 @@ _list=(
 function _ipkg_list() {
     _describe 'list' _list
 }
-
-function _ipkg_list_option() {
-    }
 
 function _ipkg_commands() {
     _describe 'command' _commands
@@ -69,34 +65,6 @@ function _ipkg_outdated_packages() {
     _describe 'outdated-packages' _outdated_packages
 }
 
-function _ipkg_get_arch_list_by_platform() {
-    case $3 in
-        AppleTVOS) echo arm64;;
-        WatchOS)   echo arm64_32 armv7k;;
-        iPhoneOS)  echo arm64e arm64 armv7s armv7;;
-        MacOSX)    echo x86_64;;
-        *Simulator)echo x86_64 i386;;
-    esac
-}
-
-function _ipkg_get_arch_list_by_device() {
-    case $2 in
-        mac)   echo 86_64;;
-        tv)    echo arm64;;
-        watch) echo arm64_32 armv7k;;
-        phone) echo arm64e arm64 armv7s armv7;;
-    esac
-}
-
-function _ipkg_get_arch_values_by_device() {
-    case $6 in
-        mac)   _arguments ':arch:(x86_64)';;
-        tv)    _arguments ':arch:(arm64)';;
-        watch) _values -s , arm64_32 armv7k;;
-        phone) _values -s , arm64e arm64 armv7s armv7;;
-    esac
-}
-
 function _ipkg() {
     local context state state_descr line
     typeset -A opt_args
@@ -118,9 +86,33 @@ function _ipkg() {
                                 available)
                                     _arguments '-q[quiet mode. do not report error log]';;
                                 archs|versions)
-                                    _arguments ':device:($(ipkg list devices))';;
-                                devices)
+                                    _arguments ':platform:($(ipkg list platforms))';;
+                                rules)
                                     _arguments '--table[show more infomation]';;
+                            esac
+                    esac
+                    ;;
+                formula)
+                    _arguments \
+                        ':action:(create delete rename view edit list)' \
+                        '*:: :->action'
+                    case $state in
+                        action)
+                            case $words[1] in
+                                delete|rename|view|edit)
+                                    _arguments ':package-name:_ipkg_available_packages'
+                            esac
+                    esac
+                    ;;
+                rule)
+                    _arguments \
+                        ':action:(create delete rename view edit list)' \
+                        '*:: :->action'
+                    case $state in
+                        action)
+                            case $words[1] in
+                                delete|rename|view|edit)
+                                    _arguments ':package-name:($(ipkg list rules))'
                             esac
                     esac
                     ;;
@@ -130,7 +122,7 @@ function _ipkg() {
                 info)
                     _arguments '*:package-name:_ipkg_available_packages'
                     ;;
-                cat|edit|fetch|homepage)
+                fetch|homepage)
                     _arguments ':package-name:_ipkg_available_packages'
                     ;;
                 prefix|pack|create-framework)
@@ -139,39 +131,24 @@ function _ipkg() {
                 logs)
                     _arguments \
                         '1:package-name:_ipkg_installed_packages' \
-                        '2:platform:($(ipkg list platforms))' \
-                        '3:arch:($(_ipkg_get_arch_list_by_platform $words))'
+                        '2:abi:($(ipkg list abis $words[2]))' \
                     ;;
                 min-version)
                     _arguments \
-                        ':device:($(ipkg list devices))'
-                    ;;
-                env)
-                    _arguments \
-                        '1:device:($(ipkg list devices))' \
-                        '2:package-name:_ipkg_available_packages' \
-                        '--min-version=-[set min-version of target device]:min-version:($(ipkg list versions $words[2]))' \
-                        '--arch=-[set target CPU arch]:arch:($(_ipkg_get_arch_list_by_device $words))' \
-                        '(--verbose -v)'{--verbose,-v}'[verbose output log]' \
-                        '(--xtrace -x)'{--xtrace,-x}'[trace execution of commands]'
+                        ':platform:($(ipkg list platforms))'
                     ;;
                 install)
                     _arguments \
-                        '1:device:($(ipkg list devices))' \
-                        '2:package-name:_ipkg_available_packages' \
-                        '--min-version=-[set min-version of target device]:min-version:($(ipkg list versions $words[2]))' \
-                        '--archs=-[set target CPU arch]:archs:_ipkg_get_arch_values_by_device $words' \
-                        '--simulator[also build for simulator]' \
+                        '1:package-name:_ipkg_available_packages' \
+                        '--rule=-[rule to install]:rule:($(ipkg list rules))' \
+                        '--dry-run[dry-run]' \
+                        '--keep-working-dir[do not delete working-dir even if installed success]' \
                         '(--verbose -v)'{--verbose,-v}'[verbose output log]' \
                         '(--xtrace -x)'{--xtrace,-x}'[trace execution of commands]'
                     ;;
                 reinstall)
                     _arguments \
-                        '1:device:($(ipkg list devices))' \
-                        '2:package-name:_ipkg_installed_packages' \
-                        '--min-version=-[set min-version of target device]:min-version:($(ipkg list versions $words[2]))' \
-                        '--archs=-[set target CPU arch]:archs:_ipkg_get_arch_values_by_device $words' \
-                        '--simulator[also build for simulator]' \
+                        '1:package-name:_ipkg_installed_packages' \
                         '(--verbose -v)'{--verbose,-v}'[verbose output log]' \
                         '(--xtrace -x)'{--xtrace,-x}'[trace execution of commands]'
                     ;;
