@@ -213,59 +213,12 @@ die_if_sha256sum_mismatch() {
     is_sha256sum_match "$1" "$2" || die "sha256sum mismatch."
 }
 
-unzip() {
-    info "uncompressing $1"
-    
-    if command unzip "$1" ; then
-        success "uncompressed in $2"
-    else
-        die "uncompress $1 failed!"
-    fi
-}
-
-untar() {
-    info "uncompressing $1"
-    
-    if tar xf "$1" --strip-components 1 ; then
-        success "uncompressed in $2"
-    else
-        die "uncompress $1 failed!"
-    fi
-}
-
-uncompress() {
-    case $1 in
-        *.zip)
-            unzip "$1" "$2" ;;
-        *.tar.xz|*.tar.gz|*.tar.bz2|*.tgz|*.txz)
-            untar "$1" "$2" ;;
-        *)  die "$1 : extension isn't recognized. the supported extensions are .zip .tar.xz .tar.gz .tar.bz2 .tgz .txz"
-    esac
-}
-
-fetch_config_url() {
-    echo "http://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.$1;hb=HEAD"
-}
-
-fetch_config_xx() {
-    if [ -z "$2" ] ; then
-        fetch $(fetch_config_url $1) --output-name=config.$1
-    else
-        fetch $(fetch_config_url $1) --output-name=config.$1 --output-dir=$2
-    fi
-}
-
-fetch_config_sub() {
-    fetch_config_xx sub $1 && sed_in_place 's/arm64-*/arm64-*|arm64e-*/g' "$FETCH_OUTPUT_FILE_PATH"
-}
-
-fetch_config_guess() {
-    fetch_config_xx guess $1
-}
-
 fetch_a_package() {
-    die_if_load_formula_of_a_package_failed "$1"
-    fetch "$url" --output-dir="$MY_CACHED_DIR" --output-name="$FETCH_OUTPUT_NAME" --sha256="$sha256"
+    die_if_load_formula_failed "$1"
+    case $PACKAGE_URL in
+        dir://*) ;;
+              *) fetch "$PACKAGE_URL" --output-dir="$MY_CACHED_DIR" --output-name="$FETCH_OUTPUT_NAME" --sha256="$PACKAGE_SHA256"
+    esac
 }
 
 die_if_file_is_not_exist() {
@@ -338,7 +291,7 @@ is_package_installed() {
 }
 
 is_package__outdated() {
-    die_if_load_formula_of_a_package_failed "$1"
+    die_if_load_formula_failed "$1"
 
     [ -d "$MY_INSTALL_DIR/$1" ]              || die_from_package_is_not_installed "$1"
     [ -f "$MY_INSTALL_DIR/$1/manifest.txt" ] || die_from_package_is_not_installed "$1"
@@ -349,8 +302,8 @@ is_package__outdated() {
         [ -d "$MY_INSTALL_DIR/$1/$ABI/log" ]                   || die_from_package_is_not_installed "$1"
         [ -f "$MY_INSTALL_DIR/$1/$ABI/log/installed.log.txt" ] || die_from_package_is_not_installed "$1"
         die_if_load_installed_log_failed "$1" "$ABI"
-        [ "$version" = "$installed_pkg_version" ] && return 1
-        [ "$version" = $(printf "$version\n$installed_pkg_version" | sort --version-sort --reverse | head -n 1) ]
+        [ "$PACKAGE_VERSION" = "$installed_pkg_version" ] && return 1
+        [ "$PACKAGE_VERSION" = $(printf "$PACKAGE_VERSION\n$installed_pkg_version" | sort --version-sort --reverse | head -n 1) ]
     done
 }
 
@@ -482,21 +435,24 @@ create_a_formula() {
     die_if_package_is_already_exist "$1"
 
     cat > "$MY_FORMULA_DIR/$1.sh" <<EOF
-summary="Summary of this package"
+summary  "Summary of this package"
 
-homepage="https://www.xx.com"
+homepage "https://www.xx.com"
 
 # the source code download url of this package. the value of url must end with one of .git .zip .tar.xz .tar.gz .tar.bz2 .tar.tgz .tar.txz
-url="https://www.xx.com/pkgname-x.y.z.tar.gz"
+url      "https://www.xx.com/pkgname-x.y.z.tar.gz"
 
 # the version of this package. If this variable is not declared, it will be calculated from url.
-#version=x.y.z
+#version "x.y.z"
 
 # the sha256sum of source code. If the value of url end with .git, this variable is optional, otherwise, this variable must be declared.
-sha256="c3e5e9fdd5004dcb542feda5ee4f0ff0744628baf8ed2dd5d66f8ca1197cb1a1"
+sha256   "c3e5e9fdd5004dcb542feda5ee4f0ff0744628baf8ed2dd5d66f8ca1197cb1a1"
 
-# the dependencies of this package. If specify multiple values, separate them with spaces.
-#dependencies="a b c"
+# the required commands of this package when installing. If specify multiple values, separate them with spaces.
+#requirements "a b c"
+
+# the packages are depended by this package. If specify multiple values, separate them with spaces.
+#dependencies "a b c"
 
 prepare() {
     :
@@ -541,28 +497,28 @@ update_formula_repository() {
 }
 
 upgrade_packages() {
-    check_requirements
+    check_prerequisites
     parse_arguments "$@"
 
-    [ -z "$TO_BE_INSTALLED_PACKAGE_LIST" ] && TO_BE_INSTALLED_PACKAGE_LIST=$(list__outdated_packages)
-    [ -z "$TO_BE_INSTALLED_PACKAGE_LIST" ] && return 0
+    [ -z "$USER_SPECIFIED_PACKAGE_LIST" ] && USER_SPECIFIED_PACKAGE_LIST=$(list__outdated_packages)
+    [ -z "$USER_SPECIFIED_PACKAGE_LIST" ] && return 0
 
     reinstall_packages
 }
 
 reinstall_packages() {
-    check_requirements
+    check_prerequisites
     parse_arguments "$@"
 
-    die_if_package_list_is_not_specified "$TO_BE_INSTALLED_PACKAGE_LIST"
+    die_if_package_list_is_not_specified "$USER_SPECIFIED_PACKAGE_LIST"
 
-    for packageName in $TO_BE_INSTALLED_PACKAGE_LIST
+    for packageName in $USER_SPECIFIED_PACKAGE_LIST
     do
         die_if_package_is_not_available "$packageName"
         die_if_package_is_not_installed "$packageName"
     done
     
-    for packageName in $TO_BE_INSTALLED_PACKAGE_LIST
+    for packageName in $USER_SPECIFIED_PACKAGE_LIST
     do
         {
             [ -d "$MY_BACKUP_DIR" ] || mkdir -p "$MY_BACKUP_DIR"
@@ -591,15 +547,15 @@ search_packages() {
 
 open_homepage_of_a_package() {
     if [ -z "$1" ] ; then
-        homepage="$MY_HOME_PAGE"
+        PACKAGE_HOMEPAGE="$MY_HOME_PAGE"
     else
-        die_if_load_formula_of_a_package_failed "$1"
+        die_if_load_formula_failed "$1"
     fi
     
     if command -v open > /dev/null ; then
-        open "$homepage"
+        open "$PACKAGE_HOMEPAGE"
     else
-        echo "$homepage"
+        echo "$PACKAGE_HOMEPAGE"
     fi
 }
 
@@ -624,16 +580,15 @@ logs_a_package() {
 
     for item in $(ls "$MY_INSTALL_DIR/$1/$2/log"/*.log.txt)
     do
-        case $item in
-            *.sh.log.txt|*/installed.log.txt)
-                bat -l bash "$item";;
-            *)
-                if [ "$VIEWER" = 'bat' ] ; then
-                    bat "$item"
-                else
-                    "$VIEWER" "$item"
-                fi
-        esac
+        if [ "$VIEWER" = 'bat' ] ; then
+            case $item in
+                *.sh.log.txt|*/installed.log.txt)
+                    bat -l bash "$item" ;;
+                *)  bat "$item"
+            esac
+        else
+            "$VIEWER" "$item"
+        fi
     done
 
     if [ "$VIEWER" != 'bat' ] ; then
@@ -726,7 +681,7 @@ pack_a_package() {
 }
 
 get_direct_dependency_package_list_of_a_package() {
-    grep '^dependencies=".*"' "$MY_FORMULA_DIR/$1.sh" | sed 's/dependencies="\(.*\)"/\1/'
+    grep '^\s*dependencies\s*".*"' "$MY_FORMULA_DIR/$1.sh" | sed 's/.*dependencies.*"\(.*\)"/\1/'
 }
 
 resolve_DEPENDENCY_PACKAGE_LIST_of_a_package() {
@@ -751,83 +706,296 @@ resolve_DEPENDENCY_PACKAGE_LIST_of_a_package() {
     done
 }
 
+__config_glob_installation_variables() {
+    if [ -z "$SHELL" ] ; then
+        SHELL=$(command -v zsh) ||
+        SHELL=$(command -v bash) ||
+        SHELL=$(command -v sh)
+    fi
+
+    if [ -z "$MAKE" ] ; then
+        MAKE=$(command -v gmake) ||
+        MAKE=$(command -v make)
+    fi
+
+    if [ -z "$NINJA" ] ; then
+        NINJA=$(command -v ninja) ||
+        NINJA=$(command -v ninja-build)
+    fi
+
+    if [ -z "$PKG_CONFIG" ] ; then
+        PKG_CONFIG=$(command -v pkg-config) ||
+        PKG_CONFIG=$(command -v pkgconfig) ||
+        PKG_CONFIG=$(command -v pkgconf)
+    fi
+
+    for item in $(echo "$PATH" | tr ':' ' ')
+    do
+        if [ -z "$CMAKE" ] ; then
+            if [ -f "$item/cmake" ] && [ -x "$item/cmake" ] ; then
+                CMAKE="$item/cmake"
+            fi
+        fi
+
+        if [ -z "$MESON" ] ; then
+            if [ -f "$item/meson" ] && [ -x "$item/meson" ] ; then
+                MESON="$item/meson"
+            fi
+        fi
+
+        if [ -n "$CMAKE" ] && [ -n "$MESON" ] ; then
+            break
+        fi
+    done
+
+    if [ -z "$CC" ] ; then
+        CC=$(command -v cc) ||
+        CC=$(command -v gcc) ||
+        CC=$(command -v clang)
+    fi
+
+    if [ -z "$CPP" ] ; then
+        CPP=$(command -v cpp)
+    fi
+
+    if [ -z "$CXX" ] ; then
+        CXX=$(command -v c++) ||
+        CXX=$(command -v g++) ||
+        CXX=$(command -v clang++)
+    fi
+
+    if [ -z "$AS" ] ; then
+        AS=$(command -v as)
+    fi
+
+    if [ -z "$LD" ] ; then
+        LD=$(command -v ld)
+    fi
+
+    if [ -z "$AR" ] ; then
+        AR=$(command -v ar)
+    fi
+
+    if [ -z "$RANLIB" ] ; then
+        RANLIB=$(command -v ranlib)
+    fi
+
+    if [ -z "$NM" ] ; then
+        NM=$(command -v nm)
+    fi
+
+    if [ -z "$STRIP" ] ; then
+        STRIP=$(command -v strip)
+    fi
+    
+    export CC_FOR_BUILD="$CC"
+    export CPP_FOR_BUILD="$CPP"
+    export CXX_FOR_BUILD="$CXX"
+    export AS_FOR_BUILD="$AS"
+    export LD_FOR_BUILD="$LD"
+    export AR_FOR_BUILD="$AR"
+    export RANLIB_FOR_BUILD="$RANLIB"
+    export NM_FOR_BUILD="$NM"
+    export STRIP_FOR_BUILD="$STRIP"
+    export CFLAGS_FOR_BUILD="$CFLAGS"
+    export CXXFLAGS_FOR_BUILD="$CXXFLAGS"
+    export CPPFLAGS_FOR_BUILD="$CPPFLAGS"
+    export LDFLAGS_FOR_BUILD="$LDFLAGS"
+    export PKG_CONFIG_PATH_FOR_BUILD="$PKG_CONFIG_PATH"
+    export PKG_CONFIG_LIBDIR_FOR_BUILD="$PKG_CONFIG_LIBDIR"
+
+    export PATH="$TOOLCHAIN_DIR:$PATH"
+
+    if [ "$VERBOSE" = 'true' ] ; then
+        export PKG_CONFIG_DEBUG_SPEW=set
+    fi
+}
+
 install_packages() {
-    check_requirements
+    check_prerequisites
+
     parse_arguments "$@"
 
-    die_if_package_list_is_not_specified "$TO_BE_INSTALLED_PACKAGE_LIST"
+    die_if_package_list_is_not_specified "$USER_SPECIFIED_PACKAGE_LIST"
+
+    __config_glob_installation_variables
     
-    for TO_BE_INSTALLED_PACKAGE in $TO_BE_INSTALLED_PACKAGE_LIST
+    for USER_SPECIFIED_PACKAGE in $USER_SPECIFIED_PACKAGE_LIST
     do
-        resolve_DEPENDENCY_PACKAGE_LIST_of_a_package "$TO_BE_INSTALLED_PACKAGE"
+        resolve_DEPENDENCY_PACKAGE_LIST_of_a_package "$USER_SPECIFIED_PACKAGE"
     done
     
-    for TO_BE_INSTALLED_PACKAGE in $DEPENDENCY_PACKAGE_LIST $TO_BE_INSTALLED_PACKAGE_LIST
+    for INSTALLING_PACKAGE in $DEPENDENCY_PACKAGE_LIST $USER_SPECIFIED_PACKAGE_LIST
     do
-        if is_package_installed "$TO_BE_INSTALLED_PACKAGE" ; then
-            success "$TO_BE_INSTALLED_PACKAGE is already installed."
+        if is_package_installed "$INSTALLING_PACKAGE" ; then
+            success "$INSTALLING_PACKAGE is already installed."
         else
-            install_a_package "$TO_BE_INSTALLED_PACKAGE"
+            install_a_package "$INSTALLING_PACKAGE"
         fi
     done
 }
 
-die_from_package_installed_failed() {
-    die "install $1 failed! you can go to $WORKING_DIR to see see."
-}
-
-install_a_package() {
-    fetch_a_package "$1"
-
-    if WORKING_DIR=$(mktemp -d) ; then
-        SOURCE_DIR="$WORKING_DIR"
-        cd "$WORKING_DIR" || exit 1
-    else
-        die "create WORKING_DIR directory failed."
-    fi
-    
-    case $FETCH_URL in
-        *.git)  cp -r $FETCH_OUTPUT_DIR/$FETCH_OUTPUT_NAME/* "$WORKING_DIR" ;;
-        *)      uncompress "$FETCH_OUTPUT_FILE_PATH" "$WORKING_DIR"
+die_if_command_not_found() {
+    case $1 in
+        make) [ -z "$MAKE" ]  && die_from_command_not_found "$1"  "MAKE" ;;
+       cmake) [ -z "$CMAKE" ] && die_from_command_not_found "$1" "CMAKE" ;;
+       meson) [ -z "$MESON" ] && die_from_command_not_found "$1" "MESON" ;;
+       ninja) [ -z "$NINJA" ] && die_from_command_not_found "$1" "NINJA" ;;
+       pkg-config|pkgconfig|pkgconf)
+              [ -z "$PKG_CONFIG" ] && die_from_command_not_found "$1" "PKG_CONFIG" ;;
+           *) command -v "$1" > /dev/null || die_from_command_not_found "$1"
     esac
-    
-    if command -v prepare > /dev/null ; then
-        prepare || die_from_package_installed_failed "$1"
-    fi
+}
 
-    if [ -f config.sub -a -f config.guess ] ; then
-        fetch_config_sub   || die_from_package_installed_failed "$1"
-        fetch_config_guess || die_from_package_installed_failed "$1"
+die_from_command_not_found() {
+    if [ -z "$2" ] ; then
+        die "command not found: $1. please make sure it in PATH."
+    else
+        die "command not found: $1. please make sure it in PATH or export $2=path/to/$1 environment."
     fi
+}
 
-    if [ -d build-aux -a -f build-aux/config.sub -a -f build-aux/config.guess ] ; then
-        if [ -f config.sub -a -f config.guess ] ; then
-            cp config.sub   build-aux || die_from_package_installed_failed "$1"
-            cp config.guess build-aux || die_from_package_installed_failed "$1"
-        else
-            fetch_config_sub   build-aux || die_from_package_installed_failed "$1"
-            fetch_config_guess build-aux || die_from_package_installed_failed "$1"
-        fi
-    fi
-    
-    if install_a_package_all_builds "$1" ; then
-        if [ "$KEEP_WORKING_DIR" != 'true' ] ; then
-            rm -rf "$WORKING_DIR"
-        fi
+die_from_installation_failed() {
+    if [ -z "$BUILD_FOR_ABI" ] ; then
+        die "install $1 failed! you can go to $WORKING_DIR to see see."
     else
         die "install $1/$BUILD_FOR_ABI failed! you can go to $WORKING_DIR to see see."
     fi
 }
 
-install_a_package_all_builds() {
-    for BUILD in $BUILD_LIST
+install_a_package() {
+    unset BUILD_FOR_ABI
+
+    fetch_a_package "$1"
+
+    for requirement in $PACKAGE_REQUIREMENTS
     do
-        install_a_package_one_build "$1" || return 1
+        die_if_command_not_found "$requirement"
     done
 
-    if [ ! -d "$PKG_INSTALL_DIR" ] ; then
-        die "all build passed, but installed nothing. you can go to $WORKING_DIR to see see."
+    if WORKING_DIR=$(mktemp -d) ; then
+        SOURCE_DIR="$WORKING_DIR"
+        cd "$WORKING_DIR" || exit 1
+    else
+        die "create working directory failed."
     fi
+
+    case $PACKAGE_URL in
+        dir://*|*.git)
+            echo "$FETCH_OUTPUT_FILE_PATH -> $WORKING_DIR"
+            cp -r "$FETCH_OUTPUT_FILE_PATH"/* "$WORKING_DIR" || return 1 ;;
+        *.zip)
+            info "unzip ← $FETCH_OUTPUT_FILE_PATH"
+            if unzip "$FETCH_OUTPUT_FILE_PATH" -d "$WORKING_DIR" ; then
+                success "unzip → $WORKING_DIR"
+            else
+                die "unzip failed!"
+            fi
+            ;;
+        *.tar.xz|*.tar.gz|*.tar.bz2|*.tgz|*.txz)
+            info "untar ← $FETCH_OUTPUT_FILE_PATH"
+            if tar xf "$FETCH_OUTPUT_FILE_PATH" -C "$WORKING_DIR" --strip-components 1 ; then
+                success "untar → $WORKING_DIR"
+            else
+                die "untar failed!"
+            fi
+            ;;
+        *)  die "$PACKAGE_URL : extension isn't recognized. the supported extensions are .zip .tar.xz .tar.gz .tar.bz2 .tgz .txz"
+    esac
+
+    if command -v prepare > /dev/null ; then
+        # may be build something for building
+        export CC="$CC_FOR_BUILD"
+        export CPP="$CPP_FOR_BUILD"
+        export CXX="$CXX_FOR_BUILD"
+        export AS="$AS_FOR_BUILD"
+        export LD="$LD_FOR_BUILD"
+        export AR="$AR_FOR_BUILD"
+        export RANLIB="$RANLIB_FOR_BUILD"
+        export NM="$NM_FOR_BUILD"
+        export STRIP="$STRIP_FOR_BUILD"
+        export CFLAGS="$CFLAGS_FOR_BUILD"
+        export CXXFLAGS="$CXXFLAGS_FOR_BUILD"
+        export CPPFLAGS="$CPPFLAGS_FOR_BUILD"
+        export LDFLAGS="$LDFLAGS_FOR_BUILD"
+        export PKG_CONFIG_PATH="$PKG_CONFIG_PATH_FOR_BUILD"
+        export PKG_CONFIG_LIBDIR="$PKG_CONFIG_LIBDIR_FOR_BUILD"
+
+        print_seperator 'print_glob_installation_variables start'
+        info ""
+        info "           SHELL = $SHELL"
+        info "            MAKE = $MAKE"
+        info "           CMAKE = $CMAKE"
+        info "           MESON = $MESON"
+        info "           NINJA = $NINJA"
+        info "      PKG_CONFIG = $PKG_CONFIG"
+
+        info "              CC = $CC"
+        info "             CPP = $CPP"
+        info "             CXX = $CXX"
+        info "              AS = $AS"
+        info "              LD = $LD"
+        info "              AR = $AR"
+        info "          RANLIB = $RANLIB"
+        info "           STRIP = $STRIP"
+        info "              NM = $NM"
+        
+        info "           CFLAGS = $CFLAGS"
+        info "         CXXFLAGS = $CXXFLAGS"
+        info "         CPPFLAGS = $CPPFLAGS"
+        info "          LDFLAGS = $LDFLAGS"
+        info "PKG_CONFIG_PATH   = $PKG_CONFIG_PATH"
+        info "PKG_CONFIG_LIBDIR = $PKG_CONFIG_LIBDIR"
+        info ""
+
+        print_seperator 'print_glob_installation_variables end'
+
+        prepare || die_from_installation_failed "$1"
+    fi
+
+    install_a_package_all_builds "$1" || die_from_installation_failed "$1"
+
+    if [ "$KEEP_WORKING_DIR" != 'true' ] ; then
+        rm -rf "$WORKING_DIR"
+    fi
+}
+
+install_a_package_all_builds() {
+    unset BUILD_ROUND_NUM
+
+    unset DEPENDENCY_PACKAGE_LIST
+    resolve_DEPENDENCY_PACKAGE_LIST_of_a_package "$1" || return 1
+
+    PKG_INSTALL_DIR="$MY_INSTALL_DIR/$1"
+
+    unset BUILD_FOR_ABI_LIST
+
+    for BUILD in $BUILD_LIST
+    do
+        BUILD_ROUND_NUM=$(expr ${BUILD_ROUND_NUM-0} + 1)
+
+        BUILD_FOR_ABI=$(echo "$BUILD" | cut -d: -f1)
+
+        if [ -z "$BUILD_FOR_ABI_LIST" ] ; then
+            BUILD_FOR_ABI_LIST="$BUILD_FOR_ABI"
+        else
+            BUILD_FOR_ABI_LIST=$(printf "%s\n%s" "$BUILD_FOR_ABI_LIST" "$BUILD_FOR_ABI")
+        fi
+
+        BUILD_DIR="$WORKING_DIR/$TIMESTAMP_UNIX/$BUILD_FOR_ABI"
+        mkdir -p "$BUILD_DIR" || return 1
+
+        if [ "$DRYRUN" = 'true' ] ; then
+            ___dryrun_a_package_one_build "$1" || return 1
+        else
+            (
+                cd "$BUILD_DIR" &&
+                mkfifo pipe &&
+                (tee install.log.txt < pipe &) &&
+                __install_a_package_one_build "$1" > pipe 2>&1
+            ) || return 1
+        fi
+    done
 
     echo "$BUILD_FOR_ABI_LIST" > "$PKG_INSTALL_DIR/manifest.txt"
 
@@ -836,66 +1004,60 @@ install_a_package_all_builds() {
     tree_a_package "$1" || true
 }
 
-install_a_package_one_build() {
-    config_vars "$1" &&
-    export_vars &&
-    {
-        if [ "$DRYRUN" = 'true' ] ; then
-            printf_vars "$1" &&
-            exec zsh
-        else
-            (
-            cd "$BUILD_DIR" &&
-            mkfifo pipe &&
-            (tee install.log.txt < pipe &) &&
-            {
-                printf_vars "$1" &&
-                rm -rf "$ABI_INSTALL_DIR" &&
-                build &&
-                __justfy_pc_files
-            } > pipe 2>&1
-            )
-        fi
+___dryrun_a_package_one_build() {
+    __config_this_build_variables "$1" &&
+    __export_this_build_variables      &&
+    __printf_this_build_variables "$1" &&
+    exec "$SHELL"
+}
+
+__install_a_package_one_build() {
+    __config_this_build_variables "$1" &&
+    __export_this_build_variables      &&
+    __printf_this_build_variables "$1" &&
+    rm -rf "$ABI_INSTALL_DIR" &&
+    build && {
+        [ -d "$ABI_INSTALL_DIR" ] || {
+            error "installed nothing."
+            return 1
+        }
     } &&
-    {
-        LOG_DIR="$ABI_INSTALL_DIR/log"
-
-        install -d "$LOG_DIR" || return 1
-
-        install_installed_log
-
-        install -m 644 "$MY_FORMULA_DIR/$1.sh" "$LOG_DIR/$1.sh.log.txt" || return 1
-
-        if [ -f "$SOURCE_DIR/config.log" ] ; then
-            install -m 644 "$SOURCE_DIR/config.log" "$LOG_DIR/config.log.txt" || return 1
-        fi
-
-        if [ -f "$BUILD_DIR/config.log" ] ; then
-            install -m 644 "$BUILD_DIR/config.log" "$LOG_DIR/config.log.txt" || return 1
-        fi
-
-        if [ -f "$BUILD_DIR/install.log.txt" ] ; then
-            install -m 644 "$BUILD_DIR/install.log.txt" "$LOG_DIR" || return 1
-        fi
-    }
+    __justfy_pc_files &&
+    __install_logs "$1"
 }
 
 __justfy_pc_files() {
-    if [ -d "$ABI_INSTALL_DIR/lib/pkgconfig" ] ; then
-        cd  "$ABI_INSTALL_DIR/lib/pkgconfig" || return 1
-        for item in *.pc
+    if [ -d "$ABI_PKG_CONFIG_DIR" ] ; then
+        for item in $(find "$ABI_PKG_CONFIG_DIR" -name "*.pc")
         do
-            die_if_file_is_not_exist "$item"
-            {
-                if grep 'Libs.private:' "$item" > /dev/null ; then
-                    LIBS_CONTENT=$(awk '/Libs:/{print}' "$item")
-                    LIBS_PRIVATE_CONTENT=$(awk -F: '/Libs.private:/{print $2}' "$item") &&
-                    sed_in_place "s|$LIBS_CONTENT|$LIBS_CONTENT$LIBS_PRIVATE_CONTENT|" "$item" &&
-                    sed_in_place '/Libs.private/d' "$item"
-                fi
-            } &&
-            sed_in_place 's/-lpthread//g' "$item"
+            
+            if grep 'Libs.private:' "$item" > /dev/null ; then
+                LIBS_CONTENT=$(awk '/Libs:/{print}' "$item" || return 1)
+                LIBS_PRIVATE_CONTENT=$(awk -F: '/Libs.private:/{print $2}' "$item" || return 1)
+                sed_in_place "s|$LIBS_CONTENT|$LIBS_CONTENT$LIBS_PRIVATE_CONTENT|" "$item" || return 1
+                sed_in_place '/Libs.private/d' "$item" || return 1
+            fi
         done
+    fi
+}
+
+__install_logs() {
+    ABI_LOG_DIR="$ABI_INSTALL_DIR/log"
+
+    install -d "$ABI_LOG_DIR" || return 1
+
+    install_installed_log
+
+    install -m 644 "$MY_FORMULA_DIR/$1.sh" "$ABI_LOG_DIR/$1.sh.log.txt" || return 1
+
+    if [ -f "$SOURCE_DIR/config.log" ] ; then
+        install -m 644 "$SOURCE_DIR/config.log" "$ABI_LOG_DIR/config.log.txt" || return 1
+    fi
+    if [ -f "$BUILD_DIR/config.log" ] ; then
+        install -m 644 "$BUILD_DIR/config.log" "$ABI_LOG_DIR/config.log.txt" || return 1
+    fi
+    if [ -f "$BUILD_DIR/install.log.txt" ] ; then
+        install -m 644 "$BUILD_DIR/install.log.txt" "$ABI_LOG_DIR" || return 1
     fi
 }
 
@@ -924,22 +1086,21 @@ info_packages() {
 }
 
 info_a_package() {
-    die_if_load_formula_of_a_package_failed "$1"
+    die_if_load_formula_failed "$1"
 
     echo "name      : $(mark_is_package_installed_or_not $1)"
 
-    case $url in
-        *.git);;
-        *)  echo "version   : $version"
-    esac
+    if [ -n "$PACKAGE_VERSION" ] ; then
+        echo "version   : $PACKAGE_VERSION"
+    fi
 
-    echo "summary   : $summary"
-    echo "homepage  : $homepage"
+    echo "summary   : $PACKAGE_SUMMARY"
+    echo "homepage  : $PACKAGE_HOMEPAGE"
 
-    [ -z "$dependencies" ] || {
+    [ -z "$PACKAGE_DEPENDENCIES" ] || {
         unset DEPENDENCIES
 
-        for dependencyPkgName in $dependencies
+        for dependencyPkgName in $PACKAGE_DEPENDENCIES
         do
             if [ -z "$DEPENDENCIES" ] ; then
                 DEPENDENCIES="depend_on : $(mark_is_package_installed_or_not $dependencyPkgName)"
@@ -951,11 +1112,12 @@ info_a_package() {
         echo "$DEPENDENCIES"
     }
 
-    echo "src_url   : $url"
+    echo "src_url   : $PACKAGE_URL"
 
     FETCH_OUTPUT_FILE_PATH="$MY_CACHED_DIR/$FETCH_OUTPUT_NAME"
 
-    case $url in
+    case $PACKAGE_URL in
+        dir://*) ;;
         *.git)
             if [ -d "$FETCH_OUTPUT_FILE_PATH" ] ; then
                 echo "src_cache ${COLOR_PURPLE}==>${COLOR_OFF} $FETCH_OUTPUT_FILE_PATH"
@@ -975,7 +1137,7 @@ info_a_package() {
         echo "installed ${COLOR_PURPLE}==>${COLOR_OFF} $(du -sh "$MY_INSTALL_DIR/$1" | awk '{print $2, $1}')"
         for ABI in $(cat "$MY_INSTALL_DIR/$1/manifest.txt")
         do
-            echo "              ├── $(printf "%-12s" "$ABI") $(du -sh "$MY_INSTALL_DIR/$1/$ABI" | awk '{print $1}')"
+            echo "              ├── $(printf "%-25s" "$ABI") $(du -sh "$MY_INSTALL_DIR/$1/$ABI" | awk '{print $1}')"
         done
         die_if_load_installed_log_failed "$1" "$ABI"
         print_installed_log "$1" "$ABI"
@@ -990,28 +1152,129 @@ mark_is_package_installed_or_not() {
     fi
 }
 
-die_if_load_formula_of_a_package_failed() {
+summary() {
+    if [ -z "$1" ] ; then
+        echo "$PACKAGE_SUMMARY"
+    else
+        PACKAGE_SUMMARY="$1"
+    fi
+}
+
+homepage() {
+    if [ -z "$1" ] ; then
+        echo "$PACKAGE_HOMEPAGE"
+    else
+        PACKAGE_HOMEPAGE="$1"
+    fi
+}
+
+repo() {
+    if [ -z "$1" ] ; then
+        echo "$PACKAGE_REPO"
+    else
+        PACKAGE_REPO="$1"
+    fi
+}
+
+url() {
+    if [ -z "$1" ] ; then
+        echo "$PACKAGE_URL"
+    else
+        PACKAGE_URL="$1"
+    fi
+}
+
+sha256() {
+    if [ -z "$1" ] ; then
+        echo "$PACKAGE_SHA256"
+    else
+        PACKAGE_SHA256="$1"
+    fi
+}
+
+version() {
+    if [ -z "$1" ] ; then
+        echo "$PACKAGE_VERSION"
+    else
+        PACKAGE_VERSION="$1"
+    fi
+}
+
+license() {
+    if [ -z "$1" ] ; then
+        echo "$PACKAGE_LICENSE"
+    else
+        PACKAGE_LICENSE="$1"
+    fi
+}
+
+requirements() {
+    if [ -z "$1" ] ; then
+        echo "$PACKAGE_REQUIREMENTS"
+    else
+        PACKAGE_REQUIREMENTS="$1"
+    fi
+}
+
+dependencies() {
+    if [ -z "$1" ] ; then
+        echo "$PACKAGE_DEPENDENCIES"
+    else
+        PACKAGE_DEPENDENCIES="$1"
+    fi
+}
+
+patches() {
+    [ -z "$INSTALLING_PACKAGE" ] && die "patches command only can be invoked in prepare function."
+    [ $# -lt 2 ]             && die "the number of arguments of patches command at least 2."
+    [ $(expr $# % 2) -eq 1 ] && die "the number of arguments of patches command must be even integer."
+
+    while [ -n "$1" ]
+    do
+        case $1 in
+            *.patch)   PATCH_CONTENT_TYPE=patch  ;;
+            *.zip)     PATCH_CONTENT_TYPE=zip    ;;
+            *.tar.xz)  PATCH_CONTENT_TYPE=tar.xz ;;
+            *.tar.gz)  PATCH_CONTENT_TYPE=tar.gz ;;
+            *.tar.bz2) PATCH_CONTENT_TYPE=tar.bz2;;
+            *.tgz)     PATCH_CONTENT_TYPE=tar.gz ;;
+            *.txz)     PATCH_CONTENT_TYPE=tar.xz ;;
+            *)  die "$1 : extension isn't recognized. the supported extensions are .patch .zip .tar.xz .tar.gz .tar.bz2 .tgz .txz"
+        esac
+
+        fetch "$1" --sha256="$2" --output-dir="$MY_PATCH_DIR/$INSTALLING_PACKAGE" --output-name="$(basename $1)"
+
+        shift 2
+    done
+}
+
+die_if_load_formula_failed() {
     die_if_package_is_not_available "$1"
+
+    unset PACKAGE_SUMMARY
+    unset PACKAGE_HOMEPAGE
+    unset PACKAGE_REPO
+    unset PACKAGE_URL
+    unset PACKAGE_VERSION
+    unset PACKAGE_LICENSE
+    unset PACKAGE_PATCHES
+    unset PACKAGE_REQUIREMENTS
+    unset PACKAGE_DEPENDENCIES
 
     unset -f prepare
     unset -f build
     unset -f build_configed
-    unset url
-    unset sha256
-    unset version
-    unset summary
-    unset homepage
-    unset dependencies
     
     FORMULA_FILE_PATH="$MY_FORMULA_DIR/$1.sh"
      
     . "$FORMULA_FILE_PATH" || die "$FORMULA_FILE_PATH is broken."
     
-    [ -z "$summary" ]  && die "summary variable must be specified in $FORMULA_FILE_PATH"
-    [ -z "$homepage" ] && die "homepage variable must be specified in $FORMULA_FILE_PATH"
-    [ -z "$url" ]      && die "url variable must be specified in $FORMULA_FILE_PATH"
+    [ -z "$PACKAGE_SUMMARY" ]  && die "summary command must be invoked in $FORMULA_FILE_PATH"
+    [ -z "$PACKAGE_HOMEPAGE" ] && die "homepage command must be invoked in $FORMULA_FILE_PATH"
+    [ -z "$PACKAGE_URL" ]      && die "url command must be invoked in $FORMULA_FILE_PATH"
 
-    case $url in
+    case $PACKAGE_URL in
+        dir://*)   URL_CONTENT_TYPE=dir ;;
         *.git)     URL_CONTENT_TYPE=git ;;
         *.zip)     URL_CONTENT_TYPE=zip ;;
         *.tar.xz)  URL_CONTENT_TYPE=tar.xz ;;
@@ -1019,29 +1282,49 @@ die_if_load_formula_of_a_package_failed() {
         *.tar.bz2) URL_CONTENT_TYPE=tar.bz2;;
         *.tgz)     URL_CONTENT_TYPE=tar.gz ;;
         *.txz)     URL_CONTENT_TYPE=tar.xz ;;
-        *)  die "$url : extension isn't recognized. the supported extensions are .git .zip .tar.xz .tar.gz .tar.bz2 .tgz .txz"
+        *)  die "$PACKAGE_URL : extension isn't recognized. the supported extensions are .git .zip .tar.xz .tar.gz .tar.bz2 .tgz .txz"
     esac
 
-    if [ "$URL_CONTENT_TYPE" = 'git' ] ; then
-        FETCH_OUTPUT_NAME="$1.git"
-    else
-        if [ -z "$sha256" ] ; then
-            die "sha256 variable is not declared in $FORMULA_FILE_PATH"
-        fi
-        if [ -z "$version" ] ; then
-            version="$(basename "$url" | awk '{str = tolower($0); gsub(".tar.xz", "", str); gsub(".tar.gz", "", str); gsub(".tar.bz2", "", str); gsub(".tgz", "", str); gsub(".txz", "", str); gsub(".zip", "", str); print(str)}' | awk -F- '{print $NF}')"
-            if [ -z "$version" ] ; then
-                die "version variable is not declared in $FORMULA_FILE_PATH"
+    case $URL_CONTENT_TYPE in
+        dir)
+            if command -v cut > /dev/null ; then
+                FETCH_OUTPUT_FILE_PATH=$(echo $PACKAGE_URL | cut -c7-${#PACKAGE_URL})
+            elif command -v awk > /dev/null ; then
+                FETCH_OUTPUT_FILE_PATH=$(echo $PACKAGE_URL | awk '{print(substr($0, 7))}')
+            else
+                FETCH_OUTPUT_FILE_PATH=$(expr substr "$PACKAGE_URL" 7 ${#PACKAGE_URL})
             fi
-        fi
-        FETCH_OUTPUT_NAME="$1-$version.$URL_CONTENT_TYPE"
-    fi
+            [ -d "$FETCH_OUTPUT_FILE_PATH" ] || "url variable point to dir is not exist."
+            ;;
+        git) FETCH_OUTPUT_NAME="$1.git" ;;
+        *)
+            if [ -z "$PACKAGE_SHA256" ] ; then
+                die "sha256 command is not invoked in $FORMULA_FILE_PATH"
+            fi
+            if [ -z "$PACKAGE_VERSION" ] ; then
+                PACKAGE_VERSION="$(basename "$PACKAGE_URL" | awk '{str = tolower($0); gsub(".tar.xz", "", str); gsub(".tar.gz", "", str); gsub(".tar.bz2", "", str); gsub(".tgz", "", str); gsub(".txz", "", str); gsub(".zip", "", str); print(str)}' | awk -F- '{print $NF}')"
+                if [ -z "$PACKAGE_VERSION" ] ; then
+                    die "version command is not invoked in $FORMULA_FILE_PATH"
+                else
+                    case $PACKAGE_VERSION in
+                        v*) if command -v cut > /dev/null ; then
+                                PACKAGE_VERSION=$(echo $PACKAGE_VERSION | cut -c2-${#PACKAGE_VERSION})
+                            elif command -v awk > /dev/null ; then
+                                PACKAGE_VERSION=$(echo $PACKAGE_VERSION | awk '{print(substr($0, 2))}')
+                            else
+                                PACKAGE_VERSION=$(expr substr "$PACKAGE_VERSION" 2 ${#PACKAGE_VERSION})
+                            fi
+                    esac
+                fi
+            fi
+            FETCH_OUTPUT_NAME="$1-$PACKAGE_VERSION.$URL_CONTENT_TYPE"
+    esac
 }
 
 install_installed_log() {
-    cat > "$LOG_DIR/installed.log.txt" <<EOF
+    cat > "$ABI_LOG_DIR/installed.log.txt" <<EOF
 installed_datetime=$TIMESTAMP_UNIX
-installed_pkg_version=$version
+installed_pkg_version=$PACKAGE_VERSION
 min_platform_version=$PLATFORM_MIN_VERSION
 using_xcode_version='$XCODE_VERSION'
 EOF
@@ -1068,19 +1351,39 @@ print_installed_log() {
     echo "using xcode  version  : $using_xcode_version"
 }
 
-config_vars() {
+__config_this_build_variables() {
     die_if_package_is_not_available "$1"
-    
-    BUILD_FOR_PLATFORM=$(echo "$BUILD" | cut -d: -f1)
-    PLATFORM_MIN_VERSION=$(echo "$BUILD" | cut -d: -f2)
-    BUILD_FOR_ARCH=$(echo "$BUILD" | cut -d: -f3)
 
-    BUILD_FOR_ABI="$BUILD_FOR_PLATFORM/$BUILD_FOR_ARCH"
+    BUILD_FOR_PLATFORM=$(echo "$BUILD_FOR_ABI" | cut -d/ -f1)
+    BUILD_FOR_ARCH=$(echo "$BUILD_FOR_ABI" | cut -d/ -f2)
+    PLATFORM_MIN_VERSION=$(echo "$BUILD" | cut -d: -f2)
 
     SYSROOT="$DEVELOPER_DIR/Platforms/${BUILD_FOR_PLATFORM}.platform/Developer/SDKs/${BUILD_FOR_PLATFORM}.sdk"
 
+    CC="${TOOLCHAIN_DIR}/clang"
+    CXX="${TOOLCHAIN_DIR}/clang++"
+    CPP="$CC -E"
+    AR="${TOOLCHAIN_DIR}/ar"
+    AS="${TOOLCHAIN_DIR}/as"
+    LD="${TOOLCHAIN_DIR}/ld"
+    NM="${TOOLCHAIN_DIR}/nm"
+    RANLIB="${TOOLCHAIN_DIR}/ranlib"
+    STRIP="${TOOLCHAIN_DIR}/strip"
+
+    die_if_file_is_not_executable "$CC"
+    die_if_file_is_not_executable "$CXX"
+    die_if_file_is_not_executable "$AR"
+    die_if_file_is_not_executable "$AS"
+    die_if_file_is_not_executable "$LD"
+    die_if_file_is_not_executable "$NM"
+    die_if_file_is_not_executable "$RANLIB"
+    die_if_file_is_not_executable "$STRIP"
+
     platformLower="$(printf "$BUILD_FOR_PLATFORM" | awk '{print(tolower($0))}')"
     
+    SYSTEM_INCLUDE_DIR="$SYSROOT/usr/include"
+    SYSTEM_LIBRARY_DIR="$SYSROOT/usr/lib"
+
       CFLAGS="-isysroot $SYSROOT -Qunused-arguments -arch $BUILD_FOR_ARCH -Os -pipe -m${platformLower}-version-min=$PLATFORM_MIN_VERSION"
     CPPFLAGS="-isysroot $SYSROOT -Qunused-arguments"
      LDFLAGS="-isysroot $SYSROOT -arch $BUILD_FOR_ARCH -m${platformLower}-version-min=$PLATFORM_MIN_VERSION"
@@ -1116,44 +1419,49 @@ config_vars() {
         BUILD_FOR_HOST="${BUILD_FOR_ARCH}-apple-ios"
     fi
 
-    unset DEPENDENCY_PACKAGE_LIST
-    resolve_DEPENDENCY_PACKAGE_LIST_of_a_package "$1"
-
     for PACKAGE in $DEPENDENCY_PACKAGE_LIST
     do
         PKG=$(printf "$PACKAGE" | tr '-' '_')
         
-        PACKAGE_INSTALL_DIR="$MY_INSTALL_DIR/$PACKAGE/$BUILD_FOR_ABI"
-        PACKAGE_INCLUDE_DIR="$PACKAGE_INSTALL_DIR/include"
-        PACKAGE_LIBRARY_DIR="$PACKAGE_INSTALL_DIR/lib"
+        ABI_INSTALL_DIR="$MY_INSTALL_DIR/$PACKAGE/$BUILD_FOR_ABI"
+        ABI_INCLUDE_DIR="$ABI_INSTALL_DIR/include"
+        ABI_LIBRARY_DIR="$ABI_INSTALL_DIR/lib"
+        ABI_PKG_CONFIG_DIR="$ABI_INSTALL_DIR/lib/pkgconfig"
 
-        eval "${PKG}_INSTALL_DIR='$PACKAGE_INSTALL_DIR'"
-        eval "${PKG}_INCLUDE_DIR='$PACKAGE_INCLUDE_DIR'"
-        eval "${PKG}_LIBRARY_DIR='$PACKAGE_LIBRARY_DIR'"
+        eval "${PKG}_INSTALL_DIR='$ABI_INSTALL_DIR'"
+        eval "${PKG}_INCLUDE_DIR='$ABI_INCLUDE_DIR'"
+        eval "${PKG}_LIBRARY_DIR='$ABI_LIBRARY_DIR'"
 
-        CPPFLAGS="-I$PACKAGE_INCLUDE_DIR $CPPFLAGS"
-         LDFLAGS="-L$PACKAGE_LIBRARY_DIR $LDFLAGS"
-        PKG_CONFIG_PATH="$PKG_CONFIG_PATH:$PACKAGE_LIBRARY_DIR/pkgconfig"
+        CPPFLAGS="-I$ABI_INCLUDE_DIR $CPPFLAGS"
+         LDFLAGS="-L$ABI_LIBRARY_DIR $LDFLAGS"
+        PKG_CONFIG_PATH="$PKG_CONFIG_PATH:$ABI_PKG_CONFIG_DIR"
     done
 
     if [ "$VERBOSE" = 'true' ] ; then
         CFLAGS="$CFLAGS -v"
-        MAKE='make --debug'
-    else
-        MAKE='make'
+        if [ -n "$MAKE" ] ; then
+            MAKE="$MAKE --debug"
+        fi
     fi
 
-    PKG_INSTALL_DIR="$MY_INSTALL_DIR/$1"
     ABI_INSTALL_DIR="$PKG_INSTALL_DIR/$BUILD_FOR_ABI"
-    
-    if [ -n "$WORKING_DIR" ] ; then
-        [ -d "$WORKING_DIR" ] || die "WORKING_DIR=[$WORKING_DIR] is not exist."
-        BUILD_DIR="$WORKING_DIR/$TIMESTAMP_UNIX/$BUILD_FOR_ABI"
-        mkdir -p "$BUILD_DIR"
-    fi
+    ABI_BINARY_DIR="$ABI_INSTALL_DIR/bin"
+    ABI_INCLUDE_DIR="$ABI_INSTALL_DIR/include"
+    ABI_LIBRARY_DIR="$ABI_INSTALL_DIR/lib"
+    ABI_PKG_CONFIG_DIR="$ABI_INSTALL_DIR/lib/pkgconfig"
 }
 
-export_vars() {
+__export_this_build_variables() {
+    export CC="$CC"
+    export CXX="$CXX"
+    export CPP="$CPP"
+    export AR="$AR"
+    export AS="$AS"
+    export LD="$LD"
+    export NM="$NM"
+    export RANLIB="$RANLIB"
+    export STRIP="$STRIP"
+
     export CFLAGS="$CFLAGS"
     export CXXFLAGS="$CFLAGS"
     export CPPFLAGS="$CPPFLAGS"
@@ -1167,28 +1475,52 @@ export_vars() {
     fi
 }
 
-printf_vars() {
-    print_seperator 'printf_vars start'
+__printf_this_build_variables() {
+    print_seperator 'printf_this_build_variables start'
 
-    info "        PACKAGE = $1"
-    info "DIRECT_DEP_PKGS = $(get_direct_dependency_package_list_of_a_package "$1")"
+    info "BUILD_ROUND_NUM = $BUILD_ROUND_NUM"
     info ""
-    info "DEVELOPER_DIR = $DEVELOPER_DIR"
-    info "TOOLCHAIN_DIR = $TOOLCHAIN_DIR"
-    info "           CC = $CC"
-    info "          CXX = $CXX"
-    info "          CPP = $CPP"
-    info "           AR = $AR"
-    info "           AS = $AS"
-    info "           LD = $LD"
-    info "           NM = $NM"
-    info "       RANLIB = $RANLIB"
-    info "        STRIP = $STRIP"
-    info "      SYSROOT = $SYSROOT"
-    info "XCODE_VERSION = $XCODE_VERSION"
+    info "INSTALLING_PACKAGE      = $1"
+    info "DIRECT_DEP_PACKAGE_LIST = $(get_direct_dependency_package_list_of_a_package "$1")"
+    info "DEPENDENCY_PACKAGE_LIST = $DEPENDENCY_PACKAGE_LIST"
+    info ""
+    info "XCODE_VERSION    = $XCODE_VERSION"
+    info "DEVELOPER_DIR    = $DEVELOPER_DIR"
+    info "TOOLCHAIN_DIR    = $TOOLCHAIN_DIR"
+    info "         SYSROOT = $SYSROOT"
+    info "              CC = $CC"
+    info "             CXX = $CXX"
+    info "             CPP = $CPP"
+    info "              AR = $AR"
+    info "              AS = $AS"
+    info "              LD = $LD"
+    info "              NM = $NM"
+    info "          RANLIB = $RANLIB"
+    info "           STRIP = $STRIP"
+    info ""
+    info "    CC_FOR_BUILD = $CC_FOR_BUILD"
+    info "   CXX_FOR_BUILD = $CXX_FOR_BUILD"
+    info "   CPP_FOR_BUILD = $CPP_FOR_BUILD"
+    info "    AR_FOR_BUILD = $AR_FOR_BUILD"
+    info "    AS_FOR_BUILD = $AS_FOR_BUILD"
+    info "    LD_FOR_BUILD = $LD_FOR_BUILD"
+    info "    NM_FOR_BUILD = $NM_FOR_BUILD"
+    info "RANLIB_FOR_BUILD = $RANLIB_FOR_BUILD"
+    info " STRIP_FOR_BUILD = $STRIP_FOR_BUILD"
+    info ""
+    info "      PKG_CONFIG = $PKG_CONFIG"
+    info "            MAKE = $MAKE"
+    info "           CMAKE = $CMAKE"
+    info "           MESON = $MESON"
+    info "           NINJA = $NINJA"
+    info "           SHELL = $SHELL"
+    info ""
+    info "SYSTEM_INCLUDE_DIR = $SYSTEM_INCLUDE_DIR"
+    info "SYSTEM_LIBRARY_DIR = $SYSTEM_LIBRARY_DIR"
+    info ""
+    info "PLATFORM_MIN_VERSION = $PLATFORM_MIN_VERSION"
     info ""
     info "BUILD_FOR_PLATFORM = $BUILD_FOR_PLATFORM"
-    info ""
     info "BUILD_FOR_HOST = $BUILD_FOR_HOST"
     info "BUILD_FOR_ARCH = $BUILD_FOR_ARCH"
     info "BUILD_FOR_ABI  = $BUILD_FOR_ABI"
@@ -1237,7 +1569,12 @@ printf_vars() {
     info ""
     info "PKG_INSTALL_DIR = $PKG_INSTALL_DIR"
     info "ABI_INSTALL_DIR = $ABI_INSTALL_DIR"
-    print_seperator 'printf_vars end'
+    info "ABI_BINARY_DIR  = $ABI_BINARY_DIR"
+    info "ABI_INCLUDE_DIR = $ABI_INCLUDE_DIR"
+    info "ABI_LIBRARY_DIR = $ABI_LIBRARY_DIR"
+    info "ABI_PKG_CONFIG_DIR = $ABI_PKG_CONFIG_DIR"
+
+    print_seperator 'printf_this_build_variables end'
 }
 
 print_seperator() {
@@ -1246,6 +1583,23 @@ print_seperator() {
 
 # run in a subshell
 configure() {
+    die_if_command_not_found make
+
+    if [ "$BUILD_ROUND_NUM" -eq 1 ] ; then
+        # https://www.gnu.org/software/gettext/manual/html_node/config_002eguess.html
+        # https://git.savannah.gnu.org/cgit/config.git/tree/
+        if [ ! -f "$MY_CACHED_DIR/config/config.sub" ] ; then
+            fetch "http://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.sub;hb=HEAD" --output-name=config.sub --output-dir="$MY_CACHED_DIR/config" || return 1
+            sed_in_place 's/arm64-*/arm64-*|arm64e-*/g' "$MY_CACHED_DIR/config/config.sub" || return 1
+        fi
+        if [ ! -f "$MY_CACHED_DIR/config/config.guess" ] ; then
+            fetch "http://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.guess;hb=HEAD" --output-name=config.guess --output-dir="$MY_CACHED_DIR/config" || return 1
+        fi
+
+        find "$SOURCE_DIR" -name "config.sub"   -exec cp -v "$MY_CACHED_DIR/config/config.sub"   {} \; || return 1
+        find "$SOURCE_DIR" -name "config.guess" -exec cp -v "$MY_CACHED_DIR/config/config.guess" {} \; || return 1
+    fi
+
     print_seperator "config start"
     
     if "$SOURCE_DIR"/configure \
@@ -1267,7 +1621,7 @@ configure() {
         LDFLAGS="$LDFLAGS" \
         AR="$AR" \
         RANLIB="$RANLIB" \
-        CC_FOR_BUILD=/usr/bin/cc \
+        CC_FOR_BUILD="$CC_FOR_BUILD" \
         PKG_CONFIG_PATH="$PKG_CONFIG_PATH" \
         PKG_CONFIG_LIBDIR="$PKG_CONFIG_LIBDIR" \
         $@ ; then
@@ -1310,7 +1664,11 @@ configure() {
 # https://cmake.org/cmake/help/latest/variable/BUILD_SHARED_LIBS.html
 # https://cmake.org/cmake/help/latest/command/enable_testing.html?highlight=build_testing
 # run in a subshell
+#-DCMAKE_OSX_ARCHITECTURES="$BUILD_FOR_ARCH" \
 cmake() {
+    die_if_command_not_found cmake
+    die_if_command_not_found  make
+
     cat > "$BUILD_DIR/toolchain.cmake" <<EOF
 set(CMAKE_SYSTEM_NAME Darwin)
 set(CMAKE_SYSTEM_PROCESSOR $BUILD_FOR_ARCH)
@@ -1332,13 +1690,10 @@ set(CMAKE_STRIP "$STRIP")
 
 set(CMAKE_OSX_SYSROOT "$SYSROOT")
 EOF
-    unset -f meson
-
-    command cmake \
+    "$CMAKE" \
     -DCMAKE_VERBOSE_MAKEFILE=ON \
     -DCMAKE_COLOR_MAKEFILE=ON \
     -DCMAKE_TOOLCHAIN_FILE="$BUILD_DIR/toolchain.cmake" \
-    -DCMAKE_OSX_ARCHITECTURES="$BUILD_FOR_ARCH" \
     -DCMAKE_PREFIX_PATH="$MY_INSTALL_DIR" \
     -DCMAKE_FIND_ROOT_PATH="$MY_INSTALL_DIR" \
     -DCMAKE_INSTALL_PREFIX="$ABI_INSTALL_DIR" \
@@ -1356,12 +1711,8 @@ EOF
 # https://mesonbuild.com/Cross-compilation.html
 # run in a subshell
 meson() {
-    unset -f cmake
-
-    CMAKE_EXECUTABLE=$(command -v cmake)
-    
-    PKG_CONFIG_EXECUTABLE=$(command -v pkg-config) ||
-    PKG_CONFIG_EXECUTABLE=$(command -v pkgconf)
+    die_if_command_not_found meson
+    die_if_command_not_found ninja
 
     cat >> "$BUILD_DIR/cross-file" <<EOF
 [host_machine]
@@ -1375,8 +1726,8 @@ c = '$CC'
 cpp = '$CXX'
 ar = '$AR'
 strip = '$STRIP'
-cmake = '$CMAKE_EXECUTABLE'
-pkgconfig = '$PKG_CONFIG_EXECUTABLE'
+cmake = '$CMAKE'
+pkgconfig = '$PKG_CONFIG'
 
 [properties]
 c_args = $(to_meson_array $CFLAGS $CPPFLAGS)
@@ -1385,7 +1736,7 @@ cpp_args = $(to_meson_array $CXXFLAGS $CPPFLAGS)
 cpp_link_args = $(to_meson_array $LDFLAGS)
 pkg_config_libdir = '$PKG_CONFIG_LIBDIR'
 EOF
-    command meson setup \
+    "$MESON" setup \
         --prefix="$ABI_INSTALL_DIR" \
         --buildtype=release \
         --backend=ninja \
@@ -1396,7 +1747,7 @@ EOF
             build_configed
         fi
     } &&
-    ninja -C "$BUILD_DIR" install
+    "$NINJA" -C "$BUILD_DIR" install
 }
 
 to_meson_array() {
@@ -1555,6 +1906,12 @@ rename_a_rule() {
 resolve_a_rule() {
     die_if_rule_is_not_available "$1"
 
+    unset BUILD_LIST
+
+    unset BUILD_FOR_PLATFORM
+    unset PLATFORM_MIN_VERSION
+    unset BUILD_FOR_ARCH
+
     while read line
     do
         line=$(echo "$line" | sed 's/[[:space:]]//g')
@@ -1581,29 +1938,23 @@ resolve_a_rule() {
             for BUILD_FOR_ARCH in $(list_supported_archs "$BUILD_FOR_PLATFORM")
             do
                 if [ -z "$BUILD_LIST" ]; then
-                    BUILD_LIST="$BUILD_FOR_PLATFORM:$PLATFORM_MIN_VERSION:$BUILD_FOR_ARCH"
+                    BUILD_LIST="$BUILD_FOR_PLATFORM/$BUILD_FOR_ARCH:$PLATFORM_MIN_VERSION"
                 else
-                    BUILD_LIST=$(printf "%s\n%s" "$BUILD_LIST" "$BUILD_FOR_PLATFORM:$PLATFORM_MIN_VERSION:$BUILD_FOR_ARCH")
-                fi
-                if [ -z "$BUILD_FOR_ABI_LIST" ]; then
-                    BUILD_FOR_ABI_LIST="$BUILD_FOR_PLATFORM/$BUILD_FOR_ARCH"
-                else
-                    BUILD_FOR_ABI_LIST=$(printf "%s\n%s" "$BUILD_FOR_ABI_LIST" "$BUILD_FOR_PLATFORM/$BUILD_FOR_ARCH")
+                    BUILD_LIST=$(printf "%s\n%s" "$BUILD_LIST" "$BUILD_FOR_PLATFORM/$BUILD_FOR_ARCH:$PLATFORM_MIN_VERSION")
                 fi
             done
         else
             if [ -z "$BUILD_LIST" ]; then
-                BUILD_LIST="$BUILD_FOR_PLATFORM:$PLATFORM_MIN_VERSION:$BUILD_FOR_ARCH"
+                BUILD_LIST="$BUILD_FOR_PLATFORM/$BUILD_FOR_ARCH:$PLATFORM_MIN_VERSION"
             else
-                BUILD_LIST=$(printf "%s\n%s" "$BUILD_LIST" "$BUILD_FOR_PLATFORM:$PLATFORM_MIN_VERSION:$BUILD_FOR_ARCH")
-            fi
-            if [ -z "$BUILD_FOR_ABI_LIST" ]; then
-                BUILD_FOR_ABI_LIST="$BUILD_FOR_PLATFORM/$BUILD_FOR_ARCH"
-            else
-                BUILD_FOR_ABI_LIST=$(printf "%s\n%s" "$BUILD_FOR_ABI_LIST" "$BUILD_FOR_PLATFORM/$BUILD_FOR_ARCH")
+                BUILD_LIST=$(printf "%s\n%s" "$BUILD_LIST" "$BUILD_FOR_PLATFORM/$BUILD_FOR_ARCH:$PLATFORM_MIN_VERSION")
             fi
         fi
     done < "$MY_HOME_DIR/rules/$1"
+
+    unset BUILD_FOR_PLATFORM
+    unset PLATFORM_MIN_VERSION
+    unset BUILD_FOR_ARCH
 
     if [ "$VERBOSE" = 'true' ] ; then
         for item in $BUILD_LIST
@@ -1613,9 +1964,9 @@ resolve_a_rule() {
     fi
 }
 
-gen_c_file_stub_system() {
-    C_FILE_STUB_SYSTEM="$SOURCE_DIR/stub-system.c"
-    cat > "$C_FILE_STUB_SYSTEM" <<EOF
+
+inject_stub_system() {
+    cat > "$SOURCE_DIR/stub-system.c" <<EOF
 #ifndef SYSTEM_STUB_C
 #define SYSTEM_STUB_C
 
@@ -1630,9 +1981,11 @@ extern char **environ;
     extern "C" {
 #endif
 
-int stub_system(const char* cmd) {
-    char* const argv[] = {(char*)"sh", (char*)"-c", (char*)cmd, NULL};
-    
+__attribute__((unused))
+static int stub_system(char* cmd) {
+    char argv0[] = "sh";
+    char argv1[] = "-c";
+    char* const argv[4] = {argv0, argv1, cmd, NULL};
     pid_t pid;
     int status;
     status = posix_spawn(&pid, "/bin/sh", NULL, NULL, argv, environ);
@@ -1642,51 +1995,36 @@ int stub_system(const char* cmd) {
     return status;
 }
 
+#define system(x) stub_system(x)
+
 #ifdef __cplusplus
     }
 #endif
 
 #endif
 EOF
+    for item in $@
+    do
+        echo "inject $SOURCE_DIR/stub-system.c -> $item"
+        cat "$SOURCE_DIR/stub-system.c" "$item" > "$item.bak" || return 1
+        mv "$item.bak" "$item" || return 1
+    done
 }
 
-check_requirements() {
+include_stub_system() {
+    if [ "$BUILD_ROUND_NUM" -eq 1 ] ; then
+        gen_stub_system
+    fi
+    export CPPFLAGS="$CPPFLAGS -include $SOURCE_DIR/stub-system.c"
+}
+
+check_prerequisites() {
     DEVELOPER_DIR="$(xcode-select -p)"
 
-    [ -z "$DEVELOPER_DIR" ] && die "please set DEVELOPER_DIR environment variable, then try again."
-    [ -d "$DEVELOPER_DIR" ] || die "$DEVELOPER_DIR directory is not exist."
+    [ -z "$DEVELOPER_DIR" ] && die "please set and export DEVELOPER_DIR=DIR environment variable, then try again."
+    [ -d "$DEVELOPER_DIR" ] || die "DEVELOPER_DIR=$DEVELOPER_DIR directory is not exist."
 
     TOOLCHAIN_DIR="$DEVELOPER_DIR/Toolchains/XcodeDefault.xctoolchain/usr/bin"
-
-    CC="${TOOLCHAIN_DIR}/clang"
-    CXX="${TOOLCHAIN_DIR}/clang++"
-    CPP="$CC -E"
-    AR="${TOOLCHAIN_DIR}/ar"
-    AS="${TOOLCHAIN_DIR}/as"
-    LD="${TOOLCHAIN_DIR}/ld"
-    NM="${TOOLCHAIN_DIR}/nm"
-    RANLIB="${TOOLCHAIN_DIR}/ranlib"
-    STRIP="${TOOLCHAIN_DIR}/strip"
-
-    die_if_file_is_not_executable "$CC"
-    die_if_file_is_not_executable "$CXX"
-    die_if_file_is_not_executable "$AR"
-    die_if_file_is_not_executable "$AS"
-    die_if_file_is_not_executable "$LD"
-    die_if_file_is_not_executable "$NM"
-    die_if_file_is_not_executable "$RANLIB"
-    die_if_file_is_not_executable "$STRIP"
-
-    export CC="$CC"
-    export CXX="$CXX"
-    export CPP="$CPP"
-    export AR="$AR"
-    export AS="$AS"
-    export LD="$LD"
-    export NM="$NM"
-    export RANLIB="$RANLIB"
-    export STRIP="$STRIP"
-    export PATH="$TOOLCHAIN_DIR:$PATH"
 
     XCODE_VERSION=$(system_profiler SPDeveloperToolsDataType | grep Version | cut -d: -f2 | sed 's/^ //g')
 }
@@ -1696,7 +2034,7 @@ list_rules() {
 }
 
 list_supported_platforms() {
-    [ -z "$DEVELOPER_DIR" ] && check_requirements
+    [ -z "$DEVELOPER_DIR" ] && check_prerequisites
     ls "$DEVELOPER_DIR/Platforms" | sed 's/.platform//g'
     #print_list AppleTVOS AppleTVSimulator MacOSX iPhoneOS iPhoneSimulator WatchOS WatchSimulator
 }
@@ -1783,7 +2121,7 @@ create_framework_for_a_package() {
     die_if_package_is_not_installed "$1"
 
     unset -f create_framework
-    die_if_load_formula_of_a_package_failed "$1"
+    die_if_load_formula_failed "$1"
     
     if command -v create_framework > /dev/null ; then
         create_framework
@@ -1793,17 +2131,9 @@ create_framework_for_a_package() {
 }
 
 parse_arguments() {
-    unset TO_BE_INSTALLED_PACKAGE_LIST
+    unset USER_SPECIFIED_PACKAGE_LIST
 
-    unset BUILD_LIST
-    unset BUILD_FOR_HOST
-    unset BUILD_FOR_ARCH
-    unset BUILD_FOR_ABI
-    unset BUILD_FOR_ABI_LIST
-    unset BUILD_FOR_PLATFORM
     unset PLATFORM_MIN_VERSION
-    
-    unset ACTION
 
     unset RULE
 
@@ -1838,10 +2168,10 @@ parse_arguments() {
                 KEEP_WORKING_DIR=true
                 ;;
             [a-z]*)
-                if [ -z "$TO_BE_INSTALLED_PACKAGE_LIST" ] ; then
-                    TO_BE_INSTALLED_PACKAGE_LIST="$1"
+                if [ -z "$USER_SPECIFIED_PACKAGE_LIST" ] ; then
+                    USER_SPECIFIED_PACKAGE_LIST="$1"
                 else
-                    TO_BE_INSTALLED_PACKAGE_LIST="$TO_BE_INSTALLED_PACKAGE_LIST $1"
+                    USER_SPECIFIED_PACKAGE_LIST="$USER_SPECIFIED_PACKAGE_LIST $1"
                 fi
                 ;;
             *)  die "$1 is a invalid argument."
@@ -1877,6 +2207,7 @@ init() {
     MY_CACHED_DIR="$MY_HOME_DIR/downloads"
     MY_BOTTLE_DIR="$MY_HOME_DIR/bottles"
     MY_BACKUP_DIR="$MY_HOME_DIR/backup"
+    MY_PATCH_DIR="$MY_HOME_DIR/patches"
 
     if [ ! -d "$MY_HOME_DIR/rules" ] ; then
         mkdir -p "$MY_HOME_DIR/rules"
@@ -1888,7 +2219,11 @@ iPhoneSimulator  : 8.0  : all
 EOF
     fi
 
-    TIMESTAMP_UNIX="$(date +%s)"
+    if command -v date > /dev/null ; then
+        TIMESTAMP_UNIX="$(date +%s)"
+    else
+        die "command not found: date. please make sure it in PATH."
+    fi
 }
 
 main() {
@@ -1904,7 +2239,7 @@ main() {
             ;;
         --version|version|-V)
             echo "$MY_NAME  $MY_VERSION"
-            check_requirements
+            check_prerequisites
             echo "Xcode $XCODE_VERSION"
             ;;
         list)
@@ -1922,16 +2257,15 @@ main() {
                     fi
                     ;;
                 rules) shift; list_rules "$@" ;;
-                available) shift; list_available_packages "$@" ;;
-                installed) shift; list_installed_packages "$@" ;;
-                outdated)  shift; list__outdated_packages "$@" ;;
+                available) shift; list_available_packages ;;
+                installed) shift; list_installed_packages ;;
+                outdated)  shift; list__outdated_packages ;;
                 *) help 1
             esac
             ;;
         min-version) shift; get_supported_min_version "$1" ;;
-        search) shift; search_packages "$*" ;;
-        formula)
-            shift
+        search)  shift; search_packages "$*" ;;
+        formula) shift
             case $1 in
                 create) shift; create_a_formula "$@" ;;
                 delete) shift; delete_a_formula "$@" ;;
@@ -1965,10 +2299,10 @@ main() {
         homepage) shift; open_homepage_of_a_package "$@" ;;
         prefix) shift; print_prefix_of_a_package "$@" ;;
         fetch) shift; fetch_a_package "$@" ;;
-        logs) shift; logs_a_package "$@" ;;
-        pack) shift; pack_a_package "$@" ;;
-        tree) shift; tree_a_package "$@" ;;
-        info) shift; info_packages "$@" ;;
+        logs)  shift; logs_a_package  "$@" ;;
+        pack)  shift; pack_a_package  "$@" ;;
+        tree)  shift; tree_a_package  "$@" ;;
+        info)  shift; info_packages   "$@" ;;
         create-framework) shift; create_framework_for_packages "$@" ;;
         is)
             shift
