@@ -18,7 +18,9 @@ jobs:
       run: brew update
 
     - name: install build tools
-      run: brew install automake meson ninja
+      run: |
+        brew install python@3.9 || brew link --overwrite python@3.9
+        brew install automake meson
 
     - name: install ipkg via homebrew
       run: |
