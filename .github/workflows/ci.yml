@@ -30,5 +30,8 @@ jobs:
     - name: ipkg --version
       run: ipkg --version
 
+    - name: ipkg update
+      run: ipkg update
+
     - name: ipkg install curl
       run: ipkg install curl
