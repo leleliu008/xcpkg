@@ -1,0 +1,32 @@
+name: workflow
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    
+    - name: update homebrew
+      run: brew update
+
+    - name: install build tools
+      run: brew install autoconf automake pkg-config meson ninja cmake curl
+
+    - name: install ipkg via homebrew
+      run: |
+        brew tap leleliu008/fpliu
+        brew install ipkg
+
+    - name: ipkg --version
+      run: ipkg --version
+
+    - name: ipkg install curl
+      run: ipkg install curl
