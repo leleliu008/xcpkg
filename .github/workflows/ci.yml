@@ -18,7 +18,7 @@ jobs:
       run: brew update
 
     - name: install build tools
-      run: brew install autoconf automake pkg-config meson ninja cmake curl
+      run: brew install automake meson ninja
 
     - name: install ipkg via homebrew
       run: |
