@@ -28,6 +28,10 @@ I have provide a zsh-completion script for `ipkg`. when you've typed `ipkg` then
         ipkg --version
         ipkg version
         
+*   update the [ipkg-formula repository](https://github.com/leleliu008/ipkg-formula)
+        
+        ipkg update
+        
 *   search packages can be installed
         
         ipkg search curl
@@ -150,10 +154,6 @@ I have provide a zsh-completion script for `ipkg`. when you've typed `ipkg` then
 *   list contents of a installed package directory in a tree-like format.
         
         ipkg tree curl
-        
-*   update the [formula repository](https://github.com/leleliu008/ipkg-formula)
-        
-        ipkg update
         
 *   download formula resources of a package to the cache
         
