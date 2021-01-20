@@ -59,12 +59,12 @@ eeval() {
 }
 
 nproc() {
-    if command -v nproc > /dev/null ; then
+    if command nproc --version > /dev/null 2>&1 ; then
         command nproc
-    elif command -v sysctl > /dev/null ; then
-        sysctl -n machdep.cpu.thread_count
     elif test -f /proc/cpuinfo ; then
         grep -c processor /proc/cpuinfo
+    elif command -v sysctl > /dev/null ; then
+        sysctl -n machdep.cpu.thread_count
     else
         echo 4
     fi
@@ -388,7 +388,11 @@ __list_available_packages() {
 }
 
 __list_installed_packages() {
-    cd "$MY_INSTALL_DIR" 2>/dev/null || exit 1
+    if [ -d "$MY_INSTALL_DIR" ] ; then
+         cd "$MY_INSTALL_DIR" 2>/dev/null || return 1
+    else
+        return 0
+    fi
 
     for packageName in *
     do
@@ -399,7 +403,11 @@ __list_installed_packages() {
 }
 
 __list__outdated_packages() {
-    cd "$MY_INSTALL_DIR" 2>/dev/null || exit 1
+    if [ -d "$MY_INSTALL_DIR" ] ; then
+         cd "$MY_INSTALL_DIR" 2>/dev/null || return 1
+    else
+        return 0
+    fi
 
     for packageName in *
     do
@@ -815,7 +823,11 @@ __gen_dependency_tree() {
         if [ -f "$DEPENDENCIES__GV" ] ; then
             echo "}" >> "$DEPENDENCIES__GV"
 
-            dot -Tpng -o "$DEPENDENCIES_PNG" "$DEPENDENCIES__GV"
+            if command -v dot > /dev/null ; then
+                dot -Tpng -o "$DEPENDENCIES_PNG" "$DEPENDENCIES__GV"
+            else
+                warn "graphviz is not installed. we do not generate png format dependency image."
+            fi
 
             # https://github.com/ggerganov/dot-to-ascii
             curl \
@@ -827,6 +839,78 @@ __gen_dependency_tree() {
                 "https://dot-to-ascii.ggerganov.com/dot-to-ascii.php"
         fi
     fi
+}
+
+__version() {
+    case "$1" in
+        cmake) "$2" --version 2> /dev/null | head -n 1 | cut -d ' ' -f3 ;;
+         make) "$2" --version 2> /dev/null | head -n 1 | cut -d ' ' -f3 ;;
+        gmake) "$2" --version 2> /dev/null | head -n 1 | cut -d ' ' -f3 ;;
+       rustup) "$2" --version 2> /dev/null | head -n 1 | cut -d ' ' -f2 ;;
+        cargo) "$2" --version 2> /dev/null | head -n 1 | cut -d ' ' -f2 ;;
+   pkg-config) "$2" --version 2> /dev/null | head -n 1 ;;
+       m4|gm4) "$2" --version 2> /dev/null | head -n 1 | awk '{print($NF)}';;
+     automake|aclocal)
+               "$2" --version 2> /dev/null | head -n 1 | cut -d ' ' -f4 ;;
+     autoconf|autoheader|autom4te|autoreconf|autoscan|autoupdate|ifnames)
+               "$2" --version 2> /dev/null | head -n 1 | cut -d ' ' -f4 ;;
+      libtool) "$2" --version 2> /dev/null | head -n 1 | cut -d ' ' -f4 ;;
+   libtoolize) "$2" --version 2> /dev/null | head -n 1 | cut -d ' ' -f4 ;;
+         flex) "$2" --version 2> /dev/null | head -n 1 | cut -d ' ' -f2 ;;
+        bison) "$2" --version 2> /dev/null | head -n 1 | cut -d ' ' -f4 ;;
+         yacc) "$2" --version 2> /dev/null | head -n 1 | cut -d ' ' -f4 ;;
+         nasm) "$2" --version 2> /dev/null | head -n 1 | cut -d ' ' -f3 ;;
+         yasm) "$2" --version 2> /dev/null | head -n 1 | cut -d ' ' -f2 ;;
+        patch) "$2" --version 2> /dev/null | head -n 1 | awk '{print($NF)}' ;;
+        gperf) "$2" --version 2> /dev/null | head -n 1 | cut -d ' ' -f3 ;;
+         file) "$2" --version 2> /dev/null | head -n 1 | cut -d '-' -f2 ;;
+      itstool) "$2" --version 2> /dev/null | head -n 1 | cut -d ' ' -f2 ;;
+        xmlto) "$2" --version 2> /dev/null | head -n 1 | cut -d ' ' -f3 ;;
+      xmllint) ;;
+     xsltproc) ;;
+         gzip)
+            unset TEMP_FILE
+            TEMP_FILE=$(mktemp)
+            gzip --version > $TEMP_FILE 2>&1
+            cat $TEMP_FILE | head -n 1 | awk '{print($NF)}'
+            rm $TEMP_FILE
+            unset TEMP_FILE
+            ;;
+         lzip) "$2" --version 2> /dev/null | head -n 1 | cut -d ' ' -f2 ;;
+           xz) "$2" --version 2> /dev/null | head -n 1 | cut -d ' ' -f4 ;;
+          zip) "$2" --version 2> /dev/null | sed -n '2p' | cut -d ' ' -f4 ;;
+        unzip) "$2" -v        2> /dev/null | head -n 1 | cut -d ' ' -f2 ;;
+        bzip2)
+            unset TEMP_FILE
+            TEMP_FILE=$(mktemp)
+            bzip2 --help 2> $TEMP_FILE
+            cat $TEMP_FILE | head -n 1 | cut -d ' ' -f8 | cut -d ',' -f1
+            rm $TEMP_FILE
+            unset TEMP_FILE
+            ;;
+          tar)
+            VERSION_MSG=$("$2" --version 2> /dev/null | head -n 1)
+            case $VERSION_MSG in
+                  tar*) echo "$VERSION_MSG" | cut -d ' ' -f4 ;;
+               bsdtar*) echo "$VERSION_MSG" | cut -d ' ' -f2 ;;
+            esac
+            ;;
+          git) "$2" --version 2> /dev/null | head -n 1 | cut -d ' ' -f3 ;;
+         curl) "$2" --version 2> /dev/null | head -n 1 | cut -d ' ' -f2 ;;
+     awk|gawk) "$2" --version 2> /dev/null | head -n 1 | cut -d ' ' -f3 | tr , ' ' ;;
+     sed|gsed) "$2" --version 2> /dev/null | head -n 1 | cut -d ' ' -f4 ;;
+          pip) "$2" --version 2> /dev/null | head -n 1 | cut -d ' ' -f2 ;;
+         cpan) ;;
+         grep) "$2" --version 2> /dev/null | head -n 1 | cut -d ' ' -f4 | cut -d '-' -f1 ;;
+         ruby) "$2" --version 2> /dev/null | head -n 1 | cut -d ' ' -f2 ;;
+         perl) "$2" -v | sed -n '2p' | sed 's/.*v\([0-9]\.[0-9][0-9]\.[0-9]\).*/\1/' ;;
+      python)  "$2" --version              | head -n 1 | cut -d ' ' -f2 ;;
+      python3) "$2" --version 2> /dev/null | head -n 1 | cut -d ' ' -f2 ;;
+         node) "$2" --version 2> /dev/null | head -n 1 | cut -d 'v' -f2 ;;
+          zsh) "$2" --version 2> /dev/null | head -n 1 | cut -d ' ' -f2 ;;
+         bash) "$2" --version 2> /dev/null | head -n 1 | cut -d ' ' -f4 | cut -d '(' -f1 ;;
+            *) "$2" --version 2> /dev/null | head -n 1
+    esac
 }
 
 __config_glob_installation_variables() {
@@ -850,6 +934,12 @@ __config_glob_installation_variables() {
         PKG_CONFIG=$(command -v pkg-config) ||
         PKG_CONFIG=$(command -v pkgconfig) ||
         PKG_CONFIG=$(command -v pkgconf)
+    fi
+
+    if [ -z "$YASM" ] ; then
+        if [ -f  "$TOOLCHAIN_BIN_DIR/yasm" ] ; then
+            YASM="$TOOLCHAIN_BIN_DIR/yasm"
+        fi
     fi
 
     for item in $(echo "$PATH" | tr ':' ' ')
@@ -876,6 +966,47 @@ __config_glob_installation_variables() {
             break
         fi
     done
+
+    if [   -f "$MY_HOME_DIR/tools.txt" ] ; then
+        rm -f "$MY_HOME_DIR/tools.txt"
+    fi
+
+    for tool in rustup cargo pkg-config cmake meson ninja make gmake bmake m4 gm4 autoconf automake libtool libtoolize flex bison yacc nasm yasm patch gperf doxygen itstool xmlto xmllint xsltproc file zip unzip xz bzip2 gzip lzip tar curl git awk gawk sed gsed grep cpan gem pip npm yarn ruby perl python python3 node bash zsh
+    do
+        unset TOOL_PATH
+        unset TOOL_UPPER
+        unset TOOL_VERSION
+
+        TOOL_UPPER=$(echo "$tool" | tr a-z A-Z | tr - _)
+        TOOL_PATH="$(eval echo \$$TOOL_UPPER)"
+
+        if [ -n "$TOOL_PATH" ] ; then
+            if [ ! -f "$TOOL_PATH" ] || [ ! -x "$TOOL_PATH" ] ; then
+                TOOL_PATH=''
+            fi
+        fi
+
+        if [ -z "$TOOL_PATH" ] ; then
+            TOOL_PATH=$(command -v "$tool")
+            if [ "$tool" = "$TOOL_PATH" ] ; then
+                TOOL_PATH=''
+            fi
+        fi
+
+        if [ -n "$TOOL_PATH" ] ; then
+            TOOL_VERSION=$(__version "$tool" "$TOOL_PATH")
+        fi
+
+        printf "%10s %-10s %s\n" "$tool" "$TOOL_VERSION" "$TOOL_PATH" | tee -a "$MY_HOME_DIR/tools.txt"
+
+        if [ -z "$TOOL_PATH" ] ; then
+            TOOL_PATH="$tool"
+        fi
+
+        eval $TOOL_UPPER=\"$TOOL_PATH\"
+    done
+
+    echo
 
     for tool in $(list_tools_in_the_toolchain)
     do
@@ -906,14 +1037,14 @@ __config_glob_installation_variables() {
         TOOL_UPPER=$(echo "$tool" | tr a-z A-Z)
 
         eval $TOOL_UPPER=$TOOL_PATH
-        eval export ${TOOL_UPPER}_FOR_BUILD=$TOOL_PATH
+        eval export ${TOOL_UPPER}_FOR_BUILD=\"$TOOL_PATH\"
     done
     unset TOOL_PATH
     unset TOOL_UPPER
 
     for FLAG in $(list_flags_used_by_tools_in_the_toolchain)
     do
-        eval export ${FLAG}_FOR_BUILD="\$$FLAG"
+        eval export ${FLAG}_FOR_BUILD=\"\$$FLAG\"
     done
     unset FLAG
 
@@ -932,9 +1063,11 @@ ____install_packages() {
     die_if_package_list_is_not_specified "$USER_SPECIFIED_PACKAGE_LIST"
 
     __config_glob_installation_variables
-    
+
     __gen_dependency_list 'true' '' || return 1
-    
+
+    echo "packages may be installed are: $DEPENDENCY_PACKAGE_LIST"
+
     for INSTALLING_PACKAGE in $DEPENDENCY_PACKAGE_LIST
     do
         if is_package_installed "$INSTALLING_PACKAGE" ; then
@@ -1028,26 +1161,18 @@ __install_a_package() {
         
         info "=========================================> prepare pre"
 
-        printf "%16s = %s\n" "PACKAGE_NAME" "$PACKAGE_NAME"
-        echo
-
-        for TOOL in SHELL MAKE CMAKE MESON NINJA CARGO PKG_CONFIG
-        do
-            printf "%16s = %s\n" "$TOOL" "$(eval echo \$$TOOL)"
-        done
-
-        echo
+        printf "%17s = %s\n\n" "PACKAGE_NAME" "$PACKAGE_NAME"
 
         for TOOL in $(list_tools_in_the_toolchain | tr a-z A-Z)
         do
             eval export $TOOL=\$"${TOOL}_FOR_BUILD"
-            printf "%16s = %s\n" "$TOOL" "$(eval echo \$$TOOL)"
+            printf "%17s = %s\n" "$TOOL" "$(eval echo \$$TOOL)"
         done
 
         for FLAG in $(list_flags_used_by_tools_in_the_toolchain)
         do
             eval export $FLAG=\$"${FLAG}_FOR_BUILD"
-            printf "\n%16s = " "$FLAG"
+            printf "\n%17s = " "$FLAG"
             FIRST='true'
             for item in $(eval echo \$$FLAG | tr ':' ' ')
             do
@@ -1170,7 +1295,9 @@ __install_logs() {
     install -d "$ABI_LOG_DIR" || return 1
 
     install_installed_log
-    
+
+    cp -v "$MY_HOME_DIR/tools.txt" "$ABI_LOG_DIR"
+
     for item in "$BUILD_DIR" "$SOURCE_DIR"
     do
         if [ -f "$item/config.log" ] ; then
@@ -1724,7 +1851,7 @@ __printf_this_build_variables() {
 
     for TOOL in $(list_tools_in_the_toolchain | tr a-z A-Z)
     do
-        eval export $TOOL="\$$TOOL"
+        eval export $TOOL=\"\$$TOOL\"
         printf "%17s = %s\n" "$TOOL" "$(eval echo \$$TOOL)"
     done
 
@@ -1738,14 +1865,9 @@ __printf_this_build_variables() {
 
     echo
 
-    for TOOL in  SHELL MAKE CMAKE MESON NINJA CARGO PKG_CONFIG
-    do
-        printf "%17s = %s\n" "$TOOL" "$(eval echo \$$TOOL)"
-    done
-
     for FLAG in $(list_flags_used_by_tools_in_the_toolchain)
     do
-        eval export $FLAG=\$$FLAG
+        eval export $FLAG=\"\$$FLAG\"
         printf "\n%17s = " "$FLAG"
         FIRST=true
         for item in $(eval echo \$$FLAG | tr ':' ' ')

@@ -1,9 +1,7 @@
 # ipkg
-a package manager for [Xcode](https://developer.apple.com/xcode) to build C/C++ project.
+a package manager for [Xcode](https://developer.apple.com/xcode) to build C/C++/Rust project.
 
-## Installation
-
-via [HomeBrew](http://blog.fpliu.com/it/os/macOS/software/HomeBrew)
+## Install ipkg via [HomeBrew](https://brew.sh)
 
 ```
 brew tap leleliu008/fpliu
@@ -14,6 +12,9 @@ brew install ipkg
 I have provide a zsh-completion script for `ipkg`. when you've typed `ipkg` then type `TAB` key, it will auto complete the rest for you.
 
 **Note**: to apply this feature, you may need to run the command `autoload -U compinit && compinit`
+
+## Give a Star!
+𝙄𝙛 𝙮𝙤𝙪 ❤𝙩𝙝𝙞𝙨 𝙥𝙧𝙤𝙟𝙚𝙘𝙩, 𝙥𝙡𝙚𝙖𝙨𝙚 𝙜𝙞𝙫𝙚 𝙞𝙩 𝙖 𝙨𝙩𝙖𝙧 <span style='color:red;font-size:1.2em'>★</span> . 𝙏𝙝𝙖𝙣𝙠𝙨!
 
 ## ipkg command usage
 *   print the help infomation of `ipkg` command
