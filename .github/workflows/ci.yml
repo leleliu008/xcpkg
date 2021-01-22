@@ -28,7 +28,7 @@ jobs:
 
     - uses: actions/checkout@v2
 
-    - run:  ln -s bin/ipkg $(brew --prefix)/bin
+    - run:  mv bin/ipkg $(brew --prefix)/bin
 
     - run:  ipkg version
     - run:  ipkg update
