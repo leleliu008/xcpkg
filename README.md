@@ -48,7 +48,9 @@ I have provide a zsh-completion script for `ipkg`. when you've typed `ipkg` then
         ipkg install curl
         ipkg install curl bzip2
         ipkg install curl bzip2 --rule=xx
-        ipkg install curl bzip2 -v --xtrace --verbose --keep-working-dir
+        ipkg install curl bzip2 -v 
+        ipkg install curl bzip2 -v -x --keep-working-dir
+        ipkg install curl bzip2 -v -x --dry-run
         
 *   reinstall packages
         
