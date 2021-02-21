@@ -37,6 +37,7 @@ _list=(
     'available:list the available packages.'
     'installed:list the installed packages.'
     'outdated:list the installed packages which can be upgraded.'
+    'notdepended:list the packages which is not depended by other packages'
 )
 
 function _ipkg_list() {
