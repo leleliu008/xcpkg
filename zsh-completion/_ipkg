@@ -21,6 +21,7 @@ _commands=(
     'upgrade:upgrade the outdated packages.'
     'fetch:download formula resources of a package to the cache.'
     'homepage:visit the homepage of a formula or the ipkg project.'
+    'depends:show depends of a package.'
     'prefix:show the installation direcotory of a formula or the ipkg home.'
     'pack:pack a installed package.'
     'logs:print the logs of a installed package.'
@@ -123,7 +124,7 @@ function _ipkg() {
                 info)
                     _arguments '*:package-name:_ipkg_available_packages'
                     ;;
-                fetch|homepage)
+                fetch|homepage|depends)
                     _arguments ':package-name:_ipkg_available_packages'
                     ;;
                 prefix|pack|create-framework)
