@@ -1443,6 +1443,9 @@ __install_a_package() {
 
     __state 10 "do some preparation works"
     if command -v prepare > /dev/null ; then
+        if [ "$PWD" != "$SOURCE_DIR" ] ; then
+            cd "$SOURCE_DIR" || return 1
+        fi
         run prepare || return 1
     else
         case $PACKAGE_BUILD_SYSTEM in
