@@ -925,9 +925,10 @@ __get_brew_package_name_by_command_name() {
        gperf) echo 'gperf' ;;
         nasm) echo 'nasm'  ;;
         yasm) echo 'yasm'  ;;
-        gsed) echo 'gnu-sed' ;;
-        flex) echo 'flex'  ;;
-       bison) echo 'bison' ;;
+        gsed) echo 'gnu-sed'  ;;
+        flex) echo 'flex'     ;;
+       bison) echo 'bison'    ;;
+     objcopy) echo 'binutils' ;;
           go) echo 'go'    ;;
         perl) echo 'perl'  ;;
         tree) echo 'tree'  ;;
@@ -965,6 +966,7 @@ __version() {
       libtool) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f4 ;;
    libtoolize|glibtoolize)
                "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f4 ;;
+      objcopy) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f5 ;;
          flex) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f2 ;;
         bison) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f4 ;;
          yacc) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f4 ;;
