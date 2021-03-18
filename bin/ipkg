@@ -2308,12 +2308,12 @@ __config_this_build_variables() {
                 export GO111MODULE="auto"
                 export GOPROXY=https://goproxy.cn
 
-                export GOOS=darwin
+                export GOOS=ios
 
                 case $BUILD_FOR_ARCH in
-                    armv7a)  export GOARCH=arm   ;;
-                    aarch64) export GOARCH=arm64 ;;
-                    i686)    export GOARCH=386   ;;
+                    armv7*)  export GOARCH=arm   ;;
+                    arm64*)  export GOARCH=arm64 ;;
+                    i386)    export GOARCH=386   ;;
                     x86_64)  export GOARCH=amd64 ;;
                 esac
                 ;;
@@ -2586,6 +2586,7 @@ EOF
     -DCMAKE_FIND_ROOT_PATH="$MY_INSTALL_DIR" \
     -DCMAKE_INSTALL_PREFIX="$ABI_INSTALL_DIR" \
     -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_OSX_ARCHITECTURES="$BUILD_FOR_ARCH" \
     -DBUILD_SHARED_LIBS=OFF \
     -DBUILD_TESTING=OFF \
     -G "\"Unix Makefiles\"" \
@@ -2867,7 +2868,7 @@ check_prerequisites() {
 
     TOOLCHAIN_BIN_DIR="$DEVELOPER_DIR/Toolchains/XcodeDefault.xctoolchain/usr/bin"
 
-    XCODE_VERSION=$(system_profiler SPDeveloperToolsDataType | grep Version | cut -d: -f2 | sed 's/^ //g')
+    XCODE_VERSION=$(system_profiler SPDeveloperToolsDataType | grep Version | head -n 1 | cut -d: -f2 | sed 's/^ //g')
 }
 
 __list_rules() {
@@ -3106,13 +3107,19 @@ init() {
     MY_BACKUP_DIR="$MY_HOME_DIR/backup"
     MY_PATCH_DIR="$MY_HOME_DIR/patches"
 
-    if [ ! -d "$MY_HOME_DIR/rules" ] ; then
-        mkdir -p "$MY_HOME_DIR/rules"
-    fi
+    install -d "$MY_HOME_DIR/rules"
+
     if [ ! -f "$MY_HOME_DIR/rules/default" ] ; then
         cat > "$MY_HOME_DIR/rules/default" <<EOF
 iPhoneOS         : 8.0  : all
 iPhoneSimulator  : 8.0  : all
+EOF
+    fi
+    if [ ! -f "$MY_HOME_DIR/rules/thread-local-storage" ] ; then
+        cat > "$MY_HOME_DIR/rules/thread-local-storage" <<EOF
+iPhoneOS         : 9.0  : all
+iPhoneSimulator  : 9.0  : x86_64
+iPhoneSimulator  : 10.0 : i386
 EOF
     fi
 
