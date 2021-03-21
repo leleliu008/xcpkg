@@ -896,7 +896,7 @@ __gen_dependency_tree() {
             echo "}" >> "$DEPENDENCIES__GV"
 
             if command -v dot > /dev/null ; then
-                dot -Tpng -o "$DEPENDENCIES_PNG" "$DEPENDENCIES__GV"
+                run dot -Tpng -o "$DEPENDENCIES_PNG" "$DEPENDENCIES__GV"
             else
                 warn "graphviz is not installed. we do not generate png format dependency image."
             fi
@@ -1440,7 +1440,7 @@ __install_a_package() {
         run cd    "$NATIVE_BUILD_DIR" || return 1
         run build0                    || return 1
     else
-        warn "no build0  function defined in formula, skipped."
+        warn " no build0  function defined in formula, skipped."
     fi
 
     __state 10 "do some preparation works"
@@ -1452,14 +1452,14 @@ __install_a_package() {
     else
         case $PACKAGE_BUILD_SYSTEM in
             autogen)
-                warn "no prepare function defined in formula."
+                warn " no prepare function defined in formula."
                 run ./autogen.sh    || return 1
                 ;;
             autotools)
-                warn "no prepare function defined in formula."
+                warn " no prepare function defined in formula."
                 run autoreconf -ivf || return 1
                 ;;
-            *)  warn "no prepare function defined in formula, skipped."
+            *)  warn " no prepare function defined in formula, skipped."
         esac
     fi
 
@@ -2308,7 +2308,7 @@ __config_this_build_variables() {
                 export GO111MODULE="auto"
                 export GOPROXY=https://goproxy.cn
 
-                export GOOS=ios
+                export GOOS=darwin
 
                 case $BUILD_FOR_ARCH in
                     armv7*)  export GOARCH=arm   ;;
