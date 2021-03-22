@@ -1942,6 +1942,19 @@ cdefine() {
     fi
 }
 
+# set or get list of cc flags
+ccflags() {
+    if [ $# -eq 0 ] ; then
+        echo "$PACKAGE_CCFLAGS"
+    else
+        if [ -z "$PACKAGE_CCFLAGS" ] ; then
+            PACKAGE_CCFLAGS="$@"
+        else
+            PACKAGE_CCFLAGS="$PACKAGE_CCFLAGS $@"
+        fi
+    fi
+}
+
 # set or get list of linker flags
 ldflags() {
     if [ $# -eq 0 ] ; then
@@ -2222,6 +2235,10 @@ __config_this_build_variables() {
     do
         CPPFLAGS="$CPPFLAGS -D$item"
     done
+
+    if [ -n "$PACKAGE_CCFLAGS" ] ; then
+        CFLAGS="$CFLAGS $PACKAGE_CCFLAGS"
+    fi
 
     if [ -n "$PACKAGE_LDFLAGS" ] ; then
         LDFLAGS="$LDFLAGS $PACKAGE_LDFLAGS"
