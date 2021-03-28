@@ -1,4 +1,4 @@
-version = $(shell bin/ipkg --version | head -n 1 | awk '{print $$2}')
+version = $(shell bin/ipkg --version)
 filename= ipkg-$(version).tar.gz
 
 dist: bin/ipkg zsh-completion/_ipkg
