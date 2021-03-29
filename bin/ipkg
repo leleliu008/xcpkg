@@ -1533,6 +1533,7 @@ __install_a_package() {
     fi
 
     __state 12 "calculate dependencies"
+    unset DEPENDENCY_PACKAGE_LIST
     if [ -z "$PACKAGE_DEPENDS" ] ; then
         warn " no dependencies."
     else
@@ -2097,7 +2098,7 @@ ___load_formula_of_a_package() {
     unset PACKAGE_IOS_IOS
 
 
-    # relative to $WORKING_DIR, which contains configure, CMakeLists.txt, etc.
+    # relative to $WORKING_DIR, which contains configure, Makefile, CMakeLists.txt, meson.build, Cargo.toml, etc.
     unset PACKAGE_SOURCE_DIR
     unset PACKAGE_BUILD_IN_SOURCE_DIR
 
@@ -2115,8 +2116,11 @@ ___load_formula_of_a_package() {
     . "$FORMULA_FILE_PATH" || die "$FORMULA_FILE_PATH is broken."
 
     [ -z "$PACKAGE_SUMMARY" ] && die "summary command must be invoked in $FORMULA_FILE_PATH"
-    [ -z "$PACKAGE_WEBPAGE" ] && die "webpage command must be invoked in $FORMULA_FILE_PATH"
-    [ -z "$PACKAGE_SRC_URL" ] && PACKAGE_SRC_URL=$PACKAGE_SRC_GIT
+
+    [ -z "$PACKAGE_WEBPAGE" ] && PACKAGE_WEBPAGE="$PACKAGE_SRC_GIT"
+    [ -z "$PACKAGE_WEBPAGE" ] && die "webpage or src_git command must be invoked in $FORMULA_FILE_PATH"
+
+    [ -z "$PACKAGE_SRC_URL" ] && PACKAGE_SRC_URL="$PACKAGE_SRC_GIT"
     [ -z "$PACKAGE_SRC_URL" ] && die "src_url or src_git command must be invoked in $FORMULA_FILE_PATH"
 
 
