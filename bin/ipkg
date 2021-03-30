@@ -1336,10 +1336,10 @@ die_if_require_item_not_met() {
 }
 
 die_from_installation_failed() {
-    if [ -z "$BUILD_FOR_ABI" ] ; then
+    if [ -z "$TARGET_OS_ABI" ] ; then
         die "install $1 failed! you can go to $WORKING_DIR to see see."
     else
-        die "install $1/$BUILD_FOR_ABI failed! you can go to $WORKING_DIR to see see."
+        die "install $1/$TARGET_OS_ABI failed! you can go to $WORKING_DIR to see see."
     fi
 }
 
@@ -1377,7 +1377,7 @@ __install_a_package() {
     unset NATIVE_BUILD_DIR
     unset NATIVE_INSTALL_DIR
     unset BUILD_DIR
-    unset BUILD_FOR_ABI
+    unset TARGET_OS_ABI
     unset CONFIG_XX_UPDATED
 
     __state 2 "load formula"
@@ -1435,20 +1435,20 @@ __install_a_package() {
     EMPTY_DIR="$WORKING_DIR/$TIMESTAMP_UNIX"
     mkdir "$EMPTY_DIR"
 
-    __state 10 "build for build-machine"
+    __state 10 "build for native"
     if command -v build0 > /dev/null ; then
         NATIVE_BUILD_DIR="$EMPTY_DIR/native"
         NATIVE_INSTALL_DIR="$MY_HOME_DIR/native/$PACKAGE_NAME"
 
         if [ -f "$NATIVE_INSTALL_DIR/version.txt" ] ; then
             if [ "$(cat "$NATIVE_INSTALL_DIR/version.txt")" != "$PACKAGE_VERSION" ] ; then
-                warn " build for build-machine already have been done, but not same version. we will remove and rebuild it."
+                warn " build for native already have been done, but not same version. we will remove and rebuild it."
                 run rm -rf "$NATIVE_INSTALL_DIR"
             fi
         fi
 
         if [ -f "$NATIVE_INSTALL_DIR/version.txt" ] ; then
-            warn " build for build-machine already have been done, skipped."
+            warn " build for native already have been done, skipped."
         else
             [ "$PACKAGE_BUILD_IN_SOURCE_DIR" = 'true' ] || {
                 run mkdir "$NATIVE_BUILD_DIR" || return 1
@@ -1565,21 +1565,21 @@ __install_a_package_all_builds() {
     PKG_INSTALL_DIR="$MY_INSTALL_DIR/$1"
 
     unset BUILD_ROUND_NUM
-    unset BUILD_FOR_ABI_LIST
+    unset TARGET_OS_ABI_LIST
 
     for BUILD in $BUILD_LIST
     do
         BUILD_ROUND_NUM=$(expr ${BUILD_ROUND_NUM-0} + 1)
 
-        BUILD_FOR_ABI=$(echo "$BUILD" | cut -d: -f1)
+        TARGET_OS_ABI=$(echo "$BUILD" | cut -d: -f1)
 
-        if [ -z "$BUILD_FOR_ABI_LIST" ] ; then
-            BUILD_FOR_ABI_LIST="$BUILD_FOR_ABI"
+        if [ -z "$TARGET_OS_ABI_LIST" ] ; then
+            TARGET_OS_ABI_LIST="$TARGET_OS_ABI"
         else
-            BUILD_FOR_ABI_LIST=$(printf "%s\n%s" "$BUILD_FOR_ABI_LIST" "$BUILD_FOR_ABI")
+            TARGET_OS_ABI_LIST=$(printf "%s\n%s" "$TARGET_OS_ABI_LIST" "$TARGET_OS_ABI")
         fi
 
-        BUILD_DIR="$EMPTY_DIR/$BUILD_FOR_ABI"
+        BUILD_DIR="$EMPTY_DIR/$TARGET_OS_ABI"
 
         if [ "$DRYRUN" = 'true' ] ; then
             ___dryrun_a_package_one_build "$1" || return 1
@@ -1594,7 +1594,7 @@ __install_a_package_all_builds() {
         fi
     done
 
-    echo "$BUILD_FOR_ABI_LIST" > "$PKG_INSTALL_DIR/manifest.txt"
+    echo "$TARGET_OS_ABI_LIST" > "$PKG_INSTALL_DIR/manifest.txt"
 }
 
 ___dryrun_a_package_one_build() {
@@ -1609,7 +1609,7 @@ ___dryrun_a_package_one_build() {
 }
 
 __install_a_package_one_build() {
-    __state 13 "build for target-machine ${COLOR_GREEN}${BUILD_FOR_ABI}${COLOR_OFF}"
+    __state 13 "build for target ${COLOR_GREEN}${TARGET_OS_ABI}${COLOR_OFF}"
 
     if [ "$PACKAGE_BUILD_IN_SOURCE_DIR" = 'true' ] ; then
         run cd "$SOURCE_DIR" || return 1
@@ -2250,7 +2250,7 @@ installed_pkg_vers=$PACKAGE_VERSION
 used_toolchain_name='$TOOLCHAIN_NAME'
 used_toolchain_vers='$TOOLCHAIN_VERSION'
 
-min_platform_version=$PLATFORM_MIN_VERSION
+min_os_version=$TARGET_OS_VERS
 EOF
 }
 
@@ -2268,7 +2268,7 @@ die_if_load_installed_log_failed() {
     unset used_toolchain_name
     unset used_toolchain_vers
 
-    unset min_platform_version
+    unset min_os_version
     
     . "$INSTALLED_LOG_FILE_PATH" || die "$INSTALLED_LOG_FILE_PATH is broken."
 }
@@ -2282,13 +2282,16 @@ __show_installed_log() {
 __config_this_build_variables() {
     die_if_package_is_not_available "$1"
 
-    BUILD_FOR_ARCH=$(echo_arch_by_abi "$BUILD_FOR_ABI")
-    BUILD_FOR_TARGET=$(echo_target_by_arch "$BUILD_FOR_ARCH")
+    TARGET_OS_TYPE=darwin
+    TARGET_OS_ARCH=$(echo_arch_by_abi "$TARGET_OS_ABI")
+    TARGET_TRIPLE=$(echo_target_by_arch "$TARGET_OS_ARCH")
 
-    PLATFORM_MIN_VERSION=$(echo "$BUILD" | cut -d: -f2)
-    BUILD_FOR_PLATFORM=$(echo "$BUILD_FOR_ABI" | cut -d/ -f1)
-    SYSROOT="$TOOLCHAIN_ROOTDIR/Platforms/${BUILD_FOR_PLATFORM}.platform/Developer/SDKs/${BUILD_FOR_PLATFORM}.sdk"
-    platformLower="$(printf "$BUILD_FOR_PLATFORM" | awk '{print(tolower($0))}')"
+    TARGET_OS_VERS=$(echo "$BUILD" | cut -d: -f2)
+    TARGET_OS_NAME=$(echo "$TARGET_OS_ABI" | cut -d/ -f1)
+
+    SYSROOT="$TOOLCHAIN_ROOTDIR/Platforms/${TARGET_OS_NAME}.platform/Developer/SDKs/${TARGET_OS_NAME}.sdk"
+
+    TARGET_OS_NAME_LOWER_CASE="$(printf "$TARGET_OS_NAME" | awk '{print(tolower($0))}')"
 
     for tool in $(list_tools_in_the_toolchain)
     do
@@ -2302,9 +2305,9 @@ __config_this_build_variables() {
     SYSTEM_INCLUDE_DIR="$SYSROOT/usr/include"
     SYSTEM_LIBRARY_DIR="$SYSROOT/usr/lib"
 
-      CFLAGS="-isysroot $SYSROOT -Qunused-arguments -arch $BUILD_FOR_ARCH -Os -pipe -m${platformLower}-version-min=$PLATFORM_MIN_VERSION"
+      CFLAGS="-isysroot $SYSROOT -Qunused-arguments -arch $TARGET_OS_ARCH -Os -pipe -m${TARGET_OS_NAME_LOWER_CASE}-version-min=$TARGET_OS_VERS"
     CPPFLAGS="-isysroot $SYSROOT -Qunused-arguments"
-     LDFLAGS="-isysroot $SYSROOT -arch $BUILD_FOR_ARCH -m${platformLower}-version-min=$PLATFORM_MIN_VERSION"
+     LDFLAGS="-isysroot $SYSROOT -arch $TARGET_OS_ARCH -m${TARGET_OS_NAME_LOWER_CASE}-version-min=$TARGET_OS_VERS"
 
     for item in $PACKAGE_CDEFINE
     do
@@ -2319,7 +2322,7 @@ __config_this_build_variables() {
         LDFLAGS="$LDFLAGS $PACKAGE_LDFLAGS"
     fi
 
-    case $BUILD_FOR_ARCH in
+    case $TARGET_OS_ARCH in
         armv7*) CPPFLAGS="$CPPFLAGS -D__arm__"   ;;
         arm64*) CPPFLAGS="$CPPFLAGS -D__arm64__" ;;
         i386)   CPPFLAGS="$CPPFLAGS -D__i386__"  ;;
@@ -2334,7 +2337,7 @@ __config_this_build_variables() {
     do
         PKG=$(printf "$PACKAGE" | tr '-' '_')
         
-        ABI_INSTALL_DIR="$MY_INSTALL_DIR/$PACKAGE/$BUILD_FOR_ABI"
+        ABI_INSTALL_DIR="$MY_INSTALL_DIR/$PACKAGE/$TARGET_OS_ABI"
         ABI_INCLUDE_DIR="$ABI_INSTALL_DIR/include"
         ABI_LIBRARY_DIR="$ABI_INSTALL_DIR/lib"
         ABI_PKGCONF_DIR="$ABI_INSTALL_DIR/lib/pkgconfig"
@@ -2363,7 +2366,7 @@ __config_this_build_variables() {
         CXXFLAGS="$CXXFLAGS $PACKAGE_CXXFLAGS"
     fi
 
-    ABI_INSTALL_DIR="$PKG_INSTALL_DIR/$BUILD_FOR_ABI"
+    ABI_INSTALL_DIR="$PKG_INSTALL_DIR/$TARGET_OS_ABI"
     ABI_BINARY__DIR="$ABI_INSTALL_DIR/bin"
     ABI_INCLUDE_DIR="$ABI_INSTALL_DIR/include"
     ABI_LIBRARY_DIR="$ABI_INSTALL_DIR/lib"
@@ -2385,7 +2388,7 @@ __config_this_build_variables() {
                     }
                 done
 
-                CARGO_TARGET=$(echo "$BUILD_FOR_TARGET" | sed 's/armv7a/armv7/')
+                CARGO_TARGET=$(echo "$TARGET_TRIPLE" | sed 's/armv7a/armv7/')
 
                 # https://doc.rust-lang.org/cargo/reference/environment-variables.html
                 CARGO_TARGET_XXX=$(echo "$CARGO_TARGET" | tr a-z A-Z | tr - _)
@@ -2406,7 +2409,7 @@ __config_this_build_variables() {
 
                 export GOOS=darwin
 
-                case $BUILD_FOR_ARCH in
+                case $TARGET_OS_ARCH in
                     armv7*)  export GOARCH=arm   ;;
                     arm64*)  export GOARCH=arm64 ;;
                     i386)    export GOARCH=386   ;;
@@ -2421,16 +2424,17 @@ __printf_this_build_variables() {
     echo
     echo " BUILD_ROUND_NUM  = $BUILD_ROUND_NUM"
     echo
-    echo "BUILD_MACHINE_OS_TYPE = $BUILD_MACHINE_OS_TYPE"
-    echo "BUILD_MACHINE_OS_ARCH = $BUILD_MACHINE_OS_ARCH"
-    echo "BUILD_MACHINE_OS_NAME = $BUILD_MACHINE_OS_NAME"
-    echo "BUILD_MACHINE_OS_VERS = $BUILD_MACHINE_OS_VERS"
+    echo " NATIVE_OS_TYPE   = $NATIVE_OS_TYPE"
+    echo " NATIVE_OS_ARCH   = $NATIVE_OS_ARCH"
+    echo " NATIVE_OS_NAME   = $NATIVE_OS_NAME"
+    echo " NATIVE_OS_VERS   = $NATIVE_OS_VERS"
     echo
-    echo " BUILD_FOR_TARGET = $BUILD_FOR_TARGET"
-    echo " BUILD_FOR_ARCH   = $BUILD_FOR_ARCH"
-    echo " BUILD_FOR_ABI    = $BUILD_FOR_ABI"
-    echo
-    echo "PLATFORM_MIN_VERSION = $PLATFORM_MIN_VERSION"
+    echo " TARGET_OS_TYPE   = $TARGET_OS_TYPE"
+    echo " TARGET_OS_ARCH   = $TARGET_OS_ARCH"
+    echo " TARGET_OS_NAME   = $TARGET_OS_NAME"
+    echo " TARGET_OS_VERS   = $TARGET_OS_VERS"
+    echo " TARGET_OS_ABI    = $TARGET_OS_ABI"
+    echo " TARGET_TRIPLE    = $TARGET_TRIPLE"
     echo
     echo "TOOLCHAIN_NAME    = $TOOLCHAIN_NAME"
     echo "TOOLCHAIN_VERSION = $TOOLCHAIN_VERSION"
@@ -2563,7 +2567,7 @@ configure() {
         done
     fi
 
-    if [ "$STATE_NUM" -eq 10 ] && [ "$STATE_MESSAGE" = 'build for build-machine' ] ; then
+    if [ "$STATE_NUM" -eq 10 ] && [ "$STATE_MESSAGE" = 'build for native' ] ; then
         if run "$SOURCE_DIR"/configure \
             --prefix="$NATIVE_INSTALL_DIR" \
             $@ ; then
@@ -2578,7 +2582,7 @@ configure() {
         fi
     else
         if run "$SOURCE_DIR"/configure \
-            --host="\"$BUILD_FOR_TARGET\"" \
+            --host="\"$TARGET_TRIPLE\"" \
             --prefix="\"$ABI_INSTALL_DIR\"" \
             --disable-option-checking \
             --disable-rpath \
@@ -2644,7 +2648,7 @@ make() {
 # https://cmake.org/cmake/help/latest/command/enable_testing.html?highlight=build_testing
 # run in a subshell
 cmake() {
-    if [ "$STATE_NUM" -eq 10 ] && [ "$STATE_MESSAGE" = 'build for build-machine' ] ; then
+    if [ "$STATE_NUM" -eq 10 ] && [ "$STATE_MESSAGE" = 'build for native' ] ; then
         run "$CMAKE" \
         -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
         -DCMAKE_VERBOSE_MAKEFILE=ON \
@@ -2662,10 +2666,10 @@ cmake() {
     else
         cat > "$BUILD_DIR/toolchain.cmake" <<EOF
 set(CMAKE_SYSTEM_NAME Darwin)
-set(CMAKE_SYSTEM_PROCESSOR $BUILD_FOR_ARCH)
+set(CMAKE_SYSTEM_PROCESSOR $TARGET_OS_ARCH)
 
 set(CMAKE_ASM_COMPILER $AS)
-set(CMAKE_ASM_FLAGS "-arch $BUILD_FOR_ARCH")
+set(CMAKE_ASM_FLAGS "-arch $TARGET_OS_ARCH")
 
 set(CMAKE_C_COMPILER "$CC")
 set(CMAKE_C_FLAGS "$CFLAGS $CPPFLAGS")
@@ -2690,7 +2694,7 @@ EOF
         -DCMAKE_FIND_ROOT_PATH="$MY_INSTALL_DIR" \
         -DCMAKE_INSTALL_PREFIX="$ABI_INSTALL_DIR" \
         -DCMAKE_BUILD_TYPE=Release \
-        -DCMAKE_OSX_ARCHITECTURES="$BUILD_FOR_ARCH" \
+        -DCMAKE_OSX_ARCHITECTURES="$TARGET_OS_ARCH" \
         -DBUILD_SHARED_LIBS=OFF \
         -DBUILD_TESTING=OFF \
         -G "\"Unix Makefiles\"" \
@@ -2705,22 +2709,22 @@ EOF
 # https://mesonbuild.com/Cross-compilation.html
 # run in a subshell
 meson() {
-    case $BUILD_FOR_ARCH in
+    case $TARGET_OS_ARCH in
         armv7*)
             HOST_MACHINE_CPU_FAMILY='arm'
-            HOST_MACHINE_CPU_NAME="$BUILD_FOR_ARCH"
+            HOST_MACHINE_CPU_NAME="$TARGET_OS_ARCH"
             ;;
         arm64*)
             HOST_MACHINE_CPU_FAMILY='aarch64'
-            HOST_MACHINE_CPU_NAME="$BUILD_FOR_ARCH"
+            HOST_MACHINE_CPU_NAME="$TARGET_OS_ARCH"
             ;;
         i386)
             HOST_MACHINE_CPU_FAMILY='x86'
-            HOST_MACHINE_CPU_NAME="$BUILD_FOR_ARCH"
+            HOST_MACHINE_CPU_NAME="$TARGET_OS_ARCH"
             ;;
         x86_64)
             HOST_MACHINE_CPU_FAMILY='x86_64'
-            HOST_MACHINE_CPU_NAME="$BUILD_FOR_ARCH"
+            HOST_MACHINE_CPU_NAME="$TARGET_OS_ARCH"
             ;;
     esac
 
@@ -2856,10 +2860,6 @@ resolve_a_rule() {
 
     unset BUILD_LIST
 
-    unset BUILD_FOR_PLATFORM
-    unset PLATFORM_MIN_VERSION
-    unset BUILD_FOR_ARCH
-
     while read line
     do
         line=$(echo "$line" | sed 's/[[:space:]]//g')
@@ -2867,42 +2867,46 @@ resolve_a_rule() {
         [ -z "$line" ] && continue
         echo "$line" | grep -q '^#' && continue
 
-        BUILD_FOR_PLATFORM=$(echo "$line" | cut -d: -f1)
-        PLATFORM_MIN_VERSION=$(echo "$line" | cut -d: -f2)
-        BUILD_FOR_ARCH=$(echo "$line" | cut -d: -f3)
+        unset TARGET_OS_NAME
+        unset TARGET_OS_VERS
+        unset TARGET_OS_ARCH
+
+        TARGET_OS_NAME=$(echo "$line" | cut -d: -f1)
+        TARGET_OS_VERS=$(echo "$line" | cut -d: -f2)
+        TARGET_OS_ARCH=$(echo "$line" | cut -d: -f3)
 
         if [ "$VERBOSE" = 'true' ] ; then
-            echo "BUILD_FOR_PLATFORM=$BUILD_FOR_PLATFORM"
-            echo "PLATFORM_MIN_VERSION=$PLATFORM_MIN_VERSION"
-            echo "BUILD_FOR_ARCH=$BUILD_FOR_ARCH"
+            echo "TARGET_OS_NAME=$TARGET_OS_NAME"
+            echo "TARGET_OS_VERS=$TARGET_OS_VERS"
+            echo "TARGET_OS_ARCH=$TARGET_OS_ARCH"
             echo '---------------------------------'
         fi
         
-        [ -z "$PLATFORM_MIN_VERSION" ] && {
-            PLATFORM_MIN_VERSION=$(get_supported_min_version "$BUILD_FOR_PLATFORM")
+        [ -z "$TARGET_OS_VERS" ] && {
+            TARGET_OS_VERS=$(get_supported_min_version "$TARGET_OS_NAME")
         }
         
-        if [ -z "$BUILD_FOR_ARCH" -o "$BUILD_FOR_ARCH" = 'all' ] ; then
-            for BUILD_FOR_ARCH in $(list_supported_archs "$BUILD_FOR_PLATFORM")
+        if [ -z "$TARGET_OS_ARCH" -o "$TARGET_OS_ARCH" = 'all' ] ; then
+            for TARGET_OS_ARCH in $(list_supported_archs "$TARGET_OS_NAME")
             do
                 if [ -z "$BUILD_LIST" ]; then
-                    BUILD_LIST="$BUILD_FOR_PLATFORM/$BUILD_FOR_ARCH:$PLATFORM_MIN_VERSION"
+                    BUILD_LIST="$TARGET_OS_NAME/$TARGET_OS_ARCH:$TARGET_OS_VERS"
                 else
-                    BUILD_LIST=$(printf "%s\n%s" "$BUILD_LIST" "$BUILD_FOR_PLATFORM/$BUILD_FOR_ARCH:$PLATFORM_MIN_VERSION")
+                    BUILD_LIST=$(printf "%s\n%s" "$BUILD_LIST" "$TARGET_OS_NAME/$TARGET_OS_ARCH:$TARGET_OS_VERS")
                 fi
             done
         else
             if [ -z "$BUILD_LIST" ]; then
-                BUILD_LIST="$BUILD_FOR_PLATFORM/$BUILD_FOR_ARCH:$PLATFORM_MIN_VERSION"
+                BUILD_LIST="$TARGET_OS_NAME/$TARGET_OS_ARCH:$TARGET_OS_VERS"
             else
-                BUILD_LIST=$(printf "%s\n%s" "$BUILD_LIST" "$BUILD_FOR_PLATFORM/$BUILD_FOR_ARCH:$PLATFORM_MIN_VERSION")
+                BUILD_LIST=$(printf "%s\n%s" "$BUILD_LIST" "$TARGET_OS_NAME/$TARGET_OS_ARCH:$TARGET_OS_VERS")
             fi
         fi
     done < "$MY_HOME_DIR/rules/$1"
 
-    unset BUILD_FOR_PLATFORM
-    unset PLATFORM_MIN_VERSION
-    unset BUILD_FOR_ARCH
+    unset TARGET_OS_NAME
+    unset TARGET_OS_VERS
+    unset TARGET_OS_ARCH
 
     if [ "$VERBOSE" = 'true' ] ; then
         for item in $BUILD_LIST
@@ -3136,8 +3140,6 @@ parse_arguments() {
 
     unset USER_SPECIFIED_PACKAGE_LIST
 
-    unset PLATFORM_MIN_VERSION
-
     unset RULE
 
     unset DRYRUN
@@ -3299,12 +3301,12 @@ EOF
 }
 
 main() {
-    BUILD_MACHINE_OS_TYPE=$(uname | tr A-Z a-z)
+    NATIVE_OS_TYPE=$(uname | tr A-Z a-z)
 
-    if [ "$BUILD_MACHINE_OS_TYPE" = 'darwin' ] ; then
-        BUILD_MACHINE_OS_ARCH=$(uname -m)
-        BUILD_MACHINE_OS_NAME=$(sw_vers -productName)
-        BUILD_MACHINE_OS_VERS=$(sw_vers -productVersion)
+    if [ "$NATIVE_OS_TYPE" = 'darwin' ] ; then
+        NATIVE_OS_ARCH=$(uname -m)
+        NATIVE_OS_NAME=$(sw_vers -productName)
+        NATIVE_OS_VERS=$(sw_vers -productVersion)
     else
         die "this software can only run on macOS."
     fi
