@@ -3,10 +3,8 @@
 _commands=(
     '-h:print the help infomation of ipkg command.'
     '--help:print the help infomation of ipkg command.'
-    'help:print the help infomation of ipkg command.'
     '-V:print the version of ipkg and NDK.'
     '--version:print the version of ipkg and NDK.'
-    'version:print the version of ipkg and NDK.'
     'search:search packages can be installed.'
     'list:list the target platforms, target CPU arch, available, installed and outdated packages.'
     'tree:list contents of a installed package directory in a tree-like format.'
@@ -143,21 +141,27 @@ function _ipkg() {
                     _arguments \
                         '1:package-name:_ipkg_available_packages' \
                         '--rule=-[rule to install]:rule:($(ipkg list rules))' \
+                        '--jobs=-[set the number of jobs you can run in parallel with make]:jobs:(1 2 3 4 5 6 7 8 9)' \
                         '--dry-run[dry-run]' \
                         '--keep-working-dir[do not delete working-dir even if installed success]' \
                         '(--verbose -v)'{--verbose,-v}'[verbose output log]' \
+                        '(--debug -d)'{--debug,-d}'[debug]' \
                         '(--xtrace -x)'{--xtrace,-x}'[trace execution of commands]'
                     ;;
                 reinstall)
                     _arguments \
                         '1:package-name:_ipkg_installed_packages' \
+                        '--jobs=-[set the number of jobs you can run in parallel with make]:jobs:(1 2 3 4 5 6 7 8 9)' \
                         '(--verbose -v)'{--verbose,-v}'[verbose output log]' \
+                        '(--debug -d)'{--debug,-d}'[debug]' \
                         '(--xtrace -x)'{--xtrace,-x}'[trace execution of commands]'
                     ;;
                 upgrade)
                     _arguments \
                         ':package-name:_ipkg_outdated_packages' \
+                        '--jobs=-[set the number of jobs you can run in parallel with make]:jobs:(1 2 3 4 5 6 7 8 9)' \
                         '(--verbose -v)'{--verbose,-v}'[verbose output log]' \
+                        '(--debug -d)'{--debug,-d}'[debug]' \
                         '(--xtrace -x)'{--xtrace,-x}'[trace execution of commands]'
                     ;;
                 uninstall)
