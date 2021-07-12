@@ -38,7 +38,7 @@ mv ipkg /usr/local/bin/
 
     **Note**: to apply this feature, you may need to run the command `autoload -U compinit && compinit`
     
-*   update the [ipkg-formula repository](https://github.com/leleliu008/ipkg-formula)
+*   update the [ipkg-formula-repository](https://github.com/leleliu008/ipkg-formula-repository)
         
         ipkg update
         
@@ -83,7 +83,7 @@ mv ipkg /usr/local/bin/
         
 *   add a new formula repo
         
-        ipkg formula repo add my_repo https://github.com/leleliu008/ipkg-formula.git
+        ipkg formula repo add my_repo https://github.com/leleliu008/ipkg-formula-repository.git
         
 *   delete a existing formula repo
         
@@ -183,7 +183,7 @@ mv ipkg /usr/local/bin/
         ndk-pkg get curl webpage
         ndk-pkg get curl src.git
         
-    more keys please read [README.md](https://github.com/leleliu008/ipkg-formula/blob/master/README.md)
+    more keys please read [README.md](https://github.com/leleliu008/ipkg-formula-repository/blob/master/README.md)
 
 *   list contents of a installed package directory in a tree-like format.
         
