@@ -1,34 +1,43 @@
 # ipkg
 a package manager for [Xcode](https://developer.apple.com/xcode) to build C/C++/Rust project.
 
-## Install ipkg via [HomeBrew](https://brew.sh)
+## Install ipkg via HomeBrew
 
-```
+```bash
 brew tap leleliu008/fpliu
 brew install ipkg
 ```
 
-## zsh-completion for ipkg
-I have provide a zsh-completion script for `ipkg`. when you've typed `ipkg` then type `TAB` key, it will auto complete the rest for you.
-
-**Note**: to apply this feature, you may need to run the command `autoload -U compinit && compinit`
-
-## Give a Star!
-𝙄𝙛 𝙮𝙤𝙪 ❤𝙩𝙝𝙞𝙨 𝙥𝙧𝙤𝙟𝙚𝙘𝙩, 𝙥𝙡𝙚𝙖𝙨𝙚 𝙜𝙞𝙫𝙚 𝙞𝙩 𝙖 𝙨𝙩𝙖𝙧 <span style='color:red;font-size:1.2em'>★</span> . 𝙏𝙝𝙖𝙣𝙠𝙨!
+## Install ipkg via cURL
+```bash
+curl -LO https://raw.githubusercontent.com/leleliu008/ipkg/master/bin/ipkg
+chmod a+x ipkg
+mv ipkg /usr/local/bin/
+```
 
 ## ipkg command usage
 *   print the help infomation of `ipkg` command
         
         ipkg -h
         ipkg --help
-        ipkg help
         
 *   print the version of `ipkg` and `Xcode`
         
         ipkg -V
         ipkg --version
-        ipkg version
         
+*   show [Xcode](https://developer.apple.com/xcode) toolchain info
+        
+        ipkg toolchain
+
+*   integrate `zsh-completion` script
+        
+        ipkg integrate zsh
+        
+    I have provide a zsh-completion script for `ipkg`. when you've typed `ipkg` then type `TAB` key, it will auto complete the rest for you.
+
+    **Note**: to apply this feature, you may need to run the command `autoload -U compinit && compinit`
+    
 *   update the [ipkg-formula repository](https://github.com/leleliu008/ipkg-formula)
         
         ipkg update
@@ -46,11 +55,12 @@ I have provide a zsh-completion script for `ipkg`. when you've typed `ipkg` then
 *   install packages
         
         ipkg install curl
-        ipkg install curl bzip2
         ipkg install curl bzip2 --rule=xx
-        ipkg install curl bzip2 -v 
-        ipkg install curl bzip2 -v -x --keep-working-dir
-        ipkg install curl bzip2 -v -x --dry-run
+        ipkg install curl bzip2 --rule=xx --jobs=4
+        ipkg install curl bzip2 --rule=xx --jobs=4 -v
+        ipkg install curl bzip2 --rule=xx --jobs=4 -v -x
+        ipkg install curl bzip2 --rule=xx --jobs=4 -v -x --dry-run
+        ipkg install curl bzip2 --rule=xx --jobs=4 -v -x --dry-run --keep-working-dir
         
 *   reinstall packages
         
@@ -66,6 +76,18 @@ I have provide a zsh-completion script for `ipkg`. when you've typed `ipkg` then
         
         ipkg upgrade curl
         ipkg upgrade curl bzip2 -v
+        
+*   list the avaliable formula repos
+        
+        ipkg formula repo list
+        
+*   add a new formula repo
+        
+        ipkg formula repo add my_repo https://github.com/leleliu008/ipkg-formula.git
+        
+*   delete a existing formula repo
+        
+        ipkg formula repo del my_repo
         
 *   view the formula of a package
 
@@ -154,6 +176,15 @@ I have provide a zsh-completion script for `ipkg`. when you've typed `ipkg` then
         
         ipkg is outdated curl
         
+*   get the value of key of a package.
+        
+        ndk-pkg get curl version
+        ndk-pkg get curl summary
+        ndk-pkg get curl webpage
+        ndk-pkg get curl src.git
+        
+    more keys please read [README.md](https://github.com/leleliu008/ipkg-formula/blob/master/README.md)
+
 *   list contents of a installed package directory in a tree-like format.
         
         ipkg tree curl
@@ -181,7 +212,15 @@ I have provide a zsh-completion script for `ipkg`. when you've typed `ipkg` then
         ipkg prefix
         ipkg prefix curl
         
+*   show the depended packages by a package
+        
+        ndk-pkg depends curl
+        
 *   cleanup the unused cache
         
         ipkg cleanup
         
+
+## Give a Star!
+𝙄𝙛 𝙮𝙤𝙪 ❤𝙩𝙝𝙞𝙨 𝙥𝙧𝙤𝙟𝙚𝙘𝙩, 𝙥𝙡𝙚𝙖𝙨𝙚 𝙜𝙞𝙫𝙚 𝙞𝙩 𝙖 𝙨𝙩𝙖𝙧 <span style='color:red;font-size:1.2em'>★</span> . 𝙏𝙝𝙖𝙣𝙠𝙨!
+
