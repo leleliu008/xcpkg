@@ -4573,7 +4573,7 @@ echo_path_of_tool_in_the_toolchain() {
         cxx) TOOL_PATH="$TOOLCHAIN_BIN_DIR/clang++" ;;
         *)   TOOL_PATH="$TOOLCHAIN_BIN_DIR/$1"
     esac
-    die_if_file_is_not_executable "$TOOL_PATH"
+    die_if_not_executable "$TOOL_PATH"
     echo "$TOOL_PATH"
 }
 
@@ -4607,7 +4607,7 @@ get_supported_min_version() {
 
 echo_tool_of_chain() {
     TOOL="$TOOLCHAIN_BIN_DIR/$1"
-    die_if_file_is_not_executable "$TOOL"
+    die_if_not_executable "$TOOL"
     echo "$TOOL"
 }
 
