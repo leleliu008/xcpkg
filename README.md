@@ -21,7 +21,7 @@ mv ipkg /usr/local/bin/
         ipkg -h
         ipkg --help
         
-*   print the version of `ipkg` and `Xcode`
+*   print the version of `ipkg`
         
         ipkg -V
         ipkg --version
@@ -220,7 +220,4 @@ mv ipkg /usr/local/bin/
         
         ipkg cleanup
         
-
-## Give a Star!
-𝙄𝙛 𝙮𝙤𝙪 ❤𝙩𝙝𝙞𝙨 𝙥𝙧𝙤𝙟𝙚𝙘𝙩, 𝙥𝙡𝙚𝙖𝙨𝙚 𝙜𝙞𝙫𝙚 𝙞𝙩 𝙖 𝙨𝙩𝙖𝙧 <span style='color:red;font-size:1.2em'>★</span> . 𝙏𝙝𝙖𝙣𝙠𝙨!
 
