@@ -2746,16 +2746,8 @@ __list_abis_of_a_installed_package() {
 
 __tree_installed_of_a_package() {
     die_if_package_is_not_installed "$1"
-
-    PKG_INSTALL_DIR="$MY_INSTALL_DIR/$1"
-
-    shift
-
-    if command -v tree > /dev/null ; then
-        run tree $@ --dirsfirst "$PKG_INSTALL_DIR"
-    else
-        warn "please install tree utility."
-    fi
+    handle_dependency required command tree
+    run tree $(shiftn 1 $@) --dirsfirst "$MY_INSTALL_DIR/$1"
 }
 
 __uninstall_packages() {
