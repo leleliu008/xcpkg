@@ -7,11 +7,11 @@ on:
     branches: [ master ]
 
 jobs:
-  build:
+  check_build:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-11.0, macos-10.15]
+        os: [macos-11, macos-10.15]
 
     runs-on: ${{ matrix.os }}
 
@@ -19,26 +19,16 @@ jobs:
       HOMEBREW_NO_INSTALL_CLEANUP: set
 
     steps:
-    - run: export -p
-
-    - if:   matrix.os == 'macos-11.0'
-      run:  brew install gnu-sed
-
-    - run:  brew install automake autoconf libtool pkg-config cmake meson gperf itstool tree lzip nasm doxygen protobuf xmlto
-
     - uses: actions/checkout@v2
+    - run:  bin/ipkg --version
+    - run:  bin/ipkg update
+    - run:  bin/ipkg install zlib
 
-    - run:  mv bin/ipkg $(brew --prefix)/bin
-
-    - run:  ipkg version
-    - run:  ipkg update
-    - run:  ipkg install boost
-
-  install:
+  install_via_homebrew:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-11.0, macos-10.15]
+        os: [macos-11, macos-10.15]
 
     runs-on: ${{ matrix.os }}
 
@@ -46,9 +36,8 @@ jobs:
       HOMEBREW_NO_INSTALL_CLEANUP: set
 
     steps:
-    - name: install ipkg via homebrew
-      run: |
-        brew tap leleliu008/fpliu
-        brew install ipkg
-
+    - run: brew tap leleliu008/fpliu
+    - run: brew install ipkg
     - run: ipkg --version
+    - run: ipkg update
+    - run: ipkg install zlib

@@ -139,8 +139,6 @@ sha256sum() {
 main() {
     set -e
 
-    command -v makepkg > /dev/null || die "please install makepkg."
-
     unset RELEASE_VERSION
     unset RELEASE_FILE_NAME
     unset RELEASE_FILE_SHA256SUM
@@ -148,22 +146,13 @@ main() {
     RELEASE_VERSION=$(bin/ipkg --version)
     RELEASE_FILE_NAME="ipkg-$RELEASE_VERSION.tar.gz"
 
-    run tar zvcf "$RELEASE_FILE_NAME" bin/ipkg zsh-completion/_ipkg
+    run tar zvcf "$RELEASE_FILE_NAME" bin/ipkg zsh-completion/_ipkg LICENSE README.md
 
     RELEASE_FILE_SHA256SUM=$(sha256sum "$RELEASE_FILE_NAME")
     
     success "sha256sum($RELEASE_FILE_NAME)=$RELEASE_FILE_SHA256SUM"
 
-    sed_in_place "s|v[0-9].[0-9].[0-9]|v$RELEASE_VERSION|" README.md
-    sed_in_place "s|ipkg-[0-9].[0-9].[0-9]|ipkg-$RELEASE_VERSION|g" README.md
-
-    run makepkg
-
-    run git add README.md install.sh
-    run git commit -m "'publish new version $RELEASE_VERSION'"
-    run git push origin master
-
-    run gh release create v"$RELEASE_VERSION" "ipkg-$RELEASE_VERSION.tar.gz" "ipkg-$RELEASE_VERSION-1-any.pkg.tar.gz" --notes "'release $RELEASE_VERSION'"
+    run gh release create v"$RELEASE_VERSION" "ipkg-$RELEASE_VERSION.tar.gz" --notes "'release $RELEASE_VERSION'"
 
     run git clone git@github.com:leleliu008/homebrew-fpliu.git
     run cd homebrew-fpliu
@@ -179,7 +168,6 @@ main() {
 
     run rm -rf homebrew-fpliu
     run rm "$RELEASE_FILE_NAME"
-    run rm "ipkg-$RELEASE_VERSION-1-any.pkg.tar.gz"
     run rm -rf pkg
     run rm -rf src
 }
