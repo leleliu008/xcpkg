@@ -2160,9 +2160,7 @@ ___load_a_formula() {
 
     unset PACKAGE_FORMULA_FILEPATH
 
-    unset PACKAGE_SDK_API
-
-    unset TARGET_OS_VERS
+    unset PACKAGE_IOS_IOS
 
     unset -f build0
     unset -f prepare
@@ -2630,6 +2628,18 @@ __list_packages_which_is_not_depended_by_others() {
     unset BREAK
     unset NDEPENDED_PACKAGES
     unset AVAILABLE_PACKAGES
+    unset GROUP_SIZE
+
+    while [ -n "$1" ]
+    do
+        case $1 in
+            --group-size=*)
+                GROUP_SIZE=$(getvalue "$1")
+                is_integer "$GROUP_SIZE" || die "--group-size=INTEGER" ;;
+        esac
+    done
+
+    [ -z "$GROUP_SIZE" ] && die "please sepecify --group-size=INTEGER argument."
 
     AVAILABLE_PACKAGES=$(__list_available_packages)
 
@@ -2661,7 +2671,7 @@ __list_packages_which_is_not_depended_by_others() {
             else
                 NDEPENDED_PACKAGES="$NDEPENDED_PACKAGES $x"
             fi
-            if [ "$(list_length $NDEPENDED_PACKAGES)" -eq 50 ] ; then
+            if [ "$(list_length $NDEPENDED_PACKAGES)" -eq "$GROUP_SIZE" ] ; then
                 echo "$NDEPENDED_PACKAGES" | tr ' ' ,
                 echo
                 unset NDEPENDED_PACKAGES
@@ -3338,28 +3348,12 @@ __install_a_package() {
         esac
     fi
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    step "show common include.h"
+    if command -v bat > /dev/null ; then
+        run bat --style=plain --paging=never "$COMMON_INCLUDE_H_FILEPATH"
+    else
+        run cat "$COMMON_INCLUDE_H_FILEPATH"
+    fi
 
     step "calculate dependencies"
     unset DEPENDENCY_PACKAGE_LIST
@@ -3753,15 +3747,13 @@ __show_installed_log() {
 }
 
 __config_this_build_variables() {
+    TARGET_OS_KIND=darwin
     TARGET_OS_TYPE=darwin
-
-    TARGET_OS_ARCH=$(echo_arch_by_abi "$TARGET_OS_ABI")
-
-    TARGET_TRIPLE=$(echo_target_by_arch "$TARGET_OS_ARCH")
-
+    TARGET_OS_ARCH=$(print_target_arch_by_abi "$TARGET_OS_ABI")
     TARGET_OS_NAME=$(echo "$TARGET_OS_ABI" | cut -d/ -f1)
-
     TARGET_OS_VERS=$(echo "$BUILD" | cut -d: -f2)
+
+    TARGET_TRIPLE=$(print_target_triple_by_arch "$TARGET_OS_ARCH")
 
     SYSROOT="$TOOLCHAIN_ROOTDIR/Platforms/${TARGET_OS_NAME}.platform/Developer/SDKs/${TARGET_OS_NAME}.sdk"
 
@@ -3772,7 +3764,7 @@ __config_this_build_variables() {
         if [ "$tool" = 'cpp' ] ; then
             CPP="$CC -E"
         else
-            eval $(echo "$tool" | tr a-z A-Z)=$(echo_path_of_tool_in_the_toolchain "$tool")
+            eval $(echo "$tool" | tr a-z A-Z)=$(print_path_of_tool_in_the_toolchain "$tool")
         fi
     done
 
@@ -4462,13 +4454,6 @@ EOF
     done
 }
 
-include_stub_system() {
-    if [ "$BUILD_ROUND_NUM" -eq 1 ] ; then
-        gen_stub_system
-    fi
-    export CPPFLAGS="$CPPFLAGS -include $SOURCE_DIR/stub-system.c"
-}
-
 check_prerequisites() {
     TOOLCHAIN_ROOTDIR="$(xcode-select -p)"
 
@@ -4532,17 +4517,19 @@ __list_supported_abis() {
 }
 
 list_supported_targets() {
-    for ARCH in armv7 armv7s arm64 arm64e arm64_32 armv7k x86_64 i386
+    unset SUPPORTED_TARGET_ARCH
+    for SUPPORTED_TARGET_ARCH in armv7 armv7s arm64 arm64e arm64_32 armv7k x86_64 i386
     do
-        echo_target_by_arch "$ARCH"
+        print_target_triple_by_arch "$SUPPORTED_TARGET_ARCH"
     done
+    unset SUPPORTED_TARGET_ARCH
 }
 
-echo_arch_by_abi() {
+print_target_arch_by_abi() {
     echo "$1" | cut -d/ -f2
 }
 
-echo_target_by_arch() {
+print_target_triple_by_arch() {
     if [ 'arm64' = "$1" ] ; then
         if [ "$PACKAGE_IOS_IOS" = 'true' ] ; then
             echo 'aarch64-apple-ios'
@@ -4566,7 +4553,7 @@ list_flags_used_by_tools_in_the_toolchain() {
     list CFLAGS CXXFLAGS CPPFLAGS LDFLAGS PKG_CONFIG_PATH PKG_CONFIG_LIBDIR
 }
 
-echo_path_of_tool_in_the_toolchain() {
+print_path_of_tool_in_the_toolchain() {
     unset TOOL_PATH
     case $1 in
         cc)  TOOL_PATH="$TOOLCHAIN_BIN_DIR/clang"   ;;
@@ -4701,6 +4688,9 @@ parse_arguments() {
     [ -z "$RULE" ] && RULE=default
     
     resolve_a_rule "$RULE"
+
+    unset COMMON_INCLUDE_H_FILEPATH
+    COMMON_INCLUDE_H_FILEPATH="$MY_HOME_DIR/include.h"
 }
 
 init() {
