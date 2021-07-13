@@ -58,9 +58,10 @@ mv ipkg /usr/local/bin/
         ipkg install curl bzip2 --rule=xx
         ipkg install curl bzip2 --rule=xx --jobs=4
         ipkg install curl bzip2 --rule=xx --jobs=4 -v
-        ipkg install curl bzip2 --rule=xx --jobs=4 -v -x
-        ipkg install curl bzip2 --rule=xx --jobs=4 -v -x --dry-run
-        ipkg install curl bzip2 --rule=xx --jobs=4 -v -x --dry-run --keep-working-dir
+        ipkg install curl bzip2 --rule=xx --jobs=4 -v -d
+        ipkg install curl bzip2 --rule=xx --jobs=4 -v -d -x
+        ipkg install curl bzip2 --rule=xx --jobs=4 -v -d -x --dry-run
+        ipkg install curl bzip2 --rule=xx --jobs=4 -v -d -x --dry-run --keep-working-dir
         
 *   reinstall packages
         
@@ -178,10 +179,10 @@ mv ipkg /usr/local/bin/
         
 *   get the value of key of a package.
         
-        ndk-pkg get curl version
-        ndk-pkg get curl summary
-        ndk-pkg get curl webpage
-        ndk-pkg get curl src.git
+        ipkg get curl version
+        ipkg get curl summary
+        ipkg get curl webpage
+        ipkg get curl src.git
         
     more keys please read [README.md](https://github.com/leleliu008/ipkg-formula-repository/blob/master/README.md)
 
@@ -214,7 +215,7 @@ mv ipkg /usr/local/bin/
         
 *   show the depended packages by a package
         
-        ndk-pkg depends curl
+        ipkg depends curl
         
 *   cleanup the unused cache
         
