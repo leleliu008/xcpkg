@@ -37,11 +37,12 @@ mv ipkg /usr/local/bin/
     I have provide a zsh-completion script for `ipkg`. when you've typed `ipkg` then type `TAB` key, it will auto complete the rest for you.
 
     **Note**: to apply this feature, you may need to run the command `autoload -U compinit && compinit`
-    
-*   update the [ipkg-formula-repository](https://github.com/leleliu008/ipkg-formula-repository)
-        
+*   update the formula repositories
+
         ipkg update
         
+    **Note:** this software supports multi formula repositories. Offical formula repository is [ipkg-formula-repository](https://github.com/leleliu008/ipkg-formula-repository) 
+
 *   search packages can be installed
         
         ipkg search curl
@@ -51,6 +52,8 @@ mv ipkg /usr/local/bin/
         
         ipkg info curl
         ipkg info curl openssl
+        ipkg info curl openssl --json
+        ipkg info curl openssl --json | jq .
         
 *   install packages
         
@@ -136,34 +139,34 @@ mv ipkg /usr/local/bin/
          
 *   list the supported platforms
         
-        ipkg list platforms
+        ipkg ls platforms
         
 *   list the supported archs
 
-        ipkg list archs
-        ipkg list archs iPhoneOS
+        ipkg ls archs
+        ipkg ls archs iPhoneOS
         
 *   list the supported abis
 
-        ipkg list abis
+        ipkg ls abis
         
 *   list the supported versions
 
-        ipkg list versions
-        ipkg list versions iPhoneOS
+        ipkg ls versions
+        ipkg ls versions iPhoneOS
         
 *   list the available packages
         
-        ipkg list available
-        ipkg list available -q
+        ipkg ls available
+        ipkg ls available -q
         
 *   list the installed packages
         
-        ipkg list installed
+        ipkg ls installed
         
 *   list the outdated packages
         
-        ipkg list outdated
+        ipkg ls outdated
         
 *   is the specified package available ?
         
@@ -221,4 +224,7 @@ mv ipkg /usr/local/bin/
         
         ipkg cleanup
         
+*   upgrade this software
+
+        ipkg upgrade-self
 

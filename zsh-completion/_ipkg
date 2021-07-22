@@ -6,7 +6,7 @@ _commands=(
     '-V:print the version of ipkg and NDK.'
     '--version:print the version of ipkg and NDK.'
     'search:search packages can be installed.'
-    'list:list the target platforms, target CPU arch, available, installed and outdated packages.'
+    'ls:list the target platforms, target CPU arch, available, installed and outdated packages.'
     'tree:list contents of a installed package directory in a tree-like format.'
     'info:print the basic infomation of packages.'
     'rule:view, edit a rule or create a new rule.'
@@ -17,8 +17,11 @@ _commands=(
     'cleanup:cleanup the unused cache.'
     'update:update the formula repository.'
     'upgrade:upgrade the outdated packages.'
+    'upgrade-self:upgrade self.'
     'fetch:download formula resources of a package to the cache.'
     'homepage:visit the homepage of a formula or the ipkg project.'
+    'integrate:integrate zsh completions.'
+    'toolchain:show android-ndk toolchain info.'
     'depends:show depends of a package.'
     'prefix:show the installation direcotory of a formula or the ipkg home.'
     'pack:pack a installed package.'
@@ -26,6 +29,7 @@ _commands=(
     'is:check something. easy to write script.'
     'create-framework:create framework.'
     'min-version:get the min-version of the specified platform, or all platforms.'
+    'gen-github-workflows:generate github workflows.'
 )
 
 _list=(
@@ -36,7 +40,6 @@ _list=(
     'available:list the available packages.'
     'installed:list the installed packages.'
     'outdated:list the installed packages which can be upgraded.'
-    'notdepended:list the packages which is not depended by other packages'
 )
 
 function _ipkg_list() {
@@ -76,7 +79,7 @@ function _ipkg() {
     case $state in
         option)
             case $words[1] in
-                list)
+                ls)
                     _arguments \
                         ':list:_ipkg_list' \
                         '*:: :->list-option'
@@ -94,13 +97,23 @@ function _ipkg() {
                     ;;
                 formula)
                     _arguments \
-                        ':action:(create delete rename view edit list)' \
+                        ':action:(create delete rename view edit list repo)' \
                         '*:: :->action'
                     case $state in
                         action)
                             case $words[1] in
                                 delete|rename|view|edit)
                                     _arguments ':package-name:_ipkg_available_packages'
+                                    ;;
+                                repo)
+                                    _arguments '1:action:(list add del)' '*:: :->repo-subcommand'
+                                    case $state in
+                                        repo-subcommand)
+                                            case $words[1] in
+                                                del) _arguments '1:repo-name:($(ipkg formula repo list | cut -d= -f1))' ;;
+                                            esac
+                                    esac
+                                    ;;
                             esac
                     esac
                     ;;
@@ -120,7 +133,9 @@ function _ipkg() {
                     _arguments ':package-name:_ipkg_available_packages'
                     ;;
                 info)
-                    _arguments '*:package-name:_ipkg_available_packages'
+                    _arguments \
+                        '*:package-name:_ipkg_available_packages' \
+                        '--json[output format is json]'
                     ;;
                 fetch|homepage|depends)
                     _arguments ':package-name:_ipkg_available_packages'
@@ -171,6 +186,14 @@ function _ipkg() {
                     _arguments \
                         '1: :(available installed outdated)' \
                         '2:package-name:_ipkg_available_packages'
+                    ;;
+                integrate)
+                    _arguments ':what:(zsh)'
+                    ;;
+                gen-github-workflows)
+                    _arguments \
+                        '--group-size=-[set the group size]:group-size:(50 40 30 20)' \
+                        '--output-dir=-[set the output dir]:output-dir:{_files -/}'
                     ;;
                 *);;
             esac
