@@ -6,7 +6,8 @@ _commands=(
     '-V:print the version of ipkg and NDK.'
     '--version:print the version of ipkg and NDK.'
     'search:search packages can be installed.'
-    'ls:list the target platforms, target CPU arch, available, installed and outdated packages.'
+    'target:list the target platforms, target CPU arch, target abis.'
+    'ls:list the available, installed and outdated packages.'
     'tree:list contents of a installed package directory in a tree-like format.'
     'info:print the basic infomation of packages.'
     'rule:view, edit a rule or create a new rule.'
@@ -32,11 +33,15 @@ _commands=(
     'gen-github-workflows:generate github workflows.'
 )
 
-_list=(
-    'rules:list the rules.'
-    'versions:list the supportted versions of target platforms.'
+_target=(
     'platforms:list the supportted platforms of target platforms.'
+    'versions:list the supportted versions of target platforms.'
+    'triples:list the supportted target triples.'
     'archs:list the supportted archs of target platforms.'
+    'abis:list the supportted abis of target platforms.'
+)
+
+_list=(
     'available:list the available packages.'
     'installed:list the installed packages.'
     'outdated:list the installed packages which can be upgraded.'
@@ -44,6 +49,10 @@ _list=(
 
 function _ipkg_list() {
     _describe 'list' _list
+}
+
+function _ipkg_target() {
+    _describe 'target' _target
 }
 
 function _ipkg_commands() {
@@ -88,13 +97,29 @@ function _ipkg() {
                             case $words[1] in
                                 available)
                                     _arguments '-q[quiet mode. do not report error log]';;
-                                archs|versions)
-                                    _arguments ':platform:($(ipkg list platforms))';;
-                                rules)
-                                    _arguments '--table[show more infomation]';;
                             esac
                     esac
                     ;;
+                target)
+                    _arguments \
+                        ':target-subcommand:_ipkg_target' \
+                        '*:: :->target-option'
+                    case $state in
+                        target-option)
+                            case $words[1] in
+                                versions)
+                                    _arguments ':platform:($(ipkg target platforms))';;
+                                archs)
+                                    _arguments \
+                                        ':platform:($(ipkg target platforms))' \
+                                        ':bit:(64bit 32bit all)'
+                                    ;;
+                                abis|triples)
+                                    _arguments '1:bit:(64bit 32bit all)' ;;
+                            esac
+                    esac
+                    ;;
+
                 formula)
                     _arguments \
                         ':action:(create delete rename view edit list repo)' \
@@ -125,7 +150,7 @@ function _ipkg() {
                         action)
                             case $words[1] in
                                 delete|rename|view|edit)
-                                    _arguments ':package-name:($(ipkg list rules))'
+                                    _arguments ':package-name:($(ipkg rule list))'
                             esac
                     esac
                     ;;
@@ -146,16 +171,16 @@ function _ipkg() {
                 logs)
                     _arguments \
                         '1:package-name:_ipkg_installed_packages' \
-                        '2:abi:($(ipkg list abis $words[2]))' \
+                        '2:abi:($(ipkg target abis $words[2]))' \
                     ;;
                 min-version)
                     _arguments \
-                        ':platform:($(ipkg list platforms))'
+                        ':platform:($(ipkg target platforms))'
                     ;;
                 install)
                     _arguments \
                         '1:package-name:_ipkg_available_packages' \
-                        '--rule=-[rule to install]:rule:($(ipkg list rules))' \
+                        '--rule=-[rule to install]:rule:($(ipkg rule list))' \
                         '--jobs=-[set the number of jobs you can run in parallel with make]:jobs:(1 2 3 4 5 6 7 8 9)' \
                         '--dry-run[dry-run]' \
                         '--keep-working-dir[do not delete working-dir even if installed success]' \

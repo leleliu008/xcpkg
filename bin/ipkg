@@ -36,15 +36,15 @@ success() {
 }
 
 warn() {
-    print "${COLOR_YELLOW}🔥  $*\n${COLOR_OFF}"
+    print "${COLOR_YELLOW}🔥  $*\n${COLOR_OFF}" >&2
 }
 
 error() {
-    print "${COLOR_RED}[✘] $*\n${COLOR_OFF}"
+    print "${COLOR_RED}[✘] $*\n${COLOR_OFF}" >&2
 }
 
 die() {
-    print "${COLOR_RED}[✘] $*\n${COLOR_OFF}"
+    print "${COLOR_RED}[✘] $*\n${COLOR_OFF}" >&2
     exit 1
 }
 
@@ -2297,7 +2297,7 @@ __parse_package_patches() {
             *.tar.bz2) PATCH_CONTENT_TYPE=tar.bz2; package add dep.cmd patch tar bzip2 ;;
             *.tgz)     PATCH_CONTENT_TYPE=tar.gz ; package add dep.cmd patch tar gzip  ;;
             *.txz)     PATCH_CONTENT_TYPE=tar.xz ; package add dep.cmd patch tar xz    ;;
-            *)  die "$1 : extension isn't recognized. the supported extensions are .diff .patch .zip .tar.xz .tar.gz .tar.lz .tar.bz2 .tgz .txz"
+            *)  die "unrecognized extension : $1. the supported extensions are .diff .patch .zip .tar.xz .tar.gz .tar.lz .tar.bz2 .tgz .txz"
         esac
 
         [ ${#2} -eq 64 ] || die "$2 is not sha256sum. the length of sha256sum must be 64."
@@ -2394,7 +2394,7 @@ ___load_a_formula() {
         *.cc)      PACKAGE_SRC_TYPE=cxx    ; package add dep.cmd curl ;;
         *.cxx)     PACKAGE_SRC_TYPE=cxx    ; package add dep.cmd curl ;;
         *.cpp)     PACKAGE_SRC_TYPE=cxx    ; package add dep.cmd curl ;;
-        *)  die "$PACKAGE_SRC_URL : extension isn't recognized. the supported extensions are .git .zip .tar.xz .tar.gz .tar.lz .tar.bz2 .tgz .txz"
+        *)  die "unrecognized extension : $PACKAGE_SRC_URL. the supported extensions are .git .zip .tar.xz .tar.gz .tar.lz .tar.bz2 .tgz .txz"
     esac
 
     case $PACKAGE_SRC_TYPE in
@@ -2757,7 +2757,7 @@ die_if_abi_____is_not_specified() {
 die_if_abi_____is_not_supported() {
     die_if_abi_____is_not_specified "$1"
     
-    for ABI in $(__list_supported_abis)
+    for ABI in $(__list_supported_target_abis)
     do
         [ "$ABI" = "$1" ] && return 0
     done
@@ -3082,8 +3082,8 @@ __show_depends_of_a_package() {
     fi
 }
 
-# if $1 is    specified, show prefix of a package.
-# if $1 isn't specified, show this software's home direcotory.
+# if $1 is     specified, show prefix of a package.
+# if $1 is not specified, show this software's home direcotory.
 __show_prefix() {
     if [ -z "$1" ] ; then
         echo "$MY_HOME_DIR"
@@ -3491,7 +3491,7 @@ __install_a_package() {
         *.tar.xz|*.tar.gz|*.tar.lz|*.tar.bz2|*.tgz|*.txz)
             run tar xf "$PACKAGE_SRC_PATH" -C "$WORKING_DIR" --strip-components 1 || return 1
             ;;
-        *)  die "$PACKAGE_SRC_URL : extension isn't recognized. the supported extensions are .zip .tar.xz .tar.gz .tar.lz .tar.bz2 .tgz .txz"
+        *)  die "unrecognized extension : $PACKAGE_SRC_URL. the supported extensions are .zip .tar.xz .tar.gz .tar.lz .tar.bz2 .tgz .txz"
     esac
 
     if [ -z "$PACKAGE_SOURCED" ] ; then
@@ -4111,7 +4111,7 @@ __config_this_build_variables() {
     do
         case $item in
             cargo)
-                for supportedTarget in $(__list_supported_targets)
+                for supportedTarget in $(__list_supported_target_triples)
                 do
                     supportedTarget=$(echo "$supportedTarget" | sed 's/armv7a/armv7/')
                     for installedTarget in $(rustup target list | grep installed | cut -d " " -f1)
@@ -4559,13 +4559,13 @@ __create_a_rule() {
     cat > "$MY_HOME_DIR/rules/$1" <<EOF
 # please comment or remove the line you don't want.
 
-# AppleTVOS        : 9.0  : all
-# AppleTVSimulator : 9.0  : all
-# MacOSX           : 10.6 : all
-# WatchOS          : 2.0  : all
-# WatchSimulator   : 2.0  : all
-# iPhoneOS         : 8.0  : all
-# iPhoneSimulator  : 8.0  : all
+# AppleTVOS        : 9.0  : 64bit
+# AppleTVSimulator : 9.0  : 64bit
+# MacOSX           : 10.6 : 64bit
+# WatchOS          : 2.0  : 64bit
+# WatchSimulator   : 2.0  : 64bit
+# iPhoneOS         : 8.0  : 64bit
+# iPhoneSimulator  : 8.0  : 64bit
 EOF
     ____edit_a_rule "$1"
 }
@@ -4621,27 +4621,33 @@ resolve_a_rule() {
             echo "TARGET_OS_ARCH=$TARGET_OS_ARCH"
             echo '---------------------------------'
         fi
-        
-        [ -z "$TARGET_OS_VERS" ] && {
+
+        if [ -z "$TARGET_OS_VERS" ] ; then
             TARGET_OS_VERS=$(get_supported_min_version "$TARGET_OS_NAME")
-        }
-        
-        if [ -z "$TARGET_OS_ARCH" -o "$TARGET_OS_ARCH" = 'all' ] ; then
-            for TARGET_OS_ARCH in $(list_supported_archs "$TARGET_OS_NAME")
-            do
+        fi
+
+        if [ -z "$TARGET_OS_ARCH" ] ; then
+            TARGET_OS_ARCH=all
+        fi
+
+        case $TARGET_OS_ARCH in
+            all|64bit|32bit)
+                for TARGET_OS_ARCH in $(__list_supported_target_archs "$TARGET_OS_NAME" "$TARGET_OS_ARCH")
+                do
+                    if [ -z "$BUILD_LIST" ]; then
+                        BUILD_LIST="$TARGET_OS_NAME/$TARGET_OS_ARCH:$TARGET_OS_VERS"
+                    else
+                        BUILD_LIST=$(printf "%s\n%s" "$BUILD_LIST" "$TARGET_OS_NAME/$TARGET_OS_ARCH:$TARGET_OS_VERS")
+                    fi
+                done
+                ;;
+            *)
                 if [ -z "$BUILD_LIST" ]; then
                     BUILD_LIST="$TARGET_OS_NAME/$TARGET_OS_ARCH:$TARGET_OS_VERS"
                 else
                     BUILD_LIST=$(printf "%s\n%s" "$BUILD_LIST" "$TARGET_OS_NAME/$TARGET_OS_ARCH:$TARGET_OS_VERS")
                 fi
-            done
-        else
-            if [ -z "$BUILD_LIST" ]; then
-                BUILD_LIST="$TARGET_OS_NAME/$TARGET_OS_ARCH:$TARGET_OS_VERS"
-            else
-                BUILD_LIST=$(printf "%s\n%s" "$BUILD_LIST" "$TARGET_OS_NAME/$TARGET_OS_ARCH:$TARGET_OS_VERS")
-            fi
-        fi
+        esac
     done < "$MY_HOME_DIR/rules/$1"
 
     unset TARGET_OS_NAME
@@ -4717,64 +4723,138 @@ __list_rules() {
     ls "$MY_HOME_DIR/rules"
 }
 
-list_supported_platforms() {
+__list_supported_target_platforms() {
     [ -z "$TOOLCHAIN_ROOTDIR" ] && check_prerequisites
     ls "$TOOLCHAIN_ROOTDIR/Platforms" | sed 's/.platform//g'
     #print_list AppleTVOS AppleTVSimulator MacOSX iPhoneOS iPhoneSimulator WatchOS WatchSimulator
 }
 
-list_supported_archs() {
-    if [ -z "$1" ] ; then
-        for PLATFORM in $(list_supported_platforms)
-        do
-            printf "%-16s : $(list_supported_archs "$PLATFORM")\n" "$PLATFORM"
-        done
-    else
+# __list_supported_target_archs [32bit|64bit|all] [iPhoneOS|WatchOS|AppleTVOS|MacOSX|*Simulator|table|list]
+__list_supported_target_archs() {
+    unset LIST_SUPPORTED_ARCHS_ARG_BIT
+    unset LIST_SUPPORTED_ARCHS_ARG_PLATFORM
+
+    while [ -n "$1" ]
+    do
         case $1 in
-            iPhoneOS)   echo "armv7 armv7s arm64 arm64e";;
-            WatchOS)    echo "arm64_32 armv7k";;
-            AppleTVOS)  echo "arm64";;
-            MacOSX)     echo "x86_64";;
-            *Simulator) echo "x86_64 i386";;
-            --table)
-                cat <<EOF
+            32bit|64bit|all)
+                LIST_SUPPORTED_ARCHS_ARG_BIT=$1
+                ;;
+            iPhoneOS|WatchOS|AppleTVOS|MacOSX|*Simulator|table|list)
+                LIST_SUPPORTED_ARCHS_ARG_PLATFORM=$1
+                ;;
+            *) die "unrecognized argument : $1."
+        esac
+        shift
+    done
+
+    if [ -z "$LIST_SUPPORTED_ARCHS_ARG_BIT" ] ; then
+        LIST_SUPPORTED_ARCHS_ARG_BIT=all
+    fi
+
+    if [ -z "$LIST_SUPPORTED_ARCHS_ARG_PLATFORM" ] ; then
+        LIST_SUPPORTED_ARCHS_ARG_PLATFORM=list
+    fi
+
+    case $LIST_SUPPORTED_ARCHS_ARG_BIT in
+        all)
+            case $LIST_SUPPORTED_ARCHS_ARG_PLATFORM in
+                iPhoneOS)   echo "arm64 arm64e armv7 armv7s" ;;
+                WatchOS)    echo "arm64_32 armv7k" ;;
+                AppleTVOS)  echo "arm64"       ;;
+                MacOSX)     echo "x86_64 i386" ;;
+                *Simulator) echo "x86_64 i386" ;;
+                list)       echo "arm64 arm64e arm64_32 armv7 armv7s armv7k x86_64" ;;
+                table) __print_platform_arch_table_all ;;
+                *)  die "unsupported platform : $LIST_SUPPORTED_ARCHS_ARG_PLATFORM."
+            esac
+            ;;
+        64bit)
+            case $LIST_SUPPORTED_ARCHS_ARG_PLATFORM in
+                iPhoneOS)   echo "arm64 arm64e" ;;
+                WatchOS)    echo "arm64_32" ;;
+                AppleTVOS)  echo "arm64"  ;;
+                MacOSX)     echo "x86_64" ;;
+                *Simulator) echo "x86_64" ;;
+                list)       echo "arm64 arm64e arm64_32 x86_64" ;;
+                table) __print_platform_arch_table_64bit ;;
+                *)  die "unsupported platform : $LIST_SUPPORTED_ARCHS_ARG_PLATFORM."
+            esac
+            ;;
+        32bit)
+            case $LIST_SUPPORTED_ARCHS_ARG_PLATFORM in
+                iPhoneOS)   echo "armv7 armv7s" ;;
+                WatchOS)    echo "armv7k" ;;
+                AppleTVOS)  die "AppleTVOS is not support 32bit."  ;;
+                MacOSX)     echo "i386" ;;
+                *Simulator) echo "i386" ;;
+                list)       echo "armv7 armv7s armv7k i386" ;;
+                table) __print_platform_arch_table_32bit ;;
+                *)  die "unsupported platform : $LIST_SUPPORTED_ARCHS_ARG_PLATFORM."
+            esac
+            ;;
+    esac
+}
+
+__print_platform_arch_table_64bit() {
+    cat <<EOF
+┌───────────┬───────────────────────────┐
+│ platform  │ arch                      │
+│           │                           │
+│ AppleTVOS │ arm64                     │
+│ WatchOS   │ arm64_32                  │
+│ iPhoneOS  │ arm64 arm64e              │
+│ MacOSX    │ x86_64                    │
+│ *Simulator│ x86_64                    │
+└───────────┴───────────────────────────┘
+EOF
+}
+
+__print_platform_arch_table_32bit() {
+    cat <<EOF
+┌───────────┬───────────────────────────┐
+│ platform  │ arch                      │
+│           │                           │
+│ AppleTVOS │                           │
+│ WatchOS   │ armv7k                    │
+│ iPhoneOS  │ armv7 armv7s              │
+│ MacOSX    │ i386                      │
+│ *Simulator│ i386                      │
+└───────────┴───────────────────────────┘
+EOF
+}
+
+__print_platform_arch_table_all() {
+    cat <<EOF
 ┌───────────┬───────────────────────────┐
 │ platform  │ arch                      │
 │           │                           │
 │ AppleTVOS │ arm64                     │
 │ WatchOS   │ arm64_32 armv7k           │
-│ iPhoneOS  │ armv7 armv7s arm64 arm64e │
+│ iPhoneOS  │ arm64 arm64e armv7 armv7s │
 │ MacOSX    │ x86_64                    │
-│ *Simulator│ x86_64 i386               │
+│ *Simulator│ x86_64                    │
 └───────────┴───────────────────────────┘
 EOF
-;;
-            *)      die "$1 : platform isn't supported."
-        esac
-    fi
 }
 
-__list_supported_abis() {
-    for PLATFORM in $(list_supported_platforms)
+# __list_supported_target_abis 32bit|64bit|all
+__list_supported_target_abis() {
+    for PLATFORM in $(__list_supported_target_platforms)
     do
-        for ARCH in $(list_supported_archs "$PLATFORM")
+        for ARCH in $(__list_supported_target_archs $PLATFORM ${1-all} 2>/dev/null)
         do
             echo "$PLATFORM/$ARCH"
         done
     done
 }
 
-list_supported_targets() {
-    unset SUPPORTED_TARGET_ARCH
-    for SUPPORTED_TARGET_ARCH in armv7 armv7s arm64 arm64e arm64_32 armv7k x86_64 i386
+# __list_supported_target_triples 32bit|64bit|all
+__list_supported_target_triples() {
+    for ARCH in $(__list_supported_target_archs list ${1-all} 2>/dev/null)
     do
-        print_target_triple_by_arch "$SUPPORTED_TARGET_ARCH"
+        print_target_triple_by_arch "$ARCH"
     done
-    unset SUPPORTED_TARGET_ARCH
-}
-
-print_target_arch_by_abi() {
-    echo "$1" | cut -d/ -f2
 }
 
 print_target_triple_by_arch() {
@@ -4791,6 +4871,10 @@ print_target_triple_by_arch() {
             echo "$1-apple-darwin"
         fi
     fi
+}
+
+print_target_arch_by_abi() {
+    echo "$1" | cut -d/ -f2
 }
 
 list_tools_in_the_toolchain() {
@@ -4812,11 +4896,11 @@ print_path_of_tool_in_the_toolchain() {
     echo "$TOOL_PATH"
 }
 
-list_supported_versions() {
+__list_supported_target_platform_versions() {
     if [ -z "$1" ] ; then
-        for PLATFORM in $(list_supported_platforms)
+        for PLATFORM in $(__list_supported_target_platforms)
         do
-            printf "%-16s : $(list_supported_versions "$PLATFORM")\n" "$PLATFORM"
+            printf "%-16s : $(__list_supported_target_platform_versions "$PLATFORM")\n" "$PLATFORM"
         done
     else
         case $1 in
@@ -4824,19 +4908,19 @@ list_supported_versions() {
             WatchOS|WatchSimulator)     echo "2.0 2.1 2.2 3.0 3.1 3.2 4.0 4.1 4.2 4.3 5.0 5.1 5.2 5.3 6.0 6.1 6.2";;
             AppleTVOS|AppleTVSimulator) echo "9.0 9.1 9.2 10.0 10.1 10.2 11.0 11.1 11.2 11.3 11.4 12.0 12.1 12.3 12.4 13.0 13.1 13.2 13.3";;
             MacOSX)                     echo "10.6 10.7 10.8 10.9 10.10 10.11 10.12 10.13 10.14 10.15";;
-            *)     die "$1 : platform isn't supported."
+            *)                          die "unsupported platform : $1."
         esac
     fi
 }
 
 get_supported_min_version() {
     if [ -z "$1" ] ; then
-        for PLATFORM in $(list_supported_platforms)
+        for PLATFORM in $(__list_supported_target_platforms)
         do
             printf "%-16s : %s\n" "$PLATFORM" $(get_supported_min_version "$PLATFORM")
         done
     else
-        list_supported_versions "$1" | awk '{print $1}'
+        __list_supported_target_platform_versions "$1" | awk '{print $1}'
     fi
 }
 
@@ -4973,15 +5057,14 @@ init() {
 
     if [ ! -f "$MY_HOME_DIR/rules/default" ] ; then
         cat > "$MY_HOME_DIR/rules/default" <<EOF
-iPhoneOS         : 8.0  : all
-iPhoneSimulator  : 9.0  : all
+iPhoneOS         : 8.0  : 64bit
+iPhoneSimulator  : 9.0  : 64bit
 EOF
     fi
     if [ ! -f "$MY_HOME_DIR/rules/thread-local-storage" ] ; then
         cat > "$MY_HOME_DIR/rules/thread-local-storage" <<EOF
-iPhoneOS         : 9.0  : all
-iPhoneSimulator  : 9.0  : x86_64
-iPhoneSimulator  : 10.0 : i386
+iPhoneOS         : 9.0  : 64bit
+iPhoneSimulator  : 9.0  : 64bit
 EOF
     fi
 
@@ -5013,13 +5096,15 @@ ACTION:
     --help    | -h                --show help information.
     --version | -V                --print version of $MY_NAME.
 
-    integrate zsh                 --integrate zsh-completion script.
-
     toolchain                     --show android-ndk toolchain info.
 
-    ls rules                      --list the rules.
-    ls versions                   --list the supported versions of platforms.
-    ls platforms                  --list the supported platforms.
+    integrate zsh                 --integrate zsh-completion script.
+
+    upgrade-self                  --upgrade this software.
+
+    update                        --update the formula repositories.
+
+    cleanup                       --cleanup the unused cache.
 
     ls available                  --list the available packages.
     ls installed                  --list the installed packages.
@@ -5062,15 +5147,15 @@ ACTION:
     install   PACKAGE... [--rule=xx --jobs=N -v -d -x --dry-run --keep-working-dir]     --install packages.
     reinstall PACKAGE... [--rule=xx --jobs=N -v -d -x --dry-run --keep-working-dir]     --reinstall packages.
     upgrade   PACKAGE... [--rule=xx --jobs=N -v -d -x --dry-run --keep-working-dir]     --upgrade packages.
-    uninstall PACKAGE...          --uninstall packages.
+    uninstall PACKAGE...                                                                --uninstall packages.
 
-    create-framework PACKAGE...   --create framework for packages.
+    create-framework PACKAGE...                              --create framework for packages.
 
-    min-version [PLATFORM]        --print the supported min-version of platforms.
-
-    cleanup                       --cleanup the unused cache.
-    update                        --update the formula repositories.
-    upgrade-self                  --upgrade this software.
+    target platforms                                         --list the supported target platforms.
+    target versions [PLATFORM]                               --list the supported target platform's version.
+    target triples  [32bit|64bit|all]                        --list the supported target triples.
+    target archs    [32bit|64bit|all] [PLATFORM]             --list the supported target archs.
+    target abis     [32bit|64bit|all]                        --list the supported target abis.
 EOF
     if [ -z "$1" ] ; then
         exit
@@ -5097,25 +5182,22 @@ main() {
             shift
             package get "$1" "$2"
             ;;
+        target)
+            shift
+            case $1 in
+                platforms) shift; __list_supported_target_platforms "$@" ;;
+                versions)  shift; __list_supported_target_platform_versions  "$@" ;;
+                triples)   shift; __list_supported_target_triples   "$@" ;;
+                archs)     shift; __list_supported_target_archs     "$@" ;;
+                abis)      shift; __list_supported_target_abis      "$@" ;;
+            esac
+            ;;
         ls|list)
             shift
             case $1 in
-                platforms) shift; list_supported_platforms "$@" ;;
-                versions)  shift; list_supported_versions  "$@" ;;
-                archs)     shift; list_supported_archs     "$@" ;;
-                abis)
-                    shift
-                    if [ -z "$1" ] ; then
-                        __list_supported_abis
-                    else
-                        __list_abis_of_a_installed_package "$1"
-                    fi
-                    ;;
-                rules)     shift; __list_rules ;;
                 available) shift; __list_available_packages ;;
                 installed) shift; __list_installed_packages ;;
                 outdated)  shift; __list__outdated_packages ;;
-                notdepended) shift; __list_packages_which_is_not_depended_by_others "$@" ;;
                 *) help 1
             esac
             ;;
