@@ -2905,27 +2905,10 @@ __gen_github_workflows() {
 }
 
 __list_available_packages() {
-    unset SILENT
-
-    case $# in
-        0)  ;;
-        1)  if [ "$1" = '-q' ] ; then
-                SILENT=true
-            else
-                die "list available action only accept -q argument."
-            fi
-            ;;
-        *)  die "list available action only accept -q argument."
-    esac
-
     for repo in $(____list_formula_repositories | cut -d= -f1)
     do
-        if [ "$SILENT" = 'true' ] ; then
-            cd "$MY_FORMULA_REPO_DIR/$repo/formula" 2>/dev/null || return 1
-        else
-            cd "$MY_FORMULA_REPO_DIR/$repo/formula" || return 1
-        fi
-        ls -1 *.sh | sed 's/\.sh//g'
+        cd "$MY_FORMULA_REPO_DIR/$repo/formula" || return 1
+        ls -1 *.sh | sed 's/\.sh//g' || return 1
     done
 }
 

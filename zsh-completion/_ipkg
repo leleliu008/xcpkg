@@ -61,19 +61,19 @@ function _ipkg_commands() {
 
 function _ipkg_available_packages() {
     local -a _available_packages
-    _available_packages=($(ipkg list available -q))
+    _available_packages=($(ipkg list available 2>/dev/null))
     _describe 'available-packages' _available_packages
 }
 
 function _ipkg_installed_packages() {
     local -a _installed_packages
-    _installed_packages=($(ipkg list installed))
+    _installed_packages=($(ipkg list installed 2>/dev/null))
     _describe 'installed-packages' _installed_packages
 }
 
 function _ipkg_outdated_packages() {
     local -a _outdated_packages
-    _outdated_packages=($(ipkg list outdated))
+    _outdated_packages=($(ipkg list outdated 2>/dev/null))
     _describe 'outdated-packages' _outdated_packages
 }
 
@@ -88,18 +88,6 @@ function _ipkg() {
     case $state in
         option)
             case $words[1] in
-                ls)
-                    _arguments \
-                        ':list:_ipkg_list' \
-                        '*:: :->list-option'
-                    case $state in
-                        list-option)
-                            case $words[1] in
-                                available)
-                                    _arguments '-q[quiet mode. do not report error log]';;
-                            esac
-                    esac
-                    ;;
                 target)
                     _arguments \
                         ':target-subcommand:_ipkg_target' \
@@ -119,7 +107,6 @@ function _ipkg() {
                             esac
                     esac
                     ;;
-
                 formula)
                     _arguments \
                         ':action:(create delete rename view edit list repo)' \

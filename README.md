@@ -25,10 +25,14 @@ mv ipkg /usr/local/bin/
         
         ipkg -V
         ipkg --version
-        
+
 *   show [Xcode](https://developer.apple.com/xcode) toolchain info
         
         ipkg toolchain
+
+*   upgrade this software
+
+        ipkg upgrade-self
 
 *   integrate `zsh-completion` script
         
@@ -137,28 +141,40 @@ mv ipkg /usr/local/bin/
         
         ipkg rule list
          
-*   list the supported platforms
+*   list the supported target platforms
         
-        ipkg ls platforms
+        ipkg target platforms
         
-*   list the supported archs
+*   list the supported target platform's versions
 
-        ipkg ls archs
-        ipkg ls archs iPhoneOS
+        ipkg target versions
+        ipkg target versions iPhoneOS
         
-*   list the supported abis
+*   list the supported target archs
 
-        ipkg ls abis
+        ipkg target archs
+        ipkg target archs iPhoneOS
+        ipkg target archs iPhoneOS 64bit
+        ipkg target archs iPhoneOS 32bit
+        ipkg target archs iPhoneOS all
         
-*   list the supported versions
+*   list the supported target abis
 
-        ipkg ls versions
-        ipkg ls versions iPhoneOS
+        ipkg target abis
+        ipkg target abis 64bit
+        ipkg target abis 32bit
+        ipkg target abis all
+
+*   list the supported target triples
+
+        ipkg target triples
+        ipkg target triples 64bit
+        ipkg target triples 32bit
+        ipkg target triples all
         
 *   list the available packages
         
         ipkg ls available
-        ipkg ls available -q
         
 *   list the installed packages
         
@@ -224,7 +240,3 @@ mv ipkg /usr/local/bin/
         
         ipkg cleanup
         
-*   upgrade this software
-
-        ipkg upgrade-self
-
