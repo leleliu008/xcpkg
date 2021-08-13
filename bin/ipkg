@@ -4488,6 +4488,7 @@ EOF
         --pkg-config-path="$PKG_CONFIG_PATH" \
         --build.pkg-config-path="$PKG_CONFIG_PATH_FOR_BUILD" \
         --cross-file="$BUILD_DIR/cross-file" \
+        -Ddefault_library=static \
         $@ "$BUILD_DIR" "$SOURCE_DIR" &&
     {
         if command -v build_configed > /dev/null ; then
