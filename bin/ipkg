@@ -4321,7 +4321,7 @@ configure() {
             --disable-nls\
             --enable-largefile \
             --enable-static \
-            --enable-shared \
+            --disable-shared \
             CC="\"$CC\"" \
             CFLAGS="\"$CFLAGS\"" \
             CXX="\"$CXX\"" \
