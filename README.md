@@ -122,35 +122,35 @@ autoload -U compinit && compinit
 
         ipkg formula edit curl
         
-*   create a formula
+*   create the formula of the given package
 
         ipkg formula create curl
         
-*   delete a formula
+*   delete the formula of the given package
 
         ipkg formula delete curl
         
-*   rename a formula to new name
+*   rename the formula of the given package to new name
 
         ipkg formula rename curl curl7
         
-*   view a rule
+*   view the given rule
 
         ipkg rule view curl
         
-*   edit a rule
+*   edit the given rule
 
         ipkg rule edit curl
         
-*   create a rule
+*   create a new rule
 
         ipkg rule create xx
         
-*   delete a formula
+*   delete the given rule
 
         ipkg rule delete xx
         
-*   rename a rule to new name
+*   rename the given rule to new name
 
         ipkg rule rename xx yy
         
