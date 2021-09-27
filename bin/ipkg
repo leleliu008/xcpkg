@@ -5609,11 +5609,18 @@ main() {
                 *)   die "ipkg integrate $1: not support."
             esac
             ;;
-        homepage) shift; __show_webpage_of_the_given_package    "$@" ;;
-        depends)  shift; __show_depends_of_the_given_package    "$@" ;;
-        prefix)   shift; __show_prefix     "$@" ;;
-        fetch)    shift; ___load_formula_of_the_given_package "$@" &&
-                         __fetch_resources_of_the_given_package "$@" ;;
+        homepage)
+            shift
+            case $1 in
+                show) shift; __show_webpage_of_the_given_package $@ ;;
+                open) shift; __open_webpage_of_the_given_package $@ ;;
+                *)    die "unsupported action: $1"
+            esac
+            ;;
+        depends)  shift; __show_depends_of_the_given_package    $@ ;;
+        prefix)   shift; __show_prefix     $@ ;;
+        fetch)    shift; ___load_formula_of_the_given_package $@ &&
+                         __fetch_resources_of_the_given_package $@ ;;
 
         logs) shift; __logs_the_given_installed_package $@ ;;
         pack) shift; __pack_the_given_installed_package $@ ;;
