@@ -201,7 +201,7 @@ autoload -U compinit && compinit
         
         ipkg ls outdated
         
-*   is the specified package available ?
+*   is the given package available ?
         
         ipkg is available curl
         ipkg is available curl ge 7.50.0
@@ -211,11 +211,11 @@ autoload -U compinit && compinit
         ipkg is available curl eq 7.50.0
         ipkg is available curl ne 7.50.0
         
-*   is the specified package installed ?
+*   is the given package installed ?
         
         ipkg is installed curl
         
-*   is the specified package outdated ?
+*   is the given package outdated ?
         
         ipkg is outdated curl
         
