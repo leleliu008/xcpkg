@@ -114,7 +114,7 @@ autoload -U compinit && compinit
         
         ipkg formula repo del my_repo
         
-*   view the formula of the the package
+*   view the formula of the given package
 
         ipkg formula view curl
         

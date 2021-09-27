@@ -36,9 +36,9 @@ jobs:
       - run: bin/ipkg info zlib
       - run: bin/ipkg info zlib version
       - run: bin/ipkg info zlib webpage
-      - run: bin/ipkg info zlib
-
       - run: bin/ipkg depends zlib
+
+      - run: bin/ipkg depends curl
 
       - run: bin/ipkg homepage
       - run: bin/ipkg homepage zlib
