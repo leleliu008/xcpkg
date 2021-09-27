@@ -236,15 +236,12 @@ autoload -U compinit && compinit
         
         ipkg pack curl
         
-*   show the homepage of the given formula or this project
+*   show or open the homepage of the given package or this project
         
-        ipkg homepage show
-        ipkg homepage show curl
-        
-*   open the homepage of the given formula or this project
-        
-        ipkg homepage open
-        ipkg homepage open curl
+        ipkg homepage
+        ipkg homepage --open
+        ipkg homepage --open curl
+        ipkg homepage curl --open
         
 *   show the installation direcotory of the given package or this software
         

@@ -40,8 +40,8 @@ jobs:
 
       - run: bin/ipkg depends zlib
 
-      - run: bin/ipkg homepage show
-      - run: bin/ipkg homepage show zlib
+      - run: bin/ipkg homepage
+      - run: bin/ipkg homepage zlib
 
       - run: bin/ipkg install zlib
 

@@ -3331,7 +3331,36 @@ __search_packages() {
     done
 }
 
-__show_webpage_of_the_given_package() {
+__show_or_open_homepage_of_the_given_package() {
+    unset ACTION
+    unset PACKAGE
+
+    while [ -n "$1" ]
+    do
+        case $1 in
+            --open)
+                ACTION=open
+                ;;
+            -*|--*)
+                die "unrecognized argument: 41"
+                ;;
+            *)  if [ -z "$PACKAGE" ] ; then
+                    PACKAGE=$1
+                else
+                    die "too many packages given."
+                fi
+        esac
+        shift
+    done
+
+    if [ "$ACTION" = open ] ; then
+        __show_homepage_of_the_given_package $PACKAGE
+    else
+        __open_homepage_of_the_given_package $PACKAGE
+    fi
+}
+
+__show_homepage_of_the_given_package() {
     if [ -z "$1" ] ; then
         PACKAGE_WEBPAGE="$MY_HOME_PAGE"
     else
@@ -3341,7 +3370,7 @@ __show_webpage_of_the_given_package() {
     echo "$PACKAGE_WEBPAGE"
 }
 
-__open_webpage_of_the_given_package() {
+__open_homepage_of_the_given_package() {
     if [ -z "$1" ] ; then
         PACKAGE_WEBPAGE="$MY_HOME_PAGE"
     else
@@ -5507,15 +5536,13 @@ ACTION:
 
     depends PACKAGE               --show the depends of the given package.
 
-    homepage show [PACKAGE]            --print the homepage of a given formula or this project.
-
-    homepage open [PACKAGE]            --open the homepage of a given formula or this projectin web browser.
+    homepage [--open] [PACKAGE]   --show or open the homepage of the given package or this project in web browser.
 
     install   PACKAGE... [--rule=xx --jobs=N -v -d -x --dry-run --keep-working-dir]     --install packages.
 
     reinstall PACKAGE... [--rule=xx --jobs=N -v -d -x --dry-run --keep-working-dir]     --reinstall packages.
 
-    upgrade   [PACKAGE...] [--rule=xx --jobs=N -v -x --dry-run --keep-working-dir]      --upgrade the given outdated packages.
+    upgrade [PACKAGE...] [--rule=xx --jobs=N -v -d -x --dry-run --keep-working-dir]     --upgrade the given outdated packages.
 
     uninstall PACKAGE...                                                                --uninstall packages.
 
@@ -5636,14 +5663,7 @@ main() {
                 *)   die "ipkg integrate $1: not support."
             esac
             ;;
-        homepage)
-            shift
-            case $1 in
-                show) shift; __show_webpage_of_the_given_package $@ ;;
-                open) shift; __open_webpage_of_the_given_package $@ ;;
-                *)    die "unsupported action: $1"
-            esac
-            ;;
+        homepage) shift; __show_or_open_homepage_of_the_given_package $@ ;;
         depends)  shift; __show_depends_of_the_given_package    $@ ;;
         prefix)   shift; __show_prefix     $@ ;;
         fetch)    shift; ___load_formula_of_the_given_package $@ &&
