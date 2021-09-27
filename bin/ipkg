@@ -5595,13 +5595,19 @@ main() {
         update)  __update_formula_repositories ;;
         cleanup) __cleanup ;;
 
-        install)     __install_packages "$@" ;;
-        reinstall) __reinstall_packages "$@" ;;
-        uninstall) __uninstall_packages "$@" ;;
-        upgrade)     __upgrade_packages "$@" ;;
+        install)     __install_packages $@ ;;
+        reinstall) __reinstall_packages $@ ;;
+        uninstall) __uninstall_packages $@ ;;
 
-        upgrade-self)__upgrade_self "$MY_UPGRAGE_URL" ;;
-
+        upgrade)
+            shift
+            case $1 in
+                @self)
+                    shift
+                    __upgrade_self "$MY_UPGRAGE_URL" $@ ;;
+                *)  __upgrade_packages $@ ;;
+                esac
+            ;;
         integrate)
             shift;
             case $1 in
