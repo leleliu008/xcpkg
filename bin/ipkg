@@ -3354,9 +3354,9 @@ __show_or_open_homepage_of_the_given_package() {
     done
 
     if [ "$ACTION" = open ] ; then
-        __show_homepage_of_the_given_package $PACKAGE
-    else
         __open_homepage_of_the_given_package $PACKAGE
+    else
+        __show_homepage_of_the_given_package $PACKAGE
     fi
 }
 
