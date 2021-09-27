@@ -5421,7 +5421,7 @@ EOF
 
 help() {
     cat << EOF
-$MY_NAME is a package manager for Xcode to build C/C++/Rust/Go project."
+$MY_NAME ($MY_VERSION) is a package manager for Xcode to build C/C++/Rust/Go project.
 
 Usage: $MY_NAME <ACTION> [ARGUMENT...]
 ACTION:
