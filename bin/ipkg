@@ -5438,13 +5438,19 @@ ACTION:
     cleanup                       --cleanup the unused cache.
 
     target platforms                                         --list the supported target platforms.
+
     target versions [PLATFORM]                               --list the supported target platform's version.
+
     target triples  [32bit|64bit|all]                        --list the supported target triples.
+
     target archs    [32bit|64bit|all] [PLATFORM]             --list the supported target archs.
+
     target abis     [32bit|64bit|all]                        --list the supported target abis.
 
     ls available                  --list the available packages.
+
     ls installed                  --list the installed packages.
+
     ls outdated                   --list the outdated  packages.
 
     is available PACKAGE [eq|ne|ge|gt|le|lt VERSION]          --is PACKAGE available?
@@ -5456,20 +5462,33 @@ ACTION:
     search KEYWORD                --search available packages.
     
     rule create RULE              --create a new rule.
+
     rule delete RULE              --delete a exist rule.
+
     rule rename R1 R2             --rename a exist rule to new name.
+
     rule view RULE                --view the specified rule.
+
     rule edit RULE                --edit the specified rule.
+
     rule list                     --equipment to list rules.
 
     formula create PACKAGE        --create a new formula.
+
     formula delete PACKAGE        --delete a exist formula.
+
     formula rename P1 P2          --rename a exist formula to new name.
+
     formula view PACKAGE          --view the formula of the given package.
+
     formula edit PACKAGE          --edit the formula of the given package.
+
     formula list                  --list all formulas.
+
     formula repo [list]           --list formula repos.
+
     formula repo add  NAME URL    --add a new formula repo.
+
     formula repo del  NAME        --delete a exist formula repo.
 
     tree PACKAGE [-L N]           --list contents of a installed package directory in a tree-like format.
@@ -5479,6 +5498,7 @@ ACTION:
     logs PACKAGE PLATFORM/ARCH    --print the logs of a installed package.
 
     info PACKAGE [KEY]            --print the information of the given package.
+
     info @all [--json]            --print the information of all the available packages.
 
     fetch PACKAGE                 --download formula resources of the given package to the cache.
@@ -5488,6 +5508,7 @@ ACTION:
     depends PACKAGE               --show the depends of the given package.
 
     homepage show [PACKAGE]            --print the homepage of a given formula or this project.
+
     homepage open [PACKAGE]            --open the homepage of a given formula or this projectin web browser.
 
     install   PACKAGE... [--rule=xx --jobs=N -v -d -x --dry-run --keep-working-dir]     --install packages.
