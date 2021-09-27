@@ -24,8 +24,6 @@ jobs:
       - run: bin/ipkg --help
       - run: bin/ipkg --version
 
-      - run: bin/ipkg install-android-ndk
-
       - run: bin/ipkg env
 
       - run: bin/ipkg integrate zsh
