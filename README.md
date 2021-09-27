@@ -13,30 +13,33 @@ brew install ipkg
 curl -LO https://raw.githubusercontent.com/leleliu008/ipkg/master/bin/ipkg
 chmod a+x ipkg
 mv ipkg /usr/local/bin/
+
+# following instrutions is optional, and these instructions only worked in zsh
+ipkg integrate zsh
+autoload -U compinit && compinit
 ```
 
 ## ipkg command usage
-*   print the help infomation of `ipkg` command
+*   print the help infomation of this command.
         
         ipkg -h
         ipkg --help
         
-*   print the version of `ipkg`
+*   print the version of this software
         
         ipkg -V
         ipkg --version
 
-*   show [Xcode](https://developer.apple.com/xcode) toolchain info
+*   show current machine os and [Xcode](https://developer.apple.com/xcode) toolchain info
         
-        ipkg toolchain
-
-*   upgrade this software
-
-        ipkg upgrade-self
+        ipkg env
 
 *   integrate `zsh-completion` script
         
         ipkg integrate zsh
+        ipkg integrate zsh -x
+        ipkg integrate zsh --china
+        ipkg integrate zsh --china -x
         
     I have provide a zsh-completion script for `ipkg`. when you've typed `ipkg` then type `TAB` key, it will auto complete the rest for you.
 
@@ -52,13 +55,19 @@ mv ipkg /usr/local/bin/
         ipkg search curl
         ipkg search lib
         
-*   print the basic infomation of packages
+*   print the infomation of the given package or all available packages
         
         ipkg info curl
-        ipkg info curl openssl
-        ipkg info curl openssl --json
-        ipkg info curl openssl --json | jq .
-        
+        ipkg info curl version
+        ipkg info curl summary
+        ipkg info curl webpage
+        ipkg info curl src.git
+        ipkg info @all
+        ipkg info @all --json
+        ipkg info @all --json | jq .
+         
+    more keys please read [README.md](https://github.com/leleliu008/ipkg-formula-repository/blob/master/README.md)
+
 *   install packages
         
         ipkg install curl
@@ -82,8 +91,16 @@ mv ipkg /usr/local/bin/
         
 *   upgrade the outdated packages
         
+        ipkg upgrade
         ipkg upgrade curl
         ipkg upgrade curl bzip2 -v
+        
+*   upgrade this software
+
+        ipkg upgrade @self
+        ipkg upgrade @self -x
+        ipkg upgrade @self --china
+        ipkg upgrade @self --china -x
         
 *   list the avaliable formula repos
         
@@ -97,11 +114,11 @@ mv ipkg /usr/local/bin/
         
         ipkg formula repo del my_repo
         
-*   view the formula of a package
+*   view the formula of the the package
 
         ipkg formula view curl
         
-*   edit the formula of a package
+*   edit the formula of the given package
 
         ipkg formula edit curl
         
@@ -187,6 +204,12 @@ mv ipkg /usr/local/bin/
 *   is the specified package available ?
         
         ipkg is available curl
+        ipkg is available curl ge 7.50.0
+        ipkg is available curl gt 7.50.0
+        ipkg is available curl le 7.50.0
+        ipkg is available curl lt 7.50.0
+        ipkg is available curl eq 7.50.0
+        ipkg is available curl ne 7.50.0
         
 *   is the specified package installed ?
         
@@ -196,43 +219,39 @@ mv ipkg /usr/local/bin/
         
         ipkg is outdated curl
         
-*   get the value of key of a package.
-        
-        ipkg get curl version
-        ipkg get curl summary
-        ipkg get curl webpage
-        ipkg get curl src.git
-        
-    more keys please read [README.md](https://github.com/leleliu008/ipkg-formula-repository/blob/master/README.md)
-
-*   list contents of a installed package directory in a tree-like format.
+*   list files of the given installed package in a tree-like format.
         
         ipkg tree curl
         
-*   download formula resources of a package to the cache
+*   download formula resources of the given package to the cache
         
         ipkg fetch curl
         
-*   print the logs of a installed package
+*   show logs of the given installed package
         
         ipkg logs curl iPhoneOS/armv7s
         ipkg logs curl iPhoneOS/arm64
         
-*   pack a installed package
+*   pack the given installed package
         
         ipkg pack curl
         
-*   visit the homepage of a formula or the `ipkg` project
+*   show the homepage of the given formula or this project
         
-        ipkg homepage
-        ipkg homepage curl
+        ipkg homepage show
+        ipkg homepage show curl
         
-*   show the installation direcotory of a formula or the `ipkg` home
+*   open the homepage of the given formula or this project
+        
+        ipkg homepage open
+        ipkg homepage open curl
+        
+*   show the installation direcotory of the given package or this software
         
         ipkg prefix
         ipkg prefix curl
         
-*   show the depended packages by a package
+*   show the depended packages of the given package
         
         ipkg depends curl
         
