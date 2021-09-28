@@ -64,7 +64,7 @@ jobs:
 
       - run: bin/ipkg ls available
       - run: bin/ipkg ls installed
-      - run: bin/ipkg ls outdated
+      - run: bin/ipkg ls  outdated
 
       - run: bin/ipkg is available zlib
       - run: bin/ipkg is installed zlib
@@ -134,7 +134,7 @@ jobs:
 
       - run: ipkg ls available
       - run: ipkg ls installed
-      - run: ipkg ls outdated
+      - run: ipkg ls  outdated
 
       - run: ipkg is available zlib
       - run: ipkg is installed zlib
