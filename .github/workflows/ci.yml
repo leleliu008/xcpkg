@@ -91,57 +91,57 @@ jobs:
       - run: brew tap leleliu008/fpliu
       - run: brew install ipkg
 
-      - run: bin/ipkg --help
-      - run: bin/ipkg --version
+      - run: ipkg --help
+      - run: ipkg --version
 
-      - run: bin/ipkg env
+      - run: ipkg env
 
-      - run: bin/ipkg integrate zsh
+      - run: ipkg integrate zsh
 
-      - run: bin/ipkg update
+      - run: ipkg update
 
-      - run: bin/ipkg search lib
-      - run: bin/ipkg search zlib
+      - run: ipkg search lib
+      - run: ipkg search zlib
 
-      - run: bin/ipkg info zlib
-      - run: bin/ipkg info zlib version
-      - run: bin/ipkg info zlib webpage
-      - run: bin/ipkg depends zlib
+      - run: ipkg info zlib
+      - run: ipkg info zlib version
+      - run: ipkg info zlib webpage
+      - run: ipkg depends zlib
 
-      - run: bin/ipkg depends curl
+      - run: ipkg depends curl
 
-      - run: bin/ipkg homepage
-      - run: bin/ipkg homepage zlib
+      - run: ipkg homepage
+      - run: ipkg homepage zlib
 
-      - run: bin/ipkg install zlib
+      - run: ipkg install zlib
 
-      - run: bin/ipkg info zlib
+      - run: ipkg info zlib
 
-      - run: bin/ipkg prefix
-      - run: bin/ipkg prefix zlib
+      - run: ipkg prefix
+      - run: ipkg prefix zlib
 
-      - run: bin/ipkg tree zlib
-      - run: bin/ipkg pack zlib
+      - run: ipkg tree zlib
+      - run: ipkg pack zlib
 
-      - run: bin/ipkg formula repo list
-      - run: bin/ipkg formula view curl
+      - run: ipkg formula repo list
+      - run: ipkg formula view curl
 
-      - run: bin/ipkg target abis
-      - run: bin/ipkg target archs
-      - run: bin/ipkg target triples
-      - run: bin/ipkg target versions
-      - run: bin/ipkg target platforms
+      - run: ipkg target abis
+      - run: ipkg target archs
+      - run: ipkg target triples
+      - run: ipkg target versions
+      - run: ipkg target platforms
 
-      - run: bin/ipkg ls available
-      - run: bin/ipkg ls installed
-      - run: bin/ipkg ls outdated
+      - run: ipkg ls available
+      - run: ipkg ls installed
+      - run: ipkg ls outdated
 
-      - run: bin/ipkg is available zlib
-      - run: bin/ipkg is installed zlib
-      - run: bin/ipkg is outdated zlib || echo 'outdated'
+      - run: ipkg is available zlib
+      - run: ipkg is installed zlib
+      - run: ipkg is outdated zlib || echo 'outdated'
 
-      - run: bin/ipkg uninstall zlib
+      - run: ipkg uninstall zlib
 
-      - run: bin/ipkg fetch curl
+      - run: ipkg fetch curl
 
-      - run: bin/ipkg upgrade @self
+      - run: ipkg upgrade @self
