@@ -66,7 +66,7 @@ autoload -U compinit && compinit
         ipkg info @all --json
         ipkg info @all --json | jq .
          
-    For more keys please read [README.md](https://github.com/leleliu008/ipkg-formula-repository/blob/master/README.md)
+    For more keys please read [README.md](https://github.com/leleliu008/ipkg-formula-repository/blob/master/README.md#the-function-must-be-invoked-on-top-of-the-formula)
 
 *   install packages
         
