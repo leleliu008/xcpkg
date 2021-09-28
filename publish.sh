@@ -143,7 +143,7 @@ main() {
     unset RELEASE_FILE_NAME
     unset RELEASE_FILE_SHA256SUM
 
-    RELEASE_VERSION=$(bin/ipkg --version)
+    RELEASE_VERSION=$(grep 'MY_VERSION=' bin/ipkg | cut -d= -f2)
     RELEASE_FILE_NAME="ipkg-$RELEASE_VERSION.tar.gz"
 
     run tar zvcf "$RELEASE_FILE_NAME" bin/ipkg zsh-completion/_ipkg LICENSE README.md
