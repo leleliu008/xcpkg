@@ -55,7 +55,7 @@ autoload -U compinit && compinit
         ipkg search curl
         ipkg search lib
         
-*   print the infomation of the given package or all available packages
+*   show infomation of the given package or all available packages
         
         ipkg info curl
         ipkg info curl version
