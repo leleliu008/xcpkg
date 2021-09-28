@@ -45,6 +45,8 @@ jobs:
 
       - run: bin/ipkg install zlib
 
+      - run: bin/ipkg info zlib
+
       - run: bin/ipkg prefix
       - run: bin/ipkg prefix zlib
 
@@ -66,7 +68,7 @@ jobs:
 
       - run: bin/ipkg is available zlib
       - run: bin/ipkg is installed zlib
-      - run: bin/ipkg is outdated zlib || true
+      - run: bin/ipkg is outdated zlib || echo 'outdated'
 
       - run: bin/ipkg uninstall zlib
 
