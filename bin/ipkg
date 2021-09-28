@@ -5407,25 +5407,26 @@ init() {
     MY_CACHED_PATCH__DIR="$MY_CACHED_DIR/patch.d"
     MY_CACHED_LOG_DIR="$MY_CACHED_DIR/log.d"
 
-    if [ ! -e "$MY_HOME_DIR/repos" ] ; then
+    [ -e "$MY_HOME_DIR/repos" ] || {
         install -d "$MY_HOME_DIR"
         echo "offical=$MY_OFFICAL_FORMULA_REPO_URL"  > "$MY_HOME_DIR/repos"
-    fi
+    }
 
     install -d "$MY_HOME_DIR/rules"
 
-    if [ ! -f "$MY_HOME_DIR/rules/default" ] ; then
+    [ -e "$MY_HOME_DIR/rules/default" ] || {
         cat > "$MY_HOME_DIR/rules/default" <<EOF
 iPhoneOS         : 8.0  : 64bit
 iPhoneSimulator  : 9.0  : 64bit
 EOF
-    fi
-    if [ ! -f "$MY_HOME_DIR/rules/thread-local-storage" ] ; then
+    }
+
+    [ -e "$MY_HOME_DIR/rules/thread-local-storage" ] || {
         cat > "$MY_HOME_DIR/rules/thread-local-storage" <<EOF
 iPhoneOS         : 9.0  : 64bit
 iPhoneSimulator  : 9.0  : 64bit
 EOF
-    fi
+    }
 
     if command -v date > /dev/null ; then
         TIMESTAMP_UNIX="$(date +%s)"
@@ -5601,13 +5602,13 @@ main() {
             ;;
         is) shift
             case $1 in
-                available) shift; is_package_available "$@" ;;
-                installed) shift; is_package_installed "$@" ;;
-                outdated)  shift; is_package__outdated "$@" ;;
+                available) shift; is_package_available $@ ;;
+                installed) shift; is_package_installed $@ ;;
+                outdated)  shift; is_package__outdated $@ ;;
                 *) help 1
             esac
             ;;
-        min-version) shift; get_supported_min_version "$1" ;;
+        min-version) shift; get_supported_min_version $1 ;;
         search)  shift; __search_packages "$*" ;;
         formula) shift
             case $1 in

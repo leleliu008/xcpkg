@@ -8,25 +8,24 @@ _commands=(
     'search:search packages can be installed.'
     'target:list the target platforms, target CPU arch, target abis.'
     'ls:list the available, installed and outdated packages.'
-    'tree:list contents of a installed package directory in a tree-like format.'
+    'tree:list files of the given installed package in tree-like format.'
     'info:print the basic infomation of packages.'
     'rule:view, edit a rule or create a new rule.'
-    'formula:view,edit the formula of a package.'
+    'formula:view,edit the formula of the given package.'
     'install:install packages.'
     'reinstall:reinstall packages.'
     'uninstall:uninstall packages.'
     'cleanup:cleanup the unused cache.'
     'update:update the formula repository.'
     'upgrade:upgrade the outdated packages.'
-    'upgrade-self:upgrade self.'
-    'fetch:download formula resources of a package to the cache.'
-    'homepage:visit the homepage of a formula or the ipkg project.'
+    'fetch:download formula resources of the given package to the cache.'
+    'homepage:show or open the homepage of the given package or the ipkg project.'
     'integrate:integrate zsh completions.'
-    'toolchain:show android-ndk toolchain info.'
+    'env:show current machine os and xcode toolchain info.'
     'depends:show depends of a package.'
-    'prefix:show the installation direcotory of a formula or the ipkg home.'
-    'pack:pack a installed package.'
-    'logs:print the logs of a installed package.'
+    'prefix:show the installation direcotory of the given package or the ipkg home.'
+    'pack:pack the given installed package.'
+    'logs:show logs of the given installed package.'
     'is:check something. easy to write script.'
     'create-framework:create framework.'
     'min-version:get the min-version of the specified platform, or all platforms.'
@@ -146,14 +145,26 @@ function _ipkg() {
                     ;;
                 info)
                     _arguments \
-                        '*:package-name:_ipkg_available_packages' \
-                        '--json[output format is json]'
+                        '1:package-name:(@all $(ipkg ls available))' \
+                        '*:: :->info-subcommand'
+                                                    case $state in
+                                                        info-subcommand)
+                                                            case $words[1] in
+                                                                @all) _arguments '--json[output format is json]' ;;
+                                                                *) _arguments '1:key:(summary webpage version license src.git src.url src.sum dep.cmd dep.pkg patches cdefine ccflags xxflags ldflags sourced binsrcd bsystem)'
+                                                            esac
+                                                        esac
                     ;;
-                fetch|homepage|depends)
+                fetch|depends)
                     _arguments ':package-name:_ipkg_available_packages'
                     ;;
                 prefix|pack|create-framework)
                     _arguments ':package-name:_ipkg_installed_packages'
+                    ;;
+                homepage)
+                    _arguments \
+                        '1:action:(show open)' \
+                        '2:package-name:_ipkg_available_packages'
                     ;;
                 logs)
                     _arguments \
@@ -185,12 +196,28 @@ function _ipkg() {
                     ;;
                 upgrade)
                     _arguments \
+                        '1:package-name:(@self $(ipkg ls outdated))' \
+                        '*:: :->upgrade-subcommand'
+                                                    case $state in
+                                                        upgrade-subcommand)
+                                                            case $words[1] in
+                                                                @self)
+                                                                    _arguments \
+                        '-x[trace execution of commands]' \
+                        '--china[use china mirror url]'
+                    ;;
+                                                                *)
+                                                                _arguments \
                         ':package-name:_ipkg_outdated_packages' \
+                        '--rule=-[rule to install]:rule:($(ipkg rule list))' \
                         '--jobs=-[set the number of jobs you can run in parallel with make]:jobs:(1 2 3 4 5 6 7 8 9)' \
                         '(--verbose -v)'{--verbose,-v}'[verbose output log]' \
                         '(--debug -d)'{--debug,-d}'[debug]' \
                         '(--xtrace -x)'{--xtrace,-x}'[trace execution of commands]'
-                    ;;
+
+                                                            esac
+                                                        esac
+                                                    ;;
                 uninstall)
                     _arguments '*:package-name:_ipkg_installed_packages'
                     ;;
