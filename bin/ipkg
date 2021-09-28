@@ -4238,12 +4238,44 @@ __show_infomation_of_all_available_packages() {
 # __show_infomation_of_the_given_package curl version
 # __show_infomation_of_the_given_package curl webpage
 __show_infomation_of_the_given_package() {
-    case $# in
-        0)  die_if_package_is_not_specified ;;
-        1)  ;;
-        2)  package get "$1" "$2"; return $? ;;
-        *)  die "too many arguments."
-    esac
+    if [ $# -eq 0 ] ; then
+        die_if_package_is_not_specified
+    fi
+
+    if [ $# -gt 2 ] ; then
+        die "too many arguments."
+    fi
+
+    if [ $# -eq 2 ] ; then
+        case $2 in
+            installed-dir)
+                die_if_package_is_not_installed "$1"
+                echo "$MY_INSTALL_DIR/$1"
+                ;;
+            installed-metadata)
+                die_if_package_is_not_installed "$1"
+                cat "$MY_CACHED_LOG_DIR/$1/installed-metadata"
+                ;;
+            installed-datetime-unix)
+                load_installed_metadata_of_the_given_package "$1"
+                echo "$INSTALLED_DATETIME"
+                ;;
+            installed-datetime-formatted)
+                load_installed_metadata_of_the_given_package "$1"
+                format_unix_timestamp "$INSTALLED_DATETIME" '+%Y/%m/%d %H:%M:%S'
+                ;;
+            installed-pkg-version)
+                load_installed_metadata_of_the_given_package "$1"
+                echo "$INSTALLED_PKG_VERS"
+                ;;
+            installed-abis)
+                load_installed_metadata_of_the_given_package "$1"
+                echo "$INSTALLED_ABIS"
+                ;;
+            *)  package get "$1" "$2"
+        esac
+        return $?
+    fi
 
     ___load_formula_of_the_given_package "$1"
 

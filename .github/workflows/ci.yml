@@ -46,6 +46,12 @@ jobs:
       - run: bin/ipkg install zlib
 
       - run: bin/ipkg info zlib
+      - run: bin/ipkg info zlib installed-dir
+      - run: bin/ipkg info zlib installed-metadata
+      - run: bin/ipkg info zlib installed-datetime-unix
+      - run: bin/ipkg info zlib installed-datetime-formatted
+      - run: bin/ipkg info zlib installed-pkg-version
+      - run: bin/ipkg info zlib installed-abis
 
       - run: bin/ipkg prefix
       - run: bin/ipkg prefix zlib
@@ -116,6 +122,12 @@ jobs:
       - run: ipkg install zlib
 
       - run: ipkg info zlib
+      - run: ipkg info zlib installed-dir
+      - run: ipkg info zlib installed-metadata
+      - run: ipkg info zlib installed-datetime-unix
+      - run: ipkg info zlib installed-datetime-formatted
+      - run: ipkg info zlib installed-pkg-version
+      - run: ipkg info zlib installed-abis
 
       - run: ipkg prefix
       - run: ipkg prefix zlib
