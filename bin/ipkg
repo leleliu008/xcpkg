@@ -5521,11 +5521,11 @@ ACTION:
 
     formula repo del  NAME        --delete a exist formula repo.
 
-    tree PACKAGE [-L N]           --list contents of a installed package directory in a tree-like format.
+    tree PACKAGE [-L N]           --list files of the given installed package in a tree-like format.
 
-    pack PACKAGE                  --pack a installed package.
+    pack PACKAGE                  --pack the installed package.
 
-    logs PACKAGE PLATFORM/ARCH    --print the logs of a installed package.
+    logs PACKAGE PLATFORM/ARCH    --show logs of the given installed package.
 
     info PACKAGE [KEY]            --print the information of the given package.
 
@@ -5533,7 +5533,7 @@ ACTION:
 
     fetch PACKAGE                 --download formula resources of the given package to the cache.
 
-    prefix [PACKAGE]              --show the installation direcotory of a formula or the home directory of this software.
+    prefix [PACKAGE]              --show the installation direcotory of the given or the home directory of this software.
 
     depends PACKAGE               --show the depends of the given package.
 

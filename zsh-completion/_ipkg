@@ -8,7 +8,7 @@ _commands=(
     'search:search packages can be installed.'
     'target:list the target platforms, target CPU arch, target abis.'
     'ls:list the available, installed and outdated packages.'
-    'tree:list files of the given installed package in tree-like format.'
+    'tree:list files of the given installed package in a tree-like format.'
     'info:print the basic infomation of packages.'
     'rule:view, edit a rule or create a new rule.'
     'formula:view,edit the formula of the given package.'
