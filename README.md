@@ -20,12 +20,12 @@ autoload -U compinit && compinit
 ```
 
 ## ipkg command usage
-*   print the help infomation of this command.
+*   show the help of this command.
         
         ipkg -h
         ipkg --help
         
-*   print the version of this software
+*   show the version of this command
         
         ipkg -V
         ipkg --version
@@ -66,7 +66,7 @@ autoload -U compinit && compinit
         ipkg info @all --json
         ipkg info @all --json | jq .
          
-    more keys please read [README.md](https://github.com/leleliu008/ipkg-formula-repository/blob/master/README.md)
+    For more keys please read [README.md](https://github.com/leleliu008/ipkg-formula-repository/blob/master/README.md)
 
 *   install packages
         
@@ -157,7 +157,7 @@ autoload -U compinit && compinit
 *   list rules
         
         ipkg rule list
-         
+        
 *   list the supported target platforms
         
         ipkg target platforms
