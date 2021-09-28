@@ -5455,9 +5455,9 @@ $MY_NAME ($MY_VERSION) is a package manager for Xcode to build C/C++/Rust/Go pro
 
 Usage: $MY_NAME <ACTION> [ARGUMENT...]
 ACTION:
-    --help    | -h                --show the help information of this software.
+    --help    | -h                --show the help information of this command.
 
-    --version | -V                --print the version of this software.
+    --version | -V                --show the version information of this command.
 
     env                           --show current machine os and xcode toolchain info.
 
