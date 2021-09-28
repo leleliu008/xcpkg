@@ -36,8 +36,8 @@ jobs:
       - run: bin/ipkg info zlib
       - run: bin/ipkg info zlib version
       - run: bin/ipkg info zlib webpage
-      - run: bin/ipkg depends zlib
 
+      - run: bin/ipkg depends zlib
       - run: bin/ipkg depends curl
 
       - run: bin/ipkg homepage
@@ -68,7 +68,7 @@ jobs:
 
       - run: bin/ipkg is available zlib
       - run: bin/ipkg is installed zlib
-      - run: bin/ipkg is outdated zlib || echo 'outdated'
+      - run: bin/ipkg is  outdated zlib || echo 'outdated'
 
       - run: bin/ipkg uninstall zlib
 
@@ -106,8 +106,8 @@ jobs:
       - run: ipkg info zlib
       - run: ipkg info zlib version
       - run: ipkg info zlib webpage
-      - run: ipkg depends zlib
 
+      - run: ipkg depends zlib
       - run: ipkg depends curl
 
       - run: ipkg homepage
@@ -138,7 +138,7 @@ jobs:
 
       - run: ipkg is available zlib
       - run: ipkg is installed zlib
-      - run: ipkg is outdated zlib || echo 'outdated'
+      - run: ipkg is  outdated zlib || echo 'outdated'
 
       - run: ipkg uninstall zlib
 
