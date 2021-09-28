@@ -5121,8 +5121,8 @@ __list_supported_target_archs() {
                 iPhoneOS)   echo "arm64 arm64e armv7 armv7s" ;;
                 WatchOS)    echo "arm64_32 armv7k" ;;
                 AppleTVOS)  echo "arm64"       ;;
-                MacOSX)     echo "x86_64 i386" ;;
-                *Simulator) echo "x86_64 i386" ;;
+                MacOSX)     echo "arm64 x86_64 i386" ;;
+                *Simulator) echo "arm64 x86_64 i386" ;;
                 list)       echo "arm64 arm64e arm64_32 armv7 armv7s armv7k x86_64" ;;
                 table) __print_platform_arch_table_all ;;
                 *)  die "unsupported platform : $LIST_SUPPORTED_ARCHS_ARG_PLATFORM."
@@ -5133,8 +5133,8 @@ __list_supported_target_archs() {
                 iPhoneOS)   echo "arm64 arm64e" ;;
                 WatchOS)    echo "arm64_32" ;;
                 AppleTVOS)  echo "arm64"  ;;
-                MacOSX)     echo "x86_64" ;;
-                *Simulator) echo "x86_64" ;;
+                MacOSX)     echo "arm64 x86_64" ;;
+                *Simulator) echo "arm64 x86_64" ;;
                 list)       echo "arm64 arm64e arm64_32 x86_64" ;;
                 table) __print_platform_arch_table_64bit ;;
                 *)  die "unsupported platform : $LIST_SUPPORTED_ARCHS_ARG_PLATFORM."
@@ -5163,8 +5163,8 @@ __print_platform_arch_table_64bit() {
 │ AppleTVOS │ arm64                     │
 │ WatchOS   │ arm64_32                  │
 │ iPhoneOS  │ arm64 arm64e              │
-│ MacOSX    │ x86_64                    │
-│ *Simulator│ x86_64                    │
+│ MacOSX    │ arm64 x86_64              │
+│ *Simulator│ arm64 x86_64              │
 └───────────┴───────────────────────────┘
 EOF
 }
@@ -5191,8 +5191,8 @@ __print_platform_arch_table_all() {
 │ AppleTVOS │ arm64                     │
 │ WatchOS   │ arm64_32 armv7k           │
 │ iPhoneOS  │ arm64 arm64e armv7 armv7s │
-│ MacOSX    │ x86_64                    │
-│ *Simulator│ x86_64                    │
+│ MacOSX    │ arm64 x86_64              │
+│ *Simulator│ arm64 x86_64              │
 └───────────┴───────────────────────────┘
 EOF
 }
@@ -5291,7 +5291,7 @@ echo_tool_of_chain() {
 
 __create_framework_for_the_given_packages() {
     die_if_package_list_is_not_specified "$1"
-    
+
     for PACKAGE in $@
     do
         __create_framework_for_the_given_package "$PACKAGE"
