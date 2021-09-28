@@ -76,4 +76,72 @@ jobs:
 
       - run: bin/ipkg upgrade @self
 
+  install_via_homebrew:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-11, macos-10.15]
 
+    runs-on: ${{ matrix.os }}
+
+    env:
+      HOMEBREW_NO_INSTALL_CLEANUP: set
+
+    steps:
+      - run: brew tap leleliu008/fpliu
+      - run: brew install ipkg
+
+      - run: bin/ipkg --help
+      - run: bin/ipkg --version
+
+      - run: bin/ipkg env
+
+      - run: bin/ipkg integrate zsh
+
+      - run: bin/ipkg update
+
+      - run: bin/ipkg search lib
+      - run: bin/ipkg search zlib
+
+      - run: bin/ipkg info zlib
+      - run: bin/ipkg info zlib version
+      - run: bin/ipkg info zlib webpage
+      - run: bin/ipkg depends zlib
+
+      - run: bin/ipkg depends curl
+
+      - run: bin/ipkg homepage
+      - run: bin/ipkg homepage zlib
+
+      - run: bin/ipkg install zlib
+
+      - run: bin/ipkg info zlib
+
+      - run: bin/ipkg prefix
+      - run: bin/ipkg prefix zlib
+
+      - run: bin/ipkg tree zlib
+      - run: bin/ipkg pack zlib
+
+      - run: bin/ipkg formula repo list
+      - run: bin/ipkg formula view curl
+
+      - run: bin/ipkg target abis
+      - run: bin/ipkg target archs
+      - run: bin/ipkg target triples
+      - run: bin/ipkg target versions
+      - run: bin/ipkg target platforms
+
+      - run: bin/ipkg ls available
+      - run: bin/ipkg ls installed
+      - run: bin/ipkg ls outdated
+
+      - run: bin/ipkg is available zlib
+      - run: bin/ipkg is installed zlib
+      - run: bin/ipkg is outdated zlib || echo 'outdated'
+
+      - run: bin/ipkg uninstall zlib
+
+      - run: bin/ipkg fetch curl
+
+      - run: bin/ipkg upgrade @self
