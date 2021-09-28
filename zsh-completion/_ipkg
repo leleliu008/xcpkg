@@ -140,9 +140,6 @@ function _ipkg() {
                             esac
                     esac
                     ;;
-                tree)
-                    _arguments ':package-name:_ipkg_available_packages'
-                    ;;
                 info)
                     _arguments \
                         '1:package-name:(@all $(ipkg ls available))' \
@@ -158,13 +155,23 @@ function _ipkg() {
                 fetch|depends)
                     _arguments ':package-name:_ipkg_available_packages'
                     ;;
-                prefix|pack|create-framework)
+                prefix|create-framework)
                     _arguments ':package-name:_ipkg_installed_packages'
+                    ;;
+                pack)
+                    _arguments \
+                        '1:package-name:_ipkg_installed_packages' \
+                        '--type=-[output file type]:type:(7z zip tar.gz tar.xz tar.bz2)'
                     ;;
                 homepage)
                     _arguments \
-                        '1:action:(show open)' \
-                        '2:package-name:_ipkg_available_packages'
+                        ':package-name:_ipkg_available_packages' \
+                        '--open[open in the web browser]'
+                    ;;
+                tree)
+                    _arguments \
+                        '1:package-name:_ipkg_installed_packages' \
+                        '-L[level]:level:(4)'
                     ;;
                 logs)
                     _arguments \

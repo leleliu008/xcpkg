@@ -3524,7 +3524,7 @@ __pack_the_given_installed_package() {
     run cd $WORKING_DIR
 
     step "make link refer to installed package root dir"
-    run ln -s "$MY_INSTALL_DIR/$1" "$PACKED_DIR_NAME"
+    run ln -s "$MY_INSTALL_DIR/$INSTALLED_PKG_NAME" "$PACKED_DIR_NAME"
 
     step "packing"
     case $PACKED_FILE_SUFFIX in
