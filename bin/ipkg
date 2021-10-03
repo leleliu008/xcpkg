@@ -5563,7 +5563,7 @@ EOF
         die "command not found: uname. please make sure it in PATH."
     fi
 
-    if [ "$NATIVE_OS_TYPE" != 'darwin' ] ; then
+    if [ "$NATIVE_OS_KIND" != 'darwin' ] ; then
         die "this software can only run on macOS."
     fi
 }
