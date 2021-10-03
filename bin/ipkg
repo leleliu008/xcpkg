@@ -5551,13 +5551,13 @@ EOF
         unset NATIVE_OS_NAME
         unset NATIVE_OS_VERS
         unset NATIVE_OS_ARCH
+        unset NATIVE_OS_LIBC
         unset NATIVE_OS_SUBS
 
         NATIVE_OS_KIND=$(os kind)
         NATIVE_OS_TYPE=$(os type)
         NATIVE_OS_NAME=$(os name)
         NATIVE_OS_VERS=$(os vers)
-        NATIVE_OS_SUBS=$(os subs)
         NATIVE_OS_ARCH=$(os arch)
     else
         die "command not found: uname. please make sure it in PATH."
