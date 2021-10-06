@@ -24,15 +24,15 @@ success() {
 }
 
 warn() {
-    print "${COLOR_YELLOW}🔥  $*\n${COLOR_OFF}"
+    print "${COLOR_YELLOW}🔥  $*\n${COLOR_OFF}" >&2
 }
 
 error() {
-    print "${COLOR_RED}[✘] $*\n${COLOR_OFF}"
+    print "${COLOR_RED}[✘] $*\n${COLOR_OFF}" >&2
 }
 
 die() {
-    print "${COLOR_RED}[✘] $*\n${COLOR_OFF}"
+    print "${COLOR_RED}[✘] $*\n${COLOR_OFF}" >&2
     exit 1
 }
 
@@ -136,40 +136,100 @@ sha256sum() {
     fi
 }
 
+die_if_command_not_found() {
+    for item in $@
+    do
+        command_exists_in_filesystem $item || die "$item command not found."
+    done
+}
+
 main() {
+    for arg in $@
+    do
+        case $arg in
+            -x) set -x ; break
+        esac
+    done
+
     set -e
 
+    die_if_command_not_found tar gzip git gh
+
+    unset RELEASE_VERSION_MAJOR_PLUS_PLUS
+    unset RELEASE_VERSION_MINOR_PLUS_PLUS
+    unset RELEASE_VERSION_PATCH_PLUS_PLUS
+
+    while [ -n "$1" ]
+    do
+        case $1 in
+            -x) ;;
+            --major++) RELEASE_VERSION_MAJOR_PLUS_PLUS=1 ;;
+            --minor++) RELEASE_VERSION_MINOR_PLUS_PLUS=1 ;;
+            --patch++) RELEASE_VERSION_PATCH_PLUS_PLUS=1 ;;
+            *) die "unrecognized argument: $1"
+        esac
+        shift
+    done
+
     unset RELEASE_VERSION
-    unset RELEASE_FILE_NAME
-    unset RELEASE_FILE_SHA256SUM
+    unset RELEASE_VERSION_MAJOR
+    unset RELEASE_VERSION_MINOR
+    unset RELEASE_VERSION_PATCH
 
     RELEASE_VERSION=$(grep 'MY_VERSION=' bin/ipkg | cut -d= -f2)
+    RELEASE_VERSION_MAJOR=$(printf '%s\n' "$RELEASE_VERSION" | cut -d. -f1)
+    RELEASE_VERSION_MINOR=$(printf '%s\n' "$RELEASE_VERSION" | cut -d. -f2)
+    RELEASE_VERSION_PATCH=$(printf '%s\n' "$RELEASE_VERSION" | cut -d. -f3)
+
+    if [ ${RELEASE_VERSION_MAJOR_PLUS_PLUS-0} -eq 1 ] ; then
+        RELEASE_VERSION_MAJOR=$(expr $RELEASE_VERSION_MAJOR + 1)
+    fi
+
+    if [ ${RELEASE_VERSION_MINOR_PLUS_PLUS-0} -eq 1 ] ; then
+        RELEASE_VERSION_MINOR=$(expr $RELEASE_VERSION_MINOR + 1)
+    fi
+
+    if [ ${RELEASE_VERSION_PATCH_PLUS_PLUS-0} -eq 1 ] ; then
+        RELEASE_VERSION_PATCH=$(expr $RELEASE_VERSION_PATCH + 1)
+    fi
+
+    RELEASE_VERSION="$RELEASE_VERSION_MAJOR.$RELEASE_VERSION_MINOR.$RELEASE_VERSION_PATCH"
+
+    unset RELEASE_FILE_NAME
     RELEASE_FILE_NAME="ipkg-$RELEASE_VERSION.tar.gz"
 
-    run tar zvcf "$RELEASE_FILE_NAME" bin/ipkg zsh-completion/_ipkg LICENSE README.md
+    run tar zvcf "$RELEASE_FILE_NAME" bin/ipkg zsh-completion/_ipkg
 
+    unset RELEASE_FILE_SHA256SUM
     RELEASE_FILE_SHA256SUM=$(sha256sum "$RELEASE_FILE_NAME")
-    
+
     success "sha256sum($RELEASE_FILE_NAME)=$RELEASE_FILE_SHA256SUM"
 
-    run gh release create v"$RELEASE_VERSION" "ipkg-$RELEASE_VERSION.tar.gz" --notes "'release $RELEASE_VERSION'"
+    if [ ${RELEASE_VERSION_MAJOR_PLUS_PLUS-0} -eq 1 ] || [ ${RELEASE_VERSION_MINOR_PLUS_PLUS-0} -eq 1 ] || [ ${RELEASE_VERSION_PATCH_PLUS_PLUS-0} -eq 1 ] ; then
+        sed_in_place "s|MY_VERSION=[0-9].[0-9].[0-9]|MY_VERSION=$RELEASE_VERSION|" bin/ipkg
+
+        run git add bin/ipkg
+        run git commit -m "'publish new version $RELEASE_VERSION'"
+        run git push origin master
+    fi
+
+    run gh release create v"$RELEASE_VERSION" "$RELEASE_FILE_NAME" --notes "'release $RELEASE_VERSION'"
 
     run git clone git@github.com:leleliu008/homebrew-fpliu.git
+
     run cd homebrew-fpliu
-    sed_in_place '/url      /d' Formula/ipkg.rb
-    sed_in_place '/sha256   /d' Formula/ipkg.rb
-    sed_in_place "/homepage/a \  sha256   \"$RELEASE_FILE_SHA256SUM\"" Formula/ipkg.rb
-    sed_in_place "/homepage/a \  url      \"https://github.com/leleliu008/ipkg/releases/download/v$RELEASE_VERSION/ipkg-$RELEASE_VERSION.tar.gz\"" Formula/ipkg.rb
+
+    sed_in_place "/sha256   /c \  sha256   \"$RELEASE_FILE_SHA256SUM\"" Formula/ipkg.rb
+    sed_in_place "s@[0-9]\.[0-9]\.[0-9]@$RELEASE_VERSION@g" Formula/ipkg.rb
+
     run git add Formula/ipkg.rb
-    run git commit -m "'publish new version ipkg-$RELEASE_VERSION'"
+    run git commit -m "'publish new version $RELEASE_VERSION'"
     run git push origin master
 
     run cd ..
 
     run rm -rf homebrew-fpliu
     run rm "$RELEASE_FILE_NAME"
-    run rm -rf pkg
-    run rm -rf src
 }
 
 main $@
