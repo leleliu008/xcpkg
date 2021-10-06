@@ -61,8 +61,20 @@ file_exists() {
 # $1 command name or path
 command_exists_in_filesystem() {
     case $1 in
-        */*) executable "$1" ;;
-        *)   command -v "$1" > /dev/null
+        '') return 1 ;;
+        */*)
+            case $(uname | tr A-Z a-z) in
+                cygwin*)
+                    case $1 in
+                        /cygdrive/*/choco) executable "$1" ;;
+                        /cygdrive/*) return 1 ;;
+                        *) executable "$1" ;;
+                    esac
+                    ;;
+                *) executable "$1" ;;
+            esac
+            ;;
+        *)  command_exists_in_filesystem $(command -v "$1" || true)
     esac
 }
 
@@ -538,7 +550,7 @@ fetch() {
 
             for FETCH_TOOL in curl wget http lynx aria2c axel
             do
-                if command -v "$FETCH_TOOL" > /dev/null ; then
+                if command_exists_in_filesystem "$FETCH_TOOL" ; then
                     break
                 else
                     unset FETCH_TOOL
@@ -668,7 +680,7 @@ __upgrade_self() {
     for arg in $@
     do
         case $arg in
-            -x) set -x ;;
+            -x) set -x ; break
         esac
     done
 
@@ -724,7 +736,7 @@ __integrate_zsh_completions() {
     for arg in $@
     do
         case $arg in
-            -x) set -x ;;
+            -x) set -x ; break
         esac
     done
 
@@ -1301,11 +1313,6 @@ version_match() {
 # command_exists_in_filesystem_and_version_matched automake
 command_exists_in_filesystem_and_version_matched() {
     if command_exists_in_filesystem "$1" ; then
-        if [ "$NATIVE_OS_SUBS" = 'cygwin' ] ; then
-            case $(command -v "$1") in
-                /cygdrive/*) return 1
-            esac
-        fi
         if [ $# -eq 3 ] ; then
             version_match "$(version_of_command "$1")" "$2" "$3"
         fi
@@ -3332,7 +3339,7 @@ __tree_the_given_installed_package() {
     run tree $(shiftn 1 $@) --dirsfirst "$MY_INSTALL_DIR/$1"
 }
 
-__uninstall_packages() {
+__uninstall_the_given_packages() {
     shift
 
     die_if_package_is_not_specified "$1"
@@ -3349,9 +3356,10 @@ __uninstall_the_given_package() {
     run rm -rf "$MY_INSTALL_DIR/$1"
 }
 
-__reinstall_packages() {
-    check_prerequisites
-    parse_arguments $@
+__reinstall_the_given_packages() {
+    inspect_build_toolchains
+
+    inspect_install_arguments $@
 
     die_if_package_is_not_specified $USER_SPECIFIED_PACKAGE_LIST
 
@@ -3360,7 +3368,7 @@ __reinstall_packages() {
         die_if_package_is_not_available "$packageName"
         die_if_package_is_not_installed "$packageName"
     done
-    
+
     for packageName in $USER_SPECIFIED_PACKAGE_LIST
     do
         {
@@ -3373,18 +3381,30 @@ __reinstall_packages() {
 }
 
 __upgrade_packages() {
-    check_prerequisites
-    parse_arguments $@
+    inspect_build_toolchains
+
+    inspect_install_arguments $@
 
     if [ -z "$USER_SPECIFIED_PACKAGE_LIST" ] ; then
         USER_SPECIFIED_PACKAGE_LIST=$(__list__outdated_packages)
     fi
 
-    if [ -z "$USER_SPECIFIED_PACKAGE_LIST" ] ; then
-        return 0
-    fi
+    for packageName in $USER_SPECIFIED_PACKAGE_LIST
+    do
+        die_if_package_is_not_available "$packageName"
+        die_if_package_is_not_installed "$packageName"
+    done
 
-    __reinstall_packages
+    for packageName in $USER_SPECIFIED_PACKAGE_LIST
+    do
+        {
+            [ -d "$MY_BACKUP_DIR" ] || mkdir -p "$MY_BACKUP_DIR"
+        } &&
+        mv "$MY_INSTALL_DIR/$packageName" "$MY_BACKUP_DIR/$packageName" &&
+        __install_the_given_package "$packageName" &&
+        rm -rf "$MY_BACKUP_DIR/$packageName"
+    done
+
 }
 
 __cleanup() {
@@ -3799,10 +3819,10 @@ __config_global_installation_variables() {
     fi
 }
 
-__install_packages() {
-    check_prerequisites
+__install_the_given_packages() {
+    inspect_build_toolchains
 
-    parse_arguments $@
+    inspect_install_arguments $@
 
     die_if_package_is_not_specified $USER_SPECIFIED_PACKAGE_LIST
 
@@ -4500,7 +4520,7 @@ __config_this_build_variables() {
 
     TARGET_TRIPLE=$(print_target_triple_by_arch "$TARGET_OS_ARCH")
 
-    SYSROOT="$TOOLCHAIN_ROOTDIR/Platforms/${TARGET_OS_NAME}.platform/Developer/SDKs/${TARGET_OS_NAME}.sdk"
+    SYSROOT="$TOOLCHAIN_ROOT/Platforms/${TARGET_OS_NAME}.platform/Developer/SDKs/${TARGET_OS_NAME}.sdk"
 
     TARGET_OS_NAME_LOWER_CASE="$(printf "$TARGET_OS_NAME" | awk '{print(tolower($0))}')"
 
@@ -4654,7 +4674,7 @@ __printf_this_build_variables() {
     echo
     echo "TOOLCHAIN_NAME    = $TOOLCHAIN_NAME"
     echo "TOOLCHAIN_VERSION = $TOOLCHAIN_VERSION"
-    echo "TOOLCHAIN_ROOTDIR = $TOOLCHAIN_ROOTDIR"
+    echo "TOOLCHAIN_ROOT    = $TOOLCHAIN_ROOT"
     echo "TOOLCHAIN_BIN_DIR = $TOOLCHAIN_BIN_DIR"
     echo "          SYSROOT = $SYSROOT"
     echo "SYSTEM_INCLUDE_DIR= $SYSTEM_INCLUDE_DIR"
@@ -5187,15 +5207,15 @@ EOF
     done
 }
 
-check_prerequisites() {
-    TOOLCHAIN_ROOTDIR="$(xcode-select -p)"
+inspect_build_toolchains() {
+    TOOLCHAIN_ROOT="$(xcode-select -p)"
 
-    [ -z "$TOOLCHAIN_ROOTDIR" ] && die "please run command 'xcode-select --switch DIR', then try again."
-    [ -d "$TOOLCHAIN_ROOTDIR" ] || die "TOOLCHAIN_ROOTDIR=$TOOLCHAIN_ROOTDIR directory is not exist."
+    [ -z "$TOOLCHAIN_ROOT" ] && die "please run command 'xcode-select --switch DIR', then try again."
+    [ -d "$TOOLCHAIN_ROOT" ] || die "TOOLCHAIN_ROOT=$TOOLCHAIN_ROOT directory is not exist."
 
     TOOLCHAIN_NAME=xcode
     TOOLCHAIN_VERSION=$(system_profiler SPDeveloperToolsDataType | grep Version | head -n 1 | cut -d: -f2 | sed 's/^ //g')
-    TOOLCHAIN_BIN_DIR="$TOOLCHAIN_ROOTDIR/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+    TOOLCHAIN_BIN_DIR="$TOOLCHAIN_ROOT/Toolchains/XcodeDefault.xctoolchain/usr/bin"
 }
 
 __list_rules() {
@@ -5203,8 +5223,8 @@ __list_rules() {
 }
 
 __list_supported_target_platforms() {
-    [ -z "$TOOLCHAIN_ROOTDIR" ] && check_prerequisites
-    ls "$TOOLCHAIN_ROOTDIR/Platforms" | sed 's/.platform//g'
+    [ -z "$TOOLCHAIN_ROOT" ] && inspect_build_toolchains
+    ls "$TOOLCHAIN_ROOT/Platforms" | sed 's/.platform//g'
     #print_list AppleTVOS AppleTVSimulator MacOSX iPhoneOS iPhoneSimulator WatchOS WatchSimulator
 }
 
@@ -5432,7 +5452,12 @@ __create_framework_for_the_given_package() {
     fi
 }
 
-parse_arguments() {
+inspect_install_arguments() {
+    unset ACTION
+    ACTION=$1
+
+    shift
+
     # https://stackoverflow.com/questions/18476490/what-is-purpose-of-target-arch-variable-in-makefiles
     unset TARGET_ARCH
 
@@ -5450,10 +5475,6 @@ parse_arguments() {
 
     unset KEEP_WORKING_DIR
 
-    ACTION="$1"
-    
-    shift 1
-    
     while [ -n "$1" ]
     do
         case $1 in
@@ -5465,8 +5486,6 @@ parse_arguments() {
                 VERBOSE=true
                 ;;
             --xtrace|-x)
-                XTRACE=true
-                set -x
                 ;;
             --debug|-d)
                 DEBUG=true
@@ -5488,7 +5507,7 @@ parse_arguments() {
                     USER_SPECIFIED_PACKAGE_LIST="$USER_SPECIFIED_PACKAGE_LIST $1"
                 fi
                 ;;
-            *)  die "$1 is a invalid argument."
+            *)  die "unrecognized argument: $1"
         esac
         shift
     done
@@ -5573,7 +5592,7 @@ EOF
     fi
 
     if [ "$NATIVE_OS_KIND" != 'darwin' ] ; then
-        die "this software can only run on macOS."
+        die "this software can only be run on macOS."
     fi
 }
 
@@ -5685,10 +5704,23 @@ EOF
 }
 
 main() {
+    unset XTRACE
+
+    for arg in $@
+    do
+        case $arg in
+            --xtrace|-x)
+                XTRACE=true
+                set -x
+                break
+                ;;
+        esac
+    done
+
     init
 
     case $1 in
-        --help|-h)
+        ''|--help|-h)
             help
             ;;
         --version|-V)
@@ -5705,7 +5737,7 @@ main() {
             echo
             run export -p
 
-            check_prerequisites
+            inspect_build_toolchains
 
             echo "$TOOLCHAIN_NAME $TOOLCHAIN_VERSION"
             ;;
@@ -5772,9 +5804,9 @@ main() {
         update)  __update_formula_repositories ;;
         cleanup) __cleanup ;;
 
-        install)     __install_packages $@ ;;
-        reinstall) __reinstall_packages $@ ;;
-        uninstall) __uninstall_packages $@ ;;
+          install)   __install_the_given_packages $@ ;;
+        reinstall) __reinstall_the_given_packages $@ ;;
+        uninstall) __uninstall_the_given_packages $@ ;;
 
         upgrade)
             shift
