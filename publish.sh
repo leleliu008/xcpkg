@@ -195,6 +195,12 @@ main() {
 
     RELEASE_VERSION="$RELEASE_VERSION_MAJOR.$RELEASE_VERSION_MINOR.$RELEASE_VERSION_PATCH"
 
+    if [ ${RELEASE_VERSION_MAJOR_PLUS_PLUS-0} -eq 0 ] && [ ${RELEASE_VERSION_MINOR_PLUS_PLUS-0} -eq 0 ] && [ ${RELEASE_VERSION_PATCH_PLUS_PLUS-0} -eq 0 ] ; then
+        die "new release version must be bigger than old version"
+    fi
+
+    sed_in_place "s|MY_VERSION=[0-9].[0-9].[0-9]|MY_VERSION=$RELEASE_VERSION|" bin/ipkg
+
     unset RELEASE_FILE_NAME
     RELEASE_FILE_NAME="ipkg-$RELEASE_VERSION.tar.gz"
 
@@ -205,13 +211,9 @@ main() {
 
     success "sha256sum($RELEASE_FILE_NAME)=$RELEASE_FILE_SHA256SUM"
 
-    if [ ${RELEASE_VERSION_MAJOR_PLUS_PLUS-0} -eq 1 ] || [ ${RELEASE_VERSION_MINOR_PLUS_PLUS-0} -eq 1 ] || [ ${RELEASE_VERSION_PATCH_PLUS_PLUS-0} -eq 1 ] ; then
-        sed_in_place "s|MY_VERSION=[0-9].[0-9].[0-9]|MY_VERSION=$RELEASE_VERSION|" bin/ipkg
-
-        run git add bin/ipkg
-        run git commit -m "'publish new version $RELEASE_VERSION'"
-        run git push origin master
-    fi
+    run git add bin/ipkg
+    run git commit -m "'publish new version $RELEASE_VERSION'"
+    run git push origin master
 
     run gh release create v"$RELEASE_VERSION" "$RELEASE_FILE_NAME" --notes "'release $RELEASE_VERSION'"
 
