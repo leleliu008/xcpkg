@@ -5653,7 +5653,7 @@ ACTION:
 
     logs PACKAGE PLATFORM/ARCH    --show logs of the given installed package.
 
-    info PACKAGE [KEY]            --show information of the given package.
+    info PACKAGE [KEY|--json]     --show information of the given package.
 
     info @all [--json]            --show information of all the available packages.
 

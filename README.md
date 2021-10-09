@@ -64,10 +64,13 @@ autoload -U compinit && compinit
         ipkg info curl src.git
         ipkg info curl installed-dir
         ipkg info curl installed-metadata
+        ipkg info curl installed-files
+        ipkg info curl installed-abis
         ipkg info curl installed-datetime-unix
         ipkg info curl installed-datetime-formatted
         ipkg info curl installed-pkg-version
-        ipkg info curl installed-abis
+        ipkg info curl --json
+        ipkg info curl --json | jq .
         ipkg info @all
         ipkg info @all --json
         ipkg info @all --json | jq .
