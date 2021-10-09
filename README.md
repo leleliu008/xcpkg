@@ -113,15 +113,15 @@ autoload -U compinit && compinit
         
 *   list the avaliable formula repos
         
-        ipkg formula repo list
+        ipkg formula-repo list
         
 *   add a new formula repo
         
-        ipkg formula repo add my_repo https://github.com/leleliu008/ipkg-formula-repository.git
+        ipkg formula-repo add my_repo https://github.com/leleliu008/ipkg-formula-repository.git
         
 *   delete a existing formula repo
         
-        ipkg formula repo del my_repo
+        ipkg formula-repo del my_repo
         
 *   view the formula of the given package
 
@@ -200,33 +200,33 @@ autoload -U compinit && compinit
         
 *   list the available packages
         
-        ipkg ls available
+        ipkg ls-available
         
 *   list the installed packages
         
-        ipkg ls installed
+        ipkg ls-installed
         
 *   list the outdated packages
         
-        ipkg ls outdated
+        ipkg ls-outdated
         
 *   is the given package available ?
         
-        ipkg is available curl
-        ipkg is available curl ge 7.50.0
-        ipkg is available curl gt 7.50.0
-        ipkg is available curl le 7.50.0
-        ipkg is available curl lt 7.50.0
-        ipkg is available curl eq 7.50.0
-        ipkg is available curl ne 7.50.0
+        ipkg is-available curl
+        ipkg is-available curl ge 7.50.0
+        ipkg is-available curl gt 7.50.0
+        ipkg is-available curl le 7.50.0
+        ipkg is-available curl lt 7.50.0
+        ipkg is-available curl eq 7.50.0
+        ipkg is-available curl ne 7.50.0
         
 *   is the given package installed ?
         
-        ipkg is installed curl
+        ipkg is-installed curl
         
 *   is the given package outdated ?
         
-        ipkg is outdated curl
+        ipkg is-outdated curl
         
 *   list files of the given installed package in a tree-like format.
         

@@ -48,10 +48,11 @@ jobs:
       - run: bin/ipkg info zlib
       - run: bin/ipkg info zlib installed-dir
       - run: bin/ipkg info zlib installed-metadata
+      - run: bin/ipkg info zlib installed-files
+      - run: bin/ipkg info zlib installed-abis
       - run: bin/ipkg info zlib installed-datetime-unix
       - run: bin/ipkg info zlib installed-datetime-formatted
       - run: bin/ipkg info zlib installed-pkg-version
-      - run: bin/ipkg info zlib installed-abis
 
       - run: bin/ipkg prefix
       - run: bin/ipkg prefix zlib
@@ -59,7 +60,7 @@ jobs:
       - run: bin/ipkg tree zlib
       - run: bin/ipkg pack zlib
 
-      - run: bin/ipkg formula repo list
+      - run: bin/ipkg formula-repo list
       - run: bin/ipkg formula view curl
 
       - run: bin/ipkg target abis
@@ -68,13 +69,13 @@ jobs:
       - run: bin/ipkg target versions
       - run: bin/ipkg target platforms
 
-      - run: bin/ipkg ls available
-      - run: bin/ipkg ls installed
-      - run: bin/ipkg ls  outdated
+      - run: bin/ipkg ls-available
+      - run: bin/ipkg ls-installed
+      - run: bin/ipkg ls-outdated
 
-      - run: bin/ipkg is available zlib
-      - run: bin/ipkg is installed zlib
-      - run: bin/ipkg is  outdated zlib || echo 'outdated'
+      - run: bin/ipkg is-available zlib
+      - run: bin/ipkg is-installed zlib
+      - run: bin/ipkg is-outdated zlib || echo 'not outdated'
 
       - run: bin/ipkg uninstall zlib
 
@@ -124,10 +125,11 @@ jobs:
       - run: ipkg info zlib
       - run: ipkg info zlib installed-dir
       - run: ipkg info zlib installed-metadata
+      - run: ipkg info zlib installed-files
+      - run: ipkg info zlib installed-abis
       - run: ipkg info zlib installed-datetime-unix
       - run: ipkg info zlib installed-datetime-formatted
       - run: ipkg info zlib installed-pkg-version
-      - run: ipkg info zlib installed-abis
 
       - run: ipkg prefix
       - run: ipkg prefix zlib
@@ -135,7 +137,7 @@ jobs:
       - run: ipkg tree zlib
       - run: ipkg pack zlib
 
-      - run: ipkg formula repo list
+      - run: ipkg formula-repo list
       - run: ipkg formula view curl
 
       - run: ipkg target abis
@@ -144,13 +146,13 @@ jobs:
       - run: ipkg target versions
       - run: ipkg target platforms
 
-      - run: ipkg ls available
-      - run: ipkg ls installed
-      - run: ipkg ls  outdated
+      - run: ipkg ls-available
+      - run: ipkg ls-installed
+      - run: ipkg ls-outdated
 
-      - run: ipkg is available zlib
-      - run: ipkg is installed zlib
-      - run: ipkg is  outdated zlib || echo 'outdated'
+      - run: ipkg is-available zlib
+      - run: ipkg is-installed zlib
+      - run: ipkg is-outdated zlib || echo 'not outdated'
 
       - run: ipkg uninstall zlib
 
