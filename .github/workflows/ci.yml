@@ -23,6 +23,8 @@ jobs:
 
       - run: bin/ipkg --help
       - run: bin/ipkg --version
+      - run: bin/ipkg --homedir
+      - run: bin/ipkg --homepage
 
       - run: bin/ipkg env
 
@@ -53,9 +55,6 @@ jobs:
       - run: bin/ipkg info zlib installed-datetime-unix
       - run: bin/ipkg info zlib installed-datetime-formatted
       - run: bin/ipkg info zlib installed-pkg-version
-
-      - run: bin/ipkg prefix
-      - run: bin/ipkg prefix zlib
 
       - run: bin/ipkg tree zlib
       - run: bin/ipkg pack zlib
@@ -100,6 +99,8 @@ jobs:
 
       - run: ipkg --help
       - run: ipkg --version
+      - run: ipkg --homedir
+      - run: ipkg --homepage
 
       - run: ipkg env
 
@@ -130,9 +131,6 @@ jobs:
       - run: ipkg info zlib installed-datetime-unix
       - run: ipkg info zlib installed-datetime-formatted
       - run: ipkg info zlib installed-pkg-version
-
-      - run: ipkg prefix
-      - run: ipkg prefix zlib
 
       - run: ipkg tree zlib
       - run: ipkg pack zlib
