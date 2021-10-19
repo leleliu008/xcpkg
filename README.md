@@ -30,11 +30,11 @@ autoload -U compinit && compinit
         ipkg -V
         ipkg --version
 
-*   show home directory this software
+*   show home directory of this software
 
         ndk-pkg --homedir
 
-*   show home webpage this software
+*   show home webpage of this software
 
         ndk-pkg --homepage
 
@@ -252,11 +252,11 @@ autoload -U compinit && compinit
 *   pack the given installed package
         
         ipkg pack curl
-        ipkg pack curl --type=tar.xz
         ipkg pack curl --type=tar.gz
+        ipkg pack curl --type=tar.xz
         ipkg pack curl --type=tar.bz2
-        ipkg pack curl --type=tar.zip
-        ipkg pack curl --type=tar.7z
+        ipkg pack curl --type=zip
+        ipkg pack curl --type=7z
         
 *   show or open the homepage of the given package or this project
         
