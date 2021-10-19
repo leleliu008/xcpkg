@@ -208,18 +208,6 @@ tolower() {
     fi
 }
 
-nproc() {
-    if command nproc --version > /dev/null 2>&1 ; then
-        command nproc
-    elif test -f /proc/cpuinfo ; then
-        grep -c processor /proc/cpuinfo
-    elif command -v sysctl > /dev/null ; then
-        sysctl -n machdep.cpu.thread_count
-    else
-        echo 4
-    fi
-}
-
 own() {
     if command -v awk > /dev/null ; then
         ls -ld "$1" | awk '{print $3":"$4}'
@@ -620,14 +608,12 @@ fetch() {
 install_ca_certificates_on_netbsd() {
     # https://www.cambus.net/installing-ca-certificates-on-netbsd/
     if [ "$(uname)" = NetBSD ] ; then
-        if command -v pkgin > /dev/null ; then
-            if [ "$(whoami)" = root ] ; then
-                run      pkgin -y install mozilla-rootcerts || return 1
-            else
-                run sudo pkgin -y install mozilla-rootcerts || return 1
+        command -v mozilla-rootcerts > /dev/null || {
+            if command -v pkgin > /dev/null ; then
+                run $([ "$(whoami)" = root ] || printf 'sudo\n') pkgin -y install mozilla-rootcerts || return 1
             fi
-            run mozilla-rootcerts install
-        fi
+        }
+        run mozilla-rootcerts install || true
     fi
 }
 
@@ -702,11 +688,11 @@ __upgrade_self() {
     fi
 
     info "mktemp -d"
-    WORKING_DIR=$(mktemp -d)
+    WORK_DIR=$(mktemp -d)
 
-    run cd $WORKING_DIR
+    run cd $WORK_DIR
 
-    fetch "$(get_china_mirror_url $@)" --output-path="$WORKING_DIR/self"
+    fetch "$(get_china_mirror_url $@)" --output-path="$WORK_DIR/self"
 
     __upgrade_self_exit() {
         if [ -w "$CURRENT_SCRIPT_REALPATH" ] ; then
@@ -715,7 +701,7 @@ __upgrade_self() {
             run sudo install -m 755 self "$CURRENT_SCRIPT_REALPATH"
         fi
 
-        run rm -rf $WORKING_DIR
+        run rm -rf $WORK_DIR
     }
 
     trap __upgrade_self_exit EXIT
@@ -762,11 +748,11 @@ __integrate_zsh_completions() {
     fi
 
     info "mktemp -d"
-    WORKING_DIR=$(mktemp -d)
+    WORK_DIR=$(mktemp -d)
 
-    run cd $WORKING_DIR
+    run cd $WORK_DIR
 
-    fetch "$(get_china_mirror_url $@)" --output-path="$WORKING_DIR/$ZSH_COMPLETIONS_SCRIPT_FILENAME"
+    fetch "$(get_china_mirror_url $@)" --output-path="$WORK_DIR/$ZSH_COMPLETIONS_SCRIPT_FILENAME"
 
     if [ -f "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH" ] ; then
         if [ -w "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH" ] ; then
@@ -786,7 +772,7 @@ __integrate_zsh_completions() {
         fi
     fi
 
-    run rm -rf $WORKING_DIR
+    run rm -rf $WORK_DIR
 
     echo "\n${COLOR_YELLOW}Note: you need to run command${COLOR_RED} ${COLOR_GREEN}autoload -U compinit && compinit${COLOR_OFF} ${COLOR_YELLOW}in zsh to make it work.${COLOR_OFF}"
 }
@@ -1065,6 +1051,21 @@ __get_os_libc_from_os_kind() {
     esac
 }
 
+# https://stackoverflow.com/questions/45181115/portable-way-to-find-the-number-of-processors-cpus-in-a-shell-script
+__get_os_ncpu() {
+    case "$(uname)" in
+        Darwin) sysctl -n machdep.cpu.thread_count ;;
+        *BSD)   sysctl -n hw.ncpu ;;
+        *)  if command nproc --version > /dev/null 2>&1 ; then
+                command nproc
+            elif test -f /proc/cpuinfo ; then
+                grep -c processor /proc/cpuinfo
+            else
+                echo 4
+            fi
+    esac
+}
+
 os() {
     if [ $# -eq 0 ] ; then
         printf "current-machine-os-kind : %s\n" "$(os kind)"
@@ -1072,6 +1073,8 @@ os() {
         printf "current-machine-os-name : %s\n" "$(os name)"
         printf "current-machine-os-vers : %s\n" "$(os vers)"
         printf "current-machine-os-arch : %s\n" "$(os arch)"
+        printf "current-machine-os-ncpu : %s\n" "$(os ncpu)"
+        printf "current-machine-os-euid : %s\n" "$(os euid)"
         printf "current-machine-os-libc : %s\n" "$(os libc)"
         printf "current-machine-os-subs : %s\n" "$(os subs)"
     elif [ $# -eq 1 ] ; then
@@ -1085,6 +1088,8 @@ os type
 os name
 os vers
 os arch
+os ncpu
+os euid
 os libc
 os subs
 EOF
@@ -1109,6 +1114,12 @@ EOF
                 ;;
             arch)
                 __get_os_arch
+                ;;
+            ncpu)
+                __get_os_ncpu
+                ;;
+            euid)
+                id -u
                 ;;
             libc)
                 __get_os_libc_from_os_kind $(os kind)
@@ -2525,7 +2536,7 @@ regist_dependency() {
 # package set|add dep.cmd "nasm"
 # package set|add dep.pkg "libxx"
 # package set|add bsystem "cmake"
-# package set     binsrcd 'true'
+# package set     binsrcd 'YES|NO'
 # package set     sourced 'src'
 # package set     sdk.api '23'
 #
@@ -2650,7 +2661,7 @@ __load_formula_of_the_given_package() {
     unset PACKAGE_LICENSE
     unset PACKAGE_PATCHES
 
-    # relative to $WORKING_DIR, which contains build script such as configure, Makefile, CMakeLists.txt, meson.build, Cargo.toml, etc.
+    # relative to $WORK_DIR, which contains build script such as configure, Makefile, CMakeLists.txt, meson.build, Cargo.toml, etc.
     unset PACKAGE_SOURCED
 
     unset PACKAGE_BSYSTEM
@@ -2798,13 +2809,13 @@ __load_formula_of_the_given_package() {
         __parse_package_patches $PACKAGE_PATCHES
     fi
 
-    if [ "$PACKAGE_BUILD_IN_PARALLEL" = 'false' ] ; then
+    if [ "$PACKAGE_BUILD_IN_PARALLEL" = NO ] ; then
         NJOBS=1
     fi
 
     if [ "$PACKAGE_BUILD_SYSTEM" = 'go' ] ; then
-        PACKAGE_BINSRCD='true'
-        PACKAGE_BUILD_IN_SOURCE_DIR='true'
+        PACKAGE_BINSRCD=YES
+        PACKAGE_BUILD_IN_SOURCE_DIR=YES
     fi
 
     package add dep.cmd 'tree'
@@ -3042,10 +3053,10 @@ __del_a_formula_repo() {
     for repoName in $(__list_formula_repositories | cut -d= -f1)
     do
         if [ "$repoName" = "$1" ] ; then
-            REPO_EXISTS=true
+            REPO_EXISTS=YES
         fi
     done
-    if [ "$REPO_EXISTS" = 'true' ] ; then
+    if [ "$REPO_EXISTS" = YES ] ; then
         sed_in_place "/^$1=/d" "$MY_HOME_DIR/repos"
     else
         die "$1 formula repo not exists."
@@ -3262,13 +3273,13 @@ __gen_github_workflows() {
                 for z in $(get_direct_dependency_package_list_of_the_given_package "$y")
                 do
                     if [ "$x" = "$z" ] ; then
-                        BREAK=true
+                        BREAK=YES
                         break 2
                     fi
                 done
             fi
         done
-        if [ "$BREAK" = 'true' ] ; then
+        if [ "$BREAK" = YES ] ; then
             unset BREAK
         else
             if [ -z "$NDEPENDED_PACKAGES" ] ; then
@@ -3347,7 +3358,7 @@ __list__outdated_packages() {
 __tree_the_given_installed_package() {
     die_if_package_is_not_installed "$1"
     handle_dependency required exe tree
-    run tree $(shiftn 1 $@) --dirsfirst "$MY_INSTALL_DIR/$1"
+    run tree $(shiftn 1 $@) "$MY_INSTALL_DIR/$1"
 }
 
 __uninstall_the_given_packages() {
@@ -3656,19 +3667,19 @@ __pack_the_given_installed_package() {
     PACKED_DIR_NAME="$INSTALLED_PKG_NAME-$INSTALLED_PKG_VERS.bin"
     PACKED_FILE_NAME="$PACKED_DIR_NAME.$PACKED_FILE_SUFFIX"
 
-    step "create working directory"
+    step "create work directory"
     info "mktemp -d"
-    WORKING_DIR=$(mktemp -d)
+    WORK_DIR=$(mktemp -d)
 
-    step "change to working directory"
-    run cd $WORKING_DIR
+    step "change to work directory"
+    run cd $WORK_DIR
 
     step "make link refer to installed package root dir"
     run ln -s "$MY_INSTALL_DIR/$INSTALLED_PKG_NAME" "$PACKED_DIR_NAME"
 
     step "packing"
     case $PACKED_FILE_SUFFIX in
-        7z)  run 7za a -t7z -r "$PACKED_FILE_NAME" "$PACKED_DIR_NAME" ;;
+        7z)  run 7za a -t7z -r "$PACKED_FILE_NAME" "$PACKED_DIR_NAME/*" ;;
         zip) run zip -9 -r     "$PACKED_FILE_NAME" "$PACKED_DIR_NAME" ;;
         tar.gz)  run tar zvcf  "$PACKED_FILE_NAME" "$PACKED_DIR_NAME/*" ;;
         tar.xz)  run tar Jvcf  "$PACKED_FILE_NAME" "$PACKED_DIR_NAME/*" ;;
@@ -3684,10 +3695,10 @@ __pack_the_given_installed_package() {
     run cp "$PACKED_FILE_NAME" "$MY_BINARY_DIR/"
 
     step "show disk usage statistics"
-    run du -sh "$PACKED_FILE_NAME"
+    run "du -sh $PACKED_FILE_NAME | cut -f1"
 
-    step "delete working directory"
-    run rm -rf $WORKING_DIR
+    step "delete work directory"
+    run rm -rf $WORK_DIR
 }
 
 get_direct_dependency_package_list_of_the_given_package() {
@@ -3695,12 +3706,12 @@ get_direct_dependency_package_list_of_the_given_package() {
 }
 
 # $1 packageName, if packageName is not specified, USER_SPECIFIED_PACKAGE_LIST will be used
-# $2=true invoked by myself
+# $2=YES invoked by myself
 __gen_dependency_list_of_the_given_package() {
-    if [ "$2" != 'true' ] ; then
+    [ "$2" = YES ] || {
         unset I
         unset DEPENDENCY_PACKAGE_LIST
-    fi
+    }
 
     unset DIRECT_DEPENDENCY_PACKAGE_LIST
     if [ -z "$1" ] ; then
@@ -3726,7 +3737,7 @@ __gen_dependency_list_of_the_given_package() {
 
         DEPENDENCY_PACKAGE_LIST="$dependencyPkgName $DEPENDENCY_PACKAGE_LIST_TEMP"
 
-        __gen_dependency_list_of_the_given_package "$dependencyPkgName" true
+        __gen_dependency_list_of_the_given_package "$dependencyPkgName" YES
     done
 }
 
@@ -3822,7 +3833,7 @@ __config_global_installation_variables() {
     done
     unset FLAG
 
-    export PATH="$TOOLCHAIN_BIN_DIR:$PATH"
+    export PATH="$TOOLCHAIN_BIND:$PATH"
 
     if [ -d "$MY_HOME_DIR/native" ] ; then
         for item in $(find "$MY_HOME_DIR/native" -maxdepth 1 -type d -name bin)
@@ -3831,7 +3842,7 @@ __config_global_installation_variables() {
         done
     fi
 
-    if [ "$DEBUG" = 'true' ] ; then
+    if [ "$DEBUG" = YES ] ; then
         export PKG_CONFIG_DEBUG_SPEW=set
     fi
 }
@@ -3858,10 +3869,10 @@ __install_the_given_packages() {
         else
             echo "${COLOR_PURPLE}=============== Installing ${COLOR_OFF}${COLOR_GREEN}${INSTALLING_PACKAGE}${COLOR_OFF}${COLOR_PURPLE} ===============${COLOR_OFF}"
             __install_the_given_package "$INSTALLING_PACKAGE" || {
-                if [ -z "$TARGET_OS_ABI" ] ; then
-                    die "install $INSTALLING_PACKAGE failed! you can go to $WORKING_DIR to see see."
+                if [ -z "$BUILD_ITEM" ] ; then
+                    die "install $INSTALLING_PACKAGE failed! you can go to $WORK_DIR to see see."
                 else
-                    die "install $INSTALLING_PACKAGE/$TARGET_OS_ABI failed! you can go to $WORKING_DIR to see see."
+                    die "install $INSTALLING_PACKAGE/$BUILD_ITEM failed! you can go to $WORK_DIR to see see."
                 fi
             }
         fi
@@ -3870,18 +3881,19 @@ __install_the_given_packages() {
 
 __install_the_given_package() {
     # brew install meson
-    # Error: The current working directory doesn't exist, cannot proceed.
-    # beacuse previous package's working direcotory is deleted.
+    # Error: The current work directory doesn't exist, cannot proceed.
+    # beacuse previous package's work direcotory is deleted.
     cd ~ || return 1
 
-    unset WORKING_DIR
+    unset WORK_DIR
     unset SOURCE_DIR
     unset BUILD_DIR
+    unset BUILD_ITEM
+    unset BUILD_INDEX
 
     unset NATIVE_BUILD_DIR
     unset NATIVE_INSTALL_DIR
 
-    unset TARGET_OS_ABI
     unset CONFIG_XX_UPDATED
     unset STEP_NUM
 
@@ -3930,32 +3942,32 @@ __install_the_given_package() {
     step "fetch resources if needed"
     __fetch_resources_of_the_given_package "$1" || return 1
 
-    step "create working directory"
+    step "create work directory"
     info "mktemp -d"
-    WORKING_DIR=$(mktemp -d) || die "create working directory failed."
+    WORK_DIR=$(mktemp -d) || die "create work directory failed."
 
-    step "unpack sources to working directory"
+    step "unpack sources to work directory"
     case $PACKAGE_SRC_URL in
         dir://*|*.git)
             PACKAGE_VERSION=$(cd "$PACKAGE_SRC_PATH" && git log -1 --pretty=format:%h) || return 1
-            run cp -r "$PACKAGE_SRC_PATH/." "$WORKING_DIR" || return 1
+            run cp -r "$PACKAGE_SRC_PATH/." "$WORK_DIR" || return 1
             ;;
         *.c|*.cc|*.cxx|*.cpp)
-            run cp    "$PACKAGE_SRC_PATH"   "$WORKING_DIR" || return 1
+            run cp    "$PACKAGE_SRC_PATH"   "$WORK_DIR" || return 1
             ;;
         *.zip)
-            run unzip "$PACKAGE_SRC_PATH" -d "$WORKING_DIR" || return 1
+            run unzip "$PACKAGE_SRC_PATH" -d "$WORK_DIR" || return 1
             ;;
         *.tar.xz|*.tar.gz|*.tar.lz|*.tar.bz2|*.tgz|*.txz)
-            run tar xf "$PACKAGE_SRC_PATH" -C "$WORKING_DIR" --strip-components 1 || return 1
+            run tar xf "$PACKAGE_SRC_PATH" -C "$WORK_DIR" --strip-components 1 || return 1
             ;;
         *)  die "unrecognized extension : $PACKAGE_SRC_URL. the supported extensions are .zip .tar.xz .tar.gz .tar.lz .tar.bz2 .tgz .txz"
     esac
 
     if [ -z "$PACKAGE_SOURCED" ] ; then
-        SOURCE_DIR="$WORKING_DIR"
+        SOURCE_DIR="$WORK_DIR"
     else
-        SOURCE_DIR="$WORKING_DIR/$PACKAGE_SOURCED"
+        SOURCE_DIR="$WORK_DIR/$PACKAGE_SOURCED"
     fi
 
     step "change to source directory"
@@ -3966,7 +3978,7 @@ __install_the_given_package() {
 
     step "build for native"
     if command -v build0 > /dev/null ; then
-        NATIVE_BUILD_DIR="$WORKING_DIR/$TIMESTAMP_UNIX/native"
+        NATIVE_BUILD_DIR="$WORK_DIR/$TIMESTAMP_UNIX/native"
         NATIVE_INSTALL_DIR="$MY_HOME_DIR/native/$PACKAGE_NAME"
 
         if [ -f "$NATIVE_INSTALL_DIR/version.txt" ] ; then
@@ -3979,7 +3991,7 @@ __install_the_given_package() {
         if [ -f "$NATIVE_INSTALL_DIR/version.txt" ] ; then
             warn "build for native already have been done, skipped."
         else
-            [ "$PACKAGE_BUILD_IN_SOURCE_DIR" = 'true' ] || {
+            [ "$PACKAGE_BUILD_IN_SOURCE_DIR" = YES ] || {
                 run install -d "$NATIVE_BUILD_DIR" || return 1
                 run cd    "$NATIVE_BUILD_DIR" || return 1
             }
@@ -4003,11 +4015,11 @@ __install_the_given_package() {
             do
                 eval export "$FLAG=\"\$${FLAG}_FOR_BUILD\""
                 printf "\n%17s = " "$FLAG"
-                FIRST='true'
+                FIRST=YES
                 for item in $(eval echo \$$FLAG | tr ':' ' ')
                 do
-                    if [ "$FIRST" = 'true' ] ; then
-                        FIRST='false'
+                    if [ "$FIRST" = YES ] ; then
+                        FIRST=NO
                         echo "$item"
                     else
                         echo "                    $item"
@@ -4016,27 +4028,26 @@ __install_the_given_package() {
             done
             echo
             printf "\n%17s = " PATH
-            FIRST='true'
+            FIRST=YES
             for item in $(echo "$PATH" | tr ':' ' ')
             do
-                if [ "$FIRST" = 'true' ] ; then
-                    FIRST='false'
+                if [ "$FIRST" = YES ] ; then
+                    FIRST=NO
                     echo "$item"
                 else
                     echo "                    $item"
                 fi
             done
 
-            echo
-            echo "            NPROC = $NPROC"
-            echo "            NJOBS = $NJOBS"
-            echo
-            echo "      WORKING_DIR = $WORKING_DIR"
-            echo "       SOURCE_DIR = $SOURCE_DIR"
-            echo " NATIVE_BUILD_DIR = $NATIVE_BUILD_DIR"
-            echo " NATIVE_INSTALL_DIR = $NATIVE_INSTALL_DIR"
-            echo "                PWD = $PWD"
-            echo
+            echo "
+            NJOBS = $NJOBS
+
+            WORK_DIR = $WORK_DIR
+            SOURCE_DIR = $SOURCE_DIR
+            NATIVE_BUILD_DIR = $NATIVE_BUILD_DIR
+            NATIVE_INSTALL_DIR = $NATIVE_INSTALL_DIR
+            PWD = $PWD
+            "
 
             run build0 || return 1
 
@@ -4092,9 +4103,7 @@ __install_the_given_package() {
     __install_the_given_package_all_builds "$1" || return 1
 
     step "record installed abis"
-    INSTALLED_ABIS_FILEPATH="$MY_INSTALL_DIR/$1/installed-abis"
-    echo "-- Installing: $INSTALLED_ABIS_FILEPATH"
-    printf '%s\n' "$TARGET_OS_ABI_LIST" > "$INSTALLED_ABIS_FILEPATH"
+    run cp "$WORK_DIR/TIMESTAMP_UNIX/installed-abis" "$MY_INSTALL_DIR/$1/installed-abis"
 
     step "record installed metadata"
     __record_installed_metadata_of_the_given_package "$1"
@@ -4102,61 +4111,68 @@ __install_the_given_package() {
     step "record installed files"
     __record_installed_files_of_the_given_package "$1"
 
-    [ "$KEEP_WORKING_DIR" = 'true' ] || {
-        step "clean working directory."
-        run rm -rf "$WORKING_DIR"
+    [ "$KEEP_WORK_DIR" = YES ] || {
+        step "clean work directory."
+        run rm -rf "$WORK_DIR"
     }
 
-    step "list installed content."
-    __tree_the_given_installed_package "$1"
-
     echo
-    success "$1 have been installed successfully."
+    success "$1 installed successfully."
+
+    if [ "$NEED_RUN_TREE" = YES ] ; then
+        unset STEP_NUM
+        echo
+        echo "${COLOR_GREEN}$_0 tree $1 $TREE_ARGS${COLOR_OFF}"
+        __tree_the_given_installed_package "$1" $TREE_ARGS
+    fi
+
+    if [ "$NEED_RUN_PACK" = YES ] ; then
+        unset STEP_NUM
+        echo
+        echo "${COLOR_GREEN}$_0 pack $1 $PACK_ARGS${COLOR_OFF}"
+        __pack_the_given_installed_package "$1" $PACK_ARGS
+    fi
 }
 
 __install_the_given_package_all_builds() {
     PKG_INSTALL_DIR="$MY_INSTALL_DIR/$1"
 
-    unset BUILD_ROUND_NUM
-    unset TARGET_OS_ABI_LIST
+    unset BUILD_INDEX
 
-    for BUILD in $BUILD_LIST
+    for BUILD_ITEM in $BUILD_LIST
     do
-        BUILD_ROUND_NUM=$(expr ${BUILD_ROUND_NUM-0} + 1)
+        BUILD_INDEX=$(expr ${BUILD_INDEX-0} + 1)
 
-        TARGET_OS_ABI=$(echo "$BUILD" | cut -d: -f1)
-
-        if [ -z "$TARGET_OS_ABI_LIST" ] ; then
-            TARGET_OS_ABI_LIST="$TARGET_OS_ABI"
-        else
-            TARGET_OS_ABI_LIST=$(printf "%s %s" "$TARGET_OS_ABI_LIST" "$TARGET_OS_ABI")
-        fi
-
-        if [ "$DRYRUN" = 'true' ] ; then
-            __config_this_build_variables "$1"
-            __printf_this_build_variables "$1"
-            if [ -z "$SHELL" ] ; then
-                SHELL=$(command -v zsh || command -v bash || command -v sh)
-            fi
-            exec "$SHELL" || return 1
+        if [ "$DRYRUN" = YES ] ; then
+            __dryrun_install_the_given_package_one_build "$1" $(printf '%s\n' "$BUILD_ITEM" | tr '/' ' ')
         else
             (
-                BUILD_DIR="$WORKING_DIR/$TIMESTAMP_UNIX/$TARGET_OS_ABI"
+                BUILD_DIR="$WORK_DIR/$TIMESTAMP_UNIX/$BUILD_ITEM"
                 install -d "$BUILD_DIR" &&
                 mkfifo "$BUILD_DIR/pipe" &&
                 (tee "$BUILD_DIR/install.log.txt" < "$BUILD_DIR/pipe" &) &&
-                __install_the_given_package_one_build "$1" > "$BUILD_DIR/pipe" 2>&1
+                __install_the_given_package_one_build "$1" $(printf '%s\n' "$BUILD_ITEM" | tr '/' ' ') > "$BUILD_DIR/pipe" 2>&1
             ) || return 1
         fi
     done
 }
 
-__install_the_given_package_one_build() {
-    step "build for target ${COLOR_GREEN}${TARGET_OS_ABI}${COLOR_OFF}"
-    __config_this_build_variables "$1"
-    __printf_this_build_variables "$1"
+__dryrun_install_the_given_package_one_build() {
+    step "build for target ${COLOR_GREEN}$@${COLOR_OFF}"
+    __config_variables_of_the_given_build $@
+    __printf_variables_of_the_given_build $@
 
-    if [ "$PACKAGE_BUILD_IN_SOURCE_DIR" = 'true' ] ; then
+    [ -z "$SHELL" ] && SHELL=$(command -v zsh || command -v bash || command -v sh)
+
+    exec "$SHELL"
+}
+
+__install_the_given_package_one_build() {
+    step "build for target ${COLOR_GREEN}$@${COLOR_OFF}"
+    __config_variables_of_the_given_build $@
+    __printf_variables_of_the_given_build $@
+
+    if [ "$PACKAGE_BUILD_IN_SOURCE_DIR" = YES ] ; then
         if [ "$PWD" != "$SOURCE_DIR" ] ; then
             run cd "$SOURCE_DIR" || return 1
         fi
@@ -4193,6 +4209,8 @@ __install_the_given_package_one_build() {
     run __justfy_pc_files || return 1
 
     run __install_logs || return 1
+
+    run "printf ' %s\n' '$TARGET_OS_ABI' >> $WORK_DIR/$TIMESTAMP_UNIX/installed-abis"
 }
 
 __justfy_la_files() {
@@ -4481,9 +4499,10 @@ __show_infomation_of_the_given_package() {
         fi
     done
 
-    echo "installed datetime    : $(format_unix_timestamp $INSTALLED_DATETIME '+%Y/%m/%d %H:%M:%S')"
-    echo "installed pkg version : $INSTALLED_PKG_VERS"
-    echo "build with toolchain  : $BUILD_WITH_TOOLCHAIN_NAME $BUILD_WITH_TOOLCHAIN_VERS"
+    echo "
+installed-datetime    : $(format_unix_timestamp $INSTALLED_DATETIME '+%Y/%m/%d %H:%M:%S')
+installed-pkg-version : $INSTALLED_PKG_VERS
+build-use-toolchain   : $BUILD_USE_TOOLCHAIN_NAME $BUILD_USE_TOOLCHAIN_VERS"
 
 }
 
@@ -4533,10 +4552,10 @@ INSTALLED_DATETIME='$TIMESTAMP_UNIX'
 INSTALLED_PKG_NAME='$PACKAGE_NAME'
 INSTALLED_PKG_VERS='$PACKAGE_VERSION'
 
-BUILD_WITH_TOOLCHAIN_NAME='$TOOLCHAIN_NAME'
-BUILD_WITH_TOOLCHAIN_VERS='$TOOLCHAIN_VERSION'
+BUILD_USE_SDK_VERS='$TARGET_OS_VERS'
 
-BUILD_WITH_API_LEVEL='$TARGET_OS_VERS'
+BUILD_USE_TOOLCHAIN_NAME='$TOOLCHAIN_NAME'
+BUILD_USE_TOOLCHAIN_VERS='$TOOLCHAIN_VERS'
 EOF
 }
 
@@ -4547,21 +4566,25 @@ __load_installed_metadata_of_the_given_package() {
     unset INSTALLED_PKG_NAME
     unset INSTALLED_PKG_VERS
 
-    unset BUILD_WITH_TOOLCHAIN_NAME
-    unset BUILD_WITH_TOOLCHAIN_VERS
+    unset BUILD_USE_SDK_VERS
 
-    unset BUILD_WITH_API_LEVEL
+    unset BUILD_USE_TOOLCHAIN_NAME
+    unset BUILD_USE_TOOLCHAIN_VERS
 
     INSTALLED_METADATA_FILEPATH="$MY_INSTALL_DIR/$1/installed-metadata"
 
     . "$INSTALLED_METADATA_FILEPATH" || die "$INSTALLED_METADATA_FILEPATH is broken."
 }
 
-__config_this_build_variables() {
+# examples:
+# __config_variables_of_the_given_build curl iPhoneOS arm64 8.0
+__config_variables_of_the_given_build() {
+    TARGET_OS_KIND=darwin
     TARGET_OS_TYPE=darwin
-    TARGET_OS_ARCH=$(print_target_arch_by_abi "$TARGET_OS_ABI")
-    TARGET_OS_NAME=$(echo "$TARGET_OS_ABI" | cut -d/ -f1)
-    TARGET_OS_VERS=$(echo "$BUILD" | cut -d: -f2)
+    TARGET_OS_NAME=$2
+    TARGET_OS_VERS=$4
+    TARGET_OS_ARCH=$3
+    TARGET_OS_ABI="$TARGET_OS_NAME/$TARGET_OS_ARCH"
 
     TARGET_TRIPLE=$(print_target_triple_by_arch "$TARGET_OS_ARCH")
 
@@ -4632,7 +4655,7 @@ __config_this_build_variables() {
         fi
     done
 
-    if [ "$VERBOSE" = 'true' ] ; then
+    if [ "$VERBOSE" = YES ] ; then
         CFLAGS="$CFLAGS -v"
     fi
 
@@ -4696,33 +4719,39 @@ __config_this_build_variables() {
     done
 }
 
-__printf_this_build_variables() {
-    echo
-    echo " BUILD_ROUND_NUM  = $BUILD_ROUND_NUM"
-    echo
-    echo " NATIVE_OS_KIND   = $NATIVE_OS_KIND"
-    echo " NATIVE_OS_TYPE   = $NATIVE_OS_TYPE"
-    echo " NATIVE_OS_NAME   = $NATIVE_OS_NAME"
-    echo " NATIVE_OS_VERS   = $NATIVE_OS_VERS"
-    echo " NATIVE_OS_SUBS   = $NATIVE_OS_SUBS"
-    echo " NATIVE_OS_ARCH   = $NATIVE_OS_ARCH"
-    echo
-    echo " TARGET_OS_TYPE   = $TARGET_OS_TYPE"
-    echo " TARGET_OS_NAME   = $TARGET_OS_NAME"
-    echo " TARGET_OS_VERS   = $TARGET_OS_VERS"
-    echo " TARGET_OS_ARCH   = $TARGET_OS_ARCH"
-    echo
-    echo " TARGET_OS_ABI    = $TARGET_OS_ABI"
-    echo " TARGET_TRIPLE    = $TARGET_TRIPLE"
-    echo
-    echo "TOOLCHAIN_NAME    = $TOOLCHAIN_NAME"
-    echo "TOOLCHAIN_VERSION = $TOOLCHAIN_VERSION"
-    echo "TOOLCHAIN_ROOT    = $TOOLCHAIN_ROOT"
-    echo "TOOLCHAIN_BIN_DIR = $TOOLCHAIN_BIN_DIR"
-    echo "          SYSROOT = $SYSROOT"
-    echo "SYSTEM_INCLUDE_DIR= $SYSTEM_INCLUDE_DIR"
-    echo "SYSTEM_LIBRARY_DIR= $SYSTEM_LIBRARY_DIR"
-    echo
+# examples:
+# __printf_variables_of_the_given_build curl iPhoneOS arm64 8.0
+__printf_variables_of_the_given_build() {
+    echo "
+    BUILD_INDEX    = $BUILD_INDEX
+
+    NATIVE_OS_KIND = $NATIVE_OS_KIND
+    NATIVE_OS_TYPE = $NATIVE_OS_TYPE
+    NATIVE_OS_NAME = $NATIVE_OS_NAME
+    NATIVE_OS_VERS = $NATIVE_OS_VERS
+    NATIVE_OS_ARCH = $NATIVE_OS_ARCH
+    NATIVE_OS_NCPU = $NATIVE_OS_NCPU
+    NATIVE_OS_LIBC = $NATIVE_OS_LIBC
+    NATIVE_OS_SUBS = $NATIVE_OS_SUBS
+
+    TARGET_OS_KIND = $TARGET_OS_KIND
+    TARGET_OS_TYPE = $TARGET_OS_TYPE
+    TARGET_OS_NAME = $TARGET_OS_NAME
+    TARGET_OS_VERS = $TARGET_OS_VERS
+    TARGET_OS_ARCH = $TARGET_OS_ARCH
+    TARGET_OS_ABI  = $TARGET_OS_ABI
+    TARGET_TRIPLE  = $TARGET_TRIPLE
+
+    TOOLCHAIN_NAME = $TOOLCHAIN_NAME
+    TOOLCHAIN_VERS = $TOOLCHAIN_VERS
+    TOOLCHAIN_ROOT = $TOOLCHAIN_ROOT
+    TOOLCHAIN_BIND = $TOOLCHAIN_BIND
+
+SYSROOT            = $SYSROOT
+
+SYSTEM_INCLUDE_DIR = $SYSTEM_INCLUDE_DIR
+SYSTEM_LIBRARY_DIR = $SYSTEM_LIBRARY_DIR
+    "
 
     for TOOL in $(list_tools_in_the_toolchain | tr a-z A-Z)
     do
@@ -4744,11 +4773,11 @@ __printf_this_build_variables() {
     do
         eval export "$FLAG=\"\$$FLAG\""
         printf "\n%17s = " "$FLAG"
-        FIRST=true
+        FIRST=YES
         for item in $(eval echo \$$FLAG | tr ':' ' ')
         do
-            if [ "$FIRST" = 'true' ] ; then
-                FIRST=false
+            if [ "$FIRST" = YES ] ; then
+                FIRST=NO
                 echo "$item"
             else
                 echo "                    $item"
@@ -4759,11 +4788,11 @@ __printf_this_build_variables() {
     echo
 
     printf "\n%17s = " PATH
-    FIRST='true'
+    FIRST=YES
     for item in $(echo "$PATH" | tr ':' ' ')
     do
-        if [ "$FIRST" = 'true' ] ; then
-            FIRST='false'
+        if [ "$FIRST" = YES ] ; then
+            FIRST=NO
             echo "$item"
         else
             echo "                    $item"
@@ -4776,45 +4805,54 @@ __printf_this_build_variables() {
             cargo)
                 echo
                 env | grep CARGO
-                echo
+                echo "
+                HOST_AR       = $HOST_AR
+                HOST_CC       = $HOST_CC
+                HOST_CXX      = $HOST_CXX
+                HOST_CFLAGS   = $HOST_CFLAGS
+                HOST_CXXFLAGS = $HOST_CXXFLAGS
+
+                TARGET_AR       = $TARGET_AR
+                TARGET_CC       = $TARGET_CC
+                TARGET_CXX      = $TARGET_CXX
+                TARGET_CFLAGS   = $TARGET_CFLAGS
+                TARGET_CXXFLAGS = $TARGET_CXXFLAGS
+                "
                 ;;
                go)
-                echo
-                echo "      GO111MODULE = $GO111MODULE"
-                echo "      GOPROXY     = $GOPROXY"
-                echo
-                echo "     CGO_ENABLED  = $CGO_ENABLED"
-                echo "     CGO_CFLAGS   = $CGO_CFLAGS"
-                echo "     CGO_CXXFLAGS = $CGO_CXXFLAGS"
-                echo "     CGO_CPPFLAGS = $CGO_CPPFLAGS"
-                echo "     CGO_LDFLAGS  = $CGO_LDFLAGS"
-                echo
-                echo "           GOOS   = $GOOS"
-                echo "           GOARCH = $GOARCH"
+                echo "
+                GOOS        = $GOOS
+                GOARCH      = $GOARCH
+                GO111MODULE = $GO111MODULE
+                GOPROXY     = $GOPROXY
+
+                CGO_ENABLED  = $CGO_ENABLED
+                CGO_CFLAGS   = $CGO_CFLAGS
+                CGO_CXXFLAGS = $CGO_CXXFLAGS
+                CGO_CPPFLAGS = $CGO_CPPFLAGS
+                CGO_LDFLAGS  = $CGO_LDFLAGS
+                "
                 ;;
         esac
     done
 
-    echo
-    echo "   TIMESTAMP_UNIX = $TIMESTAMP_UNIX"
-    echo
-    echo "      WORKING_DIR = $WORKING_DIR"
-    echo "       SOURCE_DIR = $SOURCE_DIR"
-    echo "        BUILD_DIR = $BUILD_DIR"
-    echo "              PWD = $PWD"
-    echo
-    echo "  PKG_INSTALL_DIR = $PKG_INSTALL_DIR"
-    echo "  ABI_INSTALL_DIR = $ABI_INSTALL_DIR"
-    echo "  ABI_BINARY__DIR = $ABI_BINARY__DIR"
-    echo "  ABI_INCLUDE_DIR = $ABI_INCLUDE_DIR"
-    echo "  ABI_LIBRARY_DIR = $ABI_LIBRARY_DIR"
-    echo "  ABI_PKGCONF_DIR = $ABI_PKGCONF_DIR"
-    echo
-    echo "            NPROC = $NPROC"
-    echo "            NJOBS = $NJOBS"
-    echo
+    echo "
+    TIMESTAMP_UNIX = $TIMESTAMP_UNIX
+          WORK_DIR = $WORK_DIR
+        SOURCE_DIR = $SOURCE_DIR
+         BUILD_DIR = $BUILD_DIR
+               PWD = $PWD
+   PKG_INSTALL_DIR = $PKG_INSTALL_DIR
+   ABI_INSTALL_DIR = $ABI_INSTALL_DIR
+   ABI_BINARY__DIR = $ABI_BINARY__DIR
+   ABI_INCLUDE_DIR = $ABI_INCLUDE_DIR
+   ABI_LIBRARY_DIR = $ABI_LIBRARY_DIR
+   ABI_PKGCONF_DIR = $ABI_PKGCONF_DIR
 
-    if [ "$VERBOSE" = 'true' ] ; then
+   NJOBS = $NJOBS
+   "
+
+    if [ "$VERBOSE" = YES ] ; then
         echo
         run export -p
         echo
@@ -4828,7 +4866,7 @@ config_url() {
 # run in a subshell
 configure() {
     if [ -z "$CONFIG_XX_UPDATED" ] ; then
-        CONFIG_XX_UPDATED=true
+        CONFIG_XX_UPDATED=YES
         # https://www.gnu.org/software/gettext/manual/html_node/config_002eguess.html
         # https://git.savannah.gnu.org/cgit/config.git/tree/
         for item in config.sub config.guess
@@ -4897,7 +4935,7 @@ configure() {
         fi
     fi
 
-    if [ "$VERBOSE" = 'true' ] ; then
+    if [ "$VERBOSE" = YES ] ; then
         for Makefile in $(find "$SOURCE_DIR" -name Makefile)
         do
             sed_in_place 's|\t@|\t|g'     "$Makefile" || return 1
@@ -4913,7 +4951,7 @@ configure() {
 
 # make wrapper
 makew() {
-    if [ "$DEBUG" = 'true' ] ; then
+    if [ "$DEBUG" = YES ] ; then
         run "$GMAKE -w -j$NJOBS --debug V=1 $*"
     else
         run "$GMAKE -w -j$NJOBS $*"
@@ -5062,18 +5100,18 @@ to_meson_array() {
 
 ########################################################################
 
-die_if_rule_is_not_available() {
+die_if_the_given_rule_is_not_available() {
     [ -z "$1" ] && die "please specify a rule name."
     [ -f "$MY_HOME_DIR/rules/$1" ] || die "$1 : rule is not exist."
 }
 
-die_if_rule_is_already_exist() {
+die_if_the_given_rule_is_already_exist() {
     [ -z "$1" ] && die "please specify a rule name."
     [ -f "$MY_HOME_DIR/rules/$1" ] && die "$1 : rule is already exist."
 }
 
-____view_a_rule() {
-    die_if_rule_is_not_available "$1"
+__view_the_given_rule() {
+    die_if_the_given_rule_is_not_available "$1"
 
     if command -v bat > /dev/null ; then
         bat "$MY_HOME_DIR/rules/$1"
@@ -5082,20 +5120,20 @@ ____view_a_rule() {
     fi
 }
 
-____edit_a_rule() {
-    die_if_rule_is_not_available "$1"
+__edit_the_given_rule() {
+    die_if_the_given_rule_is_not_available "$1"
 
     [ -z "$EDITOR" ] && EDITOR=$(command -v nvim || command -v vim || command -v vi || command -v open)
     [ -z "$EDITOR" ] && die "please set EDITOR environment variable."
 
     "$EDITOR" "$MY_HOME_DIR/rules/$1"
 
-    VERBOSE=true
-    resolve_a_rule "$1"
+    VERBOSE=YES
+    __inspect_the_given_rule "$1"
 }
 
-__create_a_rule() {
-    die_if_rule_is_already_exist "$1"
+__create_the_given_rule() {
+    die_if_the_given_rule_is_already_exist "$1"
 
     cat > "$MY_HOME_DIR/rules/$1" <<EOF
 # please comment or remove the line you don't want.
@@ -5108,11 +5146,11 @@ __create_a_rule() {
 # iPhoneOS         : 8.0  : 64bit
 # iPhoneSimulator  : 8.0  : 64bit
 EOF
-    ____edit_a_rule "$1"
+    __edit_the_given_rule "$1"
 }
 
-__delete_a_rule() {
-    die_if_rule_is_not_available "$1"
+__delete_the_given_rule() {
+    die_if_the_given_rule_is_not_available "$1"
 
     [ "$1" = 'default' ] && die "default rule can not be deleted."
 
@@ -5123,9 +5161,9 @@ __delete_a_rule() {
     fi
 }
 
-__rename_a_rule() {
-    die_if_rule_is_not_available "$1"
-    die_if_rule_is_already_exist "$2"
+__rename_the_given_rule() {
+    die_if_the_given_rule_is_not_available "$1"
+    die_if_the_given_rule_is_already_exist "$2"
 
     [ "$1" = 'default' ] && die "default rule can not be renamed to another."
 
@@ -5136,8 +5174,8 @@ __rename_a_rule() {
     fi
 }
 
-resolve_a_rule() {
-    die_if_rule_is_not_available "$1"
+__inspect_the_given_rule() {
+    die_if_the_given_rule_is_not_available "$1"
 
     unset BUILD_LIST
 
@@ -5156,7 +5194,7 @@ resolve_a_rule() {
         TARGET_OS_VERS=$(echo "$line" | cut -d: -f2)
         TARGET_OS_ARCH=$(echo "$line" | cut -d: -f3)
 
-        if [ "$VERBOSE" = 'true' ] ; then
+        if [ "$VERBOSE" = YES ] ; then
             echo "TARGET_OS_NAME=$TARGET_OS_NAME"
             echo "TARGET_OS_VERS=$TARGET_OS_VERS"
             echo "TARGET_OS_ARCH=$TARGET_OS_ARCH"
@@ -5176,17 +5214,17 @@ resolve_a_rule() {
                 for TARGET_OS_ARCH in $(__list_supported_target_archs "$TARGET_OS_NAME" "$TARGET_OS_ARCH")
                 do
                     if [ -z "$BUILD_LIST" ]; then
-                        BUILD_LIST="$TARGET_OS_NAME/$TARGET_OS_ARCH:$TARGET_OS_VERS"
+                        BUILD_LIST="$TARGET_OS_NAME/$TARGET_OS_ARCH/$TARGET_OS_VERS"
                     else
-                        BUILD_LIST=$(printf "%s\n%s" "$BUILD_LIST" "$TARGET_OS_NAME/$TARGET_OS_ARCH:$TARGET_OS_VERS")
+                        BUILD_LIST="$BUILD_LIST $TARGET_OS_NAME/$TARGET_OS_ARCH/$TARGET_OS_VERS"
                     fi
                 done
                 ;;
             *)
                 if [ -z "$BUILD_LIST" ]; then
-                    BUILD_LIST="$TARGET_OS_NAME/$TARGET_OS_ARCH:$TARGET_OS_VERS"
+                    BUILD_LIST="$TARGET_OS_NAME/$TARGET_OS_ARCH/$TARGET_OS_VERS"
                 else
-                    BUILD_LIST=$(printf "%s\n%s" "$BUILD_LIST" "$TARGET_OS_NAME/$TARGET_OS_ARCH:$TARGET_OS_VERS")
+                    BUILD_LIST="$BUILD_LIST $TARGET_OS_NAME/$TARGET_OS_ARCH/$TARGET_OS_VERS"
                 fi
         esac
     done < "$MY_HOME_DIR/rules/$1"
@@ -5195,7 +5233,7 @@ resolve_a_rule() {
     unset TARGET_OS_VERS
     unset TARGET_OS_ARCH
 
-    if [ "$VERBOSE" = 'true' ] ; then
+    if [ "$VERBOSE" = YES ] ; then
         for item in $BUILD_LIST
         do
             echo "$item"
@@ -5256,8 +5294,8 @@ inspect_build_toolchains() {
     [ -d "$TOOLCHAIN_ROOT" ] || die "TOOLCHAIN_ROOT=$TOOLCHAIN_ROOT directory is not exist."
 
     TOOLCHAIN_NAME=xcode
-    TOOLCHAIN_VERSION=$(system_profiler SPDeveloperToolsDataType | grep Version | head -n 1 | cut -d: -f2 | sed 's/^ //g')
-    TOOLCHAIN_BIN_DIR="$TOOLCHAIN_ROOT/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+    TOOLCHAIN_VERS=$(system_profiler SPDeveloperToolsDataType | grep Version | head -n 1 | cut -d: -f2 | sed 's/^ //g')
+    TOOLCHAIN_BIND="$TOOLCHAIN_ROOT/Toolchains/XcodeDefault.xctoolchain/usr/bin"
 }
 
 __list_rules() {
@@ -5400,13 +5438,13 @@ __list_supported_target_triples() {
 
 print_target_triple_by_arch() {
     if [ 'arm64' = "$1" ] ; then
-        if [ "$PACKAGE_IOS_IOS" = 'true' ] ; then
+        if [ "$PACKAGE_IOS_IOS" = YES ] ; then
             echo 'aarch64-apple-ios'
         else
             echo 'aarch64-apple-darwin'
         fi
     else
-        if [ "$PACKAGE_IOS_IOS" = 'true' ] ; then
+        if [ "$PACKAGE_IOS_IOS" = YES ] ; then
             echo "$1-apple-ios"
         else
             echo "$1-apple-darwin"
@@ -5429,9 +5467,9 @@ list_flags_used_by_tools_in_the_toolchain() {
 path_of_tool_in_the_toolchain() {
     unset TOOL_PATH
     case $1 in
-        cc)  TOOL_PATH="$TOOLCHAIN_BIN_DIR/clang"   ;;
-        cxx) TOOL_PATH="$TOOLCHAIN_BIN_DIR/clang++" ;;
-        *)   TOOL_PATH="$TOOLCHAIN_BIN_DIR/$1"
+        cc)  TOOL_PATH="$TOOLCHAIN_BIND/clang"   ;;
+        cxx) TOOL_PATH="$TOOLCHAIN_BIND/clang++" ;;
+        *)   TOOL_PATH="$TOOLCHAIN_BIND/$1"
     esac
     die_if_not_executable "$TOOL_PATH"
     echo "$TOOL_PATH"
@@ -5466,7 +5504,7 @@ get_supported_min_version() {
 }
 
 echo_tool_of_chain() {
-    TOOL="$TOOLCHAIN_BIN_DIR/$1"
+    TOOL="$TOOLCHAIN_BIND/$1"
     die_if_not_executable "$TOOL"
     echo "$TOOL"
 }
@@ -5508,14 +5546,30 @@ inspect_install_arguments() {
     unset RULE
 
     unset DRYRUN
-    unset XTRACE
     unset DEBUG
     unset VERBOSE
 
-    unset NPROC
     unset NJOBS
 
-    unset KEEP_WORKING_DIR
+    unset GIVEN_BUILD_TYPE
+    unset CMAKE_BUILD_TYPE
+    unset MESON_BUILD_TYPE
+
+    unset LINK_TYPE
+
+    unset INSTALL_EXE
+    unset INSTALL_MAN
+    unset INSTALL_DOC
+    unset INSTALL_LIB
+
+    unset KEEP_WORK_DIR
+
+    unset NEED_RUN_TREE
+    unset NEED_RUN_PACK
+
+    unset TREE_ARGS
+    unset PACK_ARGS
+    unset PACK_TYPE
 
     while [ -n "$1" ]
     do
@@ -5525,18 +5579,68 @@ inspect_install_arguments() {
                 [ -z "$RULE" ] && die "--rule=VALUE argument's value must not be empty."
                 ;;
             --verbose|-v)
-                VERBOSE=true
+                VERBOSE=YES
                 ;;
             --xtrace|-x)
                 ;;
             --debug|-d)
-                DEBUG=true
+                DEBUG=YES
                 ;;
             --dry-run)
-                DRYRUN=true
+                DRYRUN=YES
                 ;;
-            --keep-working-dir)
-                KEEP_WORKING_DIR=true
+            --keep-work-dir)
+                KEEP_WORK_DIR=YES
+                ;;
+            --tree)
+                NEED_RUN_TREE=YES
+                ;;
+            --tree-args=*)
+                TREE_ARGS=$(getvalue "$1")
+                ;;
+            --pack)
+                NEED_RUN_PACK=YES
+                ;;
+            --pack-type=*)
+                PACK_TYPE=$(getvalue "$1")
+                case $PACK_TYPE in
+                    7z|zip|tar.gz|tar.xz|tar.bz2) ;;
+                    '') die "--pack-type=VALUE VALUE must not be empty." ;;
+                    *) die "--pack-type=VALUE VALUE must be one of 7z zip tar.gz tar.xz tar.bz2."
+                esac
+                ;;
+            --build-type=*)
+                GIVEN_BUILD_TYPE=$(getvalue "$1")
+                case $GIVEN_BUILD_TYPE in
+                    debug|release) ;;
+                    '') die "--build-type=VALUE VALUE must not be empty." ;;
+                    *) die "--build-type=VALUE VALUE must be one of debug release"
+                esac
+                ;;
+            --install-doc)
+                INSTALL_DOC=YES
+                ;;
+            --install-man)
+                INSTALL_MAN=YES
+                ;;
+            --install-exe)
+                INSTALL_EXE=YES
+                ;;
+            --install-lib=*)
+                INSTALL_LIB=$(getvalue "$1")
+                case $INSTALL_LIB in
+                    static|shared|both|yes|no) ;;
+                    '') die "--install-lib=VALUE VALUE must not be empty." ;;
+                    *) die "--install-lib=VALUE VALUE must be one of static shared both yes no"
+                esac
+                ;;
+            --link-type=*)
+                LINK_TYPE=$(getvalue "$1")
+                case $LINK_TYPE in
+                    static-only|shared-only|static-prefered|shared-prefered) ;;
+                    '') die "--link-type=VALUE VALUE must not be empty." ;;
+                    *) die "--link-type=VALUE VALUE must be one of static-only shared-only static-prefered shared-prefered"
+                esac
                 ;;
             --jobs=*)
                 NJOBS=$(getvalue "$1")
@@ -5554,12 +5658,31 @@ inspect_install_arguments() {
         shift
     done
 
-    NPROC=$(nproc)
-    [ -z "$NJOBS" ] && NJOBS=$NPROC
+    if [ -z "$NJOBS" ] ; then
+        NJOBS=$NATIVE_OS_NCPU
+    fi
+
+    if [ -z "$GIVEN_BUILD_TYPE" ] ; then
+        GIVEN_BUILD_TYPE=release
+    fi
+
+    case $GIVEN_BUILD_TYPE in
+        debug)
+            CMAKE_BUILD_TYPE=Debug
+            MESON_BUILD_TYPE=debug
+            ;;
+        release)
+            CMAKE_BUILD_TYPE=Release
+            MESON_BUILD_TYPE=release
+            ;;
+    esac
+
+    [ -z "$TREE_ARGS" ] && TREE_ARGS='--dirsfirst'
+    [ -z "$PACK_TYPE" ] || PACK_ARGS="--type=$PACK_TYPE"
 
     [ -z "$RULE" ] && RULE=default
-    
-    resolve_a_rule "$RULE"
+
+    __inspect_the_given_rule "$RULE"
 
     unset COMMON_INCLUDE_H_FILEPATH
     COMMON_INCLUDE_H_FILEPATH="$MY_HOME_DIR/include.h"
@@ -5620,6 +5743,7 @@ EOF
         unset NATIVE_OS_NAME
         unset NATIVE_OS_VERS
         unset NATIVE_OS_ARCH
+        unset NATIVE_OS_NCPU
         unset NATIVE_OS_LIBC
         unset NATIVE_OS_SUBS
 
@@ -5628,6 +5752,7 @@ EOF
         NATIVE_OS_NAME=$(os name)
         NATIVE_OS_VERS=$(os vers)
         NATIVE_OS_ARCH=$(os arch)
+        NATIVE_OS_NCPU=$(os ncpu)
     else
         die "command not found: uname. please make sure it in PATH."
     fi
@@ -5638,46 +5763,63 @@ EOF
 }
 
 help() {
-    cat << EOF
-$MY_NAME ($MY_VERSION) is a package manager for Xcode to build C/C++/Rust/Go project.
+    echo "${COLOR_GREEN}$_0 $MY_VERSION is a package manager for Xcode to build C/C++/Rust/Go project.${COLOR_OFF}
 
-Usage: $MY_NAME <ACTION> [ARGUMENT...]
-ACTION:
-    --help    | -h                --show help of this command.
+${COLOR_GREEN}$_0 <ACTION> [ARGUMENT...]${COLOR_OFF}
 
-    --version | -V                --show version of this command.
+    ${COLOR_GREEN}--help    | -h${COLOR_OFF}
+      show help of this command.
 
-    env                           --show current machine os and xcode toolchain info.
+    ${COLOR_GREEN}--version | -V${COLOR_OFF}
+      show version of this command.
 
-    integrate zsh [-x | --china]        --download a zsh-completion script file to a approprivate location.
+    ${COLOR_GREEN}env${COLOR_OFF}
+      show current machine os and xcode toolchain info.
 
-    update                        --update the formula repositories.
+    ${COLOR_GREEN}integrate zsh [-x | --china]${COLOR_OFF}
+      download a zsh-completion script file to a approprivate location.
 
-    cleanup                       --cleanup the unused cache.
+    ${COLOR_GREEN}update${COLOR_OFF}
+      update the formula repositories.
 
-    target platforms                                         --list the supported target platforms.
+    ${COLOR_GREEN}cleanup${COLOR_OFF}
+      cleanup the unused cache.
 
-    target versions [PLATFORM]                               --list the supported target platform's version.
+    ${COLOR_GREEN}target platforms${COLOR_OFF}
+      list the supported target platforms.
 
-    target triples  [32bit|64bit|all]                        --list the supported target triples.
+    ${COLOR_GREEN}target versions [PLATFORM]${COLOR_OFF}
+      list the supported target platform's version.
 
-    target archs    [32bit|64bit|all] [PLATFORM]             --list the supported target archs.
+    ${COLOR_GREEN}target triples  [32bit|64bit|all]${COLOR_OFF}
+      list the supported target triples.
 
-    target abis     [32bit|64bit|all]                        --list the supported target abis.
+    ${COLOR_GREEN}target archs    [32bit|64bit|all] [PLATFORM]${COLOR_OFF}
+      list the supported target archs.
 
-    ls-available                  --list the available packages.
+    ${COLOR_GREEN}target abis     [32bit|64bit|all]${COLOR_OFF}
+      list the supported target abis.
 
-    ls-installed                  --list the installed packages.
+    ${COLOR_GREEN}ls-available${COLOR_OFF}
+      list the available packages.
 
-    ls-outdated                   --list the outdated  packages.
+    ${COLOR_GREEN}ls-installed${COLOR_OFF}
+      list the installed packages.
 
-    is-available PACKAGE [eq|ne|ge|gt|le|lt VERSION]          --is PACKAGE available?
+    ${COLOR_GREEN}ls-outdated${COLOR_OFF}
+      list the outdated  packages.
 
-    is-installed PACKAGE          --is PACKAGE installed?
+    ${COLOR_GREEN}is-available <PACKAGE> [eq|ne|ge|gt|le|lt VERSION]${COLOR_OFF}
+      is PACKAGE available?
 
-    is-outdated  PACKAGE          --is PACKAGE outdated?
+    ${COLOR_GREEN}is-installed <PACKAGE>${COLOR_OFF}
+      is PACKAGE installed?
 
-    search KEYWORD                --search available packages.
+    ${COLOR_GREEN}is-outdated  <PACKAGE>${COLOR_OFF}
+      is PACKAGE outdated?
+
+    ${COLOR_GREEN}search <KEYWORD>${COLOR_OFF}
+      search available packages.
     
     rule create RULE              --create a new rule.
 
@@ -5709,34 +5851,49 @@ ACTION:
 
     formula-repo del  NAME        --delete a exist formula-repo.
 
-    tree PACKAGE [-L N]           --list files of the given installed package in a tree-like format.
+    ${COLOR_GREEN}tree <PACKAGE> [-L N]${COLOR_OFF}
+      list files of the given installed package in a tree-like format.
 
-    pack PACKAGE                  --pack the installed package.
+    ${COLOR_GREEN}pack <PACKAGE>${COLOR_OFF}
+      pack the installed package.
 
-    logs PACKAGE PLATFORM/ARCH    --show logs of the given installed package.
+    ${COLOR_GREEN}logs <PACKAGE> <PLATFORM/ARCH>
+      show logs of the given installed package.
 
-    info PACKAGE [KEY|--json]     --show information of the given package.
+    ${COLOR_GREEN}info <PACKAGE> [KEY|--json]${COLOR_OFF}
+      show information of the given package.
 
-    info @all [--json]            --show information of all the available packages.
+    ${COLOR_GREEN}info @all [--json]${COLOR_OFF}
+      show information of all the available packages.
 
-    fetch PACKAGE                 --download formula resources of the given package to the cache.
+    ${COLOR_GREEN}fetch <PACKAGE>${COLOR_OFF}
+      download formula resources of the given package to the cache.
 
-    prefix [PACKAGE]              --show the installation direcotory of the given or the home directory of this software.
+    ${COLOR_GREEN}prefix [PACKAGE]${COLOR_OFF}
+      show the installation direcotory of the given or the home directory of this software.
 
-    depends PACKAGE               --show the depends of the given package.
+    ${COLOR_GREEN}depends <PACKAGE>${COLOR_OFF}
+      show the depends of the given package.
 
-    homepage [--open] [PACKAGE]   --show or open the homepage of the given package or this project in web browser.
+    ${COLOR_GREEN}homepage [--open] [PACKAGE]${COLOR_OFF}
+      show or open the homepage of the given package or this project in web browser.
 
-    install   PACKAGE... [--rule=xx --jobs=N -v -d -x --dry-run --keep-working-dir]     --install packages.
+    ${COLOR_GREEN}install   <PACKAGE>... [--rule=xx --jobs=N -v -d -x --dry-run --keep-work-dir]${COLOR_OFF}
+      install packages.
 
-    reinstall PACKAGE... [--rule=xx --jobs=N -v -d -x --dry-run --keep-working-dir]     --reinstall packages.
+    ${COLOR_GREEN}reinstall <PACKAGE>... [--rule=xx --jobs=N -v -d -x --dry-run --keep-work-dir]${COLOR_OFF}
+      reinstall packages.
 
-    upgrade [PACKAGE...] [--rule=xx --jobs=N -v -d -x --dry-run --keep-working-dir]     --upgrade the given outdated packages.
+    ${COLOR_GREEN}upgrade [PACKAGE...] [--rule=xx --jobs=N -v -d -x --dry-run --keep-work-dir]${COLOR_OFF}
+      upgrade the given outdated packages.
 
-    uninstall PACKAGE...                                                                --uninstall packages.
+    ${COLOR_GREEN}uninstall <PACKAGE>...${COLOR_OFF}
+      uninstall packages.
 
-    create-framework PACKAGE...                              --create framework for packages.
-EOF
+    ${COLOR_GREEN}create-framework <PACKAGE>...${COLOR_OFF}
+      create framework for packages.
+    "
+
     if [ -z "$1" ] ; then
         exit
     else
@@ -5751,7 +5908,7 @@ main() {
     do
         case $arg in
             --xtrace|-x)
-                XTRACE=true
+                XTRACE=YES
                 set -x
                 break
                 ;;
@@ -5768,7 +5925,7 @@ main() {
             echo "$MY_VERSION"
             ;;
         env)
-            echo "ipkg ($MY_VERSION) is a package manager for Xcode to build C/C++/Rust/Go project."
+            echo "${COLOR_GREEN}$_0 $MY_VERSION is a package manager for Xcode to build C/C++/Rust/Go project.${COLOR_OFF}"
             echo
             run os
             echo
@@ -5780,7 +5937,7 @@ main() {
 
             inspect_build_toolchains
 
-            echo "$TOOLCHAIN_NAME $TOOLCHAIN_VERSION"
+            echo "$TOOLCHAIN_NAME $TOOLCHAIN_VERS"
             ;;
         target)
             shift
@@ -5825,11 +5982,11 @@ main() {
         rule)
             shift
             case $1 in
-                create) shift; __create_a_rule "$@" ;;
-                delete) shift; __delete_a_rule "$@" ;;
-                rename) shift; __rename_a_rule "$@" ;;
-                view)   shift; ____view_a_rule "$@" ;;
-                edit)   shift; ____edit_a_rule "$@" ;;
+                create) shift; __create_the_given_rule $@ ;;
+                delete) shift; __delete_the_given_rule $@ ;;
+                rename) shift; __rename_the_given_rule $@ ;;
+                view)   shift;   __view_the_given_rule $@ ;;
+                edit)   shift;   __edit_the_given_rule $@ ;;
                 list)   shift; __list_rules ;;
                    *)   help 1
             esac
