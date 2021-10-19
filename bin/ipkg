@@ -4103,7 +4103,7 @@ __install_the_given_package() {
     __install_the_given_package_all_builds "$1" || return 1
 
     step "record installed abis"
-    run cp "$WORK_DIR/TIMESTAMP_UNIX/installed-abis" "$MY_INSTALL_DIR/$1/installed-abis"
+    run cp "$WORK_DIR/$TIMESTAMP_UNIX/installed-abis" "$MY_INSTALL_DIR/$1/installed-abis"
 
     step "record installed metadata"
     __record_installed_metadata_of_the_given_package "$1"
