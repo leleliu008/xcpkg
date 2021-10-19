@@ -3531,17 +3531,6 @@ __show_depends_of_the_given_package() {
     fi
 }
 
-# if $1 is     given, show installed directory of the given package.
-# if $1 is not given, show this software's home direcotory.
-__show_prefix() {
-    if [ -z "$1" ] ; then
-        echo "$MY_HOME_DIR"
-    else
-        die_if_package_is_not_installed "$1"
-        echo "$MY_INSTALL_DIR/$1"
-    fi
-}
-
 __logs_the_given_installed_package() {
     die_if_package_is_not_installed "$1"
 
@@ -5288,6 +5277,10 @@ EOF
 }
 
 inspect_build_toolchains() {
+    if [ "$NATIVE_OS_KIND" != 'darwin' ] ; then
+        die "this software can only be run on macOS."
+    fi
+
     TOOLCHAIN_ROOT="$(xcode-select -p)"
 
     [ -z "$TOOLCHAIN_ROOT" ] && die "please run command 'xcode-select --switch DIR', then try again."
@@ -5690,14 +5683,13 @@ inspect_install_arguments() {
 
 init() {
     # MY represents this software's
-    MY_NAME=ipkg
     MY_VERSION=0.1.3
     MY_HOME_PAGE='https://github.com/leleliu008/ipkg'
     MY_OFFICAL_FORMULA_REPO_URL='https://github.com/leleliu008/ipkg-formula-repository.git'
     MY_UPGRAGE_URL='https://raw.githubusercontent.com/leleliu008/ipkg/master/bin/ipkg'
 
     if [ -z "$IPKG_HOME_DIR" ] ; then
-        MY_HOME_DIR="$HOME/.$MY_NAME"
+        MY_HOME_DIR="$HOME/.ipkg"
     else
         MY_HOME_DIR="$IPKG_HOME_DIR"
     fi
@@ -5731,35 +5723,22 @@ iPhoneSimulator  : 9.0  : 64bit
 EOF
     }
 
-    if command -v date > /dev/null ; then
-        TIMESTAMP_UNIX="$(date +%s)"
-    else
-        die "command not found: date. please make sure it in PATH."
-    fi
+    TIMESTAMP_UNIX="$(date +%s)"
+    unset NATIVE_OS_KIND
+    unset NATIVE_OS_TYPE
+    unset NATIVE_OS_NAME
+    unset NATIVE_OS_VERS
+    unset NATIVE_OS_ARCH
+    unset NATIVE_OS_NCPU
+    unset NATIVE_OS_LIBC
+    unset NATIVE_OS_SUBS
 
-    if command -v uname > /dev/null ; then
-        unset NATIVE_OS_KIND
-        unset NATIVE_OS_TYPE
-        unset NATIVE_OS_NAME
-        unset NATIVE_OS_VERS
-        unset NATIVE_OS_ARCH
-        unset NATIVE_OS_NCPU
-        unset NATIVE_OS_LIBC
-        unset NATIVE_OS_SUBS
-
-        NATIVE_OS_KIND=$(os kind)
-        NATIVE_OS_TYPE=$(os type)
-        NATIVE_OS_NAME=$(os name)
-        NATIVE_OS_VERS=$(os vers)
-        NATIVE_OS_ARCH=$(os arch)
-        NATIVE_OS_NCPU=$(os ncpu)
-    else
-        die "command not found: uname. please make sure it in PATH."
-    fi
-
-    if [ "$NATIVE_OS_KIND" != 'darwin' ] ; then
-        die "this software can only be run on macOS."
-    fi
+    NATIVE_OS_KIND=$(os kind)
+    NATIVE_OS_TYPE=$(os type)
+    NATIVE_OS_NAME=$(os name)
+    NATIVE_OS_VERS=$(os vers)
+    NATIVE_OS_ARCH=$(os arch)
+    NATIVE_OS_NCPU=$(os ncpu)
 }
 
 help() {
@@ -5772,6 +5751,12 @@ ${COLOR_GREEN}$_0 <ACTION> [ARGUMENT...]${COLOR_OFF}
 
     ${COLOR_GREEN}--version | -V${COLOR_OFF}
       show version of this command.
+
+    ${COLOR_GREEN}--homedir${COLOR_OFF}
+      show home directory of this software.
+
+    ${COLOR_GREEN}--homepage${COLOR_OFF}
+      show home webpage of this software.
 
     ${COLOR_GREEN}env${COLOR_OFF}
       show current machine os and xcode toolchain info.
@@ -5791,13 +5776,13 @@ ${COLOR_GREEN}$_0 <ACTION> [ARGUMENT...]${COLOR_OFF}
     ${COLOR_GREEN}target versions [PLATFORM]${COLOR_OFF}
       list the supported target platform's version.
 
-    ${COLOR_GREEN}target triples  [32bit|64bit|all]${COLOR_OFF}
+    ${COLOR_GREEN}target triples [32bit|64bit|all]${COLOR_OFF}
       list the supported target triples.
 
-    ${COLOR_GREEN}target archs    [32bit|64bit|all] [PLATFORM]${COLOR_OFF}
+    ${COLOR_GREEN}target archs   [32bit|64bit|all] [PLATFORM]${COLOR_OFF}
       list the supported target archs.
 
-    ${COLOR_GREEN}target abis     [32bit|64bit|all]${COLOR_OFF}
+    ${COLOR_GREEN}target abis    [32bit|64bit|all]${COLOR_OFF}
       list the supported target abis.
 
     ${COLOR_GREEN}ls-available${COLOR_OFF}
@@ -5822,57 +5807,57 @@ ${COLOR_GREEN}$_0 <ACTION> [ARGUMENT...]${COLOR_OFF}
       search available packages.
     
     ${COLOR_GREEN}rule create <RULE>${COLOR_OFF}
-    --create a new rule.
+      create a new rule.
 
     ${COLOR_GREEN}rule delete <RULE>${COLOR_OFF}
-    --delete a exist rule.
+      delete a exist rule.
 
     ${COLOR_GREEN}rule rename <R1> <R2>${COLOR_OFF}
-    --rename a exist rule to new name.
+      rename a exist rule to new name.
 
     ${COLOR_GREEN}rule view <RULE>${COLOR_OFF}
-    --view the given rule.
+      view the given rule.
 
     ${COLOR_GREEN}rule edit <RULE>${COLOR_OFF}
-    --edit the specified rule.
+      edit the specified rule.
 
     ${COLOR_GREEN}rule list${COLOR_OFF}
-    --list rules.
+      list rules.
 
     ${COLOR_GREEN}formula create <PACKAGE>${COLOR_OFF}
-    --create a new formula.
+      create a new formula.
 
     ${COLOR_GREEN}formula delete <PACKAGE>${COLOR_OFF}
-    --delete a exist formula.
+      delete a exist formula.
 
     ${COLOR_GREEN}formula rename <P1> <P2>${COLOR_OFF}
-    --rename a exist formula to new name.
+      rename a exist formula to new name.
 
     ${COLOR_GREEN}formula view <PACKAGE>${COLOR_OFF}
-    --view the formula of the given package.
+      view the formula of the given package.
 
     ${COLOR_GREEN}formula edit <PACKAGE>${COLOR_OFF}
-    --edit the formula of the given package.
+      edit the formula of the given package.
 
     ${COLOR_GREEN}formula list${COLOR_OFF}
-    --list all formulas.
+      list all formulas.
 
     ${COLOR_GREEN}formula-repo [list]${COLOR_OFF}
-    --list formula-repos.
+      list formula-repos.
 
     ${COLOR_GREEN}formula-repo add <NAME> <URL>${COLOR_OFF}
-    --add a new formula-repo.
+      add a new formula-repo.
 
     ${COLOR_GREEN}formula-repo del <NAME>${COLOR_OFF}
-    --delete a exist formula-repo.
+      delete a exist formula-repo.
 
-    ${COLOR_GREEN}tree <PACKAGE> [-L N]${COLOR_OFF}
+    ${COLOR_GREEN}tree <PACKAGE> [--dirsfirst | -L N]${COLOR_OFF}
       list files of the given installed package in a tree-like format.
 
     ${COLOR_GREEN}pack <PACKAGE>${COLOR_OFF}
       pack the installed package.
 
-    ${COLOR_GREEN}logs <PACKAGE> <PLATFORM/ARCH>
+    ${COLOR_GREEN}logs <PACKAGE> <PLATFORM/ARCH>${COLOR_OFF}
       show logs of the given installed package.
 
     ${COLOR_GREEN}info <PACKAGE> [KEY|--json]${COLOR_OFF}
@@ -5884,9 +5869,6 @@ ${COLOR_GREEN}$_0 <ACTION> [ARGUMENT...]${COLOR_OFF}
     ${COLOR_GREEN}fetch <PACKAGE>${COLOR_OFF}
       download formula resources of the given package to the cache.
 
-    ${COLOR_GREEN}prefix [PACKAGE]${COLOR_OFF}
-      show the installation direcotory of the given or the home directory of this software.
-
     ${COLOR_GREEN}depends <PACKAGE>${COLOR_OFF}
       show the depends of the given package.
 
@@ -5894,16 +5876,16 @@ ${COLOR_GREEN}$_0 <ACTION> [ARGUMENT...]${COLOR_OFF}
       show or open the homepage of the given package or this project in web browser.
 
     ${COLOR_GREEN}install   <PACKAGE>... [--rule=xx --jobs=N -v -d -x --dry-run --keep-work-dir]${COLOR_OFF}
-      install packages.
+      install the given packages.
 
     ${COLOR_GREEN}reinstall <PACKAGE>... [--rule=xx --jobs=N -v -d -x --dry-run --keep-work-dir]${COLOR_OFF}
-      reinstall packages.
+      reinstall the given packages.
 
     ${COLOR_GREEN}upgrade [PACKAGE...] [--rule=xx --jobs=N -v -d -x --dry-run --keep-work-dir]${COLOR_OFF}
       upgrade the given outdated packages.
 
     ${COLOR_GREEN}uninstall <PACKAGE>...${COLOR_OFF}
-      uninstall packages.
+      uninstall the given packages.
 
     ${COLOR_GREEN}create-framework <PACKAGE>...${COLOR_OFF}
       create framework for packages.
@@ -5938,6 +5920,12 @@ main() {
             ;;
         --version|-V)
             echo "$MY_VERSION"
+            ;;
+        --homedir)
+            echo "$MY_HOME_DIR"
+            ;;
+        --homepage)
+            echo "$MY_HOME_PAGE"
             ;;
         env)
             echo "${COLOR_GREEN}$_0 $MY_VERSION is a package manager for Xcode to build C/C++/Rust/Go project.${COLOR_OFF}"
@@ -6035,7 +6023,6 @@ main() {
             ;;
         homepage) shift; __show_or_open_homepage_of_the_given_package $@ ;;
         depends)  shift; __show_depends_of_the_given_package    $@ ;;
-        prefix)   shift; __show_prefix     $@ ;;
         fetch)    shift; __load_formula_of_the_given_package $@ &&
                          __fetch_resources_of_the_given_package $@ ;;
 

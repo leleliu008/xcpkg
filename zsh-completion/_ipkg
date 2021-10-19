@@ -5,6 +5,8 @@ _commands=(
     '--help:show help of this command.'
     '-V:show version of this command.'
     '--version:show version of this command.'
+    '--homedir:show home directory of this command.'
+    '--homepage:show home webpage of this command.'
     'search:search packages can be installed.'
     'target:list the target platforms, target CPU arch, target abis.'
     'ls-available:list the available packages.'
@@ -126,7 +128,7 @@ function _ipkg() {
                                     ;;
                                 view)
                                     _arguments \
-                                        '1:package-name:_ndk_pkg_available_packages' \
+                                        '1:package-name:_ipkg_available_packages' \
                                         '--paging=-[when use pager]:paging:(auto always never)'
                                     ;;
 
