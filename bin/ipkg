@@ -3664,7 +3664,7 @@ __pack_the_given_installed_package() {
     unset PACKED_DIR_NAME
     unset PACKED_FILE_NAME
 
-    PACKED_DIR_NAME="$INSTALLED_PKG_NAME-$INSTALLED_PKG_VERS.bin"
+    PACKED_DIR_NAME="$INSTALLED_PKG_NAME-$INSTALLED_PKG_VERS-bin"
     PACKED_FILE_NAME="$PACKED_DIR_NAME.$PACKED_FILE_SUFFIX"
 
     step "create work directory"
@@ -4144,14 +4144,14 @@ __install_the_given_package_all_builds() {
         BUILD_INDEX=$(expr ${BUILD_INDEX-0} + 1)
 
         if [ "$DRYRUN" = YES ] ; then
-            __dryrun_install_the_given_package_one_build "$1" $(printf '%s\n' "$BUILD_ITEM" | tr '/' ' ')
+            __dryrun_install_the_given_package_one_build "$1" "$BUILD_ITEM"
         else
             (
                 BUILD_DIR="$WORK_DIR/$TIMESTAMP_UNIX/$BUILD_ITEM"
                 install -d "$BUILD_DIR" &&
                 mkfifo "$BUILD_DIR/pipe" &&
                 (tee "$BUILD_DIR/install.log.txt" < "$BUILD_DIR/pipe" &) &&
-                __install_the_given_package_one_build "$1" $(printf '%s\n' "$BUILD_ITEM" | tr '/' ' ') > "$BUILD_DIR/pipe" 2>&1
+                __install_the_given_package_one_build "$1" "$BUILD_ITEM" > "$BUILD_DIR/pipe" 2>&1
             ) || return 1
         fi
     done
@@ -4502,8 +4502,8 @@ __show_infomation_of_the_given_package() {
     echo "
 installed-datetime    : $(format_unix_timestamp $INSTALLED_DATETIME '+%Y/%m/%d %H:%M:%S')
 installed-pkg-version : $INSTALLED_PKG_VERS
-build-use-toolchain   : $BUILD_USE_TOOLCHAIN_NAME $BUILD_USE_TOOLCHAIN_VERS"
-
+build-use-toolchain   : $BUILD_USE_TOOLCHAIN_NAME $BUILD_USE_TOOLCHAIN_VERS
+"
 }
 
 mark_is_package_installed_or_not() {
@@ -4577,13 +4577,13 @@ __load_installed_metadata_of_the_given_package() {
 }
 
 # examples:
-# __config_variables_of_the_given_build curl iPhoneOS arm64 8.0
+# __config_variables_of_the_given_build curl iPhoneOS/arm64/8.0
 __config_variables_of_the_given_build() {
     TARGET_OS_KIND=darwin
     TARGET_OS_TYPE=darwin
-    TARGET_OS_NAME=$2
-    TARGET_OS_VERS=$4
-    TARGET_OS_ARCH=$3
+    TARGET_OS_NAME=$(printf '%s\n' "$2" | cut -d/ -f1)
+    TARGET_OS_VERS=$(printf '%s\n' "$2" | cut -d/ -f3)
+    TARGET_OS_ARCH=$(printf '%s\n' "$2" | cut -d/ -f2)
     TARGET_OS_ABI="$TARGET_OS_NAME/$TARGET_OS_ARCH"
 
     TARGET_TRIPLE=$(print_target_triple_by_arch "$TARGET_OS_ARCH")
@@ -4720,7 +4720,7 @@ __config_variables_of_the_given_build() {
 }
 
 # examples:
-# __printf_variables_of_the_given_build curl iPhoneOS arm64 8.0
+# __printf_variables_of_the_given_build curl iPhoneOS/arm64/8.0
 __printf_variables_of_the_given_build() {
     echo "
     BUILD_INDEX    = $BUILD_INDEX
