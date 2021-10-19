@@ -5013,7 +5013,7 @@ EOF
         -DCMAKE_PREFIX_PATH="$MY_INSTALL_DIR" \
         -DCMAKE_FIND_ROOT_PATH="$MY_INSTALL_DIR" \
         -DCMAKE_INSTALL_PREFIX="$ABI_INSTALL_DIR" \
-        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_BUILD_TYPE=$CMAKE_BUILD_TYPE \
         -DCMAKE_OSX_ARCHITECTURES="$TARGET_OS_ARCH" \
         -DBUILD_SHARED_LIBS=OFF \
         -DBUILD_TESTING=OFF \
@@ -5071,7 +5071,7 @@ cpp_link_args = $(to_meson_array $LDFLAGS)
 EOF
     run "$MESON" setup \
         --prefix="$ABI_INSTALL_DIR" \
-        --buildtype=release \
+        --buildtype=$MESON_BUILD_TYPE \
         --backend=ninja \
         --pkg-config-path="$PKG_CONFIG_PATH" \
         --build.pkg-config-path="$PKG_CONFIG_PATH_FOR_BUILD" \
