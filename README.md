@@ -30,6 +30,14 @@ autoload -U compinit && compinit
         ipkg -V
         ipkg --version
 
+*   show home directory this software
+
+        ndk-pkg --homedir
+
+*   show home webpage this software
+
+        ndk-pkg --homepage
+
 *   show current machine os and [Xcode](https://developer.apple.com/xcode) toolchain info
         
         ipkg env
@@ -86,7 +94,7 @@ autoload -U compinit && compinit
         ipkg install curl bzip2 --rule=xx --jobs=4 -v -d
         ipkg install curl bzip2 --rule=xx --jobs=4 -v -d -x
         ipkg install curl bzip2 --rule=xx --jobs=4 -v -d -x --dry-run
-        ipkg install curl bzip2 --rule=xx --jobs=4 -v -d -x --dry-run --keep-working-dir
+        ipkg install curl bzip2 --rule=xx --jobs=4 -v -d -x --dry-run --keep-work-dir
         
 *   reinstall packages
         
@@ -251,11 +259,6 @@ autoload -U compinit && compinit
         ipkg homepage --open
         ipkg homepage --open curl
         ipkg homepage curl --open
-        
-*   show the installation direcotory of the given package or this software
-        
-        ipkg prefix
-        ipkg prefix curl
         
 *   show the depended packages of the given package
         
