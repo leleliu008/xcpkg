@@ -4210,7 +4210,7 @@ __install_the_given_package_one_build() {
 
     run __install_logs || return 1
 
-    run "printf ' %s\n' '$TARGET_OS_ABI' >> $WORK_DIR/$TIMESTAMP_UNIX/installed-abis"
+    run "printf '%s\n' '$TARGET_OS_ABI' >> $WORK_DIR/$TIMESTAMP_UNIX/installed-abis"
 }
 
 __justfy_la_files() {
@@ -5821,35 +5821,50 @@ ${COLOR_GREEN}$_0 <ACTION> [ARGUMENT...]${COLOR_OFF}
     ${COLOR_GREEN}search <KEYWORD>${COLOR_OFF}
       search available packages.
     
-    rule create RULE              --create a new rule.
+    ${COLOR_GREEN}rule create <RULE>${COLOR_OFF}
+    --create a new rule.
 
-    rule delete RULE              --delete a exist rule.
+    ${COLOR_GREEN}rule delete <RULE>${COLOR_OFF}
+    --delete a exist rule.
 
-    rule rename R1 R2             --rename a exist rule to new name.
+    ${COLOR_GREEN}rule rename <R1> <R2>${COLOR_OFF}
+    --rename a exist rule to new name.
 
-    rule view RULE                --view the specified rule.
+    ${COLOR_GREEN}rule view <RULE>${COLOR_OFF}
+    --view the given rule.
 
-    rule edit RULE                --edit the specified rule.
+    ${COLOR_GREEN}rule edit <RULE>${COLOR_OFF}
+    --edit the specified rule.
 
-    rule list                     --equipment to list rules.
+    ${COLOR_GREEN}rule list${COLOR_OFF}
+    --list rules.
 
-    formula create PACKAGE        --create a new formula.
+    ${COLOR_GREEN}formula create <PACKAGE>${COLOR_OFF}
+    --create a new formula.
 
-    formula delete PACKAGE        --delete a exist formula.
+    ${COLOR_GREEN}formula delete <PACKAGE>${COLOR_OFF}
+    --delete a exist formula.
 
-    formula rename P1 P2          --rename a exist formula to new name.
+    ${COLOR_GREEN}formula rename <P1> <P2>${COLOR_OFF}
+    --rename a exist formula to new name.
 
-    formula view PACKAGE          --view the formula of the given package.
+    ${COLOR_GREEN}formula view <PACKAGE>${COLOR_OFF}
+    --view the formula of the given package.
 
-    formula edit PACKAGE          --edit the formula of the given package.
+    ${COLOR_GREEN}formula edit <PACKAGE>${COLOR_OFF}
+    --edit the formula of the given package.
 
-    formula list                  --list all formulas.
+    ${COLOR_GREEN}formula list${COLOR_OFF}
+    --list all formulas.
 
-    formula-repo [list]           --list formula-repos.
+    ${COLOR_GREEN}formula-repo [list]${COLOR_OFF}
+    --list formula-repos.
 
-    formula-repo add  NAME URL    --add a new formula-repo.
+    ${COLOR_GREEN}formula-repo add <NAME> <URL>${COLOR_OFF}
+    --add a new formula-repo.
 
-    formula-repo del  NAME        --delete a exist formula-repo.
+    ${COLOR_GREEN}formula-repo del <NAME>${COLOR_OFF}
+    --delete a exist formula-repo.
 
     ${COLOR_GREEN}tree <PACKAGE> [-L N]${COLOR_OFF}
       list files of the given installed package in a tree-like format.
