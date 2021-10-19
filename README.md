@@ -252,6 +252,11 @@ autoload -U compinit && compinit
 *   pack the given installed package
         
         ipkg pack curl
+        ipkg pack curl --type=tar.xz
+        ipkg pack curl --type=tar.gz
+        ipkg pack curl --type=tar.bz2
+        ipkg pack curl --type=tar.zip
+        ipkg pack curl --type=tar.7z
         
 *   show or open the homepage of the given package or this project
         

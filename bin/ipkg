@@ -5855,7 +5855,7 @@ ${COLOR_GREEN}$_0 <ACTION> [ARGUMENT...]${COLOR_OFF}
     ${COLOR_GREEN}tree <PACKAGE> [--dirsfirst | -L N]${COLOR_OFF}
       list files of the given installed package in a tree-like format.
 
-    ${COLOR_GREEN}pack <PACKAGE>${COLOR_OFF}
+    ${COLOR_GREEN}pack <PACKAGE> [--type=7z|zip|tar.gz|tar.xz|tar.bz2]${COLOR_OFF}
       pack the installed package.
 
     ${COLOR_GREEN}logs <PACKAGE> <PLATFORM/ARCH>${COLOR_OFF}
