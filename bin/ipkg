@@ -2810,7 +2810,7 @@ __load_formula_of_the_given_package() {
     fi
 
     if [ "$PACKAGE_BUILD_IN_PARALLEL" = NO ] ; then
-        NJOBS=1
+        BUILD_NJOBS=1
     fi
 
     if [ "$PACKAGE_BUILD_SYSTEM" = 'go' ] ; then
@@ -4030,10 +4030,10 @@ __install_the_given_package() {
             done
 
             echo "
-            NJOBS = $NJOBS
+                 BUILD_NJOBS = $BUILD_NJOBS
 
-            WORK_DIR = $WORK_DIR
-            SOURCE_DIR = $SOURCE_DIR
+                    WORK_DIR = $WORK_DIR
+                  SOURCE_DIR = $SOURCE_DIR
             NATIVE_BUILD_DIR = $NATIVE_BUILD_DIR
             NATIVE_INSTALL_DIR = $NATIVE_INSTALL_DIR
             PWD = $PWD
@@ -4714,6 +4714,7 @@ __config_variables_of_the_given_build() {
 __printf_variables_of_the_given_build() {
     echo "
     BUILD_INDEX    = $BUILD_INDEX
+    BUILD_NJOBS    = $BUILD_NJOBS
 
     NATIVE_OS_KIND = $NATIVE_OS_KIND
     NATIVE_OS_TYPE = $NATIVE_OS_TYPE
@@ -4838,8 +4839,6 @@ SYSTEM_LIBRARY_DIR = $SYSTEM_LIBRARY_DIR
    ABI_INCLUDE_DIR = $ABI_INCLUDE_DIR
    ABI_LIBRARY_DIR = $ABI_LIBRARY_DIR
    ABI_PKGCONF_DIR = $ABI_PKGCONF_DIR
-
-   NJOBS = $NJOBS
    "
 
     if [ "$VERBOSE" = YES ] ; then
@@ -4942,9 +4941,9 @@ configure() {
 # make wrapper
 makew() {
     if [ "$DEBUG" = YES ] ; then
-        run "$GMAKE -w -j$NJOBS --debug V=1 $*"
+        run "$GMAKE -w -j$BUILD_NJOBS --debug V=1 $*"
     else
-        run "$GMAKE -w -j$NJOBS $*"
+        run "$GMAKE -w -j$BUILD_NJOBS $*"
     fi
 }
 
@@ -5543,7 +5542,7 @@ inspect_install_arguments() {
     unset DEBUG
     unset VERBOSE
 
-    unset NJOBS
+    unset BUILD_NJOBS
 
     unset GIVEN_BUILD_TYPE
     unset CMAKE_BUILD_TYPE
@@ -5637,8 +5636,8 @@ inspect_install_arguments() {
                 esac
                 ;;
             --jobs=*)
-                NJOBS=$(getvalue "$1")
-                is_integer "$NJOBS" || die "--jobs=INTEGER argument's value must be a integer."
+                BUILD_NJOBS=$(getvalue "$1")
+                is_integer "$BUILD_NJOBS" || die "--jobs=INTEGER argument's value must be a integer."
                 ;;
             [a-z]*)
                 if [ -z "$USER_SPECIFIED_PACKAGE_LIST" ] ; then
@@ -5652,8 +5651,8 @@ inspect_install_arguments() {
         shift
     done
 
-    if [ -z "$NJOBS" ] ; then
-        NJOBS=$NATIVE_OS_NCPU
+    if [ -z "$BUILD_NJOBS" ] ; then
+        BUILD_NJOBS=$NATIVE_OS_NCPU
     fi
 
     if [ -z "$GIVEN_BUILD_TYPE" ] ; then
