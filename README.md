@@ -239,6 +239,9 @@ autoload -U compinit && compinit
 *   list files of the given installed package in a tree-like format.
         
         ipkg tree curl
+        ipkg tree curl --dirsfirst
+        ipkg tree curl -L 3
+        ipkg tree curl -L 3 --dirsfirst
         
 *   download formula resources of the given package to the cache
         
