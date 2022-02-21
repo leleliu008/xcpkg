@@ -176,7 +176,7 @@ main() {
     unset RELEASE_VERSION_MINOR
     unset RELEASE_VERSION_PATCH
 
-    RELEASE_VERSION=$(grep 'MY_VERSION=' bin/ipkg | cut -d= -f2)
+    RELEASE_VERSION=$(grep 'MY_VERSION=' bin/xcpkg | cut -d= -f2)
     RELEASE_VERSION_MAJOR=$(printf '%s\n' "$RELEASE_VERSION" | cut -d. -f1)
     RELEASE_VERSION_MINOR=$(printf '%s\n' "$RELEASE_VERSION" | cut -d. -f2)
     RELEASE_VERSION_PATCH=$(printf '%s\n' "$RELEASE_VERSION" | cut -d. -f3)
@@ -199,19 +199,19 @@ main() {
 
     RELEASE_VERSION="$RELEASE_VERSION_MAJOR.$RELEASE_VERSION_MINOR.$RELEASE_VERSION_PATCH"
 
-    sed_in_place "s|MY_VERSION=[0-9].[0-9].[0-9]|MY_VERSION=$RELEASE_VERSION|" bin/ipkg
+    sed_in_place "s|MY_VERSION=[0-9].[0-9].[0-9]|MY_VERSION=$RELEASE_VERSION|" bin/xcpkg
 
     unset RELEASE_FILE_NAME
-    RELEASE_FILE_NAME="ipkg-$RELEASE_VERSION.tar.gz"
+    RELEASE_FILE_NAME="xcpkg-$RELEASE_VERSION.tar.gz"
 
-    run tar zvcf "$RELEASE_FILE_NAME" bin/ipkg zsh-completion/_ipkg
+    run tar zvcf "$RELEASE_FILE_NAME" bin/xcpkg zsh-completion/_xcpkg
 
     unset RELEASE_FILE_SHA256SUM
     RELEASE_FILE_SHA256SUM=$(sha256sum "$RELEASE_FILE_NAME")
 
     success "sha256sum($RELEASE_FILE_NAME)=$RELEASE_FILE_SHA256SUM"
 
-    run git add bin/ipkg
+    run git add bin/xcpkg
     run git commit -m "'publish new version $RELEASE_VERSION'"
     run git push origin master
 
@@ -221,10 +221,10 @@ main() {
 
     run cd homebrew-fpliu
 
-    sed_in_place "/sha256   /c \  sha256   \"$RELEASE_FILE_SHA256SUM\"" Formula/ipkg.rb
-    sed_in_place "s@[0-9]\.[0-9]\.[0-9]@$RELEASE_VERSION@g" Formula/ipkg.rb
+    sed_in_place "/sha256   /c \  sha256   \"$RELEASE_FILE_SHA256SUM\"" Formula/xcpkg.rb
+    sed_in_place "s@[0-9]\.[0-9]\.[0-9]@$RELEASE_VERSION@g" Formula/xcpkg.rb
 
-    run git add Formula/ipkg.rb
+    run git add Formula/xcpkg.rb
     run git commit -m "'publish new version $RELEASE_VERSION'"
     run git push origin master
 

@@ -21,66 +21,66 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
-      - run: bin/ipkg --help
-      - run: bin/ipkg --version
-      - run: bin/ipkg --homedir
-      - run: bin/ipkg --homepage
+      - run: bin/xcpkg --help
+      - run: bin/xcpkg --version
+      - run: bin/xcpkg --homedir
+      - run: bin/xcpkg --homepage
 
-      - run: bin/ipkg env
+      - run: bin/xcpkg env
 
-      - run: bin/ipkg integrate zsh
+      - run: bin/xcpkg integrate zsh
 
-      - run: bin/ipkg update
+      - run: bin/xcpkg update
 
-      - run: bin/ipkg search lib
-      - run: bin/ipkg search zlib
+      - run: bin/xcpkg search lib
+      - run: bin/xcpkg search zlib
 
-      - run: bin/ipkg info zlib
-      - run: bin/ipkg info zlib version
-      - run: bin/ipkg info zlib webpage
+      - run: bin/xcpkg info zlib
+      - run: bin/xcpkg info zlib version
+      - run: bin/xcpkg info zlib webpage
 
-      - run: bin/ipkg depends zlib
-      - run: bin/ipkg depends curl
+      - run: bin/xcpkg depends zlib
+      - run: bin/xcpkg depends curl
 
-      - run: bin/ipkg homepage
-      - run: bin/ipkg homepage zlib
+      - run: bin/xcpkg homepage
+      - run: bin/xcpkg homepage zlib
 
-      - run: bin/ipkg install zlib
+      - run: bin/xcpkg install zlib
 
-      - run: bin/ipkg info zlib
-      - run: bin/ipkg info zlib installed-dir
-      - run: bin/ipkg info zlib installed-metadata
-      - run: bin/ipkg info zlib installed-files
-      - run: bin/ipkg info zlib installed-abis
-      - run: bin/ipkg info zlib installed-datetime-unix
-      - run: bin/ipkg info zlib installed-datetime-formatted
-      - run: bin/ipkg info zlib installed-pkg-version
+      - run: bin/xcpkg info zlib
+      - run: bin/xcpkg info zlib installed-dir
+      - run: bin/xcpkg info zlib installed-metadata
+      - run: bin/xcpkg info zlib installed-files
+      - run: bin/xcpkg info zlib installed-abis
+      - run: bin/xcpkg info zlib installed-datetime-unix
+      - run: bin/xcpkg info zlib installed-datetime-formatted
+      - run: bin/xcpkg info zlib installed-pkg-version
 
-      - run: bin/ipkg tree zlib
-      - run: bin/ipkg pack zlib
+      - run: bin/xcpkg tree zlib
+      - run: bin/xcpkg pack zlib
 
-      - run: bin/ipkg formula-repo list
-      - run: bin/ipkg formula view curl
+      - run: bin/xcpkg formula-repo list
+      - run: bin/xcpkg formula view curl
 
-      - run: bin/ipkg target abis
-      - run: bin/ipkg target archs
-      - run: bin/ipkg target triples
-      - run: bin/ipkg target versions
-      - run: bin/ipkg target platforms
+      - run: bin/xcpkg target abis
+      - run: bin/xcpkg target archs
+      - run: bin/xcpkg target triples
+      - run: bin/xcpkg target versions
+      - run: bin/xcpkg target platforms
 
-      - run: bin/ipkg ls-available
-      - run: bin/ipkg ls-installed
-      - run: bin/ipkg ls-outdated
+      - run: bin/xcpkg ls-available
+      - run: bin/xcpkg ls-installed
+      - run: bin/xcpkg ls-outdated
 
-      - run: bin/ipkg is-available zlib
-      - run: bin/ipkg is-installed zlib
-      - run: bin/ipkg is-outdated zlib || echo 'not outdated'
+      - run: bin/xcpkg is-available zlib
+      - run: bin/xcpkg is-installed zlib
+      - run: bin/xcpkg is-outdated zlib || echo 'not outdated'
 
-      - run: bin/ipkg uninstall zlib
+      - run: bin/xcpkg uninstall zlib
 
-      - run: bin/ipkg fetch curl
+      - run: bin/xcpkg fetch curl
 
-      - run: bin/ipkg upgrade @self
+      - run: bin/xcpkg upgrade @self
 
   install_via_homebrew:
     strategy:
@@ -95,65 +95,65 @@ jobs:
 
     steps:
       - run: brew tap leleliu008/fpliu
-      - run: brew install ipkg
+      - run: brew install xcpkg
 
-      - run: ipkg --help
-      - run: ipkg --version
-      - run: ipkg --homedir
-      - run: ipkg --homepage
+      - run: xcpkg --help
+      - run: xcpkg --version
+      - run: xcpkg --homedir
+      - run: xcpkg --homepage
 
-      - run: ipkg env
+      - run: xcpkg env
 
-      - run: ipkg integrate zsh
+      - run: xcpkg integrate zsh
 
-      - run: ipkg update
+      - run: xcpkg update
 
-      - run: ipkg search lib
-      - run: ipkg search zlib
+      - run: xcpkg search lib
+      - run: xcpkg search zlib
 
-      - run: ipkg info zlib
-      - run: ipkg info zlib version
-      - run: ipkg info zlib webpage
+      - run: xcpkg info zlib
+      - run: xcpkg info zlib version
+      - run: xcpkg info zlib webpage
 
-      - run: ipkg depends zlib
-      - run: ipkg depends curl
+      - run: xcpkg depends zlib
+      - run: xcpkg depends curl
 
-      - run: ipkg homepage
-      - run: ipkg homepage zlib
+      - run: xcpkg homepage
+      - run: xcpkg homepage zlib
 
-      - run: ipkg install zlib
+      - run: xcpkg install zlib
 
-      - run: ipkg info zlib
-      - run: ipkg info zlib installed-dir
-      - run: ipkg info zlib installed-metadata
-      - run: ipkg info zlib installed-files
-      - run: ipkg info zlib installed-abis
-      - run: ipkg info zlib installed-datetime-unix
-      - run: ipkg info zlib installed-datetime-formatted
-      - run: ipkg info zlib installed-pkg-version
+      - run: xcpkg info zlib
+      - run: xcpkg info zlib installed-dir
+      - run: xcpkg info zlib installed-metadata
+      - run: xcpkg info zlib installed-files
+      - run: xcpkg info zlib installed-abis
+      - run: xcpkg info zlib installed-datetime-unix
+      - run: xcpkg info zlib installed-datetime-formatted
+      - run: xcpkg info zlib installed-pkg-version
 
-      - run: ipkg tree zlib
-      - run: ipkg pack zlib
+      - run: xcpkg tree zlib
+      - run: xcpkg pack zlib
 
-      - run: ipkg formula-repo list
-      - run: ipkg formula view curl
+      - run: xcpkg formula-repo list
+      - run: xcpkg formula view curl
 
-      - run: ipkg target abis
-      - run: ipkg target archs
-      - run: ipkg target triples
-      - run: ipkg target versions
-      - run: ipkg target platforms
+      - run: xcpkg target abis
+      - run: xcpkg target archs
+      - run: xcpkg target triples
+      - run: xcpkg target versions
+      - run: xcpkg target platforms
 
-      - run: ipkg ls-available
-      - run: ipkg ls-installed
-      - run: ipkg ls-outdated
+      - run: xcpkg ls-available
+      - run: xcpkg ls-installed
+      - run: xcpkg ls-outdated
 
-      - run: ipkg is-available zlib
-      - run: ipkg is-installed zlib
-      - run: ipkg is-outdated zlib || echo 'not outdated'
+      - run: xcpkg is-available zlib
+      - run: xcpkg is-installed zlib
+      - run: xcpkg is-outdated zlib || echo 'not outdated'
 
-      - run: ipkg uninstall zlib
+      - run: xcpkg uninstall zlib
 
-      - run: ipkg fetch curl
+      - run: xcpkg fetch curl
 
-      - run: ipkg upgrade @self
+      - run: xcpkg upgrade @self

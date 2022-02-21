@@ -1,4 +1,4 @@
-#compdef ipkg
+#compdef xcpkg
 
 _commands=(
     '-h:show help of this command.'
@@ -47,38 +47,38 @@ _target=(
     'abis:list the supportted abis of target platforms.'
 )
 
-function _ipkg_target() {
+function _xcpkg_target() {
     _describe 'target' _target
 }
 
-function _ipkg_commands() {
+function _xcpkg_commands() {
     _describe 'command' _commands
 }
 
-function _ipkg_available_packages() {
+function _xcpkg_available_packages() {
     local -a _available_packages
-    _available_packages=($(ipkg ls-available 2>/dev/null))
+    _available_packages=($(xcpkg ls-available 2>/dev/null))
     _describe 'available-packages' _available_packages
 }
 
-function _ipkg_installed_packages() {
+function _xcpkg_installed_packages() {
     local -a _installed_packages
-    _installed_packages=($(ipkg ls-installed 2>/dev/null))
+    _installed_packages=($(xcpkg ls-installed 2>/dev/null))
     _describe 'installed-packages' _installed_packages
 }
 
-function _ipkg_outdated_packages() {
+function _xcpkg_outdated_packages() {
     local -a _outdated_packages
-    _outdated_packages=($(ipkg ls-outdated 2>/dev/null))
+    _outdated_packages=($(xcpkg ls-outdated 2>/dev/null))
     _describe 'outdated-packages' _outdated_packages
 }
 
-function _ipkg() {
+function _xcpkg() {
     local context state state_descr line
     typeset -A opt_args
 
     _arguments \
-        '1: :_ipkg_commands' \
+        '1: :_xcpkg_commands' \
         '*:: :->option'
 
     case $state in
@@ -86,16 +86,16 @@ function _ipkg() {
             case $words[1] in
                 target)
                     _arguments \
-                        ':target-subcommand:_ipkg_target' \
+                        ':target-subcommand:_xcpkg_target' \
                         '*:: :->target-option'
                     case $state in
                         target-option)
                             case $words[1] in
                                 versions)
-                                    _arguments ':platform:($(ipkg target platforms))';;
+                                    _arguments ':platform:($(xcpkg target platforms))';;
                                 archs)
                                     _arguments \
-                                        ':platform:($(ipkg target platforms))' \
+                                        ':platform:($(xcpkg target platforms))' \
                                         ':bit:(64bit 32bit all)'
                                     ;;
                                 abis|triples)
@@ -110,9 +110,7 @@ function _ipkg() {
                     case $state in
                         action)
                             case $words[1] in
-                                del)
-                                    _arguments '1:repo-name:($(ipkg formula-repo list | cut -d= -f1))' 
-                                    ;;
+                                del) _arguments '1:repo-name:($(xcpkg formula-repo list | cut -d= -f1))' ;;
                             esac
                     esac
                     ;;
@@ -124,14 +122,13 @@ function _ipkg() {
                         action)
                             case $words[1] in
                                 delete|rename|edit)
-                                    _arguments '1:package-name:_ipkg_available_packages'
+                                    _arguments '1:package-name:_xcpkg_available_packages'
                                     ;;
                                 view)
                                     _arguments \
-                                        '1:package-name:_ipkg_available_packages' \
+                                        '1:package-name:_xcpkg_available_packages' \
                                         '--paging=-[when use pager]:paging:(auto always never)'
                                     ;;
-
                             esac
                     esac
                     ;;
@@ -143,56 +140,56 @@ function _ipkg() {
                         action)
                             case $words[1] in
                                 delete|rename|view|edit)
-                                    _arguments ':package-name:($(ipkg rule list))'
+                                    _arguments ':package-name:($(xcpkg rule list))'
                             esac
                     esac
                     ;;
                 info)
                     _arguments \
-                        '1:package-name:(@all $(ipkg ls available))' \
+                        '1:package-name:(@all $(xcpkg ls available))' \
                         '*:: :->info-subcommand'
-                                                    case $state in
-                                                        info-subcommand)
-                                                            case $words[1] in
-                                                                @all) _arguments '--json[output format is json]' ;;
-                                                                *) _arguments '1:key:(summary webpage version license src.git src.url src.sum dep.cmd dep.pkg patches cdefine ccflags xxflags ldflags sourced binsrcd bsystem installed-dir installed-metadata installed-datetime-unix installed-datetime-formatted installed-pkg-version installed-files installed-abis --json)'
-                                                            esac
-                                                        esac
+                    case $state in
+                        info-subcommand)
+                            case $words[1] in
+                                @all) _arguments '--json[output format is json]' ;;
+                                *) _arguments '1:key:(summary webpage version license src.git src.url src.sum dep.cmd dep.pkg patches cdefine ccflags xxflags ldflags sourced binsrcd bsystem installed-dir installed-metadata installed-datetime-unix installed-datetime-formatted installed-pkg-version installed-files installed-abis --json)'
+                            esac
+                    esac
                     ;;
                 fetch|depends)
-                    _arguments ':package-name:_ipkg_available_packages'
+                    _arguments ':package-name:_xcpkg_available_packages'
                     ;;
                 prefix|create-framework)
-                    _arguments ':package-name:_ipkg_installed_packages'
+                    _arguments ':package-name:_xcpkg_installed_packages'
                     ;;
                 pack)
                     _arguments \
-                        '1:package-name:_ipkg_installed_packages' \
+                        '1:package-name:_xcpkg_installed_packages' \
                         '--type=-[output file type]:type:(7z zip tar.gz tar.xz tar.bz2)'
                     ;;
                 homepage)
                     _arguments \
-                        ':package-name:_ipkg_available_packages' \
+                        ':package-name:_xcpkg_available_packages' \
                         '--open[open in the web browser]'
                     ;;
                 tree)
                     _arguments \
-                        '1:package-name:_ipkg_installed_packages' \
+                        '1:package-name:_xcpkg_installed_packages' \
                         '-L[level]:level:(4)'
                     ;;
                 logs)
                     _arguments \
-                        '1:package-name:_ipkg_installed_packages' \
-                        '2:abi:($(ipkg target abis $words[2]))' \
+                        '1:package-name:_xcpkg_installed_packages' \
+                        '2:abi:($(xcpkg target abis $words[2]))' \
                     ;;
                 min-version)
                     _arguments \
-                        ':platform:($(ipkg target platforms))'
+                        ':platform:($(xcpkg target platforms))'
                     ;;
                 install)
                     _arguments \
-                        '1:package-name:_ipkg_available_packages' \
-                        '--rule=-[rule to install]:rule:($(ipkg rule list))' \
+                        '1:package-name:_xcpkg_available_packages' \
+                        '--rule=-[rule to install]:rule:($(xcpkg rule list))' \
                         '--jobs=-[set the number of jobs you can run in parallel with make]:jobs:(1 2 3 4 5 6 7 8 9)' \
                         '--dry-run[dry-run]' \
                         '--keep-working-dir[do not delete working-dir even if installed success]' \
@@ -212,7 +209,7 @@ function _ipkg() {
                     ;;
                 reinstall)
                     _arguments \
-                        '1:package-name:_ipkg_installed_packages' \
+                        '1:package-name:_xcpkg_installed_packages' \
                         '--jobs=-[set the number of jobs you can run in parallel with make]:jobs:(1 2 3 4 5 6 7 8 9)' \
                         '(--verbose -v)'{--verbose,-v}'[verbose output log]' \
                         '(--debug -d)'{--debug,-d}'[debug]' \
@@ -220,47 +217,41 @@ function _ipkg() {
                     ;;
                 upgrade)
                     _arguments \
-                        '1:package-name:(@self $(ipkg ls outdated))' \
+                        '1:package-name:(@self $(xcpkg ls outdated))' \
                         '*:: :->upgrade-subcommand'
-                                                    case $state in
-                                                        upgrade-subcommand)
-                                                            case $words[1] in
-                                                                @self)
-                                                                    _arguments \
-                        '-x[trace execution of commands]' \
-                        '--china[use china mirror url]'
+                    case $state in
+                        upgrade-subcommand)
+                            case $words[1] in
+                                @self)
+                                    _arguments \
+                                        '-x[trace execution of commands]' \
+                                        '--china[use china mirror url]'
+                                    ;;
+                                *)
+                                    _arguments \
+                                        ':package-name:_xcpkg_outdated_packages' \
+                                        '--rule=-[rule to install]:rule:($(xcpkg rule list))' \
+                                        '--jobs=-[set the number of jobs you can run in parallel with make]:jobs:(1 2 3 4 5 6 7 8 9)' \
+                                        '(--verbose -v)'{--verbose,-v}'[verbose output log]' \
+                                        '(--debug -d)'{--debug,-d}'[debug]' \
+                                        '(--xtrace -x)'{--xtrace,-x}'[trace execution of commands]'
+                            esac
+                        esac
                     ;;
-                                                                *)
-                                                                _arguments \
-                        ':package-name:_ipkg_outdated_packages' \
-                        '--rule=-[rule to install]:rule:($(ipkg rule list))' \
-                        '--jobs=-[set the number of jobs you can run in parallel with make]:jobs:(1 2 3 4 5 6 7 8 9)' \
-                        '(--verbose -v)'{--verbose,-v}'[verbose output log]' \
-                        '(--debug -d)'{--debug,-d}'[debug]' \
-                        '(--xtrace -x)'{--xtrace,-x}'[trace execution of commands]'
-
-                                                            esac
-                                                        esac
-                                                    ;;
                 uninstall)
-                    _arguments '*:package-name:_ipkg_installed_packages'
+                    _arguments '*:package-name:_xcpkg_installed_packages'
                     ;;
                 is-available)
                     _arguments \
-                        '1:package-name:_ipkg_available_packages' \
+                        '1:package-name:_xcpkg_available_packages' \
                         '2:condition-operator:(eq ne ge gt le lt)'
                     ;;
                 is-installed)
-                    _arguments \
-                        '1:package-name:_ipkg_installed_packages'
-                                                    ;;
+                    _arguments '1:package-name:_xcpkg_installed_packages';;
                 is-outdated)
-                    _arguments \
-                        '1:package-name:_ipkg_outdated_packages'
-                                                    ;;
+                    _arguments '1:package-name:_xcpkg_outdated_packages' ;;
                 integrate)
-                    _arguments ':what:(zsh)'
-                    ;;
+                    _arguments ':what:(zsh)' ;;
                 gen-github-workflows)
                     _arguments \
                         '--group-size=-[set the group size]:group-size:(50 40 30 20)' \
@@ -273,4 +264,4 @@ function _ipkg() {
     esac
 }
 
-_ipkg "$@"
+_xcpkg "$@"

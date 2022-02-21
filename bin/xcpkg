@@ -5684,12 +5684,12 @@ inspect_install_arguments() {
 init() {
     # MY represents this software's
     MY_VERSION=0.1.4
-    MY_HOME_PAGE='https://github.com/leleliu008/ipkg'
-    MY_OFFICAL_FORMULA_REPO_URL='https://github.com/leleliu008/ipkg-formula-repository.git'
-    MY_UPGRAGE_URL='https://raw.githubusercontent.com/leleliu008/ipkg/master/bin/ipkg'
+    MY_HOME_PAGE='https://github.com/leleliu008/xcpkg'
+    MY_OFFICAL_FORMULA_REPO_URL='https://github.com/leleliu008/xcpkg-formula-repository.git'
+    MY_UPGRAGE_URL='https://raw.githubusercontent.com/leleliu008/xcpkg/master/bin/xcpkg'
 
     if [ -z "$IPKG_HOME_DIR" ] ; then
-        MY_HOME_DIR="$HOME/.ipkg"
+        MY_HOME_DIR="$HOME/.xcpkg"
     else
         MY_HOME_DIR="$IPKG_HOME_DIR"
     fi
@@ -6017,8 +6017,8 @@ main() {
         integrate)
             shift;
             case $1 in
-                zsh) __integrate_zsh_completions 'https://raw.githubusercontent.com/leleliu008/ipkg/master/zsh-completion/_ipkg' ;;
-                *)   die "ipkg integrate $1: not support."
+                zsh) __integrate_zsh_completions 'https://raw.githubusercontent.com/leleliu008/xcpkg/master/zsh-completion/_xcpkg' ;;
+                *)   die "xcpkg integrate $1: not support."
             esac
             ;;
         homepage) shift; __show_or_open_homepage_of_the_given_package $@ ;;

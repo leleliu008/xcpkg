@@ -1,34 +1,34 @@
-# ipkg
+# xcpkg
 a package manager for [Xcode](https://developer.apple.com/xcode) to build C/C++/Rust project.
 
-## Install ipkg via HomeBrew
+## Install xcpkg via HomeBrew
 
 ```bash
 brew tap leleliu008/fpliu
-brew install ipkg
+brew install xcpkg
 ```
 
-## Install ipkg via cURL
+## Install xcpkg via cURL
 ```bash
-curl -LO https://raw.githubusercontent.com/leleliu008/ipkg/master/bin/ipkg
-chmod a+x ipkg
-mv ipkg /usr/local/bin/
+curl -LO https://raw.githubusercontent.com/leleliu008/xcpkg/master/bin/xcpkg
+chmod a+x xcpkg
+mv xcpkg /usr/local/bin/
 
 # following instrutions is optional, and these instructions only worked in zsh
-ipkg integrate zsh
+xcpkg integrate zsh
 autoload -U compinit && compinit
 ```
 
-## ipkg command usage
+## xcpkg command usage
 *   show the help of this command.
         
-        ipkg -h
-        ipkg --help
+        xcpkg -h
+        xcpkg --help
         
 *   show the version of this command
         
-        ipkg -V
-        ipkg --version
+        xcpkg -V
+        xcpkg --version
 
 *   show home directory of this software
 
@@ -40,239 +40,239 @@ autoload -U compinit && compinit
 
 *   show current machine os and [Xcode](https://developer.apple.com/xcode) toolchain info
         
-        ipkg env
+        xcpkg env
 
 *   integrate `zsh-completion` script
         
-        ipkg integrate zsh
-        ipkg integrate zsh -x
-        ipkg integrate zsh --china
-        ipkg integrate zsh --china -x
+        xcpkg integrate zsh
+        xcpkg integrate zsh -x
+        xcpkg integrate zsh --china
+        xcpkg integrate zsh --china -x
         
-    I have provide a zsh-completion script for `ipkg`. when you've typed `ipkg` then type `TAB` key, it will auto complete the rest for you.
+    I have provide a zsh-completion script for `xcpkg`. when you've typed `xcpkg` then type `TAB` key, it will auto complete the rest for you.
 
     **Note**: to apply this feature, you may need to run the command `autoload -U compinit && compinit`
 *   update the formula repositories
 
-        ipkg update
+        xcpkg update
         
-    **Note:** this software supports multi formula repositories. Offical formula repository is [ipkg-formula-repository](https://github.com/leleliu008/ipkg-formula-repository) 
+    **Note:** this software supports multi formula repositories. Offical formula repository is [xcpkg-formula-repository](https://github.com/leleliu008/xcpkg-formula-repository) 
 
 *   search packages can be installed
         
-        ipkg search curl
-        ipkg search lib
+        xcpkg search curl
+        xcpkg search lib
         
 *   show infomation of the given package or all available packages
         
-        ipkg info curl
-        ipkg info curl version
-        ipkg info curl summary
-        ipkg info curl webpage
-        ipkg info curl src.git
-        ipkg info curl installed-dir
-        ipkg info curl installed-metadata
-        ipkg info curl installed-files
-        ipkg info curl installed-abis
-        ipkg info curl installed-datetime-unix
-        ipkg info curl installed-datetime-formatted
-        ipkg info curl installed-pkg-version
-        ipkg info curl --json
-        ipkg info curl --json | jq .
-        ipkg info @all
-        ipkg info @all --json
-        ipkg info @all --json | jq .
+        xcpkg info curl
+        xcpkg info curl version
+        xcpkg info curl summary
+        xcpkg info curl webpage
+        xcpkg info curl src.git
+        xcpkg info curl installed-dir
+        xcpkg info curl installed-metadata
+        xcpkg info curl installed-files
+        xcpkg info curl installed-abis
+        xcpkg info curl installed-datetime-unix
+        xcpkg info curl installed-datetime-formatted
+        xcpkg info curl installed-pkg-version
+        xcpkg info curl --json
+        xcpkg info curl --json | jq .
+        xcpkg info @all
+        xcpkg info @all --json
+        xcpkg info @all --json | jq .
          
-    For more keys please read [README.md](https://github.com/leleliu008/ipkg-formula-repository/blob/master/README.md#the-function-must-be-invoked-on-top-of-the-formula)
+    For more keys please read [README.md](https://github.com/leleliu008/xcpkg-formula-repository/blob/master/README.md#the-function-must-be-invoked-on-top-of-the-formula)
 
 *   install packages
         
-        ipkg install curl
-        ipkg install curl bzip2 --rule=xx
-        ipkg install curl bzip2 --rule=xx --jobs=4
-        ipkg install curl bzip2 --rule=xx --jobs=4 -v
-        ipkg install curl bzip2 --rule=xx --jobs=4 -v -d
-        ipkg install curl bzip2 --rule=xx --jobs=4 -v -d -x
-        ipkg install curl bzip2 --rule=xx --jobs=4 -v -d -x --dry-run
-        ipkg install curl bzip2 --rule=xx --jobs=4 -v -d -x --dry-run --keep-work-dir
+        xcpkg install curl
+        xcpkg install curl bzip2 --rule=xx
+        xcpkg install curl bzip2 --rule=xx --jobs=4
+        xcpkg install curl bzip2 --rule=xx --jobs=4 -v
+        xcpkg install curl bzip2 --rule=xx --jobs=4 -v -d
+        xcpkg install curl bzip2 --rule=xx --jobs=4 -v -d -x
+        xcpkg install curl bzip2 --rule=xx --jobs=4 -v -d -x --dry-run
+        xcpkg install curl bzip2 --rule=xx --jobs=4 -v -d -x --dry-run --keep-work-dir
         
 *   reinstall packages
         
-        ipkg reinstall curl
-        ipkg reinstall curl bzip2 -v
+        xcpkg reinstall curl
+        xcpkg reinstall curl bzip2 -v
         
 *   uninstall packages
         
-        ipkg uninstall curl
-        ipkg uninstall curl bzip2
+        xcpkg uninstall curl
+        xcpkg uninstall curl bzip2
         
 *   upgrade the outdated packages
         
-        ipkg upgrade
-        ipkg upgrade curl
-        ipkg upgrade curl bzip2 -v
+        xcpkg upgrade
+        xcpkg upgrade curl
+        xcpkg upgrade curl bzip2 -v
         
 *   upgrade this software
 
-        ipkg upgrade @self
-        ipkg upgrade @self -x
-        ipkg upgrade @self --china
-        ipkg upgrade @self --china -x
+        xcpkg upgrade @self
+        xcpkg upgrade @self -x
+        xcpkg upgrade @self --china
+        xcpkg upgrade @self --china -x
         
 *   list the avaliable formula repos
         
-        ipkg formula-repo list
+        xcpkg formula-repo list
         
 *   add a new formula repo
         
-        ipkg formula-repo add my_repo https://github.com/leleliu008/ipkg-formula-repository.git
+        xcpkg formula-repo add my_repo https://github.com/leleliu008/xcpkg-formula-repository.git
         
 *   delete a existing formula repo
         
-        ipkg formula-repo del my_repo
+        xcpkg formula-repo del my_repo
         
 *   view the formula of the given package
 
-        ipkg formula view curl
+        xcpkg formula view curl
         
 *   edit the formula of the given package
 
-        ipkg formula edit curl
+        xcpkg formula edit curl
         
 *   create the formula of the given package
 
-        ipkg formula create curl
+        xcpkg formula create curl
         
 *   delete the formula of the given package
 
-        ipkg formula delete curl
+        xcpkg formula delete curl
         
 *   rename the formula of the given package to new name
 
-        ipkg formula rename curl curl7
+        xcpkg formula rename curl curl7
         
 *   view the given rule
 
-        ipkg rule view curl
+        xcpkg rule view curl
         
 *   edit the given rule
 
-        ipkg rule edit curl
+        xcpkg rule edit curl
         
 *   create a new rule
 
-        ipkg rule create xx
+        xcpkg rule create xx
         
 *   delete the given rule
 
-        ipkg rule delete xx
+        xcpkg rule delete xx
         
 *   rename the given rule to new name
 
-        ipkg rule rename xx yy
+        xcpkg rule rename xx yy
         
 *   list rules
         
-        ipkg rule list
+        xcpkg rule list
         
 *   list the supported target platforms
         
-        ipkg target platforms
+        xcpkg target platforms
         
 *   list the supported target platform's versions
 
-        ipkg target versions
-        ipkg target versions iPhoneOS
+        xcpkg target versions
+        xcpkg target versions iPhoneOS
         
 *   list the supported target archs
 
-        ipkg target archs
-        ipkg target archs iPhoneOS
-        ipkg target archs iPhoneOS 64bit
-        ipkg target archs iPhoneOS 32bit
-        ipkg target archs iPhoneOS all
+        xcpkg target archs
+        xcpkg target archs iPhoneOS
+        xcpkg target archs iPhoneOS 64bit
+        xcpkg target archs iPhoneOS 32bit
+        xcpkg target archs iPhoneOS all
         
 *   list the supported target abis
 
-        ipkg target abis
-        ipkg target abis 64bit
-        ipkg target abis 32bit
-        ipkg target abis all
+        xcpkg target abis
+        xcpkg target abis 64bit
+        xcpkg target abis 32bit
+        xcpkg target abis all
 
 *   list the supported target triples
 
-        ipkg target triples
-        ipkg target triples 64bit
-        ipkg target triples 32bit
-        ipkg target triples all
+        xcpkg target triples
+        xcpkg target triples 64bit
+        xcpkg target triples 32bit
+        xcpkg target triples all
         
 *   list the available packages
         
-        ipkg ls-available
+        xcpkg ls-available
         
 *   list the installed packages
         
-        ipkg ls-installed
+        xcpkg ls-installed
         
 *   list the outdated packages
         
-        ipkg ls-outdated
+        xcpkg ls-outdated
         
 *   is the given package available ?
         
-        ipkg is-available curl
-        ipkg is-available curl ge 7.50.0
-        ipkg is-available curl gt 7.50.0
-        ipkg is-available curl le 7.50.0
-        ipkg is-available curl lt 7.50.0
-        ipkg is-available curl eq 7.50.0
-        ipkg is-available curl ne 7.50.0
+        xcpkg is-available curl
+        xcpkg is-available curl ge 7.50.0
+        xcpkg is-available curl gt 7.50.0
+        xcpkg is-available curl le 7.50.0
+        xcpkg is-available curl lt 7.50.0
+        xcpkg is-available curl eq 7.50.0
+        xcpkg is-available curl ne 7.50.0
         
 *   is the given package installed ?
         
-        ipkg is-installed curl
+        xcpkg is-installed curl
         
 *   is the given package outdated ?
         
-        ipkg is-outdated curl
+        xcpkg is-outdated curl
         
 *   list files of the given installed package in a tree-like format.
         
-        ipkg tree curl
-        ipkg tree curl --dirsfirst
-        ipkg tree curl -L 3
-        ipkg tree curl -L 3 --dirsfirst
+        xcpkg tree curl
+        xcpkg tree curl --dirsfirst
+        xcpkg tree curl -L 3
+        xcpkg tree curl -L 3 --dirsfirst
         
 *   download formula resources of the given package to the cache
         
-        ipkg fetch curl
+        xcpkg fetch curl
         
 *   show logs of the given installed package
         
-        ipkg logs curl iPhoneOS/armv7s
-        ipkg logs curl iPhoneOS/arm64
+        xcpkg logs curl iPhoneOS/armv7s
+        xcpkg logs curl iPhoneOS/arm64
         
 *   pack the given installed package
         
-        ipkg pack curl
-        ipkg pack curl --type=tar.gz
-        ipkg pack curl --type=tar.xz
-        ipkg pack curl --type=tar.bz2
-        ipkg pack curl --type=zip
-        ipkg pack curl --type=7z
+        xcpkg pack curl
+        xcpkg pack curl --type=tar.gz
+        xcpkg pack curl --type=tar.xz
+        xcpkg pack curl --type=tar.bz2
+        xcpkg pack curl --type=zip
+        xcpkg pack curl --type=7z
         
 *   show or open the homepage of the given package or this project
         
-        ipkg homepage
-        ipkg homepage --open
-        ipkg homepage --open curl
-        ipkg homepage curl --open
+        xcpkg homepage
+        xcpkg homepage --open
+        xcpkg homepage --open curl
+        xcpkg homepage curl --open
         
 *   show the depended packages of the given package
         
-        ipkg depends curl
+        xcpkg depends curl
         
 *   cleanup the unused cache
         
-        ipkg cleanup
+        xcpkg cleanup
         
