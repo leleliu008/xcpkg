@@ -6445,6 +6445,7 @@ EOF
     }
 
     TIMESTAMP_UNIX="$(date +%s)"
+
     unset NATIVE_OS_KIND
     unset NATIVE_OS_TYPE
     unset NATIVE_OS_NAME
@@ -6463,153 +6464,170 @@ EOF
 }
 
 help() {
-    echo "${COLOR_GREEN}$_0 $MY_VERSION is a package manager for Xcode to build C/C++/Rust/Go project.${COLOR_OFF}
+    if command -v base64 > /dev/null ; then
+        LOGO_BASE64_ENCODED='ICAgICAgICAgICAgICAgIF8gICAgICAgICAKX18gIF9fX19fIF8gX18gfCB8IF9fX18gXyAKXCBc
+LyAvIF9ffCAnXyBcfCB8LyAvIF9gIHwKID4gIDwgKF9ffCB8XykgfCAgIDwgKF98IHwKL18vXF9c
+X19ffCAuX18vfF98XF9cX18sIHwKICAgICAgICAgfF98ICAgICAgICB8X19fLyAK'
 
-${COLOR_GREEN}$_0 <ACTION> [ARGUMENT...]${COLOR_OFF}
+        if command -v lolcat > /dev/null ; then
+            printf '%s\n' "$LOGO_BASE64_ENCODED" | base64 -d | lolcat -S 350
+        elif command -v awk > /dev/null ; then
+            printf '%s\n' "$LOGO_BASE64_ENCODED" | base64 -d | lolcat_awk
+        else
+            printf '%b\n' "${COLOR_BLUE}$(printf '%s\n' "$LOGO_BASE64_ENCODED" | base64 -d)${COLOR_OFF}"
+        fi
+    fi
 
-    ${COLOR_GREEN}--help    | -h${COLOR_OFF}
-      show help of this command.
+    echo "
+A package manager for Xcode to build C/C++/Rust/Go project.${COLOR_OFF}
 
-    ${COLOR_GREEN}--version | -V${COLOR_OFF}
-      show version of this command.
+${COLOR_GREEN}xcpkg <ACTION> [ARGUMENT...]${COLOR_OFF}
 
-    ${COLOR_GREEN}--homedir${COLOR_OFF}
-      show home directory of this software.
+${COLOR_GREEN}xcpkg --help${COLOR_OFF}
+${COLOR_GREEN}xcpkg -h${COLOR_OFF}
+    show help of this command.
 
-    ${COLOR_GREEN}--homepage${COLOR_OFF}
-      show home webpage of this software.
+${COLOR_GREEN}xcpkg --version${COLOR_OFF}
+${COLOR_GREEN}xcpkg -V${COLOR_OFF}
+    show version of this command.
 
-    ${COLOR_GREEN}env${COLOR_OFF}
-      show current machine os and xcode toolchain info.
+${COLOR_GREEN}xcpkg --homedir${COLOR_OFF}
+    show home directory of this software.
 
-    ${COLOR_GREEN}integrate zsh [-x | --china]${COLOR_OFF}
-      download a zsh-completion script file to a approprivate location.
+${COLOR_GREEN}xcpkg --homepage${COLOR_OFF}
+    show home webpage of this software.
 
-    ${COLOR_GREEN}update${COLOR_OFF}
-      update the formula repositories.
+${COLOR_GREEN}xcpkg env${COLOR_OFF}
+    show current machine os and xcode toolchain info.
 
-    ${COLOR_GREEN}cleanup${COLOR_OFF}
-      cleanup the unused cache.
+${COLOR_GREEN}xcpkg integrate zsh [-x | --china]${COLOR_OFF}
+    download a zsh-completion script file to a approprivate location.
 
-    ${COLOR_GREEN}target platforms${COLOR_OFF}
-      list the supported target platforms.
+${COLOR_GREEN}xcpkg update${COLOR_OFF}
+    update the formula repositories.
 
-    ${COLOR_GREEN}target versions [PLATFORM]${COLOR_OFF}
-      list the supported target platform's version.
+${COLOR_GREEN}xcpkg cleanup${COLOR_OFF}
+    cleanup the unused cache.
 
-    ${COLOR_GREEN}target triples [32bit|64bit|all]${COLOR_OFF}
-      list the supported target triples.
+${COLOR_GREEN}xcpkg target platforms${COLOR_OFF}
+    list the supported target platforms.
 
-    ${COLOR_GREEN}target archs   [32bit|64bit|all] [PLATFORM]${COLOR_OFF}
-      list the supported target archs.
+${COLOR_GREEN}xcpkg target versions [PLATFORM]${COLOR_OFF}
+    list the supported target platform's version.
 
-    ${COLOR_GREEN}target abis    [32bit|64bit|all]${COLOR_OFF}
-      list the supported target abis.
+${COLOR_GREEN}xcpkg target triples [32bit|64bit|all]${COLOR_OFF}
+    list the supported target triples.
 
-    ${COLOR_GREEN}ls-available${COLOR_OFF}
-      list the available packages.
+${COLOR_GREEN}xcpkg target archs   [32bit|64bit|all] [PLATFORM]${COLOR_OFF}
+    list the supported target archs.
 
-    ${COLOR_GREEN}ls-installed${COLOR_OFF}
-      list the installed packages.
+${COLOR_GREEN}xcpkg target abis    [32bit|64bit|all]${COLOR_OFF}
+    list the supported target abis.
 
-    ${COLOR_GREEN}ls-outdated${COLOR_OFF}
-      list the outdated  packages.
+${COLOR_GREEN}xcpkg ls-available${COLOR_OFF}
+    list the available packages.
 
-    ${COLOR_GREEN}is-available <PACKAGE> [eq|ne|ge|gt|le|lt VERSION]${COLOR_OFF}
-      is PACKAGE available?
+${COLOR_GREEN}xcpkg ls-installed${COLOR_OFF}
+    list the installed packages.
 
-    ${COLOR_GREEN}is-installed <PACKAGE>${COLOR_OFF}
-      is PACKAGE installed?
+${COLOR_GREEN}xcpkg ls-outdated${COLOR_OFF}
+    list the outdated  packages.
 
-    ${COLOR_GREEN}is-outdated  <PACKAGE>${COLOR_OFF}
-      is PACKAGE outdated?
+${COLOR_GREEN}xcpkg is-available <PACKAGE> [eq|ne|ge|gt|le|lt VERSION]${COLOR_OFF}
+    is PACKAGE available?
 
-    ${COLOR_GREEN}search <KEYWORD>${COLOR_OFF}
-      search available packages.
-    
-    ${COLOR_GREEN}rule create <RULE>${COLOR_OFF}
-      create a new rule.
+${COLOR_GREEN}xcpkg is-installed <PACKAGE>${COLOR_OFF}
+    is PACKAGE installed?
 
-    ${COLOR_GREEN}rule delete <RULE>${COLOR_OFF}
-      delete a exist rule.
+${COLOR_GREEN}xcpkg is-outdated  <PACKAGE>${COLOR_OFF}
+    is PACKAGE outdated?
 
-    ${COLOR_GREEN}rule rename <R1> <R2>${COLOR_OFF}
-      rename a exist rule to new name.
+${COLOR_GREEN}xcpkg search <KEYWORD>${COLOR_OFF}
+    search available packages.
 
-    ${COLOR_GREEN}rule view <RULE>${COLOR_OFF}
-      view the given rule.
+${COLOR_GREEN}xcpkg rule create <RULE>${COLOR_OFF}
+    create a new rule.
 
-    ${COLOR_GREEN}rule edit <RULE>${COLOR_OFF}
-      edit the specified rule.
+${COLOR_GREEN}xcpkg rule delete <RULE>${COLOR_OFF}
+    delete a exist rule.
 
-    ${COLOR_GREEN}rule list${COLOR_OFF}
-      list rules.
+${COLOR_GREEN}xcpkg rule rename <R1> <R2>${COLOR_OFF}
+    rename a exist rule to new name.
 
-    ${COLOR_GREEN}formula create <PACKAGE>${COLOR_OFF}
-      create a new formula.
+${COLOR_GREEN}xcpkg rule view <RULE>${COLOR_OFF}
+    view the given rule.
 
-    ${COLOR_GREEN}formula delete <PACKAGE>${COLOR_OFF}
-      delete a exist formula.
+${COLOR_GREEN}xcpkg rule edit <RULE>${COLOR_OFF}
+    edit the specified rule.
 
-    ${COLOR_GREEN}formula rename <P1> <P2>${COLOR_OFF}
-      rename a exist formula to new name.
+${COLOR_GREEN}xcpkg rule list${COLOR_OFF}
+    list rules.
 
-    ${COLOR_GREEN}formula view <PACKAGE>${COLOR_OFF}
-      view the formula of the given package.
+${COLOR_GREEN}xcpkg formula create <PACKAGE>${COLOR_OFF}
+    create a new formula.
 
-    ${COLOR_GREEN}formula edit <PACKAGE>${COLOR_OFF}
-      edit the formula of the given package.
+${COLOR_GREEN}xcpkg formula delete <PACKAGE>${COLOR_OFF}
+    delete a exist formula.
 
-    ${COLOR_GREEN}formula list${COLOR_OFF}
-      list all formulas.
+${COLOR_GREEN}xcpkg formula rename <P1> <P2>${COLOR_OFF}
+    rename a exist formula to new name.
 
-    ${COLOR_GREEN}formula-repo [list]${COLOR_OFF}
-      list formula-repos.
+${COLOR_GREEN}xcpkg formula view <PACKAGE>${COLOR_OFF}
+    view the formula of the given package.
 
-    ${COLOR_GREEN}formula-repo add <NAME> <URL>${COLOR_OFF}
-      add a new formula-repo.
+${COLOR_GREEN}xcpkg formula edit <PACKAGE>${COLOR_OFF}
+    edit the formula of the given package.
 
-    ${COLOR_GREEN}formula-repo del <NAME>${COLOR_OFF}
-      delete a exist formula-repo.
+${COLOR_GREEN}xcpkg formula list${COLOR_OFF}
+    list all formulas.
 
-    ${COLOR_GREEN}tree <PACKAGE> [--dirsfirst | -L N]${COLOR_OFF}
-      list files of the given installed package in a tree-like format.
+${COLOR_GREEN}xcpkg formula-repo [list]${COLOR_OFF}
+    list formula-repos.
 
-    ${COLOR_GREEN}pack <PACKAGE> [--type=7z|zip|tar.gz|tar.xz|tar.bz2]${COLOR_OFF}
-      pack the installed package.
+${COLOR_GREEN}xcpkg formula-repo add <NAME> <URL>${COLOR_OFF}
+    add a new formula-repo.
 
-    ${COLOR_GREEN}logs <PACKAGE> <PLATFORM/ARCH>${COLOR_OFF}
-      show logs of the given installed package.
+${COLOR_GREEN}xcpkg formula-repo del <NAME>${COLOR_OFF}
+    delete a exist formula-repo.
 
-    ${COLOR_GREEN}info <PACKAGE> [KEY|--json]${COLOR_OFF}
-      show information of the given package.
+${COLOR_GREEN}xcpkg tree <PACKAGE> [--dirsfirst | -L N]${COLOR_OFF}
+    list files of the given installed package in a tree-like format.
 
-    ${COLOR_GREEN}info @all [--json]${COLOR_OFF}
-      show information of all the available packages.
+${COLOR_GREEN}xcpkg pack <PACKAGE> [--type=7z|zip|tar.gz|tar.xz|tar.bz2]${COLOR_OFF}
+    pack the installed package.
 
-    ${COLOR_GREEN}fetch <PACKAGE>${COLOR_OFF}
-      download formula resources of the given package to the cache.
+${COLOR_GREEN}xcpkg logs <PACKAGE> <PLATFORM/ARCH>${COLOR_OFF}
+    show logs of the given installed package.
 
-    ${COLOR_GREEN}depends <PACKAGE>${COLOR_OFF}
-      show the depends of the given package.
+${COLOR_GREEN}xcpkg info <PACKAGE> [KEY|--json]${COLOR_OFF}
+    show information of the given package.
 
-    ${COLOR_GREEN}homepage [--open] [PACKAGE]${COLOR_OFF}
-      show or open the homepage of the given package or this project in web browser.
+${COLOR_GREEN}xcpkg info @all [--json]${COLOR_OFF}
+    show information of all the available packages.
 
-    ${COLOR_GREEN}install   <PACKAGE>... [--rule=xx --jobs=N -v -d -x --dry-run --keep-work-dir]${COLOR_OFF}
-      install the given packages.
+${COLOR_GREEN}xcpkg fetch <PACKAGE>${COLOR_OFF}
+    download formula resources of the given package to the cache.
 
-    ${COLOR_GREEN}reinstall <PACKAGE>... [--rule=xx --jobs=N -v -d -x --dry-run --keep-work-dir]${COLOR_OFF}
-      reinstall the given packages.
+${COLOR_GREEN}xcpkg depends <PACKAGE>${COLOR_OFF}
+    show the depends of the given package.
 
-    ${COLOR_GREEN}upgrade [PACKAGE...] [--rule=xx --jobs=N -v -d -x --dry-run --keep-work-dir]${COLOR_OFF}
-      upgrade the given outdated packages.
+${COLOR_GREEN}xcpkg homepage [--open] [PACKAGE]${COLOR_OFF}
+    show or open the homepage of the given package or this project in web browser.
 
-    ${COLOR_GREEN}uninstall <PACKAGE>...${COLOR_OFF}
-      uninstall the given packages.
+${COLOR_GREEN}xcpkg install   <PACKAGE>... [--rule=xx --jobs=N -v -d -x --dry-run --keep-work-dir]${COLOR_OFF}
+    install the given packages.
 
-    ${COLOR_GREEN}create-framework <PACKAGE>...${COLOR_OFF}
-      create framework for packages.
+${COLOR_GREEN}xcpkg reinstall <PACKAGE>... [--rule=xx --jobs=N -v -d -x --dry-run --keep-work-dir]${COLOR_OFF}
+    reinstall the given packages.
+
+${COLOR_GREEN}xcpkg upgrade [PACKAGE...] [--rule=xx --jobs=N -v -d -x --dry-run --keep-work-dir]${COLOR_OFF}
+    upgrade the given outdated packages.
+
+${COLOR_GREEN}xcpkg uninstall <PACKAGE>...${COLOR_OFF}
+    uninstall the given packages.
+
+${COLOR_GREEN}xcpkg create-framework <PACKAGE>...${COLOR_OFF}
+    create framework for packages.
     "
 
     if [ -z "$1" ] ; then
@@ -6758,7 +6776,10 @@ main() {
                 *)    __show_infomation_of_the_given_package $@ ;;
             esac
             ;;
-
+        lolcat)
+            shift
+            lolcat_awk
+            ;;
         create-framework)
             shift
             __create_framework_for_the_given_packages $@
