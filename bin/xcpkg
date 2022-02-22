@@ -18,37 +18,48 @@ CURRENT_SCRIPT_FILEPATH="$CURRENT_SCRIPT_DIR/$CURRENT_SCRIPT_FILENAME"
 COLOR_RED='\033[0;31m'          # Red
 COLOR_GREEN='\033[0;32m'        # Green
 COLOR_YELLOW='\033[0;33m'       # Yellow
-COLOR_BLUE='\033[0;34m'         # Blue
+COLOR_BLUE='\033[0;94m'         # Blue
 COLOR_PURPLE='\033[0;35m'       # Purple
 COLOR_OFF='\033[0m'             # Reset
 
 print() {
-    printf "%b" "$*"
+    printf '%b' "$*"
 }
 
 echo() {
-    print "$*\n"
+    printf '%b\n' "$*"
 }
 
 info() {
-    echo "$COLOR_PURPLE==>$COLOR_OFF $COLOR_GREEN$@$COLOR_OFF"
+    printf '%b\n' "💠  $*"
 }
 
-success() {
-    print "${COLOR_GREEN}[✔] $*\n${COLOR_OFF}"
+note() {
+    printf '%b\n' "${COLOR_YELLOW}🔔  $*${COLOR_OFF}" >&2
 }
 
 warn() {
-    print "${COLOR_YELLOW}🔥  $*\n${COLOR_OFF}" >&2
+    printf '%b\n' "${COLOR_YELLOW}🔥  $*${COLOR_OFF}" >&2
+}
+
+success() {
+    printf '%b\n' "${COLOR_GREEN}[✔] $*${COLOR_OFF}"
 }
 
 error() {
-    print "${COLOR_RED}[✘] $*\n${COLOR_OFF}" >&2
+    printf '%b\n' "${COLOR_RED}💔  $*${COLOR_OFF}" >&2
 }
 
 die() {
-    print "${COLOR_RED}[✘] $*\n${COLOR_OFF}" >&2
+    printf '%b\n' "${COLOR_RED}💔  $*${COLOR_OFF}" >&2
     exit 1
+}
+
+bppend_to_PATH() {
+    case ":${PATH}:" in
+        *:"$1":*) ;;
+        *) export PATH="$1:$PATH" ;;
+    esac
 }
 
 # check if file exists
@@ -97,8 +108,15 @@ step() {
     echo "${COLOR_PURPLE}=>> STEP ${STEP_NUM} : ${STEP_MESSAGE} ${COLOR_OFF}"
 }
 
+step2() {
+    STEP2_NUM=$(expr ${STEP2_NUM-0} + 1)
+    STEP2_MESSAGE="$@"
+    echo
+    echo "${COLOR_BLUE}>>> STEP ${STEP_NUM}.${STEP2_NUM} : ${STEP2_MESSAGE} ${COLOR_OFF}"
+}
+
 run() {
-    info "$*"
+    echo "${COLOR_PURPLE}==>${COLOR_OFF} ${COLOR_GREEN}$@${COLOR_OFF}"
     eval "$*"
 }
 
@@ -115,6 +133,14 @@ list_length() {
 
 shiftn() {
     shift "$1" && shift && echo "$@"
+}
+
+globing() {
+    case $1 in
+        '')   ;;
+        \~/*) printf '%s\n' "$HOME/$(printf '%s\n' "$1" | cut -c3-)" ;;
+        *)    printf '%s\n' "$1"
+    esac
 }
 
 sed_in_place() {
@@ -229,6 +255,63 @@ format_unix_timestamp() {
    date -d      "@$1" "$2"
 }
 
+# https://equa.space/sh/lolcat/
+lolcat_awk() {
+    awk -v angle=45 -v angle_phase=40 -v reverse=0 -v offset=195 -v offset_phase=0 -v width=100 -v width_phase=8 "$@" '
+    function put_rgb(color) {
+        printf "\033[%s38;2;%d;%d;%dm", reverse ? "7;" : "", int(color[1] * 255), int(color[2] * 255), int(color[3] * 255);
+    }
+
+    function hsv_to_rgb(hsv, rgb, c, h2, x) {
+        c = hsv[2] * hsv[3];
+        h2 = hsv[1] * 6;
+        x = c * (1 - ((h2 % 2) - 1 > 0 ? (h2 % 2) - 1 : 1 - (h2 % 2)));
+        if (int(h2) % 6 == 0) {
+            rgb[1] = c; rgb[2] = x; rgb[3] = 0;
+        } else if (int(h2) % 6 == 1) {
+            rgb[1] = x; rgb[2] = c; rgb[3] = 0;
+        } else if (int(h2) % 6 == 2) {
+            rgb[1] = 0; rgb[2] = c; rgb[3] = x;
+        } else if (int(h2) % 6 == 3) {
+            rgb[1] = 0; rgb[2] = x; rgb[3] = c;
+        } else if (int(h2) % 6 == 4) {
+            rgb[1] = x; rgb[2] = 0; rgb[3] = c;
+        } else if (int(h2) % 6 == 5) {
+            rgb[1] = c; rgb[2] = 0; rgb[3] = x;
+        }
+
+        rgb[1] += hsv[2] - c;
+        rgb[2] += hsv[2] - c;
+        rgb[3] += hsv[2] - c;
+    }
+
+    BEGIN {
+        srand();
+        if (offset == "") offset = rand() * 360;
+    }
+
+    {
+        y = NR - 1;
+        for (x = 0; x < length($0); x++) {
+            for (i = 0; i < 3; i++) {
+                mult_x = cos((angle + i * angle_phase) / 57.2976);
+                mult_y = sin((angle + i * angle_phase) / 57.2976);
+                hsv[1] = (((x * mult_x + y * mult_y) / (width + width_phase * i)) % 1 + 1 + (offset + offset_phase * i) / 360) % 1;
+                hsv[2] = 0.8;
+                hsv[3] = 0.9;
+
+                hsv_to_rgb(hsv, trgb);
+                rgb[i + 1] = trgb[i + 1];
+            }
+
+            put_rgb(rgb);
+            printf("%s", substr($0, x + 1, 1));
+        }
+        print "\033[0m";
+    }
+    '
+}
+
 # }}}
 ##############################################################################
 # {{{ md5sum
@@ -309,13 +392,13 @@ die_if_sha256sum_mismatch() {
 
 # $1 map_name
 __map_name_ref() {
-    printf "map_%s\n" "$(printf '%s' "$1" | md5sum)"
+    printf "map_%s\n" "$(printf '%s\n' "$1" | md5sum)"
 }
 
 # $1 map_name
 # $2 key
 __map_key_ref() {
-    printf "%s_key_%s\n" "$(__map_name_ref "$1")" "$(printf '%s' "$2" | md5sum)"
+    printf "%s_key_%s\n" "$(__map_name_ref "$1")" "$(printf '%s\n' "$2" | md5sum)"
 }
 
 # $1 map_name
@@ -430,6 +513,7 @@ die_if_map_key__is_not_specified() {
 # fetch <URL> [--sha256=SHA256] <--output-dir=DIR> <--output-name=NAME>
 # fetch <URL> [--sha256=SHA256] <--output-dir=DIR> [--output-name=NAME]
 # fetch <URL> [--sha256=SHA256] [--output-dir=DIR] <--output-name=NAME>
+# fetch <URL> [--pipe=CMD]
 fetch() {
     unset FETCH_URL
     unset FETCH_SHA256
@@ -439,9 +523,13 @@ fetch() {
     unset FETCH_PIPE_TO_CMD
 
     if [ -z "$1" ] ; then
-        die "fetch() please specify a url."
+        die "fetch <URL> [OPTION]... , URL must not be empty."
     else
-        FETCH_URL="$1"
+        if [ "$COUNTRY" = 'china' ] ; then
+            FETCH_URL="$(get_china_mirror_url "$1")"
+        else
+            FETCH_URL="$1"
+        fi
     fi
 
     shift
@@ -455,25 +543,25 @@ fetch() {
             --output-dir=*)
                 FETCH_OUTPUT_DIR=$(getvalue "$1")
                 if [ -z "$FETCH_OUTPUT_DIR" ] ; then
-                    die "fetch() --output-dir argument's value must not be empty."
+                    die "fetch <URL> --output-dir=<DIR> , DIR must not be empty."
                 fi
                 ;;
             --output-name=*)
                 FETCH_OUTPUT_NAME=$(getvalue "$1")
                 if [ -z "$FETCH_OUTPUT_NAME" ] ; then
-                    die "fetch() --output-name argument's value must not be empty."
+                    die "fetch <URL> --output-name=<NAME> , NAME must not be empty."
                 fi
                 ;;
             --output-path=*)
                 FETCH_OUTPUT_PATH=$(getvalue "$1")
                 if [ -z "$FETCH_OUTPUT_PATH" ] ; then
-                    die "fetch() --output-path argument's value must not be empty."
+                    die "fetch <URL> --output-path=<FILEPATH> , FILEPATH must not be empty."
                 fi
                 ;;
             --pipe=*)
                 FETCH_PIPE_TO_CMD=$(getvalue "$1")
                 if [ -z "$FETCH_PIPE_TO_CMD" ] ; then
-                    die "fetch() --pipe=CMD argument's value must not be empty."
+                    die "fetch <URL> --pipe=<CMD> , CMD must not be empty."
                 fi
         esac
         shift
@@ -529,7 +617,7 @@ fetch() {
             if [ "$FETCH_OUTPUT_PATH" != '-' ] && [ -f "$FETCH_OUTPUT_PATH" ] ; then
                 if [ -n "$FETCH_SHA256" ] ; then
                     if file_exists_and_sha256sum_matched "$FETCH_OUTPUT_PATH" "$FETCH_SHA256" ; then
-                        success "$FETCH_OUTPUT_PATH already have been downloaded."
+                        success "$FETCH_OUTPUT_PATH already have been fetched."
                         return 0
                     fi
                 fi
@@ -546,8 +634,11 @@ fetch() {
             done
 
             if [ -z "$FETCH_TOOL" ] ; then
-                handle_dependency required exe curl
-                FETCH_TOOL=curl
+                if handle_dependency required exe curl ; then
+                    FETCH_TOOL=curl
+                else
+                    return 1
+                fi
             fi
 
             case $FETCH_TOOL in
@@ -621,52 +712,49 @@ install_ca_certificates_on_netbsd() {
 ##############################################################################
 # {{{ get_china_mirror_url
 
-contains_china_argument() {
-    for arg in $@
-    do
-        case $arg in
-            --china) return 0
-        esac
-    done
-    return 1
-}
-
-# get_china_mirror_url <ORIGIN_URL> [--china]
+# get_china_mirror_url <ORIGIN_URL>
 get_china_mirror_url() {
-    if [ -z "$1" ] ; then
-        die "get_china_mirror_url() please specify a url."
-    fi
-
-    if contains_china_argument $@ ; then
-        case $1 in
-            *githubusercontent.com*)
-                printf "%s" "$1" | sed 's@githubusercontent.com@githubusercontents.com@'
-                ;;
-            *github.com*)
-                printf "%s" "$1" | sed 's@github.com@github.com.cnpm.org@'
-                ;;
-        esac
-    else
-        printf "%s" "$1"
-    fi
+    case $1 in
+        *githubusercontent.com/*)
+            printf "%s\n" "$1" | sed 's@githubusercontent.com/@githubusercontents.com/@'
+            ;;
+        *github.com/*)
+            printf "%s\n" "$1" | sed 's@github.com/@hub.fastgit.org/@'
+            ;;
+        *)  printf '%s\n' "$1"
+    esac
 }
 
 # }}}
 ##############################################################################
 # {{{ __upgrade_self
 
-# __upgrade_self <UPGRAGE_URL> [-x | --china]
+# __upgrade_self <URL> [--china] [-x]
 __upgrade_self() {
     set -e
 
     if [ -z "$1" ] ; then
-        die "__upgrade_self() please specify a url."
+        die "__upgrade_self <URL> [--china] [-x] , URL must not be empty."
+    else
+        UPGRADE_SELF_URL="$1"
     fi
+
+    shift
+
+    unset XTRACE
+    unset COUNTRY
 
     for arg in $@
     do
         case $arg in
-            -x) set -x ; break
+            --xtrace|-x)
+                XTRACE=yes
+                set -x
+                ;;
+            --china)
+                COUNTRY=china
+                ;;
+            *)  die "__upgrade_self <URL> [--china] [-x] , unrecognized argument: $arg"
         esac
     done
 
@@ -687,12 +775,12 @@ __upgrade_self() {
         CURRENT_SCRIPT_REALPATH="$CURRENT_SCRIPT_FILEPATH"
     fi
 
-    info "mktemp -d"
+    echo "$COLOR_PURPLE==>$COLOR_OFF ${COLOR_GREEN}mktemp -d$COLOR_OFF"
     WORK_DIR=$(mktemp -d)
 
     run cd $WORK_DIR
 
-    fetch "$(get_china_mirror_url $@)" --output-path="$WORK_DIR/self"
+    fetch "$UPGRADE_SELF_URL" --output-path="$WORK_DIR/self"
 
     __upgrade_self_exit() {
         if [ -w "$CURRENT_SCRIPT_REALPATH" ] ; then
@@ -711,24 +799,48 @@ __upgrade_self() {
 ##############################################################################
 # {{{ __integrate_zsh_completions
 
-# __integrate_zsh_completions <ZSH_COMPLETIONS_SCRIPT_URL> [-x | --china]
+# __integrate_zsh_completions <URL> [--output-dir=<DIR>] [--china] [-x]
 __integrate_zsh_completions() {
     set -e
 
     if [ -z "$1" ] ; then
-        die "__integrate_zsh_completions() please specify a url."
+        die "__integrate_zsh_completions <URL> [--output-dir=<DIR>] [--china] [-x] , URL must not be empty."
+    else
+        ZSH_COMPLETIONS_SCRIPT_URL="$1"
     fi
+
+    shift
+
+    unset XTRACE
+    unset COUNTRY
+    unset OUTPUT_DIR
 
     for arg in $@
     do
         case $arg in
-            -x) set -x ; break
+            --xtrace|-x)
+                XTRACE=yes
+                set -x
+                ;;
+            --china)
+                COUNTRY=china
+                ;;
+            --output-dir=*)
+                OUTPUT_DIR=$(getvalue "$1")
+                if [ -z "$OUTPUT_DIR" ] ; then
+                    die "__integrate_zsh_completions <URL> [--output-dir=<DIR>] , DIR must not be empty."
+                fi
+                OUTPUT_DIR=$(globing "$OUTPUT_DIR")
+                ;;
+            *)  die "__integrate_zsh_completions <URL> [--output-dir=<DIR>] [--china] [-x] , unrecognized argument: $arg"
         esac
     done
 
     ZSH_COMPLETIONS_SCRIPT_FILENAME="_$CURRENT_SCRIPT_FILENAME"
 
-    if [ "$(uname)" = Linux ] && command -v termux-info > /dev/null && [ "$HOME" = '/data/data/com.termux/files/home' ] ; then
+    if [ -n "$OUTPUT_DIR" ] ; then
+        ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH="$OUTPUT_DIR/$ZSH_COMPLETIONS_SCRIPT_FILENAME"
+    elif [ "$(uname)" = Linux ] && command -v termux-info > /dev/null && [ "$HOME" = '/data/data/com.termux/files/home' ] ; then
         ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH="/data/data/com.termux/files/usr/share/zsh/site-functions/$ZSH_COMPLETIONS_SCRIPT_FILENAME"
     else
         ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH="/usr/local/share/zsh/site-functions/$ZSH_COMPLETIONS_SCRIPT_FILENAME"
@@ -747,12 +859,12 @@ __integrate_zsh_completions() {
         fi
     fi
 
-    info "mktemp -d"
+    echo "$COLOR_PURPLE==>$COLOR_OFF ${COLOR_GREEN}mktemp -d$COLOR_OFF"
     WORK_DIR=$(mktemp -d)
 
     run cd $WORK_DIR
 
-    fetch "$(get_china_mirror_url $@)" --output-path="$WORK_DIR/$ZSH_COMPLETIONS_SCRIPT_FILENAME"
+    fetch "$ZSH_COMPLETIONS_SCRIPT_URL" --output-path="$WORK_DIR/$ZSH_COMPLETIONS_SCRIPT_FILENAME"
 
     if [ -f "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH" ] ; then
         if [ -w "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH" ] ; then
@@ -774,7 +886,8 @@ __integrate_zsh_completions() {
 
     run rm -rf $WORK_DIR
 
-    echo "\n${COLOR_YELLOW}Note: you need to run command${COLOR_RED} ${COLOR_GREEN}autoload -U compinit && compinit${COLOR_OFF} ${COLOR_YELLOW}in zsh to make it work.${COLOR_OFF}"
+    printf '\n'
+    note "${COLOR_YELLOW}you need to run command${COLOR_RED} ${COLOR_GREEN}autoload -U compinit && compinit${COLOR_OFF} ${COLOR_YELLOW}in zsh to make it work.${COLOR_OFF}"
 }
 
 # }}}
@@ -1148,23 +1261,30 @@ version_of_python_module() {
 # retrive the version of a command from it's name or path
 version_of_command() {
     case $(basename "$1") in
+        xmake) "$1" --version 2> /dev/null | head -n 1 | cut -d '+' -f1 | cut -d 'v' -f2 ;;
         cmake) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f3 ;;
+         rake) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f3 ;;
          make) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f3 ;;
         gmake) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f3 ;;
        rustup) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f2 ;;
+       rustc)  "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f2 ;;
         cargo) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f2 ;;
            go) "$1"   version | cut -d ' ' -f3 | cut -c3- ;;
          tree) "$1" --version | cut -d ' ' -f2 | cut -c2- ;;
    pkg-config) "$1" --version 2> /dev/null | head -n 1 ;;
+     patchelf) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f2 ;;
        m4|gm4) "$1" --version 2> /dev/null | head -n 1 | awk '{print($NF)}';;
     autopoint) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f4 ;;
+     xgettext) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f4 ;;
      automake|aclocal)
                "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f4 ;;
      autoconf|autoheader|autom4te|autoreconf|autoscan|autoupdate|ifnames)
                "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f4 ;;
+     realpath) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f4 ;;
       libtool) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f4 ;;
    libtoolize|glibtoolize)
                "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f4 ;;
+  intltoolize) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f4 ;;
       objcopy) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f5 ;;
          flex) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f2 ;;
         bison) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f4 ;;
@@ -1174,8 +1294,13 @@ version_of_command() {
         patch) "$1" --version 2> /dev/null | head -n 1 | awk '{print($NF)}' ;;
         gperf) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f3 ;;
         groff) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f4 ;;
+     makeinfo) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f4 ;;
      help2man) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f3 ;;
+    gtkdocize) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f3 ;;
  sphinx-build) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f2 ;;
+ glib-mkenums) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f3 ;;
+ glib-compile-resources)
+               "$1" --version ;;
          file) "$1" --version 2> /dev/null | head -n 1 | cut -d '-' -f2 ;;
       itstool) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f2 ;;
        protoc) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f2 ;;
@@ -1184,6 +1309,7 @@ version_of_command() {
      xsltproc) ;;
      rst2man|rst2man.py|rst2man-3|rst2man-3.6|rst2man-3.7|rst2man-3.8|rst2man-3.9)
                "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f3 ;;
+         java) "$1"  -version 2>&1 | head -n 1 | cut -d ' ' -f3 | sed 's/"//g' ;;
          gzip) "$1" --version 2>&1 | head -n 1 | awk '{print($NF)}' ;;
          lzip) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f2 ;;
            xz) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f4 ;;
@@ -1207,6 +1333,7 @@ version_of_command() {
          grep) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f4 | cut -d '-' -f1 ;;
          ruby) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f2 ;;
          perl) "$1" -v | sed -n '2p' | sed 's/.*v\([0-9]\.[0-9][0-9]\.[0-9]\).*/\1/' ;;
+          lua) "$1" -v 2>/dev/null | head -n 1 | cut -d ' ' -f2 ;;
     python|python2|python3)
                "$1" --version 2>&1 | head -n 1 | cut -d ' ' -f2 ;;
          pip)  "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f2 ;;
@@ -1215,6 +1342,8 @@ version_of_command() {
           zsh) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f2 ;;
          bash) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f4 | cut -d '(' -f1 ;;
        base64) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f4 ;;
+      hexdump) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f4 ;;
+      sqlite3) "$1"  -version 2> /dev/null | head -n 1 | cut -d ' ' -f1 ;;
             *) "$1" --version 2> /dev/null | head -n 1
     esac
 }
@@ -1334,100 +1463,55 @@ command_exists_in_filesystem_and_version_matched() {
 
 # }}}
 ##############################################################################
-# {{{ package_manager
-
-# check if the version of give package match the condition
-#
-# condition:
-# eq  equal
-# ne  not equal
-# gt  greater than
-# lt  less than
-# ge  greater than or equal
-# le  less than or equal
-#
-# examples:
-# is_package_available_and_version_matched_in_package_manager apt automake eq 1.16.0
-# is_package_available_and_version_matched_in_package_manager apt automake lt 1.16.0
-# is_package_available_and_version_matched_in_package_manager apt automake gt 1.16.0
-# is_package_available_and_version_matched_in_package_manager apt automake le 1.16.0
-# is_package_available_and_version_matched_in_package_manager apt automake ge 1.16.0
-# is_package_available_and_version_matched_in_package_manager apt automake
-is_package_available_and_version_matched_in_package_manager() {
-    if is_package_available_in_package_manager "$1" "$2" ; then
-        if [ $# -eq 4 ] ; then
-            case $1 in
-                apt|apk|yum|dnf) version_match "$(get_package_version_by_package_name_in_package_manager "$1" "$2")" "$3" "$4" ;;
-                *)       return 0 ;;
-            esac
-        fi
-    else
-        return 1
-    fi
-}
-
-# check if the given package is in the given package manager's repo
-#
-# examples:
-# is_package_available_in_package_manager apt automake
-is_package_available_in_package_manager() {
-    case $1 in
-        #pkg) pkg show "$2" > /dev/null 2>&1 ;;
-        apt) apt show "$2" > /dev/null 2>&1 ;;
-        apk) apk info "$2" > /dev/null 2>&1 ;;
-        yum) yum info "$2" > /dev/null 2>&1 ;;
-        dnf) dnf info "$2" > /dev/null 2>&1 ;;
-    esac
-}
-
-# get the version of the given package in the given package manager's repo
-#
-# examples:
-# get_package_version_by_package_name_in_package_manager apt automake
-get_package_version_by_package_name_in_package_manager() {
-    case $1 in
-        pkg) pkg show "$2" 2> /dev/null | grep 'Version: '      | head -n 1 | cut -d ' ' -f2 | cut -d- -f1 ;;
-        apt) apt show "$2" 2> /dev/null | grep 'Version: '      | head -n 1 | cut -d ' ' -f2 | cut -d- -f1 ;;
-        apk) apk info "$2" 2> /dev/null | head -n 1 | cut -d ' ' -f1 | cut -d- -f2 ;;
-        yum) yum info "$2" 2> /dev/null | grep 'Version     :'  | head -n 1 | cut -d : -f2 | sed 's/^[[:space:]]//' ;;
-        dnf) dnf info "$2" 2> /dev/null | grep 'Version      :' | head -n 1 | cut -d : -f2 | sed 's/^[[:space:]]//' ;;
-    esac
-}
-
-# }}}
-##############################################################################
-# {{{ get_package_name_by_command_name_in_package_manager_XX
+# {{{ package manager wrapper, aka pmw
 
 # https://cygwin.com/packages/package_list.html
-get_package_name_by_command_name_in_package_manager_choco() {
+__pmw_get_available_package_name_by_command_name_choco() {
     case $1 in
-          go) echo 'golang' ;;
-      cc|gcc|c++|g++)
+        go)   echo 'golang' ;;
+        cc|gcc|c++|g++)
               echo 'gcc-g++';;
+        addr2line|ar|as|c++filt|dwp|elfedit|gold|gprof|ld|ld.bfd|ld.gold|nm|objcopy|objdump|ranlib|readelf|size|strings|strip)
+              echo 'binutils' ;;
        gmake) echo 'make'   ;;
          gm4) echo 'm4'     ;;
         gsed) echo 'gnu-sed';;
         find) echo 'findutils';;
         diff) echo 'diffutils';;
      objcopy) echo 'binutils' ;;
+    xsltproc) echo 'libxslt'  ;;
       protoc) echo 'protobuf' ;;
       ps2pdf) echo "ghostscript" ;;
+    hexdump)  echo 'util-linux' ;;
+    makeinfo) echo 'texinfo'  ;;
     sphinx-build) echo 'python38-sphinx' ;;
+    glib-mkenums) echo 'glib' ;;
+    glib-compile-resources)
+                  echo 'glib' ;;
     glibtool|libtoolize|glibtoolize)
                 echo "libtool"  ;;
     autoreconf) echo "autoconf" ;;
     autoheader) echo "automake" ;;
     autopoint)  echo "gettext"  ;;
+     xgettext)  echo "gettext"  ;;
+    intltoolize)echo "intltool" ;;
+    gtkdocize)  echo "gtk-doc"  ;;
+    gdk-pixbuf-query-loaders)
+                echo 'gdk-pixbuf' ;;
+    gpasm|gpdasm|gplib|gplink|gpstrip|gpvc|gpvo)
+                echo 'gputils' ;;
         *)      echo "$1"
     esac
 }
 
-get_package_name_by_command_name_in_package_manager_pkg_add() {
+__pmw_get_available_package_name_by_command_name_pkg_add() {
     case $1 in
           go) echo 'golang';;
           cc) echo 'gcc'   ;;
          c++) echo 'g++'   ;;
      clang++) echo 'clang' ;;
+        addr2line|ar|as|c++filt|dwp|elfedit|gold|gprof|ld|ld.bfd|ld.gold|nm|objcopy|objdump|ranlib|readelf|size|strings|strip)
+              echo 'binutils' ;;
          gm4) echo 'm4'    ;;
         make) echo 'gmake' ;;
         perl) echo 'perl5' ;;
@@ -1436,10 +1520,13 @@ get_package_name_by_command_name_in_package_manager_pkg_add() {
         diff) echo 'diffutils';;
     realpath) echo 'coreutils';;
      objcopy) echo 'binutils' ;;
-  7z|7za|7zr) echo 'p7zip' ;;
+  7z|7za|7zr) echo 'p7zip'    ;;
+    xsltproc) echo 'libxslt'  ;;
       protoc) echo 'protobuf' ;;
       ps2pdf) echo "ghostscript" ;;
+    hexdump)  echo 'util-linux' ;;
     pip3|pip) echo 'py3-pip' ;;
+    makeinfo) echo 'texinfo' ;;
     libtool|libtoolize|glibtool|glibtoolize)
               echo "libtool" ;;
     autoreconf|autoconf|autoreconf-2.69|autoconf-2.69)
@@ -1451,17 +1538,29 @@ get_package_name_by_command_name_in_package_manager_pkg_add() {
                 echo "automake-1.16.2"
             fi
             ;;
-    autopoint) echo "gettext" ;;
-    pkg-config) echo "pkgconf" ;;
+    glib-mkenums) echo 'glib' ;;
+    glib-compile-resources)
+                  echo 'glib' ;;
+    autopoint)    echo "gettext" ;;
+     xgettext)    echo "gettext" ;;
+    intltoolize)  echo "intltool";;
+    gtkdocize)    echo "gtk-doc" ;;
+    pkg-config)   echo "pkgconf" ;;
+    gdk-pixbuf-query-loaders)
+                echo 'gdk-pixbuf' ;;
+    gpasm|gpdasm|gplib|gplink|gpstrip|gpvc|gpvo)
+                echo 'gputils' ;;
         *) echo "$1"
     esac
 }
 
-get_package_name_by_command_name_in_package_manager_pkgin() {
+__pmw_get_available_package_name_by_command_name_pkgin() {
     case $1 in
           cc) echo 'gcc'   ;;
          c++) echo 'g++'   ;;
      clang++) echo 'clang' ;;
+        addr2line|ar|as|c++filt|dwp|elfedit|gold|gprof|ld|ld.bfd|ld.gold|nm|objcopy|objdump|ranlib|readelf|size|strings|strip)
+              echo 'binutils' ;;
          gm4) echo 'm4'    ;;
         make) echo 'gmake' ;;
         perl) echo 'perl5' ;;
@@ -1470,27 +1569,44 @@ get_package_name_by_command_name_in_package_manager_pkgin() {
         diff) echo 'diffutils';;
      objcopy) echo 'binutils' ;;
     realpath) echo 'coreutils';;
-  7z|7za|7zr) echo 'p7zip' ;;
+  7z|7za|7zr) echo 'p7zip'    ;;
+    xsltproc) echo 'libxslt'  ;;
       protoc) echo 'protobuf' ;;
       ps2pdf) echo "ghostscript" ;;
-    pip3|pip) echo 'py38-pip'  ;;
+    hexdump)  echo 'util-linux' ;;
+    makeinfo) echo 'texinfo'  ;;
+    pip3|pip) echo 'py38-pip' ;;
     python3)  echo 'python38' ;;
+    glib-mkenums) echo 'glib' ;;
+    glib-compile-resources)
+                  echo 'glib' ;;
     glibtool|libtoolize|glibtoolize)
                 echo "libtool"  ;;
     autoreconf) echo "autoconf" ;;
     autoheader) echo "automake" ;;
     autopoint)  echo "gettext"  ;;
+     xgettext)  echo "gettext"  ;;
+    intltoolize)echo "intltool" ;;
+    gtkdocize)  echo "gtk-doc"  ;;
     pkg-config) echo "pkgconf"  ;;
+    gdk-pixbuf-query-loaders)
+                echo 'gdk-pixbuf' ;;
+    gpasm|gpdasm|gplib|gplink|gpstrip|gpvc|gpvo)
+                echo 'gputils' ;;
         *)      echo "$1"
     esac
 }
 
-get_package_name_by_command_name_in_package_manager_pkg() {
+__pmw_get_available_package_name_by_command_name_pkg() {
     case $1 in
           go) echo 'golang';;
           cc) echo 'gcc'   ;;
          c++) echo 'g++'   ;;
      clang++) echo 'clang' ;;
+        addr2line|ar|as|c++filt|dwp|elfedit|gold|gprof|ld|ld.bfd|ld.gold|nm|objcopy|objdump|ranlib|readelf|size|strings|strip)
+              echo 'binutils' ;;
+        java) echo 'openjdk-17' ;;
+         lua) echo 'lua54' ;;
          gm4) echo 'm4'    ;;
         make) echo 'gmake' ;;
         perl) echo 'perl5' ;;
@@ -1498,74 +1614,115 @@ get_package_name_by_command_name_in_package_manager_pkg() {
         find) echo 'findutils';;
         diff) echo 'diffutils';;
      objcopy) echo 'binutils' ;;
-  7z|7za|7zr) echo 'p7zip' ;;
+  7z|7za|7zr) echo 'p7zip'    ;;
+    xsltproc) echo 'libxslt'  ;;
       protoc) echo 'protobuf' ;;
       ps2pdf) echo "ghostscript" ;;
+    hexdump)  echo 'util-linux' ;;
+    makeinfo) echo 'texinfo'  ;;
     pip3|pip) echo 'py38-pip' ;;
+    glib-mkenums) echo 'glib' ;;
+    glib-compile-resources)
+                  echo 'glib' ;;
     libtool|libtoolize|glibtool|glibtoolize)
                 echo "libtool"  ;;
     autoreconf) echo "autoconf" ;;
     autoheader) echo "automake" ;;
     autopoint)  echo "gettext"  ;;
+     xgettext)  echo "gettext"  ;;
+    intltoolize)echo "intltool" ;;
+    gtkdocize)  echo "gtk-doc"  ;;
     pkg-config) echo "pkgconf"  ;;
+    gdk-pixbuf-query-loaders)
+                echo 'gdk-pixbuf' ;;
+    gpasm|gpdasm|gplib|gplink|gpstrip|gpvc|gpvo)
+                echo 'gputils' ;;
         *)      echo "$1"
     esac
 }
 
-get_package_name_by_command_name_in_package_manager_emerge() {
+__pmw_get_available_package_name_by_command_name_emerge() {
     case $1 in
           cc) echo 'gcc'   ;;
          c++) echo 'g++'   ;;
      clang++) echo 'clang' ;;
+        addr2line|ar|as|c++filt|dwp|elfedit|gold|gprof|ld|ld.bfd|ld.gold|nm|objcopy|objdump|ranlib|readelf|size|strings|strip)
+              echo 'binutils' ;;
          gm4) echo 'm4'    ;;
         gsed) echo 'gnu-sed'  ;;
         find) echo 'findutils';;
         diff) echo 'diffutils';;
      objcopy) echo 'binutils' ;;
-  7z|7za|7zr) echo 'p7zip' ;;
+  7z|7za|7zr) echo 'p7zip'    ;;
+    xsltproc) echo 'libxslt'  ;;
       protoc) echo 'protobuf' ;;
       ps2pdf) echo "ghostscript" ;;
-      xz)     echo 'xz-utils' ;;
-      tree)   echo 'app-text/tree' ;;
-      rst2man|rst2html)
-              echo "docutils" ;;
-    sphinx-build)
-              echo "sphinx" ;;
-    pip3|pip) echo "dev-python/pip" ;;
+    hexdump)  echo 'util-linux' ;;
+    makeinfo) echo 'texinfo'  ;;
+    xz)       echo 'xz-utils' ;;
+    tree)     echo 'app-text/tree' ;;
+    rst2man|rst2html)
+                  echo "docutils" ;;
+    sphinx-build) echo "sphinx" ;;
+    pip3|pip)     echo "dev-python/pip" ;;
+    glib-mkenums) echo 'glib' ;;
+    glib-compile-resources)
+                  echo 'glib' ;;
     libtool|libtoolize|glibtool|glibtoolize)
                 echo "libtool"  ;;
     autoreconf) echo "autoconf" ;;
     autoheader) echo "automake" ;;
     autopoint)  echo "gettext"  ;;
+     xgettext)  echo "gettext"  ;;
+    intltoolize)echo "intltool" ;;
+    gtkdocize)  echo "gtk-doc"  ;;
     pkg-config) echo "pkgconf"  ;;
+    gdk-pixbuf-query-loaders)
+                echo 'gdk-pixbuf' ;;
+    gpasm|gpdasm|gplib|gplink|gpstrip|gpvc|gpvo)
+                echo 'gputils' ;;
         *)      echo "$1"
     esac
 }
 
-__get_package_name_by_command_name_in_package_manager_pacman() {
+__pmw_get_available_package_name_by_command_name_pacman() {
     case $1 in
           cc) echo 'gcc'   ;;
          c++) echo 'g++'   ;;
      clang++) echo 'clang' ;;
+        addr2line|ar|as|c++filt|dwp|elfedit|gold|gprof|ld|ld.bfd|ld.gold|nm|objcopy|objdump|ranlib|readelf|size|strings|strip)
+              echo 'binutils' ;;
          gm4) echo 'm4'    ;;
         gsed) echo 'gnu-sed'  ;;
         find) echo 'findutils';;
         diff) echo 'diffutils';;
      objcopy) echo 'binutils' ;;
-  7z|7za|7zr) echo 'p7zip' ;;
+  7z|7za|7zr) echo 'p7zip'    ;;
+    xsltproc) echo 'libxslt'  ;;
       protoc) echo 'protobuf' ;;
       ps2pdf) echo "ghostscript" ;;
-      rst2man|rst2html)
-              echo "python-docutils" ;;
-    sphinx-build)
-              echo "python-sphinx" ;;
-    pip3|pip) echo "python-pip" ;;
+    makeinfo) echo 'texinfo'  ;;
+    hexdump)  echo 'util-linux' ;;
+    rst2man|rst2html)
+                  echo "python-docutils" ;;
+    sphinx-build) echo "python-sphinx" ;;
+    pip3|pip)     echo "python-pip" ;;
+    glib-mkenums) echo 'glib' ;;
+    glib-compile-resources)
+                  echo 'glib' ;;
     libtool|libtoolize|glibtool|glibtoolize)
                 echo "libtool"  ;;
     autoreconf) echo "autoconf" ;;
     autoheader) echo "automake" ;;
     autopoint)  echo "gettext"  ;;
+     xgettext)  echo "gettext"  ;;
+    intltoolize)echo "intltool" ;;
+    gtkdocize)  echo "gtk-doc"  ;;
     pkg-config) echo "pkgconf"  ;;
+    gdk-pixbuf-query-loaders)
+                echo 'gdk-pixbuf' ;;
+    gpasm|gpdasm|gplib|gplink|gpstrip|gpvc|gpvo)
+                echo 'gputils' ;;
         *)      echo "$1"
     esac
 }
@@ -1586,165 +1743,241 @@ __mingw_w64_x86_64() {
     fi
 }
 
-get_package_name_by_command_name_in_package_manager_pacman() {
+__pmw_get_available_package_name_by_command_name_pacman() {
     if [ "$1" = 'make' ] || [ "$1" = 'gmake' ] ; then
         echo make
     fi
     case $NATIVE_OS_SUBS in
-        mingw32) __mingw_w64_i686   $(__get_package_name_by_command_name_in_package_manager_pacman "$1") ;;
-        mingw64) __mingw_w64_x86_64 $(__get_package_name_by_command_name_in_package_manager_pacman "$1") ;;
-        *) __get_package_name_by_command_name_in_package_manager_pacman "$1"
+        mingw32) __mingw_w64_i686   $(__pmw_get_available_package_name_by_command_name_pacman "$1") ;;
+        mingw64) __mingw_w64_x86_64 $(__pmw_get_available_package_name_by_command_name_pacman "$1") ;;
+        *) __pmw_get_available_package_name_by_command_name_pacman "$1"
     esac
 }
 
-get_package_name_by_command_name_in_package_manager_xbps() {
+__pmw_get_available_package_name_by_command_name_xbps() {
     case $1 in
           cc) echo 'gcc'   ;;
          c++) echo 'g++'   ;;
      clang++) echo 'clang' ;;
+        addr2line|ar|as|c++filt|dwp|elfedit|gold|gprof|ld|ld.bfd|ld.gold|nm|objcopy|objdump|ranlib|readelf|size|strings|strip)
+              echo 'binutils' ;;
          gm4) echo 'm4'    ;;
         gsed) echo 'gnu-sed'  ;;
         find) echo 'findutils';;
         diff) echo 'diffutils';;
      objcopy) echo 'binutils' ;;
     realpath) echo 'coreutils';;
-  7z|7za|7zr) echo 'p7zip' ;;
+  7z|7za|7zr) echo 'p7zip'    ;;
+    xsltproc) echo 'libxslt'  ;;
       protoc) echo 'protobuf' ;;
       ps2pdf) echo "ghostscript" ;;
+    hexdump)  echo 'util-linux' ;;
+    makeinfo) echo 'texinfo'  ;;
     pip|pip3) echo "python3-pip" ;;
     rst2man|rst2html)
               echo "python3-docutils" ;;
+    glib-mkenums) echo 'glib2' ;;
+    glib-compile-resources)
+                  echo 'glib2' ;;
     glibtool|libtoolize|glibtoolize)
                 echo "libtool"  ;;
     autoreconf) echo "autoconf" ;;
     autoheader) echo "automake" ;;
     autopoint)  echo "gettext"  ;;
+     xgettext)  echo "gettext"  ;;
+    intltoolize)echo "intltool" ;;
+    gtkdocize)  echo "gtk-doc"  ;;
     pkg-config) echo "pkgconf"  ;;
+    gdk-pixbuf-query-loaders)
+                echo 'gdk-pixbuf' ;;
+    gpasm|gpdasm|gplib|gplink|gpstrip|gpvc|gpvo)
+                echo 'gputils' ;;
         *)      echo "$1"
     esac
 }
 
-get_package_name_by_command_name_in_package_manager_apk() {
+__pmw_get_available_package_name_by_command_name_apk() {
     case $1 in
           cc) echo 'gcc'   ;;
          c++) echo 'g++'   ;;
      clang++) echo 'clang' ;;
+        addr2line|ar|as|c++filt|dwp|elfedit|gold|gprof|ld|ld.bfd|ld.gold|nm|objcopy|objdump|ranlib|readelf|size|strings|strip)
+              echo 'binutils' ;;
          gm4) echo 'm4'    ;;
         gsed) echo 'gnu-sed'  ;;
         find) echo 'findutils';;
         diff) echo 'diffutils';;
      objcopy) echo 'binutils' ;;
     realpath) echo 'coreutils';;
-  7z|7za|7zr) echo 'p7zip' ;;
+  7z|7za|7zr) echo 'p7zip'    ;;
+    xsltproc) echo 'libxslt'  ;;
       protoc) echo 'protobuf' ;;
       ps2pdf) echo "ghostscript" ;;
-    pip3|pip) echo 'py3-pip' ;;
+    hexdump)  echo 'util-linux' ;;
+    makeinfo) echo 'texinfo'  ;;
+    pip3|pip) echo 'py3-pip'  ;;
     rst2man|rst2html)
               echo "py3-docutils" ;;
-    sphinx-build)
-              echo "sphinx"  ;;
+    sphinx-build) echo "sphinx" ;;
+    glib-mkenums) echo 'glib' ;;
+    glib-compile-resources)
+                  echo 'glib' ;;
     glibtool|libtoolize|glibtoolize)
                 echo "libtool"  ;;
     autoreconf) echo "autoconf" ;;
     autoheader) echo "automake" ;;
     autopoint)  echo "gettext"  ;;
+     xgettext)  echo "gettext"  ;;
+    intltoolize)echo "intltool" ;;
+    gtkdocize)  echo "gtk-doc"  ;;
     pkg-config) echo "pkgconf"  ;;
+    gdk-pixbuf-query-loaders)
+                echo 'gdk-pixbuf' ;;
+    gpasm|gpdasm|gplib|gplink|gpstrip|gpvc|gpvo)
+                echo 'gputils' ;;
         *) echo "$1"
     esac
 }
 
-get_package_name_by_command_name_in_package_manager_zypper() {
+__pmw_get_available_package_name_by_command_name_zypper() {
     case $1 in
           cc) echo 'gcc'   ;;
          c++) echo 'gcc-g++';;
      clang++) echo 'clang' ;;
+        addr2line|ar|as|c++filt|dwp|elfedit|gold|gprof|ld|ld.bfd|ld.gold|nm|objcopy|objdump|ranlib|readelf|size|strings|strip)
+              echo 'binutils' ;;
          gm4) echo 'm4'    ;;
         gsed) echo 'gnu-sed'  ;;
         find) echo 'findutils';;
         diff) echo 'diffutils';;
      objcopy) echo 'binutils' ;;
     realpath) echo 'coreutils';;
-  7z|7za|7zr) echo 'p7zip' ;;
+  7z|7za|7zr) echo 'p7zip'    ;;
+    xsltproc) echo 'libxslt'  ;;
       protoc) echo 'protobuf' ;;
       ps2pdf) echo "ghostscript" ;;
-      rst2man|rst2html)
-              echo "python3-docutils" ;;
-    sphinx-build)
-              echo "python3-Sphinx" ;;
-    pip3|pip) echo "python3-pip" ;;
+    hexdump)  echo 'util-linux' ;;
+    makeinfo) echo 'texinfo'  ;;
+    rst2man|rst2html)
+                  echo "python3-docutils" ;;
+    sphinx-build) echo "python3-Sphinx" ;;
+    pip3|pip)     echo "python3-pip" ;;
+    glib-mkenums) echo 'glib' ;;
+    glib-compile-resources)
+                  echo 'glib' ;;
     glibtool|libtoolize|glibtoolize)
                 echo "libtool"  ;;
     autoreconf) echo "autoconf" ;;
     autoheader) echo "automake" ;;
     autopoint)  echo "gettext"  ;;
+     xgettext)  echo "gettext"  ;;
     autopoint)  echo "gettext"  ;;
+    intltoolize)echo "intltool" ;;
+    gtkdocize)  echo "gtk-doc"  ;;
+    gdk-pixbuf-query-loaders)
+                echo 'gdk-pixbuf' ;;
+    gpasm|gpdasm|gplib|gplink|gpstrip|gpvc|gpvo)
+                echo 'gputils' ;;
         *)      echo "$1"
     esac
 }
 
-get_package_name_by_command_name_in_package_manager_dnf() {
+__pmw_get_available_package_name_by_command_name_dnf() {
     case $1 in
           go) echo 'golang';;
           cc) echo 'gcc'   ;;
          c++) echo 'g++'   ;;
      clang++) echo 'clang' ;;
+        addr2line|ar|as|c++filt|dwp|elfedit|gold|gprof|ld|ld.bfd|ld.gold|nm|objcopy|objdump|ranlib|readelf|size|strings|strip)
+              echo 'binutils' ;;
          gm4) echo 'm4'    ;;
         gsed) echo 'gnu-sed'  ;;
         find) echo 'findutils';;
         diff) echo 'diffutils';;
      objcopy) echo 'binutils' ;;
     realpath) echo 'coreutils';;
-  7z|7za|7zr) echo 'p7zip' ;;
+  7z|7za|7zr) echo 'p7zip'    ;;
+    xsltproc) echo 'libxslt'  ;;
       protoc) echo 'protobuf' ;;
       ps2pdf) echo "ghostscript" ;;
-      rst2man|rst2html)
-              echo "python3-docutils" ;;
-    sphinx-build)
-              echo "python3-sphinx" ;;
+    hexdump)  echo 'util-linux' ;;
+    makeinfo) echo 'texinfo'  ;;
+    rst2man|rst2html)
+                  echo "python3-docutils" ;;
+    sphinx-build) echo "python3-sphinx" ;;
+    glib-mkenums) echo 'glib2-devel' ;;
+    glib-compile-resources)
+                  echo 'glib2-devel' ;;
     glibtool|libtoolize|glibtoolize)
                 echo "libtool"  ;;
     autoreconf) echo "autoconf" ;;
     autoheader) echo "automake" ;;
     autopoint)  echo "gettext"  ;;
+     xgettext)  echo "gettext"  ;;
+    intltoolize)echo "intltool" ;;
+    gtkdocize)  echo "gtk-doc"  ;;
+    gdk-pixbuf-query-loaders)
+                echo 'gdk-pixbuf' ;;
+    gpasm|gpdasm|gplib|gplink|gpstrip|gpvc|gpvo)
+                echo 'gputils' ;;
         *)      echo "$1"
     esac
 }
 
-get_package_name_by_command_name_in_package_manager_yum() {
+__pmw_get_available_package_name_by_command_name_yum() {
     case $1 in
           go) echo 'golang';;
           cc) echo 'gcc'   ;;
          c++) echo 'gcc-g++';;
      clang++) echo 'clang' ;;
+        addr2line|ar|as|c++filt|dwp|elfedit|gold|gprof|ld|ld.bfd|ld.gold|nm|objcopy|objdump|ranlib|readelf|size|strings|strip)
+              echo 'binutils' ;;
          gm4) echo 'm4'    ;;
         gsed) echo 'gnu-sed'  ;;
         find) echo 'findutils';;
         diff) echo 'diffutils';;
      objcopy) echo 'binutils' ;;
     realpath) echo 'coreutils';;
-  7z|7za|7zr) echo 'p7zip' ;;
+  7z|7za|7zr) echo 'p7zip'    ;;
+    xsltproc) echo 'libxslt'  ;;
       protoc) echo 'protobuf' ;;
       ps2pdf) echo "ghostscript" ;;
+    hexdump)  echo 'util-linux' ;;
+    makeinfo) echo 'texinfo'  ;;
     sphinx-build) echo "python-sphinx" ;;
+    glib-mkenums) echo 'glib2-devel' ;;
+    glib-compile-resources)
+                  echo 'glib2-devel' ;;
     glibtool|libtoolize|glibtoolize)
                 echo "libtool"  ;;
     autoreconf) echo "autoconf" ;;
     autoheader) echo "automake" ;;
     autopoint)  echo "gettext"  ;;
+     xgettext)  echo "gettext"  ;;
+    intltoolize)echo "intltool" ;;
+    gtkdocize)  echo "gtk-doc"  ;;
+    gdk-pixbuf-query-loaders)
+                echo 'gdk-pixbuf' ;;
+    gpasm|gpdasm|gplib|gplink|gpstrip|gpvc|gpvo)
+                echo 'gputils' ;;
         *)      echo "$1"
     esac
 }
 
-get_package_name_by_command_name_in_package_manager_apt_get() {
-    get_package_name_by_command_name_in_package_manager_apt $@
+__pmw_get_available_package_name_by_command_name_apt_get() {
+    __pmw_get_available_package_name_by_command_name_apt $@
 }
 
-get_package_name_by_command_name_in_package_manager_apt() {
+__pmw_get_available_package_name_by_command_name_apt() {
     case $1 in
           go) echo 'golang';;
           cc) echo 'gcc'   ;;
          c++) echo 'g++'   ;;
      clang++) echo 'clang' ;;
+        addr2line|ar|as|c++filt|dwp|elfedit|gold|gprof|ld|ld.bfd|ld.gold|nm|objcopy|objdump|ranlib|readelf|size|strings|strip)
+              echo 'binutils' ;;
+        java) echo 'openjdk-17-jdk' ;;
+         lua) echo 'lua5.3';;
          gm4) echo 'm4'    ;;
         gsed) echo 'gnu-sed'  ;;
         find) echo 'findutils';;
@@ -1755,16 +1988,32 @@ get_package_name_by_command_name_in_package_manager_apt() {
   7z|7za|7zr) echo 'p7zip' ;;
       protoc) echo 'protobuf' ;;
       ps2pdf) echo "ghostscript" ;;
+    hexdump)  echo 'bsdmainutils';;
+    makeinfo) echo 'texinfo'  ;;
     pip3|pip) echo "python3-pip" ;;
     rst2man|rst2html)
               echo "python3-docutils" ;;
     sphinx-build)
               echo "python3-sphinx" ;;
-    glibtool|libtoolize|glibtoolize)
+    grpc_cpp_plugin)
+              echo "libgrpc" ;;
+    glib-mkenums)
+              echo 'libglib2.0-dev' ;;
+    glib-compile-resources)
+                  echo 'libglib2.0-dev-bin' ;;
+    libtoolize|glibtoolize)
                 echo "libtool"  ;;
+    libtool)    echo "libtool-bin" ;;
     autoreconf) echo "autoconf" ;;
     autoheader) echo "automake" ;;
     autopoint)  echo "gettext"  ;;
+     xgettext)  echo "gettext"  ;;
+    intltoolize)echo "intltool" ;;
+    gtkdocize)  echo "gtk-doc-tools" ;;
+    gdk-pixbuf-query-loaders)
+                echo 'libgdk-pixbuf2.0-bin' ;;
+    gpasm|gpdasm|gplib|gplink|gpstrip|gpvc|gpvo)
+                echo 'gputils' ;;
         ninja)
             if [ "$NATIVE_OS_SUBS" = termux ] ; then
                 echo ninja
@@ -1776,104 +2025,115 @@ get_package_name_by_command_name_in_package_manager_apt() {
     esac
 }
 
-get_package_name_by_command_name_in_package_manager_brew() {
+__pmw_get_available_package_name_by_command_name_brew() {
     case $1 in
           cc) echo 'gcc'   ;;
          c++) echo 'g++'   ;;
      clang++) echo 'clang' ;;
+        addr2line|ar|as|c++filt|dwp|elfedit|gold|gprof|ld|ld.bfd|ld.gold|nm|objcopy|objdump|ranlib|readelf|size|strings|strip)
+              echo 'binutils' ;;
          gm4) echo 'm4'    ;;
         gsed) echo 'gnu-sed'  ;;
         find) echo 'findutils';;
         diff) echo 'diffutils';;
      objcopy) echo 'binutils' ;;
     realpath) echo 'coreutils';;
-  7z|7za|7zr) echo 'p7zip' ;;
+  7z|7za|7zr) echo 'p7zip'    ;;
+    xsltproc) echo 'libxslt'  ;;
       protoc) echo 'protobuf' ;;
       ps2pdf) echo "ghostscript" ;;
-     rst2man.py|rst2html.py)
+    hexdump)  echo 'util-linux' ;;
+    makeinfo) echo 'texinfo'  ;;
+    rst2man.py|rst2html.py)
               echo "docutils" ;;
     grpc_cpp_plugin)
-                echo "grpc" ;;
+              echo "grpc" ;;
+    glib-mkenums)
+              echo 'glib' ;;
+    glib-compile-resources)
+              echo 'glib' ;;
     glibtool|libtoolize|glibtoolize)
                 echo "libtool"  ;;
     autoreconf) echo "autoconf" ;;
     autoheader) echo "automake" ;;
     autopoint)  echo "gettext"  ;;
+     xgettext)  echo "gettext"  ;;
+    intltoolize)echo "intltool" ;;
+    gtkdocize)  echo "gtk-doc"  ;;
     python|python3)
                 echo 'python@3.9' ;;
+    gdk-pixbuf-query-loaders)
+                echo 'gdk-pixbuf' ;;
+    gpasm|gpdasm|gplib|gplink|gpstrip|gpvc|gpvo)
+                echo 'gputils' ;;
         *)      echo "$1"
     esac
 }
 
-get_package_name_by_command_name_in_package_manager_pip3() {
-    get_package_name_by_command_name_in_package_manager_pip $@
-}
-
-get_package_name_by_command_name_in_package_manager_pip() {
+__pmw_get_available_package_name_by_command_name_cargo() {
     case $1 in
-        sphinx-build) echo "sphinx"   ;;
-        rst2man.py)   echo "docutils" ;;
+        cargo-capi|cargo-cbuild|cargo-cinstall|cargo-ctest)
+            echo 'cargo-c' ;;
     esac
 }
 
-# }}}
-##############################################################################
-# {{{ __get_available_package_manager_list
-
-__add_available_package_manager() {
-    if command_exists_in_filesystem "$1" ; then
-        if [ -z "$AVAILABLE_PACKAGE_MANAGER_LIST" ] ; then
-            AVAILABLE_PACKAGE_MANAGER_LIST="$2"
-        else
-            AVAILABLE_PACKAGE_MANAGER_LIST="$AVAILABLE_PACKAGE_MANAGER_LIST $2"
-        fi
-    fi
+__pmw_get_available_package_name_by_command_name_pip3() {
+    __pmw_get_available_package_name_by_command_name_pip $@
 }
 
-__get_available_package_manager_list() {
-    if [ -z "$AVAILABLE_PACKAGE_MANAGER_LIST" ] ; then
-        for pm in brew apt dnf zypper apk xbps-install emerge pacman choco pkg pkgin pkg_add
-        do
-            case $pm in
-                apt)
-                    if command_exists_in_filesystem apt && apt show apt > /dev/null 2>&1 ; then
-                        __add_available_package_manager apt apt
-                    else
-                        __add_available_package_manager apt-get apt-get
-                    fi
-                    ;;
-                dnf)
-                    if command_exists_in_filesystem dnf ; then
-                        __add_available_package_manager dnf dnf
-                    else
-                        __add_available_package_manager yum yum
-                    fi
-                    ;;
-                xbps-install)
-                    __add_available_package_manager xbps-install xbps
-                    ;;
-                *)  __add_available_package_manager "$pm" "$pm"
-            esac
-        done
-    fi
-    echo "$AVAILABLE_PACKAGE_MANAGER_LIST"
+__pmw_get_available_package_name_by_command_name_pip() {
+    case $1 in
+        sphinx-build) echo "sphinx"   ;;
+        rst2man.py)   echo "docutils" ;;
+        meson)        echo "meson" ;;
+    esac
 }
 
-# }}}
-##############################################################################
-# {{{ __install_required
+__pmw_get_available_pm_list() {
+    for pm in brew pkg apt apt-get dnf yum zypper apk xbps emerge pacman choco pkgin pkg_add cargo
+    do
+        case $pm in
+            apt)
+                if command_exists_in_filesystem apt && apt show apt > /dev/null 2>&1 ; then
+                    printf '%s\n' apt
+                fi
+                ;;
+            xbps)
+                if command_exists_in_filesystem xbps-install ; then
+                    printf '%s\n' xbps
+                fi
+                ;;
+            *)
+                if command_exists_in_filesystem "$pm" ; then
+                    printf '%s\n' "$pm"
+                fi
+        esac
+    done
+}
 
-# $1 package manager name
-# $2 package name
-# examples:
-# __install_package_via_package_manager apt make ge 3.80
-# __install_package_via_package_manager apt make
-__install_package_via_package_manager() {
-    if [ -z "$2" ] ; then
-        return 1
+# __pmw_install_the_given_package <PM> <PKG> [eq|ne|le|ge|lt|gt <VERSION>]
+# __pmw_install_the_given_package apt make ge 3.80
+# __pmw_install_the_given_package apt make
+__pmw_install_the_given_package() {
+    [ -z "$1" ] && die "USAGE: __pmw_install_the_given_package <PM> <PKG> [eq|ne|le|ge|lt|gt <VERSION>] , PM  must not be empty."
+    [ -z "$2" ] && die "USAGE: __pmw_install_the_given_package <PM> <PKG> [eq|ne|le|ge|lt|gt <VERSION>] , PKG must not be empty."
+
+    if [ "$PMW_PM_UPDATED" != 'yes' ] ; then
+        case $pm in
+            apt-get) run $sudo apt-get -y update ;;
+            apt)     run $sudo apt     -y update ;;
+            dnf)     run $sudo dnf     -y update ;;
+            yum)     run $sudo yum     -y update ;;
+            zypper)  run $sudo zypper  -y update ;;
+            apk)     run $sudo apk        update ;;
+            pacman)  run $sudo pacman -Syy --noconfirm ;;
+        esac
+        PMW_PM_UPDATED=yes
     fi
 
-    is_package_available_and_version_matched_in_package_manager $@ || return 1
+    __pmw_is_the_given_package_available $@ || return 1
+
+    note "${COLOR_GREEN}$(shiftn 1 $@)${COLOR_OFF} ${COLOR_YELLOW}command is required, but it is not found on this machine, I will install it via${COLOR_OFF} ${COLOR_GREEN}$1${COLOR_OFF}"
 
     case $1 in
         pip3)
@@ -1890,11 +2150,20 @@ __install_package_via_package_manager() {
             ;;
         brew)
             if run brew install "$2" ; then
-                if [ "$(brew info --json=v2 "$2" | grep keg_only | sed 's/ //g' | cut -d: -f2 | sed 's/,//')" = 'true' ] ; then
-                    if [ -d "$(brew --prefix "$2")/bin" ] ; then
-                        export PATH="$(brew --prefix "$2")/bin:$PATH"
+                unset __HOMEBREW_PKG_PREFIX__
+                __HOMEBREW_PKG_PREFIX__="$(brew --prefix "$2")"
+                if [ "$(brew info --json=v2 "$2" | sed -n '/"keg_only":/p' | sed 's/ //g' | cut -d: -f2 | sed 's/,//')" = 'true' ] ; then
+                    if [ -d "$__HOMEBREW_PKG_PREFIX__/bin" ] ; then
+                        export PATH="$__HOMEBREW_PKG_PREFIX__/bin:$PATH"
+                    fi
+                    if [ -d "$__HOMEBREW_PKG_PREFIX__/sbin" ] ; then
+                        export PATH="$__HOMEBREW_PKG_PREFIX__/sbin:$PATH"
                     fi
                 fi
+                if [ -d "$__HOMEBREW_PKG_PREFIX__/libexec/gnubin" ] ; then
+                    export PATH="$__HOMEBREW_PKG_PREFIX__/libexec/gnubin:$PATH"
+                fi
+                unset __HOMEBREW_PKG_PREFIX__
             else
                 return 1
             fi
@@ -1902,7 +2171,7 @@ __install_package_via_package_manager() {
         pkg)     run $sudo pkg install -y "$2" ;;
         pkgin)   run $sudo pkgin -y install "$2" ;;
         pkg_add) run $sudo pkg_add "$2" ;;
-        apt)     run $sudo apt     -y install "$2" ;;
+        apt)     run $sudo apt -y install "$2" ;;
         apt-get) run $sudo apt-get -y install "$2" ;;
         dnf)     run $sudo dnf -y install "$2" ;;
         yum)     run $sudo yum -y install "$2" ;;
@@ -1912,254 +2181,687 @@ __install_package_via_package_manager() {
         emerge)  run $sudo emerge "$2" ;;
         pacman)  run $sudo pacman -Syy --noconfirm && run $sudo pacman -S --noconfirm "$2" ;;
         choco)   run choco install -y --source cygwin "$2" ;;
+        cargo)   run cargo install "$2" ;;
     esac
-    echo
 }
 
-# $1 package manager name
-# $2 command name
-# examples:
-# __install_command_via_package_manager apt make ge 3.80
-# __install_command_via_package_manager apt make
-__install_command_via_package_manager() {
-    unset __PACKAGE_NAME__
-    __PACKAGE_NAME__="$(eval get_package_name_by_command_name_in_package_manager_$(echo "$1" | tr - _) $2)"
-
-    if [ -z "$__PACKAGE_NAME__" ] ; then
-        return 1
+# check if the give package specification is available in specified package manager's repo
+#
+# package specification's form: <PKG> [OP VERSION]
+#
+# OP:
+# eq  equal
+# ne  not equal
+# gt  greater than
+# lt  less than
+# ge  greater than or equal
+# le  less than or equal
+#
+# __pmw_is_the_given_package_available <PM> <PKG> [OP VERSION]
+#
+# __pmw_is_the_given_package_available apt automake eq 1.16.0
+# __pmw_is_the_given_package_available apt automake lt 1.16.0
+# __pmw_is_the_given_package_available apt automake gt 1.16.0
+# __pmw_is_the_given_package_available apt automake le 1.16.0
+# __pmw_is_the_given_package_available apt automake ge 1.16.0
+# __pmw_is_the_given_package_available apt automake
+__pmw_is_the_given_package_available() {
+    if [ $# -eq 2 ] ; then
+        case $1 in
+            pkg) pkg show "$2" > /dev/null 2>&1 ;;
+            apt) apt show "$2" > /dev/null 2>&1 ;;
+            apk) apk info "$2" > /dev/null 2>&1 ;;
+            yum) yum info "$2" > /dev/null 2>&1 ;;
+            dnf) dnf info "$2" > /dev/null 2>&1 ;;
+            brew) brew info "$2" > /dev/null 2>&1 ;;
+            xbps) xbps-query -R "$2" > /dev/null 2>&1 ;;
+            pacman) pacman -Ss "^$2$" > /dev/null 2>&1 ;;
+            zypper) [ "$(zypper info "$2" 2>&1 | tail -n 1)" != "package '$2' not found." ] ;;
+            emerge)
+                case $2 in
+                    */*) [ "$(emerge -s "%@^$2$" 2>&1 | tail -n 2 | head -n 1)" != '\[ Applications found : 0 \]' ] ;;
+                    *)   [ "$(emerge -s "%^$2$"  2>&1 | tail -n 2 | head -n 1)" != '\[ Applications found : 0 \]' ]
+                esac
+                ;;
+        esac
+    elif [ $# -eq 4 ] ; then
+        __pmw_is_the_given_package_available "$1" "$2" && version_match "$(__pmw_get_available_package_version_by_package_name "$1" "$2")" "$3" "$4"
+    else
+        die "USAGE:  __pmw_is_the_given_package_available <PM> <PKG> [OP VERSION]\nACTUAL: __pmw_is_the_given_package_available $@"
     fi
-
-    is_package_available_and_version_matched_in_package_manager "$1" "$__PACKAGE_NAME__" $3 $4 || return 1
-
-    print "🔥  ${COLOR_GREEN}$(shiftn 1 $@)${COLOR_OFF} ${COLOR_YELLOW}command is required, but it is not found, I will install it via${COLOR_OFF} ${COLOR_GREEN}$1${COLOR_OFF}\n"
-
-    __install_package_via_package_manager "$1" "$__PACKAGE_NAME__" $3 $4
 }
 
-# examples:
-# __install_command_via_available_package_manager python3 ge 3.5
-# __install_command_via_available_package_manager make
-__install_command_via_available_package_manager() {
-    if command_exists_in_filesystem_and_version_matched $@ ; then
-        return 0
+# __pmw_get_available_package_version_by_package_name <PM> <PKG>
+# __pmw_get_available_package_version_by_package_name apt automake
+__pmw_get_available_package_version_by_package_name() {
+    case $1 in
+        pkg) pkg show "$2" 2> /dev/null | grep 'Version: ' | head -n 1 | cut -d ' ' -f2 | cut -d- -f1  | cut -d~ -f1 | sed 's/[0-9]://' ;;
+        apt) apt show "$2" 2> /dev/null | grep 'Version: ' | head -n 1 | cut -d ' ' -f2 | cut -d- -f1  | cut -d~ -f1 | sed 's/[0-9]://' ;;
+        apk) apk info "$2" 2> /dev/null | head -n 1 | cut -d ' ' -f1 | cut -d- -f2 ;;
+        yum) yum info "$2" 2> /dev/null | grep 'Version     :'  | head -n 1 | cut -d : -f2 | sed 's/^[[:space:]]//' ;;
+        dnf) dnf info "$2" 2> /dev/null | grep 'Version      :' | head -n 1 | cut -d : -f2 | sed 's/^[[:space:]]//' ;;
+        brew) brew info "$2" 2> /dev/null | grep "$2: " | cut -d ' ' -f3 ;;
+        xbps) xbps-query -R --property=pkgver "$2" | cut -d- -f2 | cut -d_ -f1 ;;
+        pacman) pacman -Ss "^$2$" 2> /dev/null | head -n 1 | cut -d ' ' -f2 | cut -d- -f1 ;;
+        zyyper) zyyper info "$2" 2> /dev/null | sed -n '/Version        :/p' | sed 's/Version        : \(.*\)/\1/' | cut -d- -f1 ;;
+        emerge)
+            case $2 in
+                */*) emerge -s "%@^$2$" 2> /dev/null | sed -n '/Latest version available:/p' | cut -d: -f2 ;;
+                *)   emerge -s "%^$2$"  2> /dev/null | sed -n '/Latest version available:/p' | cut -d: -f2 ;;
+            esac
+    esac
+}
+
+# }}}
+##############################################################################
+# {{{ uppm => universal prebuild package manager
+
+__uppm_list_the_available_packages_in_the_world() {
+    cat <<EOF
+linux |x86_64|glibc|python3 |3.9.5 |5d9b13e38878292f18a41188bd530d059c7c2b1e64eed29cb5c6d38b0a94ad0a|https://github.com/leleliu008/python-prebuild/releases/download/3.9.5/python-3.9.5-x86_64-linux-glibc.tar.xz
+
+linux |x86_64|glibc|git     |2.30.2|61e545ef05e41565292c2e909e5b39e4eb8e60a4e729db06a1ddea3b44f89241|https://github.com/leleliu008/git-prebuild/releases/download/2.30.2/git-2.30.2-x86_64-linux-glibc.tar.xz
+
+linux |x86_64|glibc|autoconf|2.69  |3b29f52cabe26ba0217825b1cf25b8d4163b6e6afcce1cce70027e0bc33a0860|https://github.com/leleliu008/autoconf-prebuild/releases/download/2.69/autoconf-2.69-glibc-linux-x86_64.tar.gz
+
+linux |x86_64|glibc|cmake   |3.21.4|eddba9da5b60e0b5ec5cbb1a65e504d776e247573204df14f6d004da9bc611f9|https://github.com/Kitware/CMake/releases/download/v3.21.4/cmake-3.21.4-linux-x86_64.tar.gz
+darwin|  -   |  -  |cmake   |3.21.4|f818a10fe625b215e31d0c29c19a6563fb5f51ed7cc7727e5011626c11ea321a|https://github.com/Kitware/CMake/releases/download/v3.21.4/cmake-3.21.4-macos-universal.tar.gz
+
+linux |x86_64|  -  |ninja   |1.10.2|763464859c7ef2ea3a0a10f4df40d2025d3bb9438fcb1228404640410c0ec22d|https://github.com/ninja-build/ninja/releases/download/v1.10.2/ninja-linux.zip
+darwin|x86_64|  -  |ninja   |1.10.2|6fa359f491fac7e5185273c6421a000eea6a2f0febf0ac03ac900bd4d80ed2a5|https://github.com/ninja-build/ninja/releases/download/v1.10.2/ninja-mac.zip
+
+linux |x86_64|  -  |golang  |1.17.2|f242a9db6a0ad1846de7b6d94d507915d14062660616a61ef7c808a76e4f1676|https://dl.google.com/go/go1.17.2.linux-amd64.tar.gz
+darwin|x86_64|  -  |golang  |1.17.2|7914497a302a132a465d33f5ee044ce05568bacdb390ab805cb75a3435a23f94|https://dl.google.com/go/go1.17.2.darwin-amd64.tar.gz
+darwin|arm64 |  -  |golang  |1.17.2|ce8771bd3edfb5b28104084b56bbb532eeb47fbb7769c3e664c6223712c30904|https://dl.google.com/go/go1.17.2.darwin-arm64.tar.gz
+
+linux |arm64 |glibc|jdk     |17.0.1|a5e954a4e89b50277f20345034aea0ccf06f53705d4ec586b268b14ff42468f7|https://download.oracle.com/java/17/archive/jdk-17.0.1_linux-aarch64_bin.tar.gz
+linux |x86_64|glibc|jdk     |17.0.1|6f25bcb94d3e22fb52a4632c74e03b403834e81b68701ab7ecd900fb9cd89f43|https://download.oracle.com/java/17/archive/jdk-17.0.1_linux-x64_bin.tar.gz
+darwin|arm64 |  -  |jdk     |17.0.1|8e5f240705bdf37ed831abc8c52cc05afe71721a6bc26dd977b6efd01b5ebef7|https://download.oracle.com/java/17/archive/jdk-17.0.1_macos-aarch64_bin.tar.gz
+darwin|x86_64|  -  |jdk     |17.0.1|b8905d88a14e60f873064a8b25737e2ec2e3688611adbf21f3a5dd5c8742797d|https://download.oracle.com/java/17/archive/jdk-17.0.1_macos-x64_bin.tar.gz
+EOF
+}
+
+# __uppm_is_the_given_package_available <PKG-NAME> [eq|ne|le|gr|lt|gt <VERSION>]
+__uppm_is_the_given_package_available() {
+    if [ -z "$1" ] ; then
+        die "uppm is-available <PKG-NAME> [eq|ne|le|gr|lt|gt <VERSION>], PKG-NAME must not be empty."
     fi
- 
-    if [ -z "$AVAILABLE_PACKAGE_MANAGER_LIST" ] ; then
-        AVAILABLE_PACKAGE_MANAGER_LIST=$(__get_available_package_manager_list)
-        if [ -z "$AVAILABLE_PACKAGE_MANAGER_LIST" ] ; then
-            warn "no package manager found."
-            return 1
-        else
-            echo "    Found $(list_length $AVAILABLE_PACKAGE_MANAGER_LIST) package manager : ${COLOR_GREEN}$AVAILABLE_PACKAGE_MANAGER_LIST${COLOR_OFF}"
+
+    if [ $# -ge 3 ] ; then
+        case $2 in
+            eq|ne|lt|ge|lt|gt) ;;
+            *) die "uppm is-available <PKG-NAME> [eq|ne|le|gr|lt|gt <VERSION>], unrecognized argument: $2"
+        esac
+        if [ -z "$3" ] ; then
+            die "uppm is-available <PKG-NAME> [eq|ne|le|gr|lt|gt <VERSION>],  VERSION must not be empty."
         fi
     fi
-    for pm in $AVAILABLE_PACKAGE_MANAGER_LIST
+
+    for UPPM_PKG_LINE in $(__uppm_list_the_available_packages_in_the_world | sed 's/ //g')
     do
-        if __install_command_via_package_manager "$pm" $@ ; then
-            return 0
+        unset UPPM_PKG_OS_KIND
+        unset UPPM_PKG_OS_ARCH
+        unset UPPM_PKG_OS_LIBC
+
+        unset UPPM_PKG_NAME
+        unset UPPM_PKG_VERS
+
+        if [ -z "$UPPM_PKG_LINE" ] ; then
+            continue
         fi
+
+        UPPM_PKG_OS_KIND=$(printf '%s\n' "$UPPM_PKG_LINE" | cut -d '|' -f1)
+
+        if [ "$UPPM_PKG_OS_KIND" != '-' ] && [ "$UPPM_PKG_OS_KIND" != "$NATIVE_OS_KIND" ] ; then
+            continue
+        fi
+
+        UPPM_PKG_OS_ARCH=$(printf '%s\n' "$UPPM_PKG_LINE" | cut -d '|' -f2)
+
+        if [ "$UPPM_PKG_OS_ARCH" != '-' ] && [ "$UPPM_PKG_OS_ARCH" != "$NATIVE_OS_ARCH" ] ; then
+            continue
+        fi
+
+        UPPM_PKG_OS_LIBC=$(printf '%s\n' "$UPPM_PKG_LINE" | cut -d '|' -f3)
+
+        if [ "$UPPM_PKG_OS_LIBC" != '-' ] && [ "$UPPM_PKG_OS_LIBC" != "$NATIVE_OS_LIBC" ] ; then
+            continue
+        fi
+
+        UPPM_PKG_NAME=$(printf '%s\n' "$UPPM_PKG_LINE" | cut -d '|' -f4)
+
+        if [ "$UPPM_PKG_NAME" != "$1" ] ; then
+            continue
+        fi
+
+        if [ $# -ge 3 ] ; then
+            UPPM_PKG_VERS=$(printf '%s\n' "$UPPM_PKG_LINE" | cut -d '|' -f5)
+            version_match "$UPPM_PKG_VERS" "$2" "$3" || continue
+        fi
+
+        return 0
     done
+
     return 1
 }
 
-handle_dependency_from_url() {
+__uppm_is_the_given_package_installed() {
+    [ -f "$HOME/.uppm/install.d/$1/installed-metadata" ]
+}
+
+# __uppm_list_the_available_packages
+# __uppm_list_the_available_packages <PKG-NAME> [eq|ne|le|gr|lt|gt <VERSION>]
+__uppm_list_the_available_packages() {
+    if [ $# -ge 1 ] ; then
+        if [ -z "$1" ] ; then
+            die "uppm ls-available <PKG-NAME> [eq|ne|le|gr|lt|gt <VERSION>], PKG-NAME must not be empty."
+        fi
+    fi
+
+    if [ $# -ge 3 ] ; then
+        case $2 in
+            eq|ne|lt|ge|lt|gt) ;;
+            *) die "uppm ls-available <PKG-NAME> [eq|ne|le|gr|lt|gt <VERSION>], unrecognized argument: $2"
+        esac
+        if [ -z "$3" ] ; then
+            die "uppm ls-available <PKG-NAME> [eq|ne|le|gr|lt|gt <VERSION>], VERSION must not be empty."
+        fi
+    fi
+
+    for UPPM_PKG_LINE in $(__uppm_list_the_available_packages_in_the_world | sed 's/ //g')
+    do
+        unset UPPM_PKG_OS_KIND
+        unset UPPM_PKG_OS_ARCH
+        unset UPPM_PKG_OS_LIBC
+
+        unset UPPM_PKG_NAME
+        unset UPPM_PKG_VERS
+        unset UPPM_PKG_SUM_
+        unset UPPM_PKG_URL_
+
+        if [ -z "$UPPM_PKG_LINE" ] ; then
+            continue
+        fi
+
+        UPPM_PKG_OS_KIND=$(printf '%s\n' "$UPPM_PKG_LINE" | cut -d '|' -f1)
+
+        if [ "$UPPM_PKG_OS_KIND" != '-' ] && [ "$UPPM_PKG_OS_KIND" != "$NATIVE_OS_KIND" ] ; then
+            continue
+        fi
+
+        UPPM_PKG_OS_ARCH=$(printf '%s\n' "$UPPM_PKG_LINE" | cut -d '|' -f2)
+
+        if [ "$UPPM_PKG_OS_ARCH" != '-' ] && [ "$UPPM_PKG_OS_ARCH" != "$NATIVE_OS_ARCH" ] ; then
+            continue
+        fi
+
+        UPPM_PKG_OS_LIBC=$(printf '%s\n' "$UPPM_PKG_LINE" | cut -d '|' -f3)
+
+        if [ "$UPPM_PKG_OS_LIBC" != '-' ] && [ "$UPPM_PKG_OS_LIBC" != "$NATIVE_OS_LIBC" ] ; then
+            continue
+        fi
+
+        UPPM_PKG_NAME=$(printf '%s\n' "$UPPM_PKG_LINE" | cut -d '|' -f4)
+        UPPM_PKG_VERS=$(printf '%s\n' "$UPPM_PKG_LINE" | cut -d '|' -f5)
+        UPPM_PKG_SUM_=$(printf '%s\n' "$UPPM_PKG_LINE" | cut -d '|' -f6)
+        UPPM_PKG_URL_=$(printf '%s\n' "$UPPM_PKG_LINE" | cut -d '|' -f7)
+
+        if [ $# -eq 0 ] ; then
+            printf '%s\n' "$UPPM_PKG_LINE"
+            continue
+        fi
+
+        if [ $# -eq 1 ] ; then
+            if [ "$UPPM_PKG_NAME" = "$1" ] ; then
+                printf '%s\n' "$UPPM_PKG_LINE"
+            fi
+            continue
+        fi
+
+        if [ $# -eq 3 ] ; then
+            if [ "$UPPM_PKG_VERS" -$2 "$3" ] ; then
+                printf '%s\n' "$UPPM_PKG_LINE"
+                if [ "$2" = 'eq' ] ; then
+                    break
+                fi
+            fi
+            continue
+        fi
+    done
+}
+
+__uppm_list_the_installed_packages() {
+    :
+}
+
+# __uppm_show_infomation
+# __uppm_show_infomation <PKG-NAME>
+__uppm_show_infomation_of_the_given_package() {
+    __uppm_list_the_available_packages $@
+}
+
+__uppm_get_filetype_from_url() {
     case $1 in
-        *.zip)
-            handle_dependency required exe unzip
-            ;;
-        *.tar.xz)
-            handle_dependency required exe tar
-            handle_dependency required exe xz
-            ;;
-        *.tar.gz)
-            handle_dependency required exe tar
-            handle_dependency required exe gzip
-            ;;
-        *.tar.lz)
-            handle_dependency required exe tar
-            handle_dependency required exe lzip
-            ;;
-        *.tar.bz2)
-            handle_dependency required exe tar
-            handle_dependency required exe bzip2
-            ;;
-        *.tgz)
-            handle_dependency required exe tar
-            handle_dependency required exe gzip
-            ;;
-        *.txz)
-            handle_dependency required exe tar
-            handle_dependency required exe xz
+        *.zip)     printf '%s\n' zip    ;;
+        *.tar.xz)  printf '%s\n' tar.xz ;;
+        *.tar.gz)  printf '%s\n' tar.gz ;;
+        *.tar.lz)  printf '%s\n' tar.lz ;;
+        *.tar.bz2) printf '%s\n' tar.bz2;;
+        *.tgz)     printf '%s\n' tar.gz ;;
+        *.txz)     printf '%s\n' tar.xz ;;
+        *.c)       printf '%s\n' c      ;;
+        *.cc)      printf '%s\n' cxx    ;;
+        *.cxx)     printf '%s\n' cxx    ;;
+        *.cpp)     printf '%s\n' cxx    ;;
     esac
 }
 
-get_suffix_from_filename() {
-    case $1 in
-        *.zip)     echo '.zip' ;;
-        *.tar.xz)  echo '.tar.xz' ;;
-        *.tar.gz)  echo '.tar.gz' ;;
-        *.tar.lz)  echo '.tar.lz' ;;
-        *.tar.bz2) echo '.tar.bz2' ;;
-        *.tgz)     echo '.tgz' ;;
-        *.txz)     echo '.txz' ;;
-    esac
+# __uppm_fetch
+# __uppm_fetch <PKG-NAME>
+# __uppm_fetch <PKG-NAME> eq|ne|le|gr|lt|gt <VERSION>
+__uppm_fetch() {
+    for UPPM_PKG_LINE in $(__uppm_list_the_available_packages $@)
+    do
+        unset UPPM_PKG_OS_KIND
+        unset UPPM_PKG_OS_ARCH
+        unset UPPM_PKG_OS_LIBC
+
+        unset UPPM_PKG_NAME
+        unset UPPM_PKG_VERS
+        unset UPPM_PKG_SUM_
+        unset UPPM_PKG_URL_
+
+        UPPM_PKG_OS_KIND=$(printf '%s\n' "$UPPM_PKG_LINE" | cut -d '|' -f1)
+        UPPM_PKG_OS_ARCH=$(printf '%s\n' "$UPPM_PKG_LINE" | cut -d '|' -f2)
+        UPPM_PKG_OS_LIBC=$(printf '%s\n' "$UPPM_PKG_LINE" | cut -d '|' -f3)
+
+        UPPM_PKG_NAME=$(printf '%s\n' "$UPPM_PKG_LINE" | cut -d '|' -f4)
+        UPPM_PKG_VERS=$(printf '%s\n' "$UPPM_PKG_LINE" | cut -d '|' -f5)
+        UPPM_PKG_SUM_=$(printf '%s\n' "$UPPM_PKG_LINE" | cut -d '|' -f6)
+        UPPM_PKG_URL_=$(printf '%s\n' "$UPPM_PKG_LINE" | cut -d '|' -f7)
+
+        UPPM_PKG_FILETYPE=$(__uppm_get_filetype_from_url "$UPPM_PKG_URL_")
+
+        UPPM_PKG_FILENAME="$UPPM_PKG_NAME-$UPPM_PKG_VERS"
+
+        [ "$UPPM_PKG_OS_KIND" != '-' ]  && UPPM_PKG_FILENAME="$UPPM_PKG_FILENAME-$UPPM_PKG_OS_KIND"
+        [ "$UPPM_PKG_OS_ARCH" != '-' ]  && UPPM_PKG_FILENAME="$UPPM_PKG_FILENAME-$UPPM_PKG_OS_ARCH"
+        [ "$UPPM_PKG_OS_LIBC" != '-' ]  && UPPM_PKG_FILENAME="$UPPM_PKG_FILENAME-$UPPM_PKG_OS_LIBC"
+
+        [ -n "$UPPM_PKG_FILETYPE" ]     && UPPM_PKG_FILENAME="$UPPM_PKG_FILENAME.$UPPM_PKG_FILETYPE"
+
+        UPPM_PKG_FILEPATH="$HOME/.uppm/downloads/$UPPM_PKG_FILENAME"
+
+        fetch "$UPPM_PKG_URL_" --sha256="$UPPM_PKG_SUM_" --output-path="$UPPM_PKG_FILEPATH" || return 1
+    done
 }
 
-# examples:
-# pkg-config ge 0.18
-# python3    ge 3.5
-# make
-__install_command_via_fetch_prebuild_binary() {
-    unset PREBUILD_BINARY_FETCH_URL
-    PREBUILD_BINARY_FETCH_URL=$(__get_prebuild_binary_fetch_url_by_command_name "$1")
-    if [ -z "$PREBUILD_BINARY_FETCH_URL" ] ; then
+# __uppm_install_the_given_package <PKG-NAME> [eq|ne|le|ge|lt|gt <VERSION>]
+__uppm_install_the_given_package() {
+    set -e
+
+    if [ -z "$1" ] ; then
+        die "uppm install <PKG-NAME> [eq|ne|le|ge|lt|gt <VERSION>], PKG-NAME must not be empty."
+    fi
+
+    if [ $# -ge 3 ] ; then
+        case $2 in
+            eq|ne|lt|ge|lt|gt) ;;
+            *) die "uppm install <PKG-NAME> [eq|ne|le|gr|lt|gt <VERSION>], unrecognized argument: $2"
+        esac
+        if [ -z "$3" ] ; then
+            die "uppm install <PKG-NAME> [eq|ne|le|gr|lt|gt <VERSION>], VERSION must not be empty."
+        fi
+    fi
+
+    unset UPPM_PKG_LINE
+
+    for UPPM_PKG_LINE in $(__uppm_list_the_available_packages_in_the_world | sed 's/ //g')
+    do
+        unset UPPM_PKG_OS_KIND
+        unset UPPM_PKG_OS_ARCH
+        unset UPPM_PKG_OS_LIBC
+
+        unset UPPM_PKG_NAME
+        unset UPPM_PKG_VERS
+
+        [ -z "$UPPM_PKG_LINE" ] && continue
+
+        UPPM_PKG_OS_KIND=$(printf '%s\n' "$UPPM_PKG_LINE" | cut -d '|' -f1)
+
+        if [ "$UPPM_PKG_OS_KIND" != '-' ] && [ "$UPPM_PKG_OS_KIND" != "$NATIVE_OS_KIND" ] ; then
+            continue
+        fi
+
+        UPPM_PKG_OS_ARCH=$(printf '%s\n' "$UPPM_PKG_LINE" | cut -d '|' -f2)
+
+        if [ "$UPPM_PKG_OS_ARCH" != '-' ] && [ "$UPPM_PKG_OS_ARCH" != "$NATIVE_OS_ARCH" ] ; then
+            continue
+        fi
+
+        UPPM_PKG_OS_LIBC=$(printf '%s\n' "$UPPM_PKG_LINE" | cut -d '|' -f3)
+
+        if [ "$UPPM_PKG_OS_LIBC" != '-' ] && [ "$UPPM_PKG_OS_LIBC" != "$NATIVE_OS_LIBC" ] ; then
+            continue
+        fi
+
+        UPPM_PKG_NAME=$(printf '%s\n' "$UPPM_PKG_LINE" | cut -d '|' -f4)
+
+        if [ "$UPPM_PKG_NAME" != "$1" ] ; then
+            continue
+        fi
+
+        UPPM_PKG_VERS=$(printf '%s\n' "$UPPM_PKG_LINE" | cut -d '|' -f5)
+
+        if [ $# -ge 3 ] ; then
+            if version_match "$UPPM_PKG_VERS" "$2" "$3" ; then
+                break
+            else
+                continue
+            fi
+        fi
+
+        break
+    done
+
+    if [ -z "$UPPM_PKG_LINE" ] ; then
+        warn "no available prebuild package: $@"
         return 1
     fi
 
-    handle_dependency_from_url "$PREBUILD_BINARY_FETCH_URL"
+    unset UPPM_PKG_OS_KIND
+    unset UPPM_PKG_OS_ARCH
+    unset UPPM_PKG_OS_LIBC
 
-    print "🔥  ${COLOR_GREEN}$@${COLOR_OFF} ${COLOR_YELLOW}command is required, but it is not found, I will install it via${COLOR_OFF} ${COLOR_GREEN}fetch prebuild binary${COLOR_OFF}\n"
+    unset UPPM_PKG_NAME
+    unset UPPM_PKG_VERS
+    unset UPPM_PKG_SUM_
+    unset UPPM_PKG_URL_
 
-    unset PREBUILD_BINARY_FETCH_URL
-    PREBUILD_BINARY_FETCH_URL=$(__get_prebuild_binary_fetch_url_by_command_name "$1")
+    UPPM_PKG_OS_KIND=$(printf '%s\n' "$UPPM_PKG_LINE" | cut -d '|' -f1)
+    UPPM_PKG_OS_ARCH=$(printf '%s\n' "$UPPM_PKG_LINE" | cut -d '|' -f2)
+    UPPM_PKG_OS_LIBC=$(printf '%s\n' "$UPPM_PKG_LINE" | cut -d '|' -f3)
 
-    unset PREBUILD_BINARY_FILENAME_PREFIX
-    unset PREBUILD_BINARY_FILENAME_SUFFIX
-    unset PREBUILD_BINARY_FILENAME
-    unset PREBUILD_BINARY_FILEPATH
+    UPPM_PKG_NAME=$(printf '%s\n' "$UPPM_PKG_LINE" | cut -d '|' -f4)
+    UPPM_PKG_VERS=$(printf '%s\n' "$UPPM_PKG_LINE" | cut -d '|' -f5)
+    UPPM_PKG_SUM_=$(printf '%s\n' "$UPPM_PKG_LINE" | cut -d '|' -f6)
+    UPPM_PKG_URL_=$(printf '%s\n' "$UPPM_PKG_LINE" | cut -d '|' -f7)
 
-    PREBUILD_BINARY_FILENAME=$(basename "$PREBUILD_BINARY_FETCH_URL")
-    PREBUILD_BINARY_FILENAME_SUFFIX=$(get_suffix_from_filename "$PREBUILD_BINARY_FILENAME")
-    PREBUILD_BINARY_FILENAME_PREFIX=$(basename "$PREBUILD_BINARY_FILENAME" "$PREBUILD_BINARY_FILENAME_SUFFIX")
+    UPPM_PKG_FILETYPE=$(__uppm_get_filetype_from_url "$UPPM_PKG_URL_")
 
-    if [ -z "$PREBUILD_BINARY_INSTALL_PREFIX_DIR" ] ; then
-        PREBUILD_BINARY_INSTALL_PREFIX_DIR='/opt'
-    fi
+    UPPM_PKG_FILENAME="$UPPM_PKG_NAME-$UPPM_PKG_VERS"
 
-    unset PREBUILD_BINARY_INSTALL_DIR
-    PREBUILD_BINARY_INSTALL_DIR="$PREBUILD_BINARY_INSTALL_PREFIX_DIR/$PREBUILD_BINARY_FILENAME_PREFIX"
+    [ "$UPPM_PKG_OS_KIND" != '-' ]  && UPPM_PKG_FILENAME="$UPPM_PKG_FILENAME-$UPPM_PKG_OS_KIND"
+    [ "$UPPM_PKG_OS_ARCH" != '-' ]  && UPPM_PKG_FILENAME="$UPPM_PKG_FILENAME-$UPPM_PKG_OS_ARCH"
+    [ "$UPPM_PKG_OS_LIBC" != '-' ]  && UPPM_PKG_FILENAME="$UPPM_PKG_FILENAME-$UPPM_PKG_OS_LIBC"
 
-    PREBUILD_BINARY_FILEPATH="$PREBUILD_BINARY_INSTALL_DIR/$PREBUILD_BINARY_FILENAME"
+    [ -n "$UPPM_PKG_FILETYPE" ]     && UPPM_PKG_FILENAME="$UPPM_PKG_FILENAME.$UPPM_PKG_FILETYPE"
 
-    if [ -d "$PREBUILD_BINARY_INSTALL_PREFIX_DIR" ] ; then
-        if [ -d "$PREBUILD_BINARY_INSTALL_DIR" ] ; then
-            if [ -r "$PREBUILD_BINARY_INSTALL_DIR" ] && [ -w "$PREBUILD_BINARY_INSTALL_DIR" ] && [ -x "$PREBUILD_BINARY_INSTALL_DIR" ] ; then
-                rm -rf "$PREBUILD_BINARY_INSTALL_DIR" || return 1
-                install -o $(whoami) -d "$PREBUILD_BINARY_INSTALL_DIR" || return 1
-            else
-                sudo rm -rf "$PREBUILD_BINARY_INSTALL_DIR" || return 1
-                sudo install -o $(whoami) -d "$PREBUILD_BINARY_INSTALL_DIR" || return 1
-            fi
-        else
-            if [ -r "$PREBUILD_BINARY_INSTALL_PREFIX_DIR" ] && [ -w "$PREBUILD_BINARY_INSTALL_PREFIX_DIR" ] && [ -x "$PREBUILD_BINARY_INSTALL_PREFIX_DIR" ] ; then
-                     install -o $(whoami) -d "$PREBUILD_BINARY_INSTALL_DIR" || return 1
-            else
-                sudo install -o $(whoami) -d "$PREBUILD_BINARY_INSTALL_DIR" || return 1
-            fi
-        fi
-    else
-        if [ -r / ] && [ -w / ] && [ -x / ] ; then
-                 install -o $(whoami) -d "$PREBUILD_BINARY_INSTALL_DIR" || return 1
-        else
-            sudo install -o $(whoami) -d "$PREBUILD_BINARY_INSTALL_DIR" || return 1
-        fi
-    fi
+    UPPM_PKG_FILEPATH="$HOME/.uppm/downloads/$UPPM_PKG_FILENAME"
 
-    fetch "$PREBUILD_BINARY_FETCH_URL" --output-dir="$PREBUILD_BINARY_INSTALL_DIR" --output-name="$PREBUILD_BINARY_FILENAME" || return 1
+    fetch "$UPPM_PKG_URL_" --sha256="$UPPM_PKG_SUM_" --output-path="$UPPM_PKG_FILEPATH" || return 1
 
-    case $PREBUILD_BINARY_FILENAME_SUFFIX in
-        .zip)
-            run unzip  "$PREBUILD_BINARY_FILEPATH" -d "$PREBUILD_BINARY_INSTALL_DIR" || return 1 ;;
-        .tar.xz|.tar.gz|.tar.lz|.tar.bz2|.tgz|.txz|.tlz)
-            run tar xf "$PREBUILD_BINARY_FILEPATH" -C "$PREBUILD_BINARY_INSTALL_DIR" --strip-components 1 || return 1 ;;
+    case $UPPM_PKG_FILETYPE in
+        zip)
+            handle_dependency required exe unzip
+            ;;
+        tar.xz)
+            handle_dependency required exe tar
+            handle_dependency required exe xz
+            ;;
+        tar.gz)
+            handle_dependency required exe tar
+            handle_dependency required exe gzip
+            ;;
+        tar.lz)
+            handle_dependency required exe tar
+            handle_dependency required exe lzip
+            ;;
+        tar.bz2)
+            handle_dependency required exe tar
+            handle_dependency required exe bzip2
+            ;;
+        tgz)
+            handle_dependency required exe tar
+            handle_dependency required exe gzip
+            ;;
+        txz)
+            handle_dependency required exe tar
+            handle_dependency required exe xz
+            ;;
     esac
 
-    if [ -d "$PREBUILD_BINARY_INSTALL_DIR/bin" ] ; then
-        export PATH="$PREBUILD_BINARY_INSTALL_DIR/bin:$PATH"
+    if [ -z "$UPPM_PKG_INSTALLD_PREFIX" ] ; then
+        UPPM_PKG_INSTALLD_PREFIX="$HOME/.uppm/install.d"
     fi
 
-    case $1 in
+    UPPM_PKG_INSTALLD="$UPPM_PKG_INSTALLD_PREFIX/$UPPM_PKG_NAME"
+
+    UPPM_PKG_INSTALLED_METADATA_FILEPATH="$UPPM_PKG_INSTALLD/installed-metadata"
+
+    if [ -f "$UPPM_PKG_INSTALLED_METADATA_FILEPATH" ] ; then
+        if [ $# -ge 3 ] ; then
+            if version_match "$(. "$UPPM_PKG_INSTALLED_METADATA_FILEPATH" && printf '%s\n' "$INSTALLED_PKG_VERS")" "$2" "$3" ; then
+                success "$UPPM_PKG_FILEPATH already have been unpacked to $UPPM_PKG_INSTALLD."
+            else
+                run rm -rf "$UPPM_PKG_INSTALLD"
+            fi
+        elif [ $# -ge 1 ] ; then
+            success "$UPPM_PKG_FILEPATH already have been unpacked to $UPPM_PKG_INSTALLD."
+        fi
+    fi
+
+    if [ ! -f "$UPPM_PKG_INSTALLED_METADATA_FILEPATH" ] ; then
+        if [ ! -d "$UPPM_PKG_INSTALLD" ] ; then
+            install -o $(whoami) -d "$UPPM_PKG_INSTALLD" 2>/dev/null || sudo install -o $(whoami) -d "$UPPM_PKG_INSTALLD" || return 1
+        fi
+        case $UPPM_PKG_FILETYPE in
+            zip)
+                run unzip  "$UPPM_PKG_FILEPATH" -d "$UPPM_PKG_INSTALLD" || return 1
+                ;;
+            tar.xz|tar.gz|tar.lz|tar.bz2|tgz|txz|tlz)
+                run tar xf "$UPPM_PKG_FILEPATH" -C "$UPPM_PKG_INSTALLD" --strip-components 1 || return 1
+                ;;
+        esac
+
+        cat > "$UPPM_PKG_INSTALLED_METADATA_FILEPATH" <<EOF
+INSTALLED_DATETIME='$(date +%s)'
+INSTALLED_PKG_NAME='$UPPM_PKG_NAME'
+INSTALLED_PKG_VERS='$UPPM_PKG_VERS'
+INSTALLED_PKG_URL_='$UPPM_PKG_URL_'
+INSTALLED_PKG_SUM_='$UPPM_PKG_SUM_'
+EOF
+    fi
+
+    if [ -d "$UPPM_PKG_INSTALLD/bin" ] ; then
+        bppend_to_PATH "$UPPM_PKG_INSTALLD/bin"
+    fi
+
+    bppend_to_PATH "$UPPM_PKG_INSTALLD"
+
+    case $UPPM_PKG_NAME in
         autoconf)
-            for xx in $(grep '/root/.zpkg/install.d/autoconf' -rl "$PREBUILD_BINARY_INSTALL_DIR")
+            for xx in $(grep '/root/.zpkg/install.d/autoconf' -rl "$UPPM_PKG_INSTALLD")
             do
-                sed_in_place "s|/root/.zpkg/install.d/autoconf|$PREBUILD_BINARY_INSTALL_DIR|" "$xx"
+                sed_in_place "s|/root/.zpkg/install.d/autoconf|$UPPM_PKG_INSTALLD|" "$xx"
             done
             ;;
+        jdk)
+            cat > "$UPPM_PKG_INSTALLD/env" <<EOF
+bppend_to_PATH() {
+    case ":\${PATH}:" in
+        *:"\$@":*) ;;
+        *) export PATH="\$@:\$PATH" ;;
     esac
 }
 
-# examples:
-# __get_prebuild_binary_fetch_url_by_command_name python3 ge 3.5
-# __get_prebuild_binary_fetch_url_by_command_name cmake
-__get_prebuild_binary_fetch_url_by_command_name() {
-    # https://github.com/leleliu008/python-prebuild
-    # https://cmake.org/download
-{
-    cat <<EOF
-python    |glibc|linux |x86_64|https://github.com/leleliu008/python-prebuild/releases/download/3.9.5/python-3.9.5-x86_64-linux-glibc.tar.xz
-python3   |glibc|linux |x86_64|https://github.com/leleliu008/python-prebuild/releases/download/3.9.5/python-3.9.5-x86_64-linux-glibc.tar.xz
-git       |glibc|linux |x86_64|https://github.com/leleliu008/git-prebuild/releases/download/2.30.2/git-2.30.2-x86_64-linux-glibc.tar.xz
-autoconf  |glibc|linux |x86_64|https://github.com/leleliu008/autoconf-prebuild/releases/download/2.69/autoconf-2.69-glibc-linux-x86_64.tar.gz
-autoreconf|glibc|linux |x86_64|https://github.com/leleliu008/autoconf-prebuild/releases/download/2.69/autoconf-2.69-glibc-linux-x86_64.tar.gz
-cmake     |glibc|linux |x86_64|https://github.com/Kitware/CMake/releases/download/v3.20.2/cmake-3.20.2-linux-x86_64.tar.gz
-cmake     |     |darwin|      |https://github.com/Kitware/CMake/releases/download/v3.20.2/cmake-3.20.2-macos-universal.tar.gz
+JAVA_HOME="$UPPM_PKG_INSTALLD"
+
+bppend_to_PATH "$UPPM_PKG_INSTALLD/bin"
 EOF
-} | while read LINE
+            . "$UPPM_PKG_INSTALLD/env"
+
+    esac
+}
+
+__uppm_help() {
+    echo "
+    uppm (universal prebuild package manager)
+
+    uppm <ACTION> <ARGUMENT>...
+
+    uppm -h
+    uppm --help
+
+    uppm -V
+    uppm --version
+
+    uppm ls-available
+    uppm ls-installed
+
+    uppm is-available <PKG-NAME> [eq|ne|lt|ge|lt|gt <VERSION>]
+    uppm is-installed <PKG-NAME> [eq|ne|lt|ge|lt|gt <VERSION>]
+
+    uppm search       <keyword>
+
+    uppm info         [PKG-NAME]
+
+    uppm fetch        <PKG-NAME> [OUTPUT-DIR]
+
+    uppm install      <PKG-NAME> [eq|ne|lt|ge|lt|gt <VERSION>]
+    "
+}
+
+uppm() {
+    set -e
+
+    case $1 in
+        -h|--help|'')
+            __uppm_help
+            ;;
+        -V|--version)
+            printf "0.0.1"
+            ;;
+        ls-available)
+            shift
+            __uppm_list_the_available_packages
+            ;;
+        ls-installed)
+            shift
+            __uppm_list_the_installed_packages
+            ;;
+        is-available)
+            shift
+            __uppm_is_the_given_package_available $@
+            ;;
+        is-installed)
+            shift
+            __uppm_is_the_given_package_installed $@
+            ;;
+        install)
+            shift
+            __uppm_install_the_given_package $@
+            ;;
+        *)  error "uppm unrecognized ACTION: $1"
+            __uppm_help
+            exit 1
+    esac
+}
+
+__uppm_get_package_name_by_command_name() {
+    if [ -z "$1" ] ; then
+        die "__uppm_get_package_name_by_command_name <CMD>, CMD must not be empty."
+    fi
+
+    case $1 in
+        python|python3) printf '%s\n' 'python3' ;;
+        autoconf)       printf '%s\n' 'autoconf';;
+        autoreconf)     printf '%s\n' 'autoconf';;
+        go)             printf '%s\n' 'golang'  ;;
+        git)            printf '%s\n' 'git'     ;;
+        java)           printf '%s\n' 'jdk'     ;;
+        cmake)          printf '%s\n' 'cmake'   ;;
+        ninja)          printf '%s\n' 'ninja'   ;;
+        *)              printf '%s\n' "$1"
+    esac
+}
+
+# __install_command_via_uppm <CMD> [eq|ne|le|ge|lt|gt <VERSION>]
+__install_command_via_uppm() {
+    if [ -z "$1" ] ; then
+        die "__install_command_via_uppm <CMD>, CMD must not be empty."
+    fi
+
+    if command_exists_in_filesystem_and_version_matched $@ ; then
+        return 0
+    fi
+
+    UPPM_PKG_NAME=$(__uppm_get_package_name_by_command_name "$1")
+    if  uppm is-available "$UPPM_PKG_NAME" $2 $3 ; then
+        note "${COLOR_GREEN}$@${COLOR_OFF} ${COLOR_YELLOW}command is required, but it is not found on this machine, I will install it via${COLOR_OFF} ${COLOR_GREEN}uppm${COLOR_OFF}"
+        uppm install      "$UPPM_PKG_NAME"
+    else
+        return 1
+    fi
+}
+
+# __install_command_via_pmw <CMD> [eq|ne|le|ge|lt|gt <VERSION>]
+__install_command_via_pmw() {
+    if [ -z "$1" ] ; then
+        die "__install_command_via_pmw <CMD> [eq|ne|le|ge|lt|gt <VERSION>] , CMD must not be empty."
+    fi
+
+    if command_exists_in_filesystem_and_version_matched $@ ; then
+        return 0
+    fi
+
+    AVAILABLE_PACKAGE_MANAGER_LIST=$(__pmw_get_available_pm_list | tr '\n' ' ')
+    if [ -z "$AVAILABLE_PACKAGE_MANAGER_LIST" ] ; then
+        warn "no package manager found."
+        return 1
+    else
+        info "Found $(list_length $AVAILABLE_PACKAGE_MANAGER_LIST) package manager : ${COLOR_GREEN}$AVAILABLE_PACKAGE_MANAGER_LIST${COLOR_OFF}"
+    fi
+
+    for pm in $AVAILABLE_PACKAGE_MANAGER_LIST
     do
-        LINE=$(printf '%s' "$LINE" | sed 's/[[:space:]]//g')
+        unset PMW_PM__NAME_UNDERSCORE
+        unset PMW_PKG_NAME
 
-        unset __PB_COMMAND__
-        unset __PB_OS_LIBC__
-        unset __PB_OS_KIND__
-        unset __PB_OS_ARCH__
-        unset __PB_URL__
+        PMW_PM__NAME_UNDERSCORE="$(printf '%s\n' "$pm" | tr - _)"
+        PMW_PKG_NAME="$(eval __pmw_get_available_package_name_by_command_name_$PMW_PM__NAME_UNDERSCORE $1)"
 
-        __PB_COMMAND__=$(printf '%s' "$LINE" | cut -d '|' -f1)
-
-        if [ "$__PB_COMMAND__" != "$1" ] ; then
-            continue
+        # if pacmakge name is empty, I assume that command name is equal to package name.
+        if [ -z "$PMW_PKG_NAME" ] ; then
+            PMW_PKG_NAME="$1"
         fi
-
-        __PB_OS_LIBC__=$(printf '%s' "$LINE" | cut -d '|' -f2)
-
-        if [ -n "$__PB_OS_LIBC__" ] && [ "$__PB_OS_LIBC__" != "$NATIVE_OS_LIBC" ] ; then
-            continue
-        fi
-
-        __PB_OS_KIND__=$(printf '%s' "$LINE" | cut -d '|' -f3)
-
-        if [ "$__PB_OS_KIND__" != "$NATIVE_OS_KIND" ] ; then
-            continue
-        fi
-
-        __PB_OS_ARCH__=$(printf '%s' "$LINE" | cut -d '|' -f4)
-
-        if [ -n "$__PB_OS_ARCH__" ] && [ "$__PB_OS_ARCH__" != "$NATIVE_OS_ARCH" ] ; then
-            continue
-        fi
-
-        __PB_URL__=$(printf '%s' "$LINE" | cut -d '|' -f5)
-
-        echo "$__PB_URL__"
+        __pmw_install_the_given_package "$pm" "$PMW_PKG_NAME" $2 $3 && return 0
     done
+    return 1
 }
 
 __install_command_via_run_install_script() {
     case $1 in
         rustup)
             # https://www.rust-lang.org/tools/install
-            print "🔥  ${COLOR_GREEN}$1${COLOR_OFF} ${COLOR_YELLOW}command is required, but it is not found, I will install it via running shell script.${COLOR_OFF}\n"
+            note "${COLOR_GREEN}$1${COLOR_OFF} ${COLOR_YELLOW}command is required, but it is not found on this machine, I will install it via running shell script.${COLOR_OFF}"
 
-            handle_dependency required exe bash:zsh
+            handle_dependency required exe bash:zsh:dash:ash
 
-            fetch 'https://sh.rustup.rs' --pipe="$(command -v bash || command -v zsh || command -v dash || command -v ash || echo sh)"
+            if [ -f    "$MY_HOME_DIR/rustup-init.sh" ] ; then
+                run rm "$MY_HOME_DIR/rustup-init.sh"
+            fi
+
+            fetch 'https://sh.rustup.rs' --output-path="$MY_HOME_DIR/rustup-init.sh"
+
+            run $(command -v bash || command -v zsh || command -v dash || command -v ash || command -v sh) "$MY_HOME_DIR/rustup-init.sh" -y
 
             export CARGO_HOME=$HOME/.cargo
             export PATH="$CARGO_HOME/bin:$PATH"
             ;;
         nvm)
             # https://github.com/nvm-sh/nvm
-            print "🔥  ${COLOR_GREEN}$1${COLOR_OFF} ${COLOR_YELLOW}command is required, but it is not found, I will install it via running bash shell script.${COLOR_OFF}\n"
+            note "${COLOR_GREEN}$1${COLOR_OFF} ${COLOR_YELLOW}command is required, but it is not found on this machine, I will install it via running bash shell script.${COLOR_OFF}"
 
             handle_dependency required exe bash:zsh
 
@@ -2173,7 +2875,7 @@ __install_command_via_run_install_script() {
 }
 
 __install_command_via_pip() {
-    if [ -z "$(get_package_name_by_command_name_in_package_manager_pip3 "$1")" ] ; then
+    if [ -z "$(__pmw_get_available_package_name_by_command_name_pip3 "$1")" ] ; then
         return 1
     fi
 
@@ -2189,15 +2891,15 @@ __install_command_via_pip() {
     )
 
     if   command_exists_in_filesystem pip3 ; then
-        __install_package_via_package_manager pip3 "$(get_package_name_by_command_name_in_package_manager_pip3 "$1")"
+        __pmw_install_the_given_package pip3 "$(__pmw_get_available_package_name_by_command_name_pip3 "$1")"
     elif command_exists_in_filesystem pip ; then
-        __install_package_via_package_manager pip  "$(get_package_name_by_command_name_in_package_manager_pip "$1")"
+        __pmw_install_the_given_package pip  "$(__pmw_get_available_package_name_by_command_name_pip "$1")"
     else
         return 1
     fi
 }
 
-# examples:
+# __install_command <CMD> [OP VERSION]
 # __install_command python3 ge 3.5
 # __install_command make
 __install_command() {
@@ -2213,26 +2915,29 @@ __install_command() {
         return 0
     fi
 
-    if __install_command_via_available_package_manager $@ ; then
+    if __install_command_via_pmw $@ ; then
         return 0
     fi
 
-    if __install_command_via_fetch_prebuild_binary $@ ; then
+    if __install_command_via_uppm $@ ; then
         return 0
     fi
 
-    print "🔥  ${COLOR_GREEN}$@${COLOR_OFF} ${COLOR_YELLOW}command is required, but I found no way to install it.${COLOR_OFF}\n"
+    warn "${COLOR_GREEN}$@${COLOR_OFF} ${COLOR_YELLOW}command is required, but I found no way to install it.${COLOR_OFF}\n"
     return 1
 }
 
-# examples:
-# handle_dependency required exe   pkg-config ge 0.18
-# handle_dependency required exe   python     ge 3.5
-# handle_dependency required py    libxml2    ge 2.19
+# usage:
+# handle_depnedency <required|optional> <exe|pym|plm> [eq|ne|ge|lt|gt|lt <VERSION>]
 #
-# handle_dependency optional exe   pkg-config ge 0.18
-# handle_dependency optional exe   python     ge 3.5
-# handle_dependency optional py    libxml2    ge 2.19
+# examples:
+# handle_dependency required exe python      ge 3.5
+# handle_dependency required pym libxml2     ge 2.19
+# handle_dependency required plm XML::Parser ge 2.45
+#
+# handle_dependency optional exe python      ge 3.5
+# handle_dependency optional pym libxml2     ge 2.19
+# handle_dependency optional plm XML::Parser ge 2.45
 handle_dependency() {
     [ "$1" = 'required' ] || return 0
 
@@ -2243,17 +2948,17 @@ handle_dependency() {
             shift
             case $1 in
                 *:*)
-                    for command in $(echo "$1" | tr ':' ' ')
+                    for CMD in $(echo "$1" | tr ':' ' ')
                     do
-                        if command_exists_in_filesystem_and_version_matched "$command" $2 $3 ; then
-                            map_set MAP_REQUIRED_DEPENDENCIES "$1" "$command"
+                        if command_exists_in_filesystem_and_version_matched "$CMD" $2 $3 ; then
+                            map_set MAP_REQUIRED_DEPENDENCIES "$1" "$CMD"
                             return 0
                         fi
                     done
-                    for command in $(echo "$1" | tr ':' ' ')
+                    for CMD in $(echo "$1" | tr ':' ' ')
                     do
-                        if __install_command "$command" $2 $3 ; then
-                            map_set MAP_REQUIRED_DEPENDENCIES "$1" "$command"
+                        if __install_command "$CMD" $2 $3 ; then
+                            map_set MAP_REQUIRED_DEPENDENCIES "$1" "$CMD"
                             return 0
                         fi
                     done
@@ -2262,13 +2967,13 @@ handle_dependency() {
                 *)  __install_command $@
             esac
             ;;
-        py)
+        pym)
             shift
-            python_module install "$1"
+            python_module install $@
             ;;
-        pm)
+        plm)
             shift
-            perl_module install "$1"
+            perl_module   install $@
             ;;
         *) die "handle_dependency() unrecognized argument:$1"
     esac
@@ -2288,25 +2993,25 @@ __handle_required_dependencies() {
 # {{{ __printf_dependencies
 
 # examples:
-# __printf_dependency required exe   pkg-config ge 0.18
-# __printf_dependency required exe   python     ge 3.5
-# __printf_dependency required py    libxml2    ge 2.19
+# __printf_dependency required exe python      ge 3.5
+# __printf_dependency required pym libxml2     ge 2.19
+# __printf_dependency required plm XML::Parser ge 2.45
 #
-# __printf_dependency optional exe   pkg-config ge 0.18
-# __printf_dependency optional exe   python     ge 3.5
-# __printf_dependency optional py    libxml2    ge 2.19
+# __printf_dependency optional exe python      ge 3.5
+# __printf_dependency optional plm libxml2     ge 2.19
+# __printf_dependency optional plm XML::Parser ge 2.45
 __printf_dependency() {
     printf "%-10s %-15s %-2s %-10s %-10s %s\n" "$1" "$2" "$3" "$4" "$5" "$6"
 }
 
 # examples:
-# printf_dependency required exe   pkg-config ge 0.18
-# printf_dependency required exe   python     ge 3.5
-# printf_dependency required py    libxml2    ge 2.19
+# printf_dependency required exe python      ge 3.5
+# printf_dependency required pym libxml2     ge 2.19
+# printf_dependency required plm XML::Parser ge 2.45
 #
-# printf_dependency optional exe   pkg-config ge 0.18
-# printf_dependency optional exe   python     ge 3.5
-# printf_dependency optional py    libxml2    ge 2.19
+# printf_dependency optional exe python      ge 3.5
+# printf_dependency optional pym libxml2     ge 2.19
+# printf_dependency optional plm XML::Parser ge 2.45
 printf_dependency() {
     case $2 in
         exe)
@@ -2325,11 +3030,11 @@ printf_dependency() {
                 *)  __printf_dependency "$2" "$3" "$4" "$5" "$(version_of_command $3)" "$(command -v $3)"
             esac
             ;;
-        py)
-            __printf_dependency "$2" "$3" "$4" "$5" "$(python_module get version "$item")" "$(python_module get location "$item")"
+        pym)
+            __printf_dependency "$2" "$3" "$4" "$5" "$(python_module get-version "$item")" "$(python_module get-location "$item")"
             ;;
-        pm)
-            __printf_dependency "$2" "$3" "$4" "$5" "$(perl_module get version "$item")" "$(perl_module get location "$item")"
+        plm)
+            __printf_dependency "$2" "$3" "$4" "$5" "$(perl_module get-version "$item")" "$(perl_module get-location "$item")"
             ;;
         *)  die "printf_dependency() unrecognized argument: $2"
     esac
@@ -2338,7 +3043,7 @@ printf_dependency() {
 __printf_required_dependencies() {
     step "printf required dependencies"
     if [ -z "$REQUIRED_DEPENDENCY_LIST" ] ; then
-        warn "no required dependencies."
+        note "no required dependencies."
     else
         __printf_dependency TYPE NAME OP EXPECT ACTUAL LOCATION
         for dependency in $REQUIRED_DEPENDENCY_LIST
@@ -2351,7 +3056,7 @@ __printf_required_dependencies() {
 __printf_optional_dependencies() {
     step "printf optional dependencies"
     if [ -z "$OPTIONAL_DEPENDENCY_LIST" ] ; then
-        warn "no optional dependencies."
+        note "no optional dependencies."
     else
         __printf_dependency TYPE NAME OP EXPECT ACTUAL LOCATION
         for dependency in $OPTIONAL_DEPENDENCY_LIST
@@ -2406,7 +3111,7 @@ python_module() {
                 die "please specify a python module name."
             fi
             if ! python_module is installed "$2" ; then
-                print "🔥  ${COLOR_GREEN}$2${COLOR_OFF} ${COLOR_YELLOW}python module is required, but it is not found, I will install it via${COLOR_OFF} ${COLOR_GREEN}$__PIP_COMMAND__${COLOR_OFF}\n"
+                note "${COLOR_GREEN}$2${COLOR_OFF} ${COLOR_YELLOW}python module is required, but it is not found on this machine, I will install it via${COLOR_OFF} ${COLOR_GREEN}$__PIP_COMMAND__${COLOR_OFF}"
                 run "$__PIP_COMMAND__" install -U pip  || return 1
                 run "$__PIP_COMMAND__" install -U "$2" || return 1
             fi
@@ -2420,32 +3125,48 @@ python_module() {
 # {{{ perl_module
 
 # examples:
-# perl_module is  installed libxml2
-# perl_module get version   libxml2
-# perl_module get location  libxml2
-# perl_module install       libxml2
+# perl_module is-installed  XML::Parser
+# perl_module install       XML::Parser
+# perl_module get-version   XML::Parser
+# perl_module get-location  XML::Parser
 perl_module() {
     case $1 in
-        is)
-            [ $# -eq 4 ] || die "perl_module command accept 4 arguments."
-            handle_dependency required exe perl
-            case $2 in
-                installed)  perl -M"$3" -le 'print "installed"' > /dev/null 2>&1 ;;
-                *) die "perl_module is $2: not support."
-            esac
+        get-version)
+            shift
+            cpan -l 2>/dev/null | sed -n "/$1/p" | head -n 1 | cut -f2
             ;;
-        get)
+        get-location)
+            shift
+            __PERL_MODULE_NAME_TO_PATH=$(printf "%s.pm\n" "$1" | sed 's|::|/|g')
+            for item in $(perl -e 'print "@INC"')
+            do
+                if [ -e  "$item/$__PERL_MODULE_NAME_TO_PATH" ] ; then
+                    echo "$item/$__PERL_MODULE_NAME_TO_PATH"
+                    return 0
+                else
+                    continue
+                fi
+                return 1
+            done
+            ;;
+        is-installed)
+            shift
+            handle_dependency required exe perl
+            perl -M"$1" -le 'print "installed"' > /dev/null 2>&1
             ;;
         install)
-            if ! perl_module is installed "$3" ; then
+            shift
+            perl_module is-installed "$1" && return 0
+
+            if command_exists_in_filesystem cpan  ; then
+                note "${COLOR_GREEN}$@${COLOR_OFF} ${COLOR_YELLOW}perl module is required, but it is not found on this machine, I will install it via${COLOR_OFF} ${COLOR_GREEN}cpan${COLOR_OFF}"
+                run cpan -i "$1"
+            elif command_exists_in_filesystem cpanm ; then
+                note "${COLOR_GREEN}$@${COLOR_OFF} ${COLOR_YELLOW}perl module is required, but it is not found on this machine, I will install it via${COLOR_OFF} ${COLOR_GREEN}cpanm${COLOR_OFF}"
+                run cpanm "$1"
+            else
                 handle_dependency required exe cpan:cpanm
-                if   command_exists_in_filesystem cpan  ; then
-                    cpan -i "$3"
-                elif command_exists_in_filesystem cpanm ; then
-                    cpanm "$3"
-                else
-                    die "no perl module installer found."
-                fi
+                perl_module install $@
             fi
             ;;
         *)  die "perl_module $1: not support."
@@ -3111,7 +3832,7 @@ __update_formula_repositories() {
         MY_FORMULA_REPO_NAME=$(echo "$repo" | cut -d= -f1)
         MY_FORMULA_REPO_URL_=$(echo "$repo" | cut -d= -f2)
 
-        info "=== Updating repository ${COLOR_GREEN}$MY_FORMULA_REPO_NAME${COLOR_OFF}"
+        echo "${COLOR_PURPLE}=== Updating repository${COLOR_OFF} ${COLOR_GREEN}$MY_FORMULA_REPO_NAME${COLOR_OFF}"
         fetch "$MY_FORMULA_REPO_URL_" --output-dir="$MY_FORMULA_REPO_DIR" --output-name="$MY_FORMULA_REPO_NAME"
     done
 }
@@ -5688,10 +6409,10 @@ init() {
     MY_OFFICAL_FORMULA_REPO_URL='https://github.com/leleliu008/xcpkg-formula-repository.git'
     MY_UPGRAGE_URL='https://raw.githubusercontent.com/leleliu008/xcpkg/master/bin/xcpkg'
 
-    if [ -z "$IPKG_HOME_DIR" ] ; then
+    if [ -z "$XCPKG_HOME_DIR" ] ; then
         MY_HOME_DIR="$HOME/.xcpkg"
     else
-        MY_HOME_DIR="$IPKG_HOME_DIR"
+        MY_HOME_DIR="$XCPKG_HOME_DIR"
     fi
 
     MY_FORMULA_REPO_DIR="$MY_HOME_DIR/repos.d"
@@ -6017,7 +6738,7 @@ main() {
         integrate)
             shift;
             case $1 in
-                zsh) __integrate_zsh_completions 'https://raw.githubusercontent.com/leleliu008/xcpkg/master/zsh-completion/_xcpkg' ;;
+                zsh) shift; __integrate_zsh_completions 'https://raw.githubusercontent.com/leleliu008/xcpkg/master/zsh-completion/_xcpkg' $@ ;;
                 *)   die "xcpkg integrate $1: not support."
             esac
             ;;
