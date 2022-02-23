@@ -7278,15 +7278,14 @@ ${COLOR_GREEN}xcpkg create-framework <PACKAGE>...${COLOR_OFF}
 
 main() {
     unset XTRACE
+    unset COUNTRY
 
     for arg in $@
     do
         case $arg in
-            --xtrace|-x)
-                XTRACE=yes
-                set -x
-                break
-                ;;
+            --xtrace|-x) XTRACE=yes; set -x ;;
+            --china)     COUNTRY=china ;;
+            *) [ "$XTRACE" = yes ] && [ -n "$COUNTRY" ] && break
         esac
     done
 
@@ -7400,9 +7399,8 @@ main() {
             esac
             ;;
         homepage) shift; __show_or_open_homepage_of_the_given_package $@ ;;
-        depends)  shift; __show_depends_of_the_given_package    $@ ;;
-        fetch)    shift; __load_formula_of_the_given_package $@ &&
-                         __fetch_resources_of_the_given_package $@ ;;
+        depends)  shift;          __show_depends_of_the_given_package $@ ;;
+        fetch)    shift;       __fetch_resources_of_the_given_package $@ ;;
 
         logs) shift; __logs_the_given_installed_package $@ ;;
         pack) shift; __pack_the_given_installed_package $@ ;;
@@ -7415,13 +7413,6 @@ main() {
                 *)    __show_infomation_of_the_given_package $@ ;;
             esac
             ;;
-        lolcat)
-            shift
-            lolcat_awk
-            ;;
-        test)
-            __compare_versions_with_brew
-            ;;
         create-framework)
             shift
             __create_framework_for_the_given_packages $@
@@ -7430,7 +7421,10 @@ main() {
             shift
             __gen_github_workflows $@
             ;;
-        *) help 1
+        test)
+            __compare_versions_with_brew
+            ;;
+        *)  die "unrecognized argument: $1"
     esac
 }
 
