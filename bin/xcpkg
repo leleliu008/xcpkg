@@ -6216,7 +6216,7 @@ configure() {
         fi
     fi
 
-    if [ "$VERBOSE" = YES ] ; then
+    if [ "$LOG_LEVEL" = VERBOSE ] ; then
         for Makefile in $(find "$SOURCE_DIR" -name Makefile)
         do
             sed_in_place 's|\t@|\t|g'     "$Makefile" || return 1
@@ -6232,7 +6232,7 @@ configure() {
 
 # make wrapper
 makew() {
-    if [ "$DEBUG" = YES ] ; then
+    if [ "$DEBUG" = yes ] ; then
         run "$GMAKE -w -j$BUILD_NJOBS --debug V=1 $*"
     else
         run "$GMAKE -w -j$BUILD_NJOBS $*"
@@ -6417,7 +6417,6 @@ __edit_the_given_rule() {
 
     "$EDITOR" "$MY_HOME_DIR/rules/$1"
 
-    VERBOSE=YES
     __inspect_the_given_rule "$1"
 }
 
@@ -6485,7 +6484,7 @@ __inspect_the_given_rule() {
         TARGET_OS_VERS=$(printf '%s\n' "$LINE" | cut -d: -f2)
         TARGET_OS_ARCH=$(printf '%s\n' "$LINE" | cut -d: -f3)
 
-        if [ "$VERBOSE" = YES ] ; then
+        if [ "$LOG_LEVEL" = VERBOSE ] ; then
             printf '%s\n' "TARGET_OS_NAME=$TARGET_OS_NAME"
             printf '%s\n' "TARGET_OS_VERS=$TARGET_OS_VERS"
             printf '%s\n' "TARGET_OS_ARCH=$TARGET_OS_ARCH"
@@ -6524,7 +6523,7 @@ __inspect_the_given_rule() {
     unset TARGET_OS_VERS
     unset TARGET_OS_ARCH
 
-    if [ "$VERBOSE" = YES ] ; then
+    if [ "$LOG_LEVEL" = VERBOSE ] ; then
         for item in $TARGET_LIST
         do
             printf '%s\n' "$item"
@@ -6737,13 +6736,13 @@ __list_supported_target_triples() {
 
 print_target_triple_by_arch() {
     if [ 'arm64' = "$1" ] ; then
-        if [ "$PACKAGE_IOS_IOS" = YES ] ; then
+        if [ "$PACKAGE_IOS_IOS" = yes ] ; then
             echo 'aarch64-apple-ios'
         else
             echo 'aarch64-apple-darwin'
         fi
     else
-        if [ "$PACKAGE_IOS_IOS" = YES ] ; then
+        if [ "$PACKAGE_IOS_IOS" = yes ] ; then
             echo "$1-apple-ios"
         else
             echo "$1-apple-darwin"
@@ -6845,100 +6844,106 @@ inspect_install_arguments() {
     unset RULE
 
     unset DRYRUN
-    unset DEBUG
-    unset VERBOSE
 
-    unset BUILD_NJOBS
+    LOG_LEVEL=NORMAL
 
-    unset GIVEN_BUILD_TYPE
-    unset CMAKE_BUILD_TYPE
-    unset MESON_BUILD_TYPE
+    BUILD_NJOBS=$NATIVE_OS_NCPU
 
-    unset LINK_TYPE
+    BUILD_TYPE=release
 
-    unset INSTALL_EXE
-    unset INSTALL_MAN
-    unset INSTALL_DOC
-    unset INSTALL_LIB
+    LINK_TYPE=shared-prefered
 
-    unset KEEP_WORK_DIR
+    INSTALL_EXE=yes
+    INSTALL_MAN=yes
+    INSTALL_DOC=yes
+    INSTALL_LIB=yes
 
-    unset NEED_RUN_TREE
-    unset NEED_RUN_PACK
+    KEEP_WORK_DIR=no
 
-    unset TREE_ARGS
-    unset PACK_ARGS
-    unset PACK_TYPE
+    NEED_RUN_TREE=no
+    NEED_RUN_PACK=no
+
+    TREE_ARGS='--dirsfirst'
+
+    PACK_ARGS=
 
     while [ -n "$1" ]
     do
         case $1 in
             --rule=*)
                 RULE=$(getvalue "$1")
-                [ -z "$RULE" ] && die "--rule=VALUE argument's value must not be empty."
+                [ -z "$RULE" ] && die "--rule=<VALUE> , VALUE must not be empty."
                 ;;
-            --verbose|-v)
-                VERBOSE=YES
+            --china)
                 ;;
             --xtrace|-x)
                 ;;
             --debug|-d)
-                DEBUG=YES
+                LOG_LEVEL=DEBUG
+                ;;
+            --verbose|-v)
+                LOG_LEVEL=VERBOSE
+                ;;
+            --quiet|-q)
+                LOG_LEVEL=QUIET
                 ;;
             --dry-run)
-                DRYRUN=YES
+                DRYRUN=yes
                 ;;
             --keep-work-dir)
-                KEEP_WORK_DIR=YES
+                KEEP_WORK_DIR=yes
                 ;;
             --tree)
-                NEED_RUN_TREE=YES
+                NEED_RUN_TREE=yes
                 ;;
             --tree-args=*)
                 TREE_ARGS=$(getvalue "$1")
                 ;;
             --pack)
-                NEED_RUN_PACK=YES
+                NEED_RUN_PACK=yes
                 ;;
             --pack-type=*)
+                unset PACK_TYPE
                 PACK_TYPE=$(getvalue "$1")
                 case $PACK_TYPE in
-                    7z|zip|tar.gz|tar.xz|tar.bz2) ;;
-                    '') die "--pack-type=VALUE VALUE must not be empty." ;;
-                    *) die "--pack-type=VALUE VALUE must be one of 7z zip tar.gz tar.xz tar.bz2."
+                    7z|zip|tar.gz|tar.xz|tar.bz2)
+                        PACK_ARGS="--type=$PACK_TYPE"
+                        ;;
+                    '') die "--pack-type=<VALUE>, VALUE must not be empty." ;;
+                    *)  die "--pack-type=<VALUE>, VALUE must be one of 7z zip tar.gz tar.xz tar.bz2."
                 esac
                 ;;
             --build-type=*)
-                GIVEN_BUILD_TYPE=$(getvalue "$1")
-                case $GIVEN_BUILD_TYPE in
+                BUILD_TYPE=$(getvalue "$1")
+                case $BUILD_TYPE in
                     debug|release) ;;
-                    '') die "--build-type=VALUE VALUE must not be empty." ;;
-                    *) die "--build-type=VALUE VALUE must be one of debug release"
+                    '') die "--build-type=<VALUE>, VALUE must not be empty." ;;
+                    *)  die "--build-type=<VALUE>, VALUE must be one of debug release"
                 esac
                 ;;
             --install-doc)
-                INSTALL_DOC=YES
+                INSTALL_DOC=yes
                 ;;
             --install-man)
-                INSTALL_MAN=YES
+                INSTALL_MAN=yes
                 ;;
             --install-exe)
-                INSTALL_EXE=YES
+                INSTALL_EXE=yes
                 ;;
             --install-lib=*)
                 INSTALL_LIB=$(getvalue "$1")
                 case $INSTALL_LIB in
                     static|shared|both|yes|no) ;;
-                    '') die "--install-lib=VALUE VALUE must not be empty." ;;
-                    *) die "--install-lib=VALUE VALUE must be one of static shared both yes no"
+                    '') die "--install-lib=<VALUE>, VALUE must not be empty." ;;
+                    *)  die "--install-lib=<VALUE>, VALUE must be one of static shared both yes no"
                 esac
                 ;;
             --link-type=*)
                 LINK_TYPE=$(getvalue "$1")
                 case $LINK_TYPE in
                     static-only|shared-only|static-prefered|shared-prefered) ;;
-                    '') die "--link-type=VALUE VALUE must not be empty." ;;
-                    *) die "--link-type=VALUE VALUE must be one of static-only shared-only static-prefered shared-prefered"
+                    '') die "--link-type=<VALUE>, VALUE must not be empty." ;;
+                    *)  die "--link-type=<VALUE>, VALUE must be one of static-only shared-only static-prefered shared-prefered"
                 esac
                 ;;
             --jobs=*)
@@ -6946,10 +6951,14 @@ inspect_install_arguments() {
                 is_integer "$BUILD_NJOBS" || die "--jobs=INTEGER argument's value must be a integer."
                 ;;
             [a-z]*)
-                if [ -z "$USER_SPECIFIED_PACKAGE_LIST" ] ; then
-                    USER_SPECIFIED_PACKAGE_LIST="$1"
+                if [ "$1" = 'all' ] ; then
+                    USER_SPECIFIED_PACKAGE_LIST="$(__list_available_packages)"
                 else
-                    USER_SPECIFIED_PACKAGE_LIST="$USER_SPECIFIED_PACKAGE_LIST $1"
+                    if [ -z "$USER_SPECIFIED_PACKAGE_LIST" ] ; then
+                        USER_SPECIFIED_PACKAGE_LIST="$1"
+                    else
+                        USER_SPECIFIED_PACKAGE_LIST="$USER_SPECIFIED_PACKAGE_LIST $1"
+                    fi
                 fi
                 ;;
             *)  die "unrecognized argument: $1"
@@ -6957,27 +6966,14 @@ inspect_install_arguments() {
         shift
     done
 
-    if [ -z "$BUILD_NJOBS" ] ; then
-        BUILD_NJOBS=$NATIVE_OS_NCPU
+    if [ "$LOG_LEVEL" = QUIET ] ; then
+        exec 1>/dev/null
+        exec 2>&1
     fi
 
-    if [ -z "$GIVEN_BUILD_TYPE" ] ; then
-        GIVEN_BUILD_TYPE=release
+    if [ "$LOG_LEVEL" = DEBUG ] ; then
+        export PKG_CONFIG_DEBUG_SPEW=set
     fi
-
-    case $GIVEN_BUILD_TYPE in
-        debug)
-            CMAKE_BUILD_TYPE=Debug
-            MESON_BUILD_TYPE=debug
-            ;;
-        release)
-            CMAKE_BUILD_TYPE=Release
-            MESON_BUILD_TYPE=release
-            ;;
-    esac
-
-    [ -z "$TREE_ARGS" ] && TREE_ARGS='--dirsfirst'
-    [ -z "$PACK_TYPE" ] || PACK_ARGS="--type=$PACK_TYPE"
 
     [ -z "$RULE" ] && RULE=default
 
@@ -7287,7 +7283,7 @@ main() {
     do
         case $arg in
             --xtrace|-x)
-                XTRACE=YES
+                XTRACE=yes
                 set -x
                 break
                 ;;
