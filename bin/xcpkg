@@ -5111,8 +5111,8 @@ __install_the_given_package_for_the_given_target() {
         return 1
     }
 
-    step2 "justfy ELF files for ${COLOR_GREEN}$@${COLOR_OFF}"
-    __justfy_elf_files_for_the_given_target $@ || return 1
+
+
 
     step2 "justfy .la files for ${COLOR_GREEN}$@${COLOR_OFF}"
     __justfy_la_files_for_the_given_target $@ || return 1
