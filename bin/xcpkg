@@ -3245,28 +3245,49 @@ regist_dependency() {
 ##############################################################################
 # {{{ define formula syntax
 
-# set package informations
-# 
-# examples:
-# package set|add summary "JPEG image codec that aids compression and decompression"
-# package set|add webpage "https://www.libjpeg-turbo.org"
-# package set|add src.git "https://github.com/libjpeg-turbo/libjpeg-turbo.git"
-# package set|add src.url "https://downloads.sourceforge.net/project/libjpeg-turbo/2.0.6/libjpeg-turbo-2.0.6.tar.gz"
-# package set|add src.sum "d74b92ac33b0e3657123ddcf6728788c90dc84dcb6a52013d758af3c4af481bb"
-# package set|add license "IJG"
-# package set|add dep.cmd "nasm"
-# package set|add dep.pkg "libxx"
-# package set|add bsystem "cmake"
-# package set     binsrcd 'YES|NO'
-# package set     sourced 'src'
-# package set     sdk.api '23'
+# set/add/get the given package's information
 #
-# package get PACKAGE KEY
+# USAGE:
+# package set <KEY> <VALUE>
+# package add <KEY> <VALUE>
+#
+# package get <PKG> <KEY>
+# 
+# EXAMPLES:
+# package set summary "JPEG image codec that aids compression and decompression"
+# package set webpage "https://www.libjpeg-turbo.org"
+
+# package set git.url "https://github.com/libjpeg-turbo/libjpeg-turbo.git"
+# package set git.rev "5db6aa6cab1b146e07b60cc1736a01f21da01154"
+
+# package set src.url "https://downloads.sourceforge.net/project/libjpeg-turbo/2.0.6/libjpeg-turbo-2.1.2.tar.gz"
+# package set src.sum "d74b92ac33b0e3657123ddcf6728788c90dc84dcb6a52013d758af3c4af481bb"
+
+# package set version "1.0.0"
+
+# package set license "IJG"
+
+# package set dep.cmd "nasm"
+# package set dep.cmd "nasm flex bison"
+# package add dep.cmd "flex bison"
+
+# package set dep.pkg "openssl"
+# package set dep.pkg "openssl zlib"
+# package add dep.pkg "openssl zlib"
+
+# package set bsystem "cmake"
+
+# package set binsrcd 'yes'
+# package set binsrcd 'no'
+
+# package set sourced 'src'
+
+# package set sdk.api '23'
 package() {
     unset __PACKAGE_KEY__
 
     if [ $# -lt 2 ] ; then
-        die "package <set|add|get> <key> [value]..."
+        die "package <set|add|get> <KEY> [VALUE]..."
     fi
     if [ -z "$2" ] ; then
         die "key can not be empty."
@@ -3276,21 +3297,21 @@ package() {
             shift
             __PACKAGE_KEY__="$1"
             shift
-            __PACKAGE_KEY__="$(echo "$__PACKAGE_KEY__" | tr - _  | tr . _ | tr a-z A-Z)"
+            __PACKAGE_KEY__="$(echo "$__PACKAGE_KEY__" | tr '+-.' '_' | tr a-z A-Z)"
             eval "PACKAGE_$__PACKAGE_KEY__=\"$@\"" || exit 1
             ;;
         get)
             shift
             __load_formula_of_the_given_package "$1"
             shift
-            __PACKAGE_KEY__="$(echo "$1" | tr - _  | tr . _ | tr a-z A-Z)"
+            __PACKAGE_KEY__="$(echo "$1" | tr '+-.' '_' | tr a-z A-Z)"
             eval echo \$PACKAGE_$__PACKAGE_KEY__ || exit 1
             ;;
         add)
             shift
             __PACKAGE_KEY__="$1"
             shift
-            __PACKAGE_KEY__="$(echo "$__PACKAGE_KEY__" | tr - _  | tr . _ | tr a-z A-Z)"
+            __PACKAGE_KEY__="$(echo "$__PACKAGE_KEY__" | tr '+-.' '_' | tr a-z A-Z)"
             __PACKAGE_VAL__="$(eval echo \$PACKAGE_$__PACKAGE_KEY__)"
             eval "PACKAGE_$__PACKAGE_KEY__=\"$__PACKAGE_VAL__ $@\"" || exit 1
             ;;
@@ -3299,36 +3320,15 @@ package() {
     esac
 }
 
-__parse_require_command_item() {
-    case $1 in
-        *\<=*) echo "required exe $1" | sed 's/<=/ le /g' ;;
-        *\>=*) echo "required exe $1" | sed 's/>=/ ge /g' ;;
-        *=*)   echo "required exe $1" | sed 's/<=/ eq /g' ;;
-        *\<*)  echo "required exe $1" | sed 's/<=/ lt /g' ;;
-        *\>*)  echo "required exe $1" | sed 's/<=/ gt /g' ;;
-        *)     echo "required exe $1"
-    esac
-}
-
-__parse_require_python_module_item() {
-    case $1 in
-        *\<=*) echo "required py $1" | sed 's/<=/ le /g' ;;
-        *\>=*) echo "required py $1" | sed 's/>=/ ge /g' ;;
-        *=*)   echo "required py $1" | sed 's/<=/ eq /g' ;;
-        *\<*)  echo "required py $1" | sed 's/<=/ lt /g' ;;
-        *\>*)  echo "required py $1" | sed 's/<=/ gt /g' ;;
-        *)     echo "required py $1"
-    esac
-}
-
-__parse_require_perl_module_item() {
-    case $1 in
-        *\<=*) echo "required pm $1" | sed 's/<=/ le /g' ;;
-        *\>=*) echo "required pm $1" | sed 's/>=/ ge /g' ;;
-        *=*)   echo "required pm $1" | sed 's/<=/ eq /g' ;;
-        *\<*)  echo "required pm $1" | sed 's/<=/ lt /g' ;;
-        *\>*)  echo "required pm $1" | sed 's/<=/ gt /g' ;;
-        *)     echo "required pm $1"
+#__parse_require_dependency_item <exe|pym|plm> <cmake>=3.19>
+__parse_require_dependency_item() {
+    case $2 in
+        *\<=*) echo "required $1 $2" | sed 's/<=/ le /g' ;;
+        *\>=*) echo "required $1 $2" | sed 's/>=/ ge /g' ;;
+        *=*)   echo "required $1 $2" | sed 's/<=/ eq /g' ;;
+        *\<*)  echo "required $1 $2" | sed 's/<=/ lt /g' ;;
+        *\>*)  echo "required $1 $2" | sed 's/<=/ gt /g' ;;
+        *)     echo "required $1 $2"
     esac
 }
 
@@ -3369,16 +3369,28 @@ __parse_package_patches() {
 __load_formula_of_the_given_package() {
     die_if_package_is_not_available "$1"
 
+    unset PACKAGE_FORMULA_LOADED
+
     unset PACKAGE_NAME
     unset PACKAGE_SUMMARY
     unset PACKAGE_WEBPAGE
-    unset PACKAGE_SRC_GIT
+
+    unset PACKAGE_GIT_URL
+    unset PACKAGE_GIT_REV
+    unset PACKAGE_GIT_TAG
+
     unset PACKAGE_SRC_URL
     unset PACKAGE_SRC_SUM
     unset PACKAGE_SRC_NAME
     unset PACKAGE_SRC_PATH
     unset PACKAGE_SRC_TYPE
+
     unset PACKAGE_VERSION
+    unset PACKAGE_VERSION_MAJOR
+    unset PACKAGE_VERSION_MINOR
+    unset PACKAGE_VERSION_PATCH
+    unset PACKAGE_VERSION_TWEAK
+
     unset PACKAGE_LICENSE
     unset PACKAGE_PATCHES
 
@@ -3389,21 +3401,45 @@ __load_formula_of_the_given_package() {
     unset PACKAGE_BINSRCD
 
     unset PACKAGE_BUILD_SYSTEM
+    unset PACKAGE_BUILD_SYSTEM_GO
+    unset PACKAGE_BUILD_SYSTEM_RAKE
+    unset PACKAGE_BUILD_SYSTEM_NINJA
+    unset PACKAGE_BUILD_SYSTEM_GMAKE
+    unset PACKAGE_BUILD_SYSTEM_CMAKE
+    unset PACKAGE_BUILD_SYSTEM_XMAKE
+    unset PACKAGE_BUILD_SYSTEM_MESON
+    unset PACKAGE_BUILD_SYSTEM_CARGO
+    unset PACKAGE_BUILD_SYSTEM_AUTOGENSH
+    unset PACKAGE_BUILD_SYSTEM_AUTOTOOLS
+    unset PACKAGE_BUILD_SYSTEM_CONFIGURE
+    unset PACKAGE_BUILD_SYSTEM_NDK_BUILD
 
     # if build in source dir, otherwise in build dir
-    unset PACKAGE_BUILD_IN_SOURCE_DIR
+    PACKAGE_BUILD_IN_SOURCE_DIR=no
 
     # if build in parallel
-    unset PACKAGE_BUILD_IN_PARALLEL
+    PACKAGE_BUILD_IN_PARALLEL=yes
 
-    # dependency commands
+    # dependency commands       List
     unset PACKAGE_DEP_CMD
 
-    # dependency python modules
-    unset PACKAGE_DEP_PIP
+    # dependency python modules List
+    unset PACKAGE_DEP_PYM
 
-    # dependency packages
+    # dependency perl modules   List
+    unset PACKAGE_DEP_PLM
+
+    # dependency packages       List
     unset PACKAGE_DEP_PKG
+
+    # if depends on JDK
+    PACKAGE_DEP_JDK=no
+
+    # if depends on Android SDK
+    PACKAGE_DEP_SDK=no
+
+    # if depends on Android NDK
+    PACKAGE_DEP_NDK=yes
 
     unset PACKAGE_CDEFINE
     unset PACKAGE_CCFLAGS
@@ -3412,7 +3448,7 @@ __load_formula_of_the_given_package() {
 
     unset PACKAGE_FORMULA_FILEPATH
 
-    unset PACKAGE_IOS_IOS
+    unset PACKAGE_SDK_API
 
     unset -f build0
     unset -f prepare
@@ -3437,19 +3473,19 @@ __load_formula_of_the_given_package() {
     fi
 
     if [ -z "$PACKAGE_WEBPAGE" ] ; then
-        PACKAGE_WEBPAGE="$PACKAGE_SRC_GIT"
+        PACKAGE_WEBPAGE="$PACKAGE_GIT_URL"
     fi
 
     if [ -z "$PACKAGE_WEBPAGE" ] ; then
-        die "webpage or src.git must be configed in $PACKAGE_FORMULA_FILEPATH"
+        die "webpage or git.url must be configed in $PACKAGE_FORMULA_FILEPATH"
     fi
 
     if [ -z "$PACKAGE_SRC_URL" ] ; then
-        PACKAGE_SRC_URL="$PACKAGE_SRC_GIT"
+        PACKAGE_SRC_URL="$PACKAGE_GIT_URL"
     fi
 
     if [ -z "$PACKAGE_SRC_URL" ] ; then
-        die "src.url or src.git must be configed in $PACKAGE_FORMULA_FILEPATH"
+        die "src.url or git.url must be configed in $PACKAGE_FORMULA_FILEPATH"
     fi
 
     case $PACKAGE_SRC_URL in
@@ -3471,14 +3507,7 @@ __load_formula_of_the_given_package() {
 
     case $PACKAGE_SRC_TYPE in
         dir)
-            if command -v cut > /dev/null ; then
-                PACKAGE_SRC_PATH=$(echo $PACKAGE_SRC_URL | cut -c7-${#PACKAGE_SRC_URL})
-            elif command -v awk > /dev/null ; then
-                PACKAGE_SRC_PATH=$(echo $PACKAGE_SRC_URL | awk '{print(substr($0, 7))}')
-            else
-                PACKAGE_SRC_PATH=$(expr substr "$PACKAGE_SRC_URL" 7 ${#PACKAGE_SRC_URL})
-            fi
-            [ -d "$PACKAGE_SRC_PATH" ] || die "src.url point to dir is not exist."
+            PACKAGE_SRC_PATH=$(printf '%s\n' "$PACKAGE_SRC_URL" | cut -c7-)
             ;;
         git)
             PACKAGE_SRC_NAME="$PACKAGE_NAME.git"
@@ -3489,24 +3518,42 @@ __load_formula_of_the_given_package() {
                 die "src.sum is not configed in $PACKAGE_FORMULA_FILEPATH"
             fi
             if [ -z "$PACKAGE_VERSION" ] ; then
-                PACKAGE_VERSION="$(basename "$PACKAGE_SRC_URL" | tr _ - | sed 's|-stable||' | sed 's|-src||' | sed 's|\.src||' | sed 's|\.orig\.|.|' | awk '{str = tolower($0); gsub(".tar.xz", "", str); gsub(".tar.gz", "", str); gsub(".tar.lz", "", str); gsub(".tar.bz2", "", str); gsub(".tgz", "", str); gsub(".txz", "", str); gsub(".zip", "", str); print(str)}' | awk -F- '{print $NF}')"
-                if [ -z "$PACKAGE_VERSION" ] ; then
-                    die "version is not configed in $PACKAGE_FORMULA_FILEPATH"
-                else
-                    case $PACKAGE_VERSION in
-                        v*) if command -v cut > /dev/null ; then
-                                PACKAGE_VERSION=$(echo $PACKAGE_VERSION | cut -c2-${#PACKAGE_VERSION})
-                            elif command -v awk > /dev/null ; then
-                                PACKAGE_VERSION=$(echo $PACKAGE_VERSION | awk '{print(substr($0, 2))}')
-                            else
-                                PACKAGE_VERSION=$(expr substr "$PACKAGE_VERSION" 2 ${#PACKAGE_VERSION})
-                            fi
-                    esac
-                fi
+                PACKAGE_VERSION="$(basename "$PACKAGE_SRC_URL" | tr '_@' - | sed 's|-stable||' | sed 's|-src||' | sed 's|\.src||' | sed 's|\.orig\.|.|' | awk '{str = tolower($0); gsub(".tar.xz", "", str); gsub(".tar.gz", "", str); gsub(".tar.lz", "", str); gsub(".tar.bz2", "", str); gsub(".tgz", "", str); gsub(".txz", "", str); gsub(".zip", "", str); print(str)}' | awk -F- '{print $NF}')"
+                case $PACKAGE_VERSION in
+                    '') die "version is not configed in $PACKAGE_FORMULA_FILEPATH" ;;
+                    v*) PACKAGE_VERSION=$(printf '%s\n' "$PACKAGE_VERSION" | cut -c2-)
+                esac
             fi
             PACKAGE_SRC_NAME="$PACKAGE_NAME-$PACKAGE_VERSION.$PACKAGE_SRC_TYPE"
             PACKAGE_SRC_PATH="$MY_SOURCE_DIR/$PACKAGE_SRC_NAME"
     esac
+
+    if [ -n "$PACKAGE_VERSION" ] ; then
+        PACKAGE_VERSION_MAJOR="$(printf '%s\n' "$PACKAGE_VERSION" | cut -d. -f1)"
+        PACKAGE_VERSION_MINOR="$(printf '%s\n' "$PACKAGE_VERSION" | cut -d. -f2)"
+        PACKAGE_VERSION_PATCH="$(printf '%s\n' "$PACKAGE_VERSION" | cut -d. -f3)"
+        PACKAGE_VERSION_TWEAK="$(printf '%s\n' "$PACKAGE_VERSION" | cut -d. -f4)"
+    fi
+
+    for item in $PACKAGE_BUILD_SYSTEM
+    do
+        case $item in
+            autogen)     PACKAGE_BUILD_SYSTEM_AUTOGENSH=yes ;;
+            autotools)   PACKAGE_BUILD_SYSTEM_AUTOTOOLS=yes ;;
+            configure)   PACKAGE_BUILD_SYSTEM_CONFIGURE=yes ;;
+            ndk-build)   PACKAGE_BUILD_SYSTEM_NDK_BUILD=yes ;;
+            cmake-make)  PACKAGE_BUILD_SYSTEM_CMAKE=yes ; PACKAGE_BUILD_SYSTEM_GMAKE=yes ;;
+            cmake-ninja) PACKAGE_BUILD_SYSTEM_CMAKE=yes ; PACKAGE_BUILD_SYSTEM_NINJA=yes ;;
+            cmake)       PACKAGE_BUILD_SYSTEM_CMAKE=yes ; PACKAGE_BUILD_SYSTEM_NINJA=yes ;;
+            xmake)       PACKAGE_BUILD_SYSTEM_XMAKE=yes ;;
+            meson)       PACKAGE_BUILD_SYSTEM_MESON=yes ;;
+            ninja)       PACKAGE_BUILD_SYSTEM_NINJA=yes ;;
+            make)        PACKAGE_BUILD_SYSTEM_GMAKE=yes ;;
+            rake)        PACKAGE_BUILD_SYSTEM_RAKE=yes  ;;
+            cargo)       PACKAGE_BUILD_SYSTEM_CARGO=yes ;;
+            go)          PACKAGE_BUILD_SYSTEM_GO=yes    ;;
+        esac
+    done
 
     for item in $PACKAGE_BUILD_SYSTEM
     do
@@ -3515,14 +3562,16 @@ __load_formula_of_the_given_package() {
             autotools)   package add dep.cmd perl m4 autoconf automake make ;;
             configure)   package add dep.cmd make ;;
             ndk-build)   package add dep.cmd make ;;
-            cmake)       package add dep.cmd cmake make  ;;
-            cmake-make)  package add dep.cmd cmake make  ;;
-            cmake-ninja) package add dep.cmd cmake ninja ;;
+            cmake-make)  package add dep.cmd 'cmake>=3.19.0' make  ;;
+            cmake-ninja) package add dep.cmd 'cmake>=3.19.0' ninja ;;
+            cmake)       package add dep.cmd 'cmake>=3.19.0' ninja ;;
+            xmake)       package add dep.cmd xmake ;;
             meson)       package add dep.cmd meson ninja ;;
-            make)        package add dep.cmd make  ;;
             ninja)       package add dep.cmd ninja ;;
-            cargo)       package add dep.cmd rustup cargo ;;
-            go)          package add dep.cmd go ;;
+            make)        package add dep.cmd make  ;;
+            rake)        package add dep.cmd ruby gem rake ;;
+            cargo)       package add dep.cmd rustup rustc cargo ;;
+            go)          package add dep.cmd 'go>=1.17' ;;
         esac
     done
 
@@ -3530,22 +3579,29 @@ __load_formula_of_the_given_package() {
         __parse_package_patches $PACKAGE_PATCHES
     fi
 
-    if [ "$PACKAGE_BUILD_IN_PARALLEL" = NO ] ; then
+    if [ "$PACKAGE_BUILD_IN_PARALLEL" = no ] ; then
         BUILD_NJOBS=1
     fi
 
-    if [ "$PACKAGE_BUILD_SYSTEM" = 'go' ] ; then
-        PACKAGE_BINSRCD=YES
-        PACKAGE_BUILD_IN_SOURCE_DIR=YES
+    if [ "$PACKAGE_BUILD_SYSTEM_GO" = yes ] ; then
+        PACKAGE_BINSRCD=yes
+        PACKAGE_BUILD_IN_SOURCE_DIR=yes
     fi
 
-    package add dep.cmd 'tree'
+    if [ "$PACKAGE_BUILD_SYSTEM_XMAKE" = yes ] ; then
+        PACKAGE_BINSRCD=yes
+        PACKAGE_BUILD_IN_SOURCE_DIR=yes
+    fi
 
     if [ "$NATIVE_OS_KIND" = 'darwin' ] ; then
         package add dep.cmd 'gsed'
     fi
 
     package add dep.cmd 'find'
+    package add dep.cmd 'tree'
+    package add dep.cmd 'hexdump'
+
+    PACKAGE_FORMULA_LOADED=yes
 }
 
 # examples:
@@ -3645,13 +3701,13 @@ package set summary "Summary of this package"
 
 package set webpage "https://www.xx.com"
 
-# the source code download url of this package. the value of src_url must end with one of .git .zip .tar.xz .tar.gz .tar.lz .tar.bz2 .tgz .txz
+# the source code download url of this package. the value of src.url must end with one of .git .zip .tar.xz .tar.gz .tar.lz .tar.bz2 .tgz .txz
 package set src.url "https://www.xx.com/pkgname-x.y.z.tar.gz"
 
-# the sha256sum of source code. If the value of src_url end with .git, this function is optional, otherwise, this function must be invoked.
+# the sha256sum of source code. If the value of src.url end with .git, this function is optional, otherwise, this function must be invoked.
 package set src.sum "c3e5e9fdd5004dcb542feda5ee4f0ff0744628baf8ed2dd5d66f8ca1197cb1a1"
 
-# the version of this package. If this function is not invoked, it will be calculated from src_url.
+# the version of this package. If this function is not invoked, it will be calculated from src.url.
 #package set version "x.y.z"
 
 # the license of this package.
@@ -3774,10 +3830,10 @@ __del_a_formula_repo() {
     for repoName in $(__list_formula_repositories | cut -d= -f1)
     do
         if [ "$repoName" = "$1" ] ; then
-            REPO_EXISTS=YES
+            REPO_EXISTS=yes
         fi
     done
-    if [ "$REPO_EXISTS" = YES ] ; then
+    if [ "$REPO_EXISTS" = yes ] ; then
         sed_in_place "/^$1=/d" "$MY_HOME_DIR/repos"
     else
         die "$1 formula repo not exists."
@@ -3841,17 +3897,68 @@ __update_formula_repositories() {
 ##############################################################################
 
 prompt_user_to_install_bat() {
-    echo "${COLOR_YELLOW}Note: if you want to have a better experience, I strongly recommend you to install${COLOR_OFF} ${COLOR_GREEN}bat${COLOR_OFF} ${COLOR_YELLOW}on your os. For more details, please visit website${COLOR_OFF} ${COLOR_GREEN}https://github.com/sharkdp/bat${COLOR_OFF}"
+    echo
+    note "${COLOR_YELLOW}if you want to have a better experience, I strongly recommend you to install${COLOR_OFF} ${COLOR_GREEN}bat${COLOR_OFF} ${COLOR_YELLOW}on this machine. For more details, please visit website${COLOR_OFF} ${COLOR_GREEN}https://github.com/sharkdp/bat${COLOR_OFF}"
 }
 
+# fetch source code if needed
 __fetch_sources_of_the_given_package() {
-    # fetch source code if needed
-    if [ "$PACKAGE_SRC_TYPE" != 'dir' ] ; then
-        fetch "$PACKAGE_SRC_URL" --sha256="$PACKAGE_SRC_SUM" --output-path="$PACKAGE_SRC_PATH"
-    fi
+    case $PACKAGE_SRC_TYPE in
+        git)
+            if [ -d "$PACKAGE_SRC_PATH" ] ; then
+                run cd  "$PACKAGE_SRC_PATH" || return 1
+                if git rev-parse 2> /dev/null ; then
+                    if [ -n "$PACKAGE_GIT_REV" ] ; then
+                        if [ "$PACKAGE_GIT_REV" = "$(git rev-parse HEAD)" ] ; then
+                            success "$PACKAGE_SRC_PATH already have been fetched."
+                            return 0
+                        fi
+                        run git -c protocol.version=2 fetch --no-tags --prune --progress --depth=1 origin +$PACKAGE_GIT_REV:refs/remotes/origin/master &&
+                        run git checkout --progress --force -B master refs/remotes/origin/master
+                    else
+                        run git pull &&
+                        run git submodule update --recursive
+                    fi
+                else
+                    if [ -n "$PACKAGE_GIT_REV" ] ; then
+                        run rm -rf * &&
+                        run git init &&
+                        run git remote add origin "$PACKAGE_SRC_URL" &&
+                        run git -c protocol.version=2 fetch --no-tags --prune --progress --depth=1 origin +$PACKAGE_GIT_REV:refs/remotes/origin/master &&
+                        run git checkout --progress --force -B master refs/remotes/origin/master
+                    else
+                        run cd .. &&
+                        run rm -rf "$PACKAGE_SRC_NAME" &&
+                        run git clone --recursive "$PACKAGE_SRC_URL" "$PACKAGE_SRC_NAME"
+                    fi
+                fi
+            else
+                if [ -n "$PACKAGE_GIT_REV" ] ; then
+                    run install -d "$PACKAGE_SRC_PATH" &&
+                    run cd         "$PACKAGE_SRC_PATH" &&
+                    run git init &&
+                    run git remote add origin "$PACKAGE_SRC_URL" &&
+                    run git -c protocol.version=2 fetch --no-tags --prune --progress --depth=1 origin +$PACKAGE_GIT_REV:refs/remotes/origin/master &&
+                    run git checkout --progress --force -B master refs/remotes/origin/master
+                else
+                    if [ ! -d "$MY_SOURCE_DIR" ] ; then
+                        run install -d "$MY_SOURCE_DIR" || return 1
+                    fi
+                    run cd "$MY_SOURCE_DIR" &&
+                    run git clone --recursive "$PACKAGE_SRC_URL" "$PACKAGE_SRC_NAME"
+                fi
+            fi
+            ;;
+        dir) note "$PACKAGE_SRC_URL is local path, no need to fetch." ;;
+        *)  fetch "$PACKAGE_SRC_URL" --sha256="$PACKAGE_SRC_SUM" --output-path="$PACKAGE_SRC_PATH"
+    esac
 }
 
 __fetch_patches_of_the_given_package() {
+    __fetch_patches $PACKAGE_PATCHES
+}
+
+__fetch_patches() {
     unset PACKAGE_PATCHES
 
     # fetch patches if posible
@@ -3870,8 +3977,24 @@ __fetch_patches_of_the_given_package() {
 }
 
 __fetch_resources_of_the_given_package() {
-    __fetch_sources_of_the_given_package &&
-    __fetch_patches_of_the_given_package $PACKAGE_PATCHES
+    case $1 in
+        '') die "$_0 fetch <PKG> , PKG must not be empty." ;;
+        @all)
+            shift
+            unset STEP_NUM
+            for PKG in $(__list_available_packages)
+            do
+                step "$PKG"
+                 __load_formula_of_the_given_package "$PKG" $@ || return 1
+                __fetch_sources_of_the_given_package "$PKG" $@ || return 1
+                __fetch_patches_of_the_given_package "$PKG" $@ || return 1
+            done
+            ;;
+        *)
+             __load_formula_of_the_given_package $@ || return 1
+            __fetch_sources_of_the_given_package $@ || return 1
+            __fetch_patches_of_the_given_package $@
+    esac
 }
 
 die_if_package_is_not_specified() {
@@ -3953,7 +4076,7 @@ __gen_github_workflows() {
             --output-dir=*)
                 OUTPUT_DIR=$(getvalue "$1")
                 case "$OUTPUT_DIR" in
-                    '') die "--output-dir=DIR, DIR must not be empty." ;;
+                    '') die "--output-dir=<DIR>, DIR must not be empty." ;;
                     /*) ;;
                     \~|\~/) OUTPUT_DIR="${HOME}" ;;
                     \~/*)   OUTPUT_DIR="${HOME}$(printf "$OUTPUT_DIR" | awk '{print(substr($0, 2))}')" ;;
@@ -3994,13 +4117,13 @@ __gen_github_workflows() {
                 for z in $(get_direct_dependency_package_list_of_the_given_package "$y")
                 do
                     if [ "$x" = "$z" ] ; then
-                        BREAK=YES
+                        BREAK=yes
                         break 2
                     fi
                 done
             fi
         done
-        if [ "$BREAK" = YES ] ; then
+        if [ "$BREAK" = yes ] ; then
             unset BREAK
         else
             if [ -z "$NDEPENDED_PACKAGES" ] ; then
@@ -4100,8 +4223,6 @@ __uninstall_the_given_package() {
 }
 
 __reinstall_the_given_packages() {
-    inspect_build_toolchains
-
     inspect_install_arguments $@
 
     die_if_package_is_not_specified $USER_SPECIFIED_PACKAGE_LIST
@@ -4124,8 +4245,6 @@ __reinstall_the_given_packages() {
 }
 
 __upgrade_packages() {
-    inspect_build_toolchains
-
     inspect_install_arguments $@
 
     if [ -z "$USER_SPECIFIED_PACKAGE_LIST" ] ; then
@@ -4280,19 +4399,19 @@ __open_homepage_of_the_given_package() {
 __show_depends_of_the_given_package() {
     die_if_package_is_not_specified "$1"
 
-    __gen_dependency_tree_of_the_given_package "$1"
+    __gen_dependency_package_tree_of_the_given_package "$1"
 
-    if [ -f "$DEPENDENCIES_TXT" ] ; then
-        cat "$DEPENDENCIES_TXT"
-    elif [ -f "$DEPENDENCIES_PNG" ] ; then
+    if [ -f "$PACKAGE_DEP_PKG_TREE_FILEPATH_TXT" ] ; then
+        cat "$PACKAGE_DEP_PKG_TREE_FILEPATH_TXT"
+    elif [ -f "$PACKAGE_DEP_PKG_TREE_FILEPATH_PNG" ] ; then
         for item in open feh eog lsix
         do
-            if command -v $item > /dev/null && $item "$DEPENDENCIES_PNG" ; then
+            if command -v $item > /dev/null && $item "$PACKAGE_DEP_PKG_TREE_FILEPATH_PNG" ; then
                 return 0
             fi
         done
-    elif [ -f "$DEPENDENCIES__GV" ] ; then
-        cat "$DEPENDENCIES__GV"
+    elif [ -f "$PACKAGE_DEP_PKG_TREE_FILEPATH_DOT" ] ; then
+        cat "$PACKAGE_DEP_PKG_TREE_FILEPATH_DOT"
     fi
 }
 
@@ -4368,7 +4487,7 @@ __pack_the_given_installed_package() {
             --type=*)
                 PACKED_FILE_SUFFIX=$(getvalue $arg)
                 if [ -z "$PACKED_FILE_SUFFIX" ] ; then
-                    die "--type=VALUE : VALUE must not be empty."
+                    die "--type=<VALUE> , VALUE must not be empty."
                 fi
                 ;;
             *)  die "unrecognized argument: $arg"
@@ -4422,7 +4541,7 @@ __pack_the_given_installed_package() {
     PACKED_FILE_NAME="$PACKED_DIR_NAME.$PACKED_FILE_SUFFIX"
 
     step "create work directory"
-    info "mktemp -d"
+    echo "$COLOR_PURPLE==>$COLOR_OFF ${COLOR_GREEN}mktemp -d$COLOR_OFF"
     WORK_DIR=$(mktemp -d)
 
     step "change to work directory"
@@ -4460,9 +4579,9 @@ get_direct_dependency_package_list_of_the_given_package() {
 }
 
 # $1 packageName, if packageName is not specified, USER_SPECIFIED_PACKAGE_LIST will be used
-# $2=YES invoked by myself
-__gen_dependency_list_of_the_given_package() {
-    [ "$2" = YES ] || {
+# $2=yes invoked by myself
+__gen_dependency_package_list_of_the_given_package() {
+    [ "$2" = yes ] || {
         unset I
         unset DEPENDENCY_PACKAGE_LIST
     }
@@ -4491,12 +4610,24 @@ __gen_dependency_list_of_the_given_package() {
 
         DEPENDENCY_PACKAGE_LIST="$dependencyPkgName $DEPENDENCY_PACKAGE_LIST_TEMP"
 
-        __gen_dependency_list_of_the_given_package "$dependencyPkgName" YES
+        __gen_dependency_package_list_of_the_given_package "$dependencyPkgName" yes
     done
 }
 
-# __gen_dependency_tree_of_the_given_package PKG [OUTPUT-DIR]
-__gen_dependency_tree_of_the_given_package() {
+__get_dot_file_contents() {
+    for PKG in $@
+    do
+        unset DIRECT_DEPENDENCY_PACKAGE_LIST
+        DIRECT_DEPENDENCY_PACKAGE_LIST="$(get_direct_dependency_package_list_of_the_given_package "$PKG")"
+        if [ -n "$DIRECT_DEPENDENCY_PACKAGE_LIST" ] ; then
+            printf '"%s" -> { "%s" }\n' "$PKG" "$(printf '%s\n' "$DIRECT_DEPENDENCY_PACKAGE_LIST" | sed 's/ /" "/g')"
+            __get_dot_file_contents $DIRECT_DEPENDENCY_PACKAGE_LIST
+        fi
+    done
+}
+
+# __gen_dependency_package_tree_of_the_given_package <PKG> [OUTPUT-DIR]
+__gen_dependency_package_tree_of_the_given_package() {
     unset DIRECT_DEPENDENCY_PACKAGE_LIST
     DIRECT_DEPENDENCY_PACKAGE_LIST="$(get_direct_dependency_package_list_of_the_given_package "$1")"
 
@@ -4504,114 +4635,80 @@ __gen_dependency_tree_of_the_given_package() {
         return 0
     fi
 
-    unset DEPENDENCIES__GV
-    unset DEPENDENCIES_PNG
-    unset DEPENDENCIES_TXT
-
-    unset DEPENDENCIES_OUTPUT_DIR
+    unset PACKAGE_DEP_PKG_TREE_OUTPUT_DIR
 
     if [ -z "$2" ] ; then
-        DEPENDENCIES_OUTPUT_DIR=$(mktemp -d) || return 1
+        PACKAGE_DEP_PKG_TREE_OUTPUT_DIR=$(mktemp -d) || return 1
     else
-        DEPENDENCIES_OUTPUT_DIR="$2"
+        PACKAGE_DEP_PKG_TREE_OUTPUT_DIR="$2"
         [ -d "$2" ] || install -d "$2"
     fi
 
-    DEPENDENCIES__GV="$DEPENDENCIES_OUTPUT_DIR/dependencies.gv"
-    DEPENDENCIES_PNG="$DEPENDENCIES_OUTPUT_DIR/dependencies.png"
-    DEPENDENCIES_TXT="$DEPENDENCIES_OUTPUT_DIR/dependencies.txt"
+    unset PACKAGE_DEP_PKG_TREE_FILEPATH_DOT
+    unset PACKAGE_DEP_PKG_TREE_FILEPATH_PNG
+    unset PACKAGE_DEP_PKG_TREE_FILEPATH_TXT
 
-    printf 'digraph "%s\n" {' "$1" > "$DEPENDENCIES__GV"
+    PACKAGE_DEP_PKG_TREE_FILEPATH_DOT="$PACKAGE_DEP_PKG_TREE_OUTPUT_DIR/dependencies.gv"
+    PACKAGE_DEP_PKG_TREE_FILEPATH_PNG="$PACKAGE_DEP_PKG_TREE_OUTPUT_DIR/dependencies.png"
+    PACKAGE_DEP_PKG_TREE_FILEPATH_TXT="$PACKAGE_DEP_PKG_TREE_OUTPUT_DIR/dependencies.txt"
 
-    for dependencyPkgName in $1 $DIRECT_DEPENDENCY_PACKAGE_LIST
-    do
-        unset DIRECT_DEPENDENCY_PACKAGE_LIST
-        DIRECT_DEPENDENCY_PACKAGE_LIST="$(get_direct_dependency_package_list_of_the_given_package "$dependencyPkgName")"
-        if [ -z "$DIRECT_DEPENDENCY_PACKAGE_LIST" ] ; then
-            continue
-        fi
-        printf '"%s" -> { "%s" }\n' "$dependencyPkgName" "$(printf '%s\n' "$DIRECT_DEPENDENCY_PACKAGE_LIST" | sed 's/ /" "/g')" >> "$DEPENDENCIES__GV"
-    done
-
-    printf "}\n" >> "$DEPENDENCIES__GV"
+    printf 'digraph G {\n'       >  "$PACKAGE_DEP_PKG_TREE_FILEPATH_DOT"
+    __get_dot_file_contents "$1" >> "$PACKAGE_DEP_PKG_TREE_FILEPATH_DOT"
+    printf '}\n'                 >> "$PACKAGE_DEP_PKG_TREE_FILEPATH_DOT"
 
     if command -v dot > /dev/null ; then
-        run dot -Tpng -o "$DEPENDENCIES_PNG" "$DEPENDENCIES__GV"
+        run dot -Tpng -o "$PACKAGE_DEP_PKG_TREE_FILEPATH_PNG" "$PACKAGE_DEP_PKG_TREE_FILEPATH_DOT"
     else
-        warn "graphviz is not installed. we do not generate png format dependency image."
+        note "graphviz is not installed. we do not generate png format dependency image."
     fi
 
     # https://github.com/ggerganov/dot-to-ascii
     curl \
-        -o "$DEPENDENCIES_TXT" \
+        -o "$PACKAGE_DEP_PKG_TREE_FILEPATH_TXT" \
         -s \
         -G \
         --data-urlencode "boxart=1" \
-        --data-urlencode "src=$(cat $DEPENDENCIES__GV)" \
+        --data-urlencode "src=$(cat $PACKAGE_DEP_PKG_TREE_FILEPATH_DOT)" \
         "https://dot-to-ascii.ggerganov.com/dot-to-ascii.php" || true
 }
 
-__config_global_installation_variables() {
-    for tool in $(list_tools_in_the_toolchain)
+__config_native_toolchain_environment_variables() {
+    for TOOLNAME in $(list_tools_in_the_toolchain)
     do
-        unset TOOL_PATH
-        case $tool in
-            cc)
-                if [ -z "$CC" ] ; then
-                    TOOL_PATH=$(command -v cc || command -v gcc || command -v clang)
-                else
-                    TOOL_PATH="$CC"
-                fi
-                ;;
-            cxx)
-                if [ -z "$CXX" ] ; then
-                    TOOL_PATH=$(command -v c++ || command -v g++ || command -v clang++)
-                else
-                    TOOL_PATH="$CXX"
-                fi
-                ;;
-            *)  TOOL_PATH=$(command -v "$tool")
+        unset TOOLPATH
+
+        case $TOOLNAME in
+            cc)  TOOLPATH="$(command -v cc  || command -v gcc || command -v clang   || true)" ;;
+            cxx) TOOLPATH="$(command -v c++ || command -v g++ || command -v clang++ || true)" ;;
+            *)   TOOLPATH="$(command -v "$TOOLNAME" || true)"
         esac
 
-        unset TOOL_UPPER
-        TOOL_UPPER=$(echo "$tool" | tr a-z A-Z)
+        unset TOOLNAME_UPPERCASE
+        TOOLNAME_UPPERCASE=$(printf '%s\n' "$TOOLNAME" | tr a-z A-Z)
 
-        eval $TOOL_UPPER=$TOOL_PATH
-        eval export "${TOOL_UPPER}_FOR_BUILD=\"$TOOL_PATH\""
+        eval export "${TOOLNAME_UPPERCASE}='$TOOLPATH'"
+        eval export "${TOOLNAME_UPPERCASE}_FOR_BUILD='$TOOLPATH'"
+
+        unset TOOLNAME_UPPERCASE
+        unset TOOLNAME
+        unset TOOLPATH
     done
-    unset TOOL_PATH
-    unset TOOL_UPPER
 
     for FLAG in $(list_flags_used_by_tools_in_the_toolchain)
     do
         eval export "${FLAG}_FOR_BUILD=\"\$$FLAG\""
     done
     unset FLAG
-
-    export PATH="$TOOLCHAIN_BIND:$PATH"
-
-    if [ -d "$MY_HOME_DIR/native" ] ; then
-        for item in $(find "$MY_HOME_DIR/native" -maxdepth 1 -type d -name bin)
-        do
-            export PATH="$item:$PATH"
-        done
-    fi
-
-    if [ "$DEBUG" = YES ] ; then
-        export PKG_CONFIG_DEBUG_SPEW=set
-    fi
 }
 
 __install_the_given_packages() {
-    inspect_build_toolchains
-
     inspect_install_arguments $@
 
     die_if_package_is_not_specified $USER_SPECIFIED_PACKAGE_LIST
 
-    __config_global_installation_variables
+    __config_native_toolchain_environment_variables
 
-    __gen_dependency_list_of_the_given_package || return 1
+    __gen_dependency_package_list_of_the_given_package || return 1
 
     if [ $(list_length $DEPENDENCY_PACKAGE_LIST) -gt 1 ] ; then
         echo "$COLOR_PURPLE==>$COLOR_OFF to install$COLOR_GREEN $DEPENDENCY_PACKAGE_LIST $COLOR_OFF\n"
@@ -4620,21 +4717,19 @@ __install_the_given_packages() {
     for INSTALLING_PACKAGE in $DEPENDENCY_PACKAGE_LIST
     do
         if is_package_installed "$INSTALLING_PACKAGE" ; then
-            printf "$COLOR_GREEN%-10s$COLOR_OFF already have been installed.\n" "$INSTALLING_PACKAGE"
+            if [ "$LOG_LEVEL" != QUIET ] ; then
+                printf "$COLOR_GREEN%-10s$COLOR_OFF already have been installed.\n" "$INSTALLING_PACKAGE"
+            fi
         else
-            echo "${COLOR_PURPLE}=============== Installing ${COLOR_OFF}${COLOR_GREEN}${INSTALLING_PACKAGE}${COLOR_OFF}${COLOR_PURPLE} ===============${COLOR_OFF}"
-            __install_the_given_package "$INSTALLING_PACKAGE" || {
-                if [ -z "$BUILD_ITEM" ] ; then
-                    die "install $INSTALLING_PACKAGE failed! you can go to $WORK_DIR to see see."
-                else
-                    die "install $INSTALLING_PACKAGE/$BUILD_ITEM failed! you can go to $WORK_DIR to see see."
-                fi
-            }
+            (__install_the_given_package "$INSTALLING_PACKAGE") || return 1
         fi
     done
 }
 
+# Note: this function must run in a subshell
 __install_the_given_package() {
+    echo "${COLOR_PURPLE}=============== Installing ${COLOR_OFF}${COLOR_GREEN}${1}${COLOR_OFF}${COLOR_PURPLE} ===============${COLOR_OFF}"
+
     # brew install meson
     # Error: The current work directory doesn't exist, cannot proceed.
     # beacuse previous package's work direcotory is deleted.
@@ -4643,8 +4738,6 @@ __install_the_given_package() {
     unset WORK_DIR
     unset SOURCE_DIR
     unset BUILD_DIR
-    unset BUILD_ITEM
-    unset BUILD_INDEX
 
     unset NATIVE_BUILD_DIR
     unset NATIVE_INSTALL_DIR
@@ -4652,34 +4745,80 @@ __install_the_given_package() {
     unset CONFIG_XX_UPDATED
     unset STEP_NUM
 
+    unset TARGET_INDEX
+    unset TARGET_ITEM
+
+    __install_the_given_package_on_exit() {
+        is_package_installed "$INSTALLING_PACKAGE" && return 0
+
+        if [ -z "$WORK_DIR" ] ; then
+            die "install $INSTALLING_PACKAGE failed!"
+        else
+            if [ "$DRYRUN" = yes ] ; then
+                return 0
+            fi
+            if [ -z "$TARGET_ITEM" ] ; then
+                die "install $INSTALLING_PACKAGE failed! you can go to $WORK_DIR to see see."
+            else
+                die "install $INSTALLING_PACKAGE/$TARGET_ITEM failed! you can go to $WORK_DIR to see see."
+            fi
+        fi
+    }
+
+    trap __install_the_given_package_on_exit EXIT
+
+    __setup_PATH_env
+
     step "view formula"
     __view_formula_of_the_given_package "$1" --paging=never
 
     step "load formula"
     __load_formula_of_the_given_package "$1"
 
+    if [ "$PACKAGE_DEP_JDK" = yes ] ; then
+        step "find Java Development Kit"
+        install_jdk_if_needed
+    fi
 
+    if [ "$PACKAGE_DEP_SDK" = yes ] ; then
+        step "find Android SDK"
+        install_android_sdk_if_needed
+    fi
 
+    if [ "$PACKAGE_DEP_NDK" = yes ] ; then
+        step "find Android NDK"
+        setup_build_toolchains_env
+    fi
 
-    step "handle required commands"
+    calculate_TARGET_OS_VERS "$PACKAGE_NAME" "$PACKAGE_SDK_API" "$USER_EXPECTED_TARGET_OS_VERS"
+
+    step "handle required dependencies"
     for item in $PACKAGE_DEP_CMD
     do
-        handle_dependency $(__parse_require_command_item "$item")
+        handle_dependency $(__parse_require_dependency_item exe "$item") || return 1
     done
-    for item in $PACKAGE_DEP_PIP
+    for item in $PACKAGE_DEP_PYM
     do
-        handle_dependency $(__parse_require_python_module_item "$item")
+        handle_dependency $(__parse_require_dependency_item pym "$item") || return 1
+    done
+    for item in $PACKAGE_DEP_PLM
+    do
+        handle_dependency $(__parse_require_dependency_item plm "$item") || return 1
     done
 
-    step "printf required commands"
+    step "printf required dependencies"
     __printf_dependency TYPE NAME OP EXPECT ACTUAL LOCATION
     for item in $PACKAGE_DEP_CMD
     do
-        printf_dependency $(__parse_require_command_item "$item")
+        printf_dependency $(__parse_require_dependency_item exe "$item")
     done
-    for item in $PACKAGE_DEP_PIP
+    for item in $PACKAGE_DEP_PYM
     do
-        printf_dependency $(__parse_require_python_module_item "$item")
+        printf_dependency $(__parse_require_dependency_item pym "$item")
+    done
+    for item in $PACKAGE_DEP_PLM
+    do
+        printf_dependency $(__parse_require_dependency_item plm "$item")
     done
 
     unset PKG_CONFIG
@@ -4688,23 +4827,68 @@ __install_the_given_package() {
     unset GMAKE
     unset NINJA
 
-    PKG_CONFIG=$(command -v pkg-config)
-    MESON=$(command -v meson)
-    CMAKE=$(command -v cmake)
-    GMAKE=$(command -v gmake || command -v make)
-    NINJA=$(command -v ninja)
+    PKG_CONFIG=$(command -v pkg-config || true)
+    MESON=$(command -v meson || true)
+    CMAKE=$(command -v cmake || true)
+    GMAKE=$(command -v gmake || command -v make || true)
+    NINJA=$(command -v ninja || true)
 
-    step "fetch resources if needed"
-    __fetch_resources_of_the_given_package "$1" || return 1
+    PERL_HOME=$(__get_perl_home)
+    if [ -n "$PERL_HOME" ] ; then
+        bppend_to_PATH "$PERL_HOME/bin"
+    fi
 
     step "create work directory"
-    info "mktemp -d"
+    echo "$COLOR_PURPLE==>$COLOR_OFF ${COLOR_GREEN}mktemp -d$COLOR_OFF"
     WORK_DIR=$(mktemp -d) || die "create work directory failed."
+
+    run install -d "$WORK_DIR/$TIMESTAMP_UNIX"
+
+    step "calculate dependency packages"
+    unset DEPENDENCY_PACKAGE_LIST
+    if [ -z "$PACKAGE_DEP_PKG" ] ; then
+        note "no dependency packages."
+    else
+        __gen_dependency_package_list_of_the_given_package "$1"                      || return 1
+        __gen_dependency_package_tree_of_the_given_package "$1" "$MY_INSTALL_DIR/$1" || return 1
+        if [ -f "$PACKAGE_DEP_PKG_TREE_FILEPATH_TXT" ] ; then
+            cat "$PACKAGE_DEP_PKG_TREE_FILEPATH_TXT"
+        fi
+    fi
+
+    step "create common linker script"
+    create_common_linker_script "$WORK_DIR/$TIMESTAMP_UNIX"
+
+    step "create common include.h"
+    unset COMMON_INCLUDE_H_FILEPATH
+    COMMON_INCLUDE_H_FILEPATH="$WORK_DIR/$TIMESTAMP_UNIX/include.h"
+    create_common_include_h "$COMMON_INCLUDE_H_FILEPATH"
+    if command -v bat > /dev/null ; then
+        run bat --style=plain --paging=never "$COMMON_INCLUDE_H_FILEPATH"
+    else
+        run cat "$COMMON_INCLUDE_H_FILEPATH"
+    fi
+
+    step "fetch sources and patches"
+    __fetch_sources_of_the_given_package "$1" || return 1
+    __fetch_patches_of_the_given_package "$1" || return 1
 
     step "unpack sources to work directory"
     case $PACKAGE_SRC_URL in
-        dir://*|*.git)
-            PACKAGE_VERSION=$(cd "$PACKAGE_SRC_PATH" && git log -1 --pretty=format:%h) || return 1
+        dir://*)
+            if command -v git > /dev/null ; then
+                PACKAGE_GIT_REV=$(cd "$PACKAGE_SRC_PATH" && git rev-parse HEAD || true)
+            fi
+            if [ -d "$PACKAGE_SRC_PATH" ] ; then
+                run cp -r "$PACKAGE_SRC_PATH/." "$WORK_DIR" || return 1
+            else
+                die "src.url point to dir is not exist."
+            fi
+            ;;
+        *.git)
+            if [ -z "$PACKAGE_GIT_REV" ] ; then
+                PACKAGE_GIT_REV=$(cd "$PACKAGE_SRC_PATH" && git rev-parse HEAD) || return 1
+            fi
             run cp -r "$PACKAGE_SRC_PATH/." "$WORK_DIR" || return 1
             ;;
         *.c|*.cc|*.cxx|*.cpp)
@@ -4744,53 +4928,53 @@ __install_the_given_package() {
         fi
 
         if [ -f "$NATIVE_INSTALL_DIR/version.txt" ] ; then
-            warn "build for native already have been done, skipped."
+            note "build for native already have been done, skipped."
         else
-            [ "$PACKAGE_BUILD_IN_SOURCE_DIR" = YES ] || {
+            [ "$PACKAGE_BUILD_IN_SOURCE_DIR" = yes ] || {
                 run install -d "$NATIVE_BUILD_DIR" || return 1
                 run cd    "$NATIVE_BUILD_DIR" || return 1
             }
 
-            printf "%17s = %s\n\n" "PACKAGE_NAME" "$PACKAGE_NAME"
+            printf "%18s = %s\n\n" "PACKAGE_NAME" "$PACKAGE_NAME"
+
+            for TOOL in PKG_CONFIG MESON CMAKE GMAKE NINJA
+            do
+                printf "%18s = %s\n" "$TOOL" "$(eval echo \$$TOOL)"
+            done
 
             echo
-            echo "       PKG_CONFIG = $PKG_CONFIG"
-            echo "            MESON = $MESON"
-            echo "            CMAKE = $CMAKE"
-            echo "            GMAKE = $GMAKE"
-            echo "            NINJA = $NINJA"
 
             for TOOL in $(list_tools_in_the_toolchain | tr a-z A-Z)
             do
                 eval export "$TOOL=\"\$${TOOL}_FOR_BUILD\""
-                printf "%17s = %s\n" "$TOOL" "$(eval echo \$$TOOL)"
+                printf "%18s = %s\n" "$TOOL" "$(eval echo \$$TOOL)"
             done
 
             for FLAG in $(list_flags_used_by_tools_in_the_toolchain)
             do
                 eval export "$FLAG=\"\$${FLAG}_FOR_BUILD\""
-                printf "\n%17s = " "$FLAG"
-                FIRST=YES
+                printf "\n%18s = " "$FLAG"
+                FIRST=yes
                 for item in $(eval echo \$$FLAG | tr ':' ' ')
                 do
-                    if [ "$FIRST" = YES ] ; then
-                        FIRST=NO
+                    if [ "$FIRST" = yes ] ; then
+                        FIRST=no
                         echo "$item"
                     else
-                        echo "                    $item"
+                        echo "                     $item"
                     fi
                 done
             done
             echo
-            printf "\n%17s = " PATH
-            FIRST=YES
-            for item in $(echo "$PATH" | tr ':' ' ')
+            printf "\n%18s = " PATH
+            FIRST=yes
+            for item in $(printf '%s\n' "$PATH" | tr ' ' '|' | tr ':' ' ')
             do
-                if [ "$FIRST" = YES ] ; then
-                    FIRST=NO
-                    echo "$item"
+                if [ "$FIRST" = yes ] ; then
+                    FIRST=no
+                    printf '%s\n' "$item" | tr '|' ' '
                 else
-                    echo "                    $item"
+                    printf '%s\n' "                     $item" | tr '|' ' '
                 fi
             done
 
@@ -4813,7 +4997,7 @@ __install_the_given_package() {
             fi
         fi
     else
-        warn "no build0  function defined in formula, skipped."
+        note "no build0  function defined in formula, skipped."
     fi
 
     step "do some preparation works"
@@ -4821,41 +5005,29 @@ __install_the_given_package() {
         if [ "$PWD" != "$SOURCE_DIR" ] ; then
             run cd "$SOURCE_DIR" || return 1
         fi
-        run prepare || return 1
+        prepare "$1" || return 1
     else
         case $PACKAGE_BUILD_SYSTEM in
             autogen)
-                warn "no prepare function defined in formula."
+                note "no prepare function defined in formula."
                 run NOCONFIGURE=yes ./autogen.sh    || return 1
                 ;;
             autotools)
-                warn "no prepare function defined in formula."
+                note "no prepare function defined in formula."
                 run autoreconf -ivf || return 1
                 ;;
-            *)  warn "no prepare function defined in formula, skipped."
+            *)  note "no prepare function defined in formula, skipped."
         esac
     fi
 
-    step "show common include.h"
-    if command -v bat > /dev/null ; then
-        run bat --style=plain --paging=never "$COMMON_INCLUDE_H_FILEPATH"
-    else
-        run cat "$COMMON_INCLUDE_H_FILEPATH"
-    fi
+    for TARGET_ITEM in $TARGET_LIST
+    do
+        TARGET_INDEX=$(expr ${TARGET_INDEX-0} + 1)
+        step "${COLOR_PURPLE}Installing ${COLOR_OFF}${COLOR_GREEN}$1 $TARGET_ITEM${COLOR_OFF}"
+        (__install_the_given_package_for_the_given_target "$1" "$TARGET_ITEM") || return 1
+    done
 
-    step "calculate dependencies"
-    unset DEPENDENCY_PACKAGE_LIST
-    if [ -z "$PACKAGE_DEP_PKG" ] ; then
-        warn "no dependencies."
-    else
-        __gen_dependency_list_of_the_given_package "$1"              || return 1
-        __gen_dependency_tree_of_the_given_package "$1" "$MY_INSTALL_DIR/$1" || return 1
-        if [ -f "$DEPENDENCIES_TXT" ] ; then
-            cat "$DEPENDENCIES_TXT"
-        fi
-    fi
-
-    __install_the_given_package_all_builds "$1" || return 1
+    [ "$DRYRUN" = yes ] && exit
 
     step "record installed abis"
     run cp "$WORK_DIR/$TIMESTAMP_UNIX/installed-abis" "$MY_INSTALL_DIR/$1/installed-abis"
@@ -4866,7 +5038,7 @@ __install_the_given_package() {
     step "record installed files"
     __record_installed_files_of_the_given_package "$1"
 
-    [ "$KEEP_WORK_DIR" = YES ] || {
+    [ "$KEEP_WORK_DIR" = yes ] || {
         step "clean work directory."
         run rm -rf "$WORK_DIR"
     }
@@ -4874,14 +5046,14 @@ __install_the_given_package() {
     echo
     success "$1 installed successfully."
 
-    if [ "$NEED_RUN_TREE" = YES ] ; then
+    if [ "$NEED_RUN_TREE" = yes ] ; then
         unset STEP_NUM
         echo
         echo "${COLOR_GREEN}$_0 tree $1 $TREE_ARGS${COLOR_OFF}"
         __tree_the_given_installed_package "$1" $TREE_ARGS
     fi
 
-    if [ "$NEED_RUN_PACK" = YES ] ; then
+    if [ "$NEED_RUN_PACK" = yes ] ; then
         unset STEP_NUM
         echo
         echo "${COLOR_GREEN}$_0 pack $1 $PACK_ARGS${COLOR_OFF}"
@@ -4889,45 +5061,22 @@ __install_the_given_package() {
     fi
 }
 
-__install_the_given_package_all_builds() {
-    PKG_INSTALL_DIR="$MY_INSTALL_DIR/$1"
+__install_the_given_package_for_the_given_target() {
+    unset STEP2_NUM
 
-    unset BUILD_INDEX
+    step2 "config variables for ${COLOR_GREEN}$@${COLOR_OFF}"
+    __config_variables_for_the_given_target $@
 
-    for BUILD_ITEM in $BUILD_LIST
-    do
-        BUILD_INDEX=$(expr ${BUILD_INDEX-0} + 1)
+    step2 "printf variables for ${COLOR_GREEN}$@${COLOR_OFF}"
+    __printf_variables_for_the_given_target $@
 
-        if [ "$DRYRUN" = YES ] ; then
-            __dryrun_install_the_given_package_one_build "$1" "$BUILD_ITEM"
-        else
-            (
-                BUILD_DIR="$WORK_DIR/$TIMESTAMP_UNIX/$BUILD_ITEM"
-                install -d "$BUILD_DIR" &&
-                mkfifo "$BUILD_DIR/pipe" &&
-                (tee "$BUILD_DIR/install.log.txt" < "$BUILD_DIR/pipe" &) &&
-                __install_the_given_package_one_build "$1" "$BUILD_ITEM" > "$BUILD_DIR/pipe" 2>&1
-            ) || return 1
-        fi
-    done
-}
+    [ "$DRYRUN" = yes ] && {
+        [ -z "$SHELL" ] && SHELL=$(command -v zsh || command -v bash || command -v sh)
+        [ -z "$SHELL" ] && SHELL=sh
+        exec "$SHELL" || return 1
+    }
 
-__dryrun_install_the_given_package_one_build() {
-    step "build for target ${COLOR_GREEN}$@${COLOR_OFF}"
-    __config_variables_of_the_given_build $@
-    __printf_variables_of_the_given_build $@
-
-    [ -z "$SHELL" ] && SHELL=$(command -v zsh || command -v bash || command -v sh)
-
-    exec "$SHELL"
-}
-
-__install_the_given_package_one_build() {
-    step "build for target ${COLOR_GREEN}$@${COLOR_OFF}"
-    __config_variables_of_the_given_build $@
-    __printf_variables_of_the_given_build $@
-
-    if [ "$PACKAGE_BUILD_IN_SOURCE_DIR" = YES ] ; then
+    if [ "$PACKAGE_BUILD_IN_SOURCE_DIR" = yes ] ; then
         if [ "$PWD" != "$SOURCE_DIR" ] ; then
             run cd "$SOURCE_DIR" || return 1
         fi
@@ -4936,8 +5085,11 @@ __install_the_given_package_one_build() {
         run cd "$BUILD_DIR" || return 1
     fi
 
+    [ -d "$ABI_INSTALL_DIR" ] && run rm -rf "$ABI_INSTALL_DIR"
+
     if command -v build > /dev/null ; then
-        build || return 1
+        step2 "build for ${COLOR_GREEN}$@${COLOR_OFF}"
+        build $@ || return 1
     else
         {
             case $PACKAGE_BUILD_SYSTEM in
@@ -4949,53 +5101,68 @@ __install_the_given_package_one_build() {
                 ninja)     ninja clean && ninja && ninja install ;;
                 make)      makew clean && makew && makew install ;;
                 cargo)     cargow install ;;
-                go)        run go build -v -trimpath ;;
+                go)        gow ;;
             esac
         } || return 1
     fi
-    
+
     [ -d "$ABI_INSTALL_DIR" ] || {
         error "installed nothing."
         return 1
     }
 
-    run __justfy_la_files || return 1
+    step2 "justfy ELF files for ${COLOR_GREEN}$@${COLOR_OFF}"
+    __justfy_elf_files_for_the_given_target $@ || return 1
 
-    run __justfy_pc_files || return 1
+    step2 "justfy .la files for ${COLOR_GREEN}$@${COLOR_OFF}"
+    __justfy_la_files_for_the_given_target $@ || return 1
 
-    run __install_logs || return 1
+    step2 "justfy .pc files for ${COLOR_GREEN}$@${COLOR_OFF}"
+    __justfy_pc_files_for_the_given_target $@ || return 1
 
-    run "printf '%s\n' '$TARGET_OS_ABI' >> $WORK_DIR/$TIMESTAMP_UNIX/installed-abis"
+    step2 "install logs for ${COLOR_GREEN}$@${COLOR_OFF}"
+    __install_logs_for_the_given_target $@ || return 1
+
+    run "echo '$TARGET_OS_ABI' >> $WORK_DIR/$TIMESTAMP_UNIX/installed-abis"
 }
 
-__justfy_la_files() {
+__justfy_la_files_for_the_given_target() {
     if [ -d "$ABI_LIBRARY_DIR" ] ; then
-        for item in $(find "$ABI_LIBRARY_DIR" -name "*.la")
+        for lafile in $(find "$ABI_LIBRARY_DIR" -name "*.la")
         do
-            sed_in_place "s|-L$SYSTEM_LIBRARY_DIR||" "$item" || return 1
+            sed_in_place "s|-L$SYSTEM_LIBRARY_DIR||" "$lafile" || return 1
         done
     fi
 }
 
-__justfy_pc_files() {
+__justfy_pc_files_for_the_given_target() {
     if [ -d "$ABI_PKGCONF_DIR" ] ; then
-        for item in $(find "$ABI_PKGCONF_DIR" -name "*.pc")
+        for pcfile in $(find "$ABI_PKGCONF_DIR" -name "*.pc")
         do
-            
-            if grep 'Libs.private:' "$item" > /dev/null ; then
-                LIBS_CONTENT=$(awk '/Libs:/{print}' "$item" || return 1)
-                LIBS_PRIVATE_CONTENT=$(awk -F: '/Libs.private:/{print $2}' "$item" || return 1)
-                sed_in_place "s|$LIBS_CONTENT|$LIBS_CONTENT$LIBS_PRIVATE_CONTENT|" "$item" || return 1
-                sed_in_place '/Libs.private/d' "$item" || return 1
+            sed_in_place "s|$ABI_INSTALL_DIR|\${pcfiledir}/../..|g" "$pcfile" || return 1
+
+            if grep 'Libs.private:' "$pcfile" > /dev/null ; then
+                LIBS_CONTENT=$(awk '/Libs:/{print}' "$pcfile" || return 1)
+                LIBS_PRIVATE_CONTENT=$(awk -F: '/Libs.private:/{print $2}' "$pcfile" || return 1)
+                sed_in_place "s|$LIBS_CONTENT|$LIBS_CONTENT$LIBS_PRIVATE_CONTENT|" "$pcfile" || return 1
+                sed_in_place '/Libs.private/d' "$pcfile" || return 1
             fi
         done
     fi
 }
 
-__install_logs() {
-    ABI_LOG_DIR="$ABI_INSTALL_DIR/share/log"
+__install_pc_file_if_needed_for_the_given_target() {
+    if [ -d "$ABI_LIBRARY_DIR" ] ; then
+        if [ ! -d "$ABI_PKGCONF_DIR" ] ; then
+            cat > "$BUILD_DIR/$1.pc" << EOF
+EOF
+            run install_pcfs "$BUILD_DIR/$1.pc"
+        fi
+    fi
+}
 
-    run install -d "$ABI_LOG_DIR"
+__install_logs_for_the_given_target() {
+    ABI_LOG_DIR="$ABI_INSTALL_DIR/share/log"
 
     for item in "$BUILD_DIR" "$SOURCE_DIR"
     do
@@ -5003,6 +5170,7 @@ __install_logs() {
         do
             if [ -f "$item/$item2" ] ; then
                 echo "-- Installing: $ABI_LOG_DIR/$item2"
+                [ -d "$ABI_LOG_DIR" ] || run install -d "$ABI_LOG_DIR"
                 install -m 644 "$item/$item2" "$ABI_LOG_DIR" || return 1
             fi
         done
@@ -5047,6 +5215,11 @@ install_pcfs() {
 install_bins() {
     install -v -d        "$ABI_BINARY__DIR" &&
     install -v -m 755 $@ "$ABI_BINARY__DIR"
+}
+
+install_etcs() {
+    install -v -d        "$ABI_INSTALL_DIR/etc" &&
+    install -v -m 644 $@ "$ABI_INSTALL_DIR/etc"
 }
 
 install_mans() {
@@ -5101,9 +5274,9 @@ __show_infomation_of_all_available_packages() {
             fi
 
             if [ "$I" -eq "$PACKAGE_LIST_LENGTH" ] ; then
-                printf "{\"name\":\"%s\",\"version\":\"%s\",\"summary\":\"%s\",\"license\":\"%s\",\"webpage\":\"%s\",\"bsystem\":\"%s\",\"src_git\":\"%s\"}]\n"  "$PACKAGE_NAME" "$PACKAGE_VERSION" "$PACKAGE_SUMMARY" "$PACKAGE_LICENSE" "$PACKAGE_WEBPAGE" "$PACKAGE_BUILD_SYSTEM" "$PACKAGE_SRC_GIT"
+                printf "{\"name\":\"%s\",\"version\":\"%s\",\"summary\":\"%s\",\"license\":\"%s\",\"webpage\":\"%s\",\"bsystem\":\"%s\",\"git_url\":\"%s\"}]\n"  "$PACKAGE_NAME" "$PACKAGE_VERSION" "$PACKAGE_SUMMARY" "$PACKAGE_LICENSE" "$PACKAGE_WEBPAGE" "$PACKAGE_BUILD_SYSTEM" "$PACKAGE_GIT_URL"
             else
-                printf "{\"name\":\"%s\",\"version\":\"%s\",\"summary\":\"%s\",\"license\":\"%s\",\"webpage\":\"%s\",\"bsystem\":\"%s\",\"src_git\":\"%s\"},\n"  "$PACKAGE_NAME" "$PACKAGE_VERSION" "$PACKAGE_SUMMARY" "$PACKAGE_LICENSE" "$PACKAGE_WEBPAGE" "$PACKAGE_BUILD_SYSTEM" "$PACKAGE_SRC_GIT"
+                printf "{\"name\":\"%s\",\"version\":\"%s\",\"summary\":\"%s\",\"license\":\"%s\",\"webpage\":\"%s\",\"bsystem\":\"%s\",\"git_url\":\"%s\"},\n"  "$PACKAGE_NAME" "$PACKAGE_VERSION" "$PACKAGE_SUMMARY" "$PACKAGE_LICENSE" "$PACKAGE_WEBPAGE" "$PACKAGE_BUILD_SYSTEM" "$PACKAGE_GIT_URL"
             fi
         done
     else
@@ -5140,7 +5313,7 @@ __show_infomation_of_the_given_package() {
         case $2 in
             --json)
                 __load_formula_of_the_given_package "$1"
-                printf "{\"name\":\"%s\",\"version\":\"%s\",\"summary\":\"%s\",\"license\":\"%s\",\"webpage\":\"%s\",\"bsystem\":\"%s\",\"src_git\":\"%s\"}\n"  "$PACKAGE_NAME" "$PACKAGE_VERSION" "$PACKAGE_SUMMARY" "$PACKAGE_LICENSE" "$PACKAGE_WEBPAGE" "$PACKAGE_BUILD_SYSTEM" "$PACKAGE_SRC_GIT"
+                printf "{\"name\":\"%s\",\"version\":\"%s\",\"summary\":\"%s\",\"license\":\"%s\",\"webpage\":\"%s\",\"bsystem\":\"%s\",\"git_url\":\"%s\"}\n"  "$PACKAGE_NAME" "$PACKAGE_VERSION" "$PACKAGE_SUMMARY" "$PACKAGE_LICENSE" "$PACKAGE_WEBPAGE" "$PACKAGE_BUILD_SYSTEM" "$PACKAGE_GIT_URL"
                 ;;
             installed-dir)
                 die_if_package_is_not_installed "$1"
@@ -5331,9 +5504,9 @@ __load_installed_metadata_of_the_given_package() {
     . "$INSTALLED_METADATA_FILEPATH" || die "$INSTALLED_METADATA_FILEPATH is broken."
 }
 
-# examples:
-# __config_variables_of_the_given_build curl iPhoneOS/arm64/8.0
-__config_variables_of_the_given_build() {
+# __config_variables_for_the_given_target <PACKAGE-NAME> <TARGET>
+# __config_variables_for_the_given_target      curl      iPhoneOS/arm64/8.0
+__config_variables_for_the_given_target() {
     TARGET_OS_KIND=darwin
     TARGET_OS_TYPE=darwin
     TARGET_OS_NAME=$(printf '%s\n' "$2" | cut -d/ -f1)
@@ -5359,17 +5532,24 @@ __config_variables_of_the_given_build() {
     SYSTEM_INCLUDE_DIR="$SYSROOT/usr/include"
     SYSTEM_LIBRARY_DIR="$SYSROOT/usr/lib"
 
-      CFLAGS="-isysroot $SYSROOT -arch $TARGET_OS_ARCH -m${TARGET_OS_NAME_LOWER_CASE}-version-min=$TARGET_OS_VERS -Qunused-arguments -Os -pipe"
+     CCFLAGS="-isysroot $SYSROOT -arch $TARGET_OS_ARCH -m${TARGET_OS_NAME_LOWER_CASE}-version-min=$TARGET_OS_VERS -Qunused-arguments -Os -pipe"
     CPPFLAGS="-isysroot $SYSROOT -Qunused-arguments"
      LDFLAGS="-isysroot $SYSROOT -arch $TARGET_OS_ARCH -m${TARGET_OS_NAME_LOWER_CASE}-version-min=$TARGET_OS_VERS"
+
+    if [ "$BUILD_TYPE" = release ] ; then
+        CCFLAGS="$CCFLAGS -Wl,--strip-debug -Os -DNDEBUG"
+        LDFLAGS="$LDFLAGS -Wl,--strip-debug"
+    fi
 
     for item in $PACKAGE_CDEFINE
     do
         CPPFLAGS="$CPPFLAGS -D$item"
     done
 
+    CPPFLAGS="$CPPFLAGS -include $COMMON_INCLUDE_H_FILEPATH"
+
     if [ -n "$PACKAGE_CCFLAGS" ] ; then
-        CFLAGS="$CFLAGS $PACKAGE_CCFLAGS"
+        CCFLAGS="$CCFLAGS $PACKAGE_CCFLAGS"
     fi
 
     if [ -n "$PACKAGE_LDFLAGS" ] ; then
@@ -5384,12 +5564,24 @@ __config_variables_of_the_given_build() {
     esac
 
     # https://www.freedesktop.org/wiki/Software/pkg-config/CrossCompileProposal
+    unset PKG_CONFIG_SYSROOT_DIR
     unset PKG_CONFIG_LIBDIR
     unset PKG_CONFIG_PATH
 
+    # https://cmake.org/cmake/help/latest/variable/CMAKE_FIND_ROOT_PATH.html
+    # https://cmake.org/cmake/help/latest/variable/CMAKE_IGNORE_PATH.html
+    # https://cmake.org/cmake/help/latest/variable/CMAKE_PREFIX_PATH.html
+    # https://cmake.org/cmake/help/latest/variable/CMAKE_INCLUDE_PATH.html
+    # https://cmake.org/cmake/help/latest/variable/CMAKE_LIBRARY_PATH.html
+    unset CMAKE_FIND_ROOT_PATH
+    unset CMAKE_IGNORE_PATH
+    unset CMAKE_PREFIX_PATH
+    unset CMAKE_INCLUDE_PATH
+    unset CMAKE_LIBRARY_PATH
+
     for PACKAGE in $DEPENDENCY_PACKAGE_LIST
     do
-        PKG=$(printf "$PACKAGE" | tr '-' '_')
+        PKG=$(printf '%s\n' "$PACKAGE" | tr '+-.' '_')
         
         ABI_INSTALL_DIR="$MY_INSTALL_DIR/$PACKAGE/$TARGET_OS_ABI"
         ABI_INCLUDE_DIR="$ABI_INSTALL_DIR/include"
@@ -5408,79 +5600,200 @@ __config_variables_of_the_given_build() {
         else
             PKG_CONFIG_PATH="$PKG_CONFIG_PATH:$ABI_PKGCONF_DIR"
         fi
+
+        if [ -z "$CMAKE_FIND_ROOT_PATH" ] ; then
+            CMAKE_FIND_ROOT_PATH="$ABI_INSTALL_DIR"
+        else
+            CMAKE_FIND_ROOT_PATH="$CMAKE_FIND_ROOT_PATH;$ABI_INSTALL_DIR"
+        fi
+
+        for item in bin sbin
+        do
+            if [ -d "$ABI_INSTALL_DIR/$item" ] ; then
+                if [ -z "$CMAKE_IGNORE_PATH" ] ; then
+                    CMAKE_IGNORE_PATH="$ABI_INSTALL_DIR/$item"
+                else
+                    CMAKE_IGNORE_PATH="$CMAKE_IGNORE_PATH;$ABI_INSTALL_DIR/$item"
+                fi
+            fi
+        done
     done
 
-    if [ "$VERBOSE" = YES ] ; then
-        CFLAGS="$CFLAGS -v"
+    PKG_CONFIG_LIBDIR="$PKG_CONFIG_PATH"
+
+    if [ "$LOG_LEVEL" = VERBOSE ] ; then
+        CCFLAGS="$CCFLAGS -v -Wl,-v"
+        LDFLAGS="$LDFLAGS -v -Wl,-v"
     fi
 
-    CXXFLAGS="$CFLAGS"
+      CFLAGS="$CCFLAGS"
+    CXXFLAGS="$CCFLAGS"
 
     if [ -n "$PACKAGE_XXFLAGS" ] ; then
         CXXFLAGS="$CXXFLAGS $PACKAGE_XXFLAGS"
     fi
 
+    BUILD_DIR="$WORK_DIR/$TIMESTAMP_UNIX/$TARGET_OS_ABI"
+
+    PKG_INSTALL_DIR="$MY_INSTALL_DIR/$1"
     ABI_INSTALL_DIR="$PKG_INSTALL_DIR/$TARGET_OS_ABI"
     ABI_BINARY__DIR="$ABI_INSTALL_DIR/bin"
     ABI_INCLUDE_DIR="$ABI_INSTALL_DIR/include"
     ABI_LIBRARY_DIR="$ABI_INSTALL_DIR/lib"
     ABI_PKGCONF_DIR="$ABI_INSTALL_DIR/lib/pkgconfig"
 
-    for item in $PACKAGE_BUILD_SYSTEM
-    do
-        case $item in
-            cargo)
-                for supportedTarget in $(__list_supported_target_triples)
-                do
-                    supportedTarget=$(echo "$supportedTarget" | sed 's/armv7a/armv7/')
-                    for installedTarget in $(rustup target list | grep installed | cut -d " " -f1)
-                    do
-                        [ "$supportedTarget" = "$installedTarget" ] && break
-                    done
-                    [ "$supportedTarget" = "$installedTarget" ] || {
-                        rustup target add "$supportedTarget" || return 1
-                    }
-                done
+    # https://cmake.org/cmake/help/latest/manual/cmake-env-variables.7.html#manual:cmake-env-variables(7)
+    if [ "$PACKAGE_BUILD_SYSTEM_CMAKE" = yes ] ; then
+        unset CMAKE_PREFIX_PATH
+        unset CMAKE_APPLE_SILICON_PROCESSOR
+        unset CMAKE_BUILD_PARALLEL_LEVEL
+        unset CMAKE_BUILD_TYPE
+        unset CMAKE_CONFIGURATION_TYPES
+        unset CMAKE_CONFIG_TYPE
+        unset CMAKE_EXPORT_COMPILE_COMMANDS
+        unset CMAKE_GENERATOR
+        unset CMAKE_GENERATOR_INSTANCE
+        unset CMAKE_GENERATOR_PLATFORM
+        unset CMAKE_GENERATOR_TOOLSET
+        unset CMAKE_INSTALL_MODE
+        unset CMAKE_C_COMPILER_LAUNCHER
+        unset CMAKE_C_LINKER_LAUNCHER
+        unset CMAKE_CXX_COMPILER_LAUNCHER
+        unset CMAKE_CXX_LINKER_LAUNCHER
+        unset CMAKE_MSVCIDE_RUN_PATH
+        unset CMAKE_NO_VERBOSE
+        unset CMAKE_OSX_ARCHITECTURES
+        unset CMAKE_TOOLCHAIN_FILE
+        unset DESTDIR
+        unset CTEST_INTERACTIVE_DEBUG_MODE
+        unset CTEST_OUTPUT_ON_FAILURE
+        unset CTEST_PARALLEL_LEVEL
+        unset CTEST_PROGRESS_OUTPUT
+        unset CTEST_USE_LAUNCHERS_DEFAULT
+        unset DASHBOARD_TEST_FROM_CTEST
 
-                CARGO_TARGET=$(echo "$TARGET_TRIPLE" | sed 's/armv7a/armv7/')
+        # https://cmake.org/cmake/help/latest/envvar/CMAKE_BUILD_PARALLEL_LEVEL.html
+        export CMAKE_BUILD_PARALLEL_LEVEL="$BUILD_NJOBS"
 
-                # https://doc.rust-lang.org/cargo/reference/environment-variables.html
-                CARGO_TARGET_XXX=$(echo "$CARGO_TARGET" | tr a-z A-Z | tr - _)
+        # https://cmake.org/cmake/help/latest/envvar/CMAKE_GENERATOR.html
+        if [ "$PACKAGE_BUILD_SYSTEM_NINJA" = yes ] ; then
+            export CMAKE_GENERATOR='Ninja'
+        else
+            export CMAKE_GENERATOR='Unix Makefiles'
+        fi
+    fi
 
-                eval export "CARGO_TARGET_${CARGO_TARGET_XXX}_AR=\"$AR\""
-                eval export "CARGO_TARGET_${CARGO_TARGET_XXX}_LINKER=\"$CC\""
-                ;;
-               go)
-                # https://golang.org/doc/install/source#environment
-                export CGO_ENABLED=1
-                export CGO_CFLAGS="$CFLAGS"
-                export CGO_CXXFLAGS="$CXXFLAGS"
-                export CGO_CPPFLAGS="$CPPFLAGS"
-                export CGO_LDFLAGS="$LDFLAGS"
+    if [ "$PACKAGE_BUILD_SYSTEM_CARGO" = yes ] ; then
+        for supportedTarget in $(__list_supported_target_triples)
+        do
+            supportedTarget=$(echo "$supportedTarget" | sed 's/armv7a/armv7/')
+            for installedTarget in $(rustup target list | sed -n '/installed/p' | cut -d ' ' -f1)
+            do
+                [ "$supportedTarget" = "$installedTarget" ] && break
+            done
+            [ "$supportedTarget" = "$installedTarget" ] || {
+                rustup target add "$supportedTarget" || return 1
+            }
+        done
 
-                export GO111MODULE="auto"
-                export GOPROXY=https://goproxy.cn
+        RUST_TARGET=$(echo "$TARGET_TRIPLE" | sed 's/armv7a/armv7/')
 
-                export GOOS="$TARGET_OS_TYPE"
+        # this environment variable is not defined by Rust, but it is widely used by third-party project.
+        export RUST_TARGET="$RUST_TARGET"
 
-                case $TARGET_OS_ARCH in
-                    armv7*)  export GOARCH=arm   ;;
-                    arm64*)  export GOARCH=arm64 ;;
-                    i386)    export GOARCH=386   ;;
-                    x86_64)  export GOARCH=amd64 ;;
-                esac
-                ;;
+        RUST_TARGET_UPPERCASE_UNDERSCORE=$(printf '%s\n' "$RUST_TARGET" | tr a-z A-Z | tr - _)
+
+        # https://doc.rust-lang.org/cargo/reference/config.html#environment-variables
+        # https://doc.rust-lang.org/cargo/reference/environment-variables.html
+        export "CARGO_TARGET_${RUST_TARGET_UPPERCASE_UNDERSCORE}_AR"="$AR"
+        export "CARGO_TARGET_${RUST_TARGET_UPPERCASE_UNDERSCORE}_LINKER"="$CC"
+
+        export CARGO_BUILD_JOBS="$BUILD_NJOBS"
+
+        export RUSTFLAGS="-Clink-arg=-L$WORK_DIR/$TIMESTAMP_UNIX"
+
+        # https://libraries.io/cargo/cc
+        # https://crates.io/crates/cc
+        # https://docs.rs/cc/latest/cc/
+        # https://github.com/alexcrichton/cc-rs
+        export HOST_CC="$CC_FOR_BUILD"
+        export HOST_CFLAGS="$CFLAGS_FOR_BUILD"
+
+        export HOST_CXX="$CXX_FOR_BUILD"
+        export HOST_CXXFLAGS="$CXXFLAGS_FOR_BUILD"
+
+        export HOST_AR="$AR_FOR_BUILD"
+
+        export TARGET_CC="$CC"
+        export TARGET_CFLAGS="$CFLAGS $CPPFLAGS $LDFLAGS"
+
+        export TARGET_CXX="$CXX"
+        export TARGET_CXXFLAGS="$CXXFLAGS $CPPFLAGS $LDFLAGS"
+
+        export TARGET_AR="$AR"
+
+
+        # https://libraries.io/cargo/pkg-config
+        # https://crates.io/crates/pkg-config
+        # https://docs.rs/pkg-config/latest/pkg_config/
+        # https://github.com/rust-lang/pkg-config-rs
+        export TARGET_PKG_CONFIG_ALLOW_CROSS=1
+
+
+        # https://libraries.io/cargo/cmake
+        # https://crates.io/crates/cmake
+        # https://docs.rs/cmake/latest/cmake/
+        # https://github.com/alexcrichton/cmake-rs
+        # this variable is not motioned in their document. you must read the source code of cmake-rs crate.
+        export TARGET_CMAKE_TOOLCHAIN_FILE="$WORK_DIR/$TIMESTAMP_UNIX/$TARGET_OS_ABI-android.toolchain.cmake"
+
+        printf '%s\n' "
+        set(ANDROID_ABI "${TARGET_OS_ABI}")
+        set(ANDROID_PLATFORM "android-${TARGET_OS_VERS}")
+        include(${ANDROID_NDK_HOME}/build/cmake/android.toolchain.cmake)
+        " > "$TARGET_CMAKE_TOOLCHAIN_FILE"
+
+
+        for item in $DEPENDENCY_PACKAGE_LIST
+        do
+            case $item in
+                openssl)
+                    unset OPENSSL_DIR
+                    # https://docs.rs/openssl/0.10.35/openssl/
+                    export OPENSSL_DIR="$openssl_INSTALL_DIR"
+                    ;;
+            esac
+        done
+    fi
+
+    if [ "$PACKAGE_BUILD_SYSTEM_GO" = yes ] ; then
+        # https://golang.org/doc/install/source#environment
+        export CGO_ENABLED=1
+        export CGO_CFLAGS="$CFLAGS"
+        export CGO_CXXFLAGS="$CXXFLAGS"
+        export CGO_CPPFLAGS="$CPPFLAGS"
+        export CGO_LDFLAGS="$LDFLAGS"
+
+        export GO111MODULE='auto'
+        export GOPROXY='https://goproxy.cn'
+
+        export GOOS="$TARGET_OS_TYPE"
+
+        case $TARGET_OS_ARCH in
+            armv7*)  export GOARCH=arm   ;;
+            arm64*)  export GOARCH=arm64 ;;
+            aarch64) export GOARCH=arm64 ;;
+            i386)    export GOARCH=386   ;;
+            i686)    export GOARCH=386   ;;
+            x86_64)  export GOARCH=amd64 ;;
         esac
-    done
+    fi
 }
 
-# examples:
-# __printf_variables_of_the_given_build curl iPhoneOS/arm64/8.0
-__printf_variables_of_the_given_build() {
+# __printf_variables_for_the_given_target <PACKAGE-NAME> <TARGET>
+# __printf_variables_for_the_given_target      curl      iPhoneOS/arm64/8.0
+__printf_variables_for_the_given_target() {
     echo "
-    BUILD_INDEX    = $BUILD_INDEX
-    BUILD_NJOBS    = $BUILD_NJOBS
-
     NATIVE_OS_KIND = $NATIVE_OS_KIND
     NATIVE_OS_TYPE = $NATIVE_OS_TYPE
     NATIVE_OS_NAME = $NATIVE_OS_NAME
@@ -5496,23 +5809,28 @@ __printf_variables_of_the_given_build() {
     TARGET_OS_VERS = $TARGET_OS_VERS
     TARGET_OS_ARCH = $TARGET_OS_ARCH
     TARGET_OS_ABI  = $TARGET_OS_ABI
+    TARGET_OS_BIT  = $TARGET_OS_BIT
     TARGET_TRIPLE  = $TARGET_TRIPLE
+    TARGET_INDEX   = $TARGET_INDEX
 
     TOOLCHAIN_NAME = $TOOLCHAIN_NAME
     TOOLCHAIN_VERS = $TOOLCHAIN_VERS
     TOOLCHAIN_ROOT = $TOOLCHAIN_ROOT
     TOOLCHAIN_BIND = $TOOLCHAIN_BIND
 
-SYSROOT            = $SYSROOT
+           SYSROOT = $SYSROOT
 
 SYSTEM_INCLUDE_DIR = $SYSTEM_INCLUDE_DIR
 SYSTEM_LIBRARY_DIR = $SYSTEM_LIBRARY_DIR
+
+       BUILD_NJOBS = $BUILD_NJOBS
+       BUILD_TYPE  = $BUILD_TYPE
     "
 
     for TOOL in $(list_tools_in_the_toolchain | tr a-z A-Z)
     do
         eval export "$TOOL=\"\$$TOOL\""
-        printf "%17s = %s\n" "$TOOL" "$(eval echo \$$TOOL)"
+        printf "%18s = %s\n" "$TOOL" "$(eval echo \$$TOOL)"
     done
 
     echo
@@ -5520,7 +5838,7 @@ SYSTEM_LIBRARY_DIR = $SYSTEM_LIBRARY_DIR
     for TOOL in $(list_tools_in_the_toolchain | tr a-z A-Z)
     do
         eval export "${TOOL}_FOR_BUILD=\"\$${TOOL}_FOR_BUILD\""
-        printf "%17s = %s\n" "${TOOL}_FOR_BUILD" "$(eval echo \$${TOOL}_FOR_BUILD)"
+        printf "%18s = %s\n" "${TOOL}_FOR_BUILD" "$(eval echo \$${TOOL}_FOR_BUILD)"
     done
 
     echo
@@ -5528,69 +5846,69 @@ SYSTEM_LIBRARY_DIR = $SYSTEM_LIBRARY_DIR
     for FLAG in $(list_flags_used_by_tools_in_the_toolchain)
     do
         eval export "$FLAG=\"\$$FLAG\""
-        printf "\n%17s = " "$FLAG"
-        FIRST=YES
+        printf "\n%18s = " "$FLAG"
+        FIRST=yes
         for item in $(eval echo \$$FLAG | tr ':' ' ')
         do
-            if [ "$FIRST" = YES ] ; then
-                FIRST=NO
+            if [ "$FIRST" = yes ] ; then
+                FIRST=no
                 echo "$item"
             else
-                echo "                    $item"
+                echo "                     $item"
             fi
         done
     done
 
     echo
 
-    printf "\n%17s = " PATH
-    FIRST=YES
-    for item in $(echo "$PATH" | tr ':' ' ')
+    printf "\n%18s = " PATH
+    FIRST=yes
+    for item in $(printf '%s\n' "$PATH" | tr ' ' '|' | tr ':' ' ')
     do
-        if [ "$FIRST" = YES ] ; then
-            FIRST=NO
-            echo "$item"
+        if [ "$FIRST" = yes ] ; then
+            FIRST=no
+            printf '%s\n' "$item" | tr '|' ' '
         else
-            echo "                    $item"
+            printf '%s\n' "                     $item" | tr '|' ' '
         fi
     done
 
-    for item in $PACKAGE_BUILD_SYSTEM
-    do
-        case $item in
-            cargo)
-                echo
-                env | grep CARGO
-                echo "
-                HOST_AR       = $HOST_AR
-                HOST_CC       = $HOST_CC
-                HOST_CXX      = $HOST_CXX
-                HOST_CFLAGS   = $HOST_CFLAGS
-                HOST_CXXFLAGS = $HOST_CXXFLAGS
+    if [ "$PACKAGE_BUILD_SYSTEM_CARGO" = yes ] ; then
+        echo
+        env | sed -n '/CARGO/p'
+        echo
+        env | sed -n '/RUST/p'
+        echo
+        cat <<EOF
+    HOST_AR       = $HOST_AR
+    HOST_CC       = $HOST_CC
+    HOST_CXX      = $HOST_CXX
+    HOST_CFLAGS   = $HOST_CFLAGS
+    HOST_CXXFLAGS = $HOST_CXXFLAGS
 
-                TARGET_AR       = $TARGET_AR
-                TARGET_CC       = $TARGET_CC
-                TARGET_CXX      = $TARGET_CXX
-                TARGET_CFLAGS   = $TARGET_CFLAGS
-                TARGET_CXXFLAGS = $TARGET_CXXFLAGS
-                "
-                ;;
-               go)
-                echo "
-                GOOS        = $GOOS
-                GOARCH      = $GOARCH
-                GO111MODULE = $GO111MODULE
-                GOPROXY     = $GOPROXY
+  TARGET_AR       = $TARGET_AR
+  TARGET_CC       = $TARGET_CC
+  TARGET_CXX      = $TARGET_CXX
+  TARGET_CFLAGS   = $TARGET_CFLAGS
+  TARGET_CXXFLAGS = $TARGET_CXXFLAGS
+EOF
+    fi
 
-                CGO_ENABLED  = $CGO_ENABLED
-                CGO_CFLAGS   = $CGO_CFLAGS
-                CGO_CXXFLAGS = $CGO_CXXFLAGS
-                CGO_CPPFLAGS = $CGO_CPPFLAGS
-                CGO_LDFLAGS  = $CGO_LDFLAGS
-                "
-                ;;
-        esac
-    done
+    if [ "$PACKAGE_BUILD_SYSTEM_GO" = yes ] ; then
+        echo
+        for item_ in $(go env | tr ' ' '|')
+        do
+            unset item0
+            unset item1
+            unset item2
+
+            item0=$(printf '%s\n' "$item_" | tr '|' ' ')
+            item1=$(printf '%s\n' "$item0" | cut -d= -f1)
+            item2=$(printf '%s\n' "$item0" | cut -d= -f2 | sed 's/^"//' | sed 's/"$//')
+
+            printf '      %-12s = %s\n' "$item1" "$item2"
+        done
+    fi
 
     echo "
     TIMESTAMP_UNIX = $TIMESTAMP_UNIX
@@ -5598,6 +5916,7 @@ SYSTEM_LIBRARY_DIR = $SYSTEM_LIBRARY_DIR
         SOURCE_DIR = $SOURCE_DIR
          BUILD_DIR = $BUILD_DIR
                PWD = $PWD
+
    PKG_INSTALL_DIR = $PKG_INSTALL_DIR
    ABI_INSTALL_DIR = $ABI_INSTALL_DIR
    ABI_BINARY__DIR = $ABI_BINARY__DIR
@@ -5606,11 +5925,219 @@ SYSTEM_LIBRARY_DIR = $SYSTEM_LIBRARY_DIR
    ABI_PKGCONF_DIR = $ABI_PKGCONF_DIR
    "
 
-    if [ "$VERBOSE" = YES ] ; then
+    if [ "$LOG_LEVEL" = VERBOSE ] ; then
         echo
         run export -p
         echo
     fi
+}
+
+gow() {
+    # https://pkg.go.dev/cmd/go
+    # https://pkg.go.dev/cmd/link
+
+    unset GO_BUILD_ARGS
+    unset GO_BUILD_ARGV_V
+    unset GO_BUILD_ARGV_X
+    unset GO_BUILD_ARGV_O
+    unset GO_BUILD_ARGV_MOD
+    unset GO_BUILD_ARGV_TAGS
+    unset GO_BUILD_ARGV_LDFLAGS
+
+    unset GO_BUILD_ARGS_EXTRA
+
+    while [ -n "$1" ]
+    do
+        case $1 in
+            -v) shift ; GO_BUILD_ARGV_V='-v' ;;
+            -x) shift ; GO_BUILD_ARGV_X='-x' ;;
+            -o) shift ; GO_BUILD_ARGV_O="$1" ; shift ;;
+            -X) shift
+                if [ -z "$GO_BUILD_ARGV_LDFLAGS" ] ; then
+                    GO_BUILD_ARGV_LDFLAGS="-X $1"
+                else
+                    GO_BUILD_ARGV_LDFLAGS="$GO_BUILD_ARGV_LDFLAGS -X $1"
+                fi
+                shift
+                ;;
+            -ldflags)
+                shift
+                if [ -z "$GO_BUILD_ARGV_LDFLAGS" ] ; then
+                    GO_BUILD_ARGV_LDFLAGS="$1"
+                else
+                    GO_BUILD_ARGV_LDFLAGS="$1 $GO_BUILD_ARGV_LDFLAGS"
+                fi
+                shift
+                ;;
+            *)  GO_BUILD_ARGS_EXTRA="$GO_BUILD_ARGS_EXTRA $1" ; shift
+        esac
+    done
+
+    GO_BUILD_ARGS='-trimpath'
+
+    if [ -z "$GO_BUILD_ARGV_V" ] ; then
+        if [ "$LOG_LEVEL" != QUIET ] ; then
+            GO_BUILD_ARGS="$GO_BUILD_ARGS -v"
+        fi
+    else
+        GO_BUILD_ARGS="$GO_BUILD_ARGS -v"
+    fi
+
+    if [ -z "$GO_BUILD_ARGV_X" ] ; then
+        if [ "$LOG_LEVEL" = VERBOSE ] ; then
+            GO_BUILD_ARGS="$GO_BUILD_ARGS -x"
+        fi
+    else
+        GO_BUILD_ARGS="$GO_BUILD_ARGS -x"
+    fi
+
+    if [ -z "$GO_BUILD_ARGV_LDFLAGS" ] ; then
+        GO_BUILD_ARGS="$GO_BUILD_ARGS -ldflags '-s -w'"
+    else
+        GO_BUILD_ARGS="$GO_BUILD_ARGS -ldflags '-s -w $GO_BUILD_ARGV_LDFLAGS'"
+    fi
+
+    if [ -z "$GO_BUILD_ARGV_O" ] ; then
+        GO_BUILD_ARGS="$GO_BUILD_ARGS -o $BUILD_DIR/"
+    else
+        GO_BUILD_ARGS="$GO_BUILD_ARGS -o $BUILD_DIR/$GO_BUILD_ARGV_O"
+    fi
+
+    GO_BUILD_ARGS="$GO_BUILD_ARGS $GO_BUILD_ARGS_EXTRA"
+
+    run go build $GO_BUILD_ARGS || return 1
+
+    for item in $(ls "$BUILD_DIR")
+    do
+        case $item in
+            *.a)  run install_libs "$BUILD_DIR/$item" ;;
+            *.so) run install_libs "$BUILD_DIR/$item" ;;
+            *)    run install_bins "$BUILD_DIR/$item" ;;
+        esac
+    done
+}
+
+cargow() {
+    case $1 in
+        build)
+            # https://doc.rust-lang.org/cargo/commands/cargo-clean.html
+            # https://doc.rust-lang.org/cargo/commands/cargo-build.html
+
+            unset CARGO_BUILD_ARGS
+            unset CARGO_BUILD_ARG_VV
+            unset CARGO_BUILD_ARG_TARGET
+            unset CARGO_BUILD_ARG_RELEASE
+
+            for arg in $@
+            do
+                case $arg in
+                    --vv)      CARGO_BUILD_ARG_VV=set      ;;
+                    --target)  CARGO_BUILD_ARG_TARGET=set  ;;
+                    --release) CARGO_BUILD_ARG_RELEASE=set ;;
+                esac
+            done
+
+            CARGO_BUILD_ARGS="$@"
+
+            if [ -z "$CARGO_BUILD_ARG_VV" ] ; then
+                CARGO_BUILD_ARGS="$CARGO_BUILD_ARGS -vv"
+            fi
+
+            if [ -z "$CARGO_BUILD_ARG_RELEASE" ] ; then
+                CARGO_BUILD_ARGS="$CARGO_BUILD_ARGS --release"
+            fi
+
+            if [ -z "$CARGO_BUILD_ARG_TARGET" ] ; then
+                CARGO_BUILD_ARGS="$CARGO_BUILD_ARGS --target $RUST_TARGET"
+            fi
+
+            run cargo clean && run cargo $CARGO_BUILD_ARGS
+            ;;
+        install)
+            # https://doc.rust-lang.org/cargo/commands/cargo-clean.html
+            # https://doc.rust-lang.org/cargo/commands/cargo-install.html
+
+            unset CARGO_INSTALL_ARGS
+            unset CARGO_INSTALL_ARG_TARGET
+            unset CARGO_INSTALL_ARG_PATH
+            unset CARGO_INSTALL_ARG_ROOT
+            unset CARGO_INSTALL_ARG_VV
+
+            for arg in $@
+            do
+                case $arg in
+                    --target) CARGO_INSTALL_ARG_TARGET=set ;;
+                    --path)   CARGO_INSTALL_ARG_PATH=set   ;;
+                    --root)   CARGO_INSTALL_ARG_ROOT=set   ;;
+                    --vv)     CARGO_INSTALL_ARG_VV=set     ;;
+                esac
+            done
+
+            CARGO_INSTALL_ARGS="$@"
+
+            if [ -z "$CARGO_INSTALL_ARG_VV" ] ; then
+                CARGO_INSTALL_ARGS="$CARGO_INSTALL_ARGS -vv"
+            fi
+
+            if [ -z "$CARGO_INSTALL_ARG_TARGET" ] ; then
+                CARGO_INSTALL_ARGS="$CARGO_INSTALL_ARGS --target $RUST_TARGET"
+            fi
+
+            if [ -z "$CARGO_INSTALL_ARG_PATH" ] ; then
+                CARGO_INSTALL_ARGS="$CARGO_INSTALL_ARGS --path $SOURCE_DIR"
+            fi
+
+            if [ -z "$CARGO_INSTALL_ARG_ROOT" ] ; then
+                CARGO_INSTALL_ARGS="$CARGO_INSTALL_ARGS --root=$ABI_INSTALL_DIR"
+            fi
+
+            run cargo clean && run cargo $CARGO_INSTALL_ARGS
+            ;;
+        cbuild|cinstall)
+            unset CARGO_CINSTALL_ARGS
+            unset CARGO_CINSTALL_ARG_Q
+            unset CARGO_CINSTALL_ARG_V
+            unset CARGO_CINSTALL_ARG_VV
+            unset CARGO_CINSTALL_ARG_DEBUG
+            unset CARGO_CINSTALL_ARG_RELEASE
+            unset CARGO_CINSTALL_ARG_TARGET
+            unset CARGO_CINSTALL_ARG_PREFIX
+
+            for arg in $@
+            do
+                case $arg in
+                    -q|--quiet)   CARGO_CINSTALL_ARG_Q=set       ;;
+                    -v|--verbose) CARGO_CINSTALL_ARG_V=set       ;;
+                    -vv)          CARGO_CINSTALL_ARG_VV=set      ;;
+                    --debug)      CARGO_CINSTALL_ARG_DEBUG=set   ;;
+                    --release)    CARGO_CINSTALL_ARG_RELEASE=set ;;
+                    --target)     CARGO_CINSTALL_ARG_TARGET=set  ;;
+                    --prefix)     CARGO_CINSTALL_ARG_PREFIX=set  ;;
+                esac
+            done
+
+            CARGO_CINSTALL_ARGS="$@"
+
+            if [ -z "$CARGO_CINSTALL_ARG_Q" ] && [ -z "$CARGO_CINSTALL_ARG_V" ] && [ -z "$CARGO_CINSTALL_ARG_VV" ] ; then
+                CARGO_CINSTALL_ARGS="$CARGO_CINSTALL_ARGS -vv"
+            fi
+
+            if [ -z "$CARGO_CINSTALL_ARG_DEBUG" ] && [ -z "$CARGO_CINSTALL_ARG_RELEASE" ] ; then
+                CARGO_CINSTALL_ARGS="$CARGO_CINSTALL_ARGS --release"
+            fi
+
+            if [ -z "$CARGO_CINSTALL_ARG_TARGET" ] ; then
+                CARGO_CINSTALL_ARGS="$CARGO_CINSTALL_ARGS --target $RUST_TARGET"
+            fi
+
+            if [ -z "$CARGO_CINSTALL_ARG_PREFIX" ] ; then
+                CARGO_CINSTALL_ARGS="$CARGO_CINSTALL_ARGS --prefix $ABI_INSTALL_DIR"
+            fi
+
+            run cargo $CARGO_CINSTALL_ARGS
+            ;;
+        *) cargo $@
+    esac
 }
 
 config_url() {
@@ -5620,7 +6147,7 @@ config_url() {
 # run in a subshell
 configure() {
     if [ -z "$CONFIG_XX_UPDATED" ] ; then
-        CONFIG_XX_UPDATED=YES
+        CONFIG_XX_UPDATED=yes
         # https://www.gnu.org/software/gettext/manual/html_node/config_002eguess.html
         # https://git.savannah.gnu.org/cgit/config.git/tree/
         for item in config.sub config.guess
@@ -5854,6 +6381,14 @@ to_meson_array() {
 
 ########################################################################
 
+create_common_linker_script() {
+    :
+}
+
+create_common_include_h() {
+    :
+}
+
 die_if_the_given_rule_is_not_available() {
     [ -z "$1" ] && die "please specify a rule name."
     [ -f "$MY_HOME_DIR/rules/$1" ] || die "$1 : rule is not exist."
@@ -5931,28 +6466,30 @@ __rename_the_given_rule() {
 __inspect_the_given_rule() {
     die_if_the_given_rule_is_not_available "$1"
 
-    unset BUILD_LIST
+    unset TARGET_LIST
 
-    while read line
+    while read LINE
     do
-        line=$(echo "$line" | sed 's/[[:space:]]//g')
+        LINE=$(printf '%s\n' "$LINE" | sed 's/[[:space:]]//g')
 
-        [ -z "$line" ] && continue
-        echo "$line" | grep -q '^#' && continue
+        case $LINE in
+            '') continue ;;
+            \#) continue ;;
+        esac
 
         unset TARGET_OS_NAME
         unset TARGET_OS_VERS
         unset TARGET_OS_ARCH
 
-        TARGET_OS_NAME=$(echo "$line" | cut -d: -f1)
-        TARGET_OS_VERS=$(echo "$line" | cut -d: -f2)
-        TARGET_OS_ARCH=$(echo "$line" | cut -d: -f3)
+        TARGET_OS_NAME=$(printf '%s\n' "$LINE" | cut -d: -f1)
+        TARGET_OS_VERS=$(printf '%s\n' "$LINE" | cut -d: -f2)
+        TARGET_OS_ARCH=$(printf '%s\n' "$LINE" | cut -d: -f3)
 
         if [ "$VERBOSE" = YES ] ; then
-            echo "TARGET_OS_NAME=$TARGET_OS_NAME"
-            echo "TARGET_OS_VERS=$TARGET_OS_VERS"
-            echo "TARGET_OS_ARCH=$TARGET_OS_ARCH"
-            echo '---------------------------------'
+            printf '%s\n' "TARGET_OS_NAME=$TARGET_OS_NAME"
+            printf '%s\n' "TARGET_OS_VERS=$TARGET_OS_VERS"
+            printf '%s\n' "TARGET_OS_ARCH=$TARGET_OS_ARCH"
+            printf '%s\n' '---------------------------------'
         fi
 
         if [ -z "$TARGET_OS_VERS" ] ; then
@@ -5967,18 +6504,18 @@ __inspect_the_given_rule() {
             all|64bit|32bit)
                 for TARGET_OS_ARCH in $(__list_supported_target_archs "$TARGET_OS_NAME" "$TARGET_OS_ARCH")
                 do
-                    if [ -z "$BUILD_LIST" ]; then
-                        BUILD_LIST="$TARGET_OS_NAME/$TARGET_OS_ARCH/$TARGET_OS_VERS"
+                    if [ -z "$TARGET_LIST" ]; then
+                        TARGET_LIST="$TARGET_OS_NAME/$TARGET_OS_ARCH/$TARGET_OS_VERS"
                     else
-                        BUILD_LIST="$BUILD_LIST $TARGET_OS_NAME/$TARGET_OS_ARCH/$TARGET_OS_VERS"
+                        TARGET_LIST="$TARGET_LIST $TARGET_OS_NAME/$TARGET_OS_ARCH/$TARGET_OS_VERS"
                     fi
                 done
                 ;;
             *)
-                if [ -z "$BUILD_LIST" ]; then
-                    BUILD_LIST="$TARGET_OS_NAME/$TARGET_OS_ARCH/$TARGET_OS_VERS"
+                if [ -z "$TARGET_LIST" ]; then
+                    TARGET_LIST="$TARGET_OS_NAME/$TARGET_OS_ARCH/$TARGET_OS_VERS"
                 else
-                    BUILD_LIST="$BUILD_LIST $TARGET_OS_NAME/$TARGET_OS_ARCH/$TARGET_OS_VERS"
+                    TARGET_LIST="$TARGET_LIST $TARGET_OS_NAME/$TARGET_OS_ARCH/$TARGET_OS_VERS"
                 fi
         esac
     done < "$MY_HOME_DIR/rules/$1"
@@ -5988,11 +6525,15 @@ __inspect_the_given_rule() {
     unset TARGET_OS_ARCH
 
     if [ "$VERBOSE" = YES ] ; then
-        for item in $BUILD_LIST
+        for item in $TARGET_LIST
         do
-            echo "$item"
+            printf '%s\n' "$item"
         done
     fi
+}
+
+__list_targets_for_building() {
+    printf '%s\n' "$TARGET_LIST"
 }
 
 inject_stub_system() {
@@ -6441,9 +6982,6 @@ inspect_install_arguments() {
     [ -z "$RULE" ] && RULE=default
 
     __inspect_the_given_rule "$RULE"
-
-    unset COMMON_INCLUDE_H_FILEPATH
-    COMMON_INCLUDE_H_FILEPATH="$MY_HOME_DIR/include.h"
 }
 
 init() {
@@ -6505,6 +7043,65 @@ EOF
     NATIVE_OS_VERS=$(os vers)
     NATIVE_OS_ARCH=$(os arch)
     NATIVE_OS_NCPU=$(os ncpu)
+}
+
+__get_perl_home() {
+    if [ -z "$1" ] ; then
+        if command_exists_in_filesystem perl ; then
+            __get_perl_home perl
+        fi
+    else
+        for item in $($1 -V:config_args)
+        do
+            case $item in
+                -Dprefix=*) getvalue "$item"; break
+            esac
+        done
+    fi
+}
+
+__setup_PATH_env() {
+    # pip install --user <PKG>
+    bppend_to_PATH "$HOME/.local/bin"
+
+    # cpan install to default local location
+    bppend_to_PATH "$HOME/perl5/bin"
+
+    PERL_HOME=$(__get_perl_home)
+    if [ -n "$PERL_HOME" ] ; then
+        bppend_to_PATH "$PERL_HOME/bin"
+    fi
+
+    for bindir in /opt "$HOME/.uppm/install.d" "$MY_HOME_DIR/native"
+    do
+        if [ -d "$bindir" ] ; then
+            for item in $(find "$bindir" -maxdepth 2 -type d -name bin)
+            do
+                bppend_to_PATH "$item"
+            done
+        fi
+    done
+
+    if [ -f "$HOME/.cargo/env" ] ; then
+        .   "$HOME/.cargo/env"
+    fi
+
+    # https://docs.github.com/en/actions/learn-github-actions/environment-variables#default-environment-variables
+    # https://github.com/actions/virtual-environments/blob/ubuntu18/20211212.1/images/linux/Ubuntu1804-README.md
+    if [ "$GITHUB_ACTIONS" = true ] ; then
+        if [ -n "$GOROOT_1_17_X64" ] && [ -d "$GOROOT_1_17_X64/bin" ] ; then
+            bppend_to_PATH "$GOROOT_1_17_X64/bin"
+        fi
+    fi
+
+    if command -v brew > /dev/null ; then
+        unset __HOMEBREW_PKG_PREFIX__
+        __HOMEBREW_PKG_PREFIX__="$(brew --prefix gnu-sed)"
+        if [ -d "$__HOMEBREW_PKG_PREFIX__/libexec/gnubin" ] ; then
+            bppend_to_PATH "$__HOMEBREW_PKG_PREFIX__/libexec/gnubin"
+        fi
+    fi
+    unset __HOMEBREW_PKG_PREFIX__
 }
 
 help() {
