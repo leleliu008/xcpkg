@@ -6982,6 +6982,8 @@ inspect_install_arguments() {
     [ -z "$RULE" ] && RULE=default
 
     __inspect_the_given_rule "$RULE"
+
+    inspect_build_toolchains
 }
 
 init() {
