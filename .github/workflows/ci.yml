@@ -23,6 +23,8 @@ jobs:
 
       - run: export -p
 
+      - run: echo ${{ github.ref_name }}
+
       - run: bin/xcpkg --help
       - run: bin/xcpkg --version
       - run: bin/xcpkg --homedir
