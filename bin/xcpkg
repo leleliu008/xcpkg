@@ -6315,11 +6315,11 @@ mesonw() {
             HOST_MACHINE_CPU_FAMILY='arm'
             HOST_MACHINE_CPU_NAME="$TARGET_OS_ARCH"
             ;;
-        arm64*)
+        arm64*|aarch64)
             HOST_MACHINE_CPU_FAMILY='aarch64'
-            HOST_MACHINE_CPU_NAME="$TARGET_OS_ARCH"
+            HOST_MACHINE_CPU_NAME='armv8a'
             ;;
-        i386)
+        i386|i686)
             HOST_MACHINE_CPU_FAMILY='x86'
             HOST_MACHINE_CPU_NAME="$TARGET_OS_ARCH"
             ;;
@@ -6329,7 +6329,9 @@ mesonw() {
             ;;
     esac
 
-    cat >> "$BUILD_DIR/cross-file" <<EOF
+    MESON_CROSS_FILE="$BUILD_DIR/cross-file"
+
+    cat > "$MESON_CROSS_FILE" <<EOF
 [host_machine]
 system = '$TARGET_OS_TYPE'
 endian = 'little'
@@ -6344,20 +6346,41 @@ strip = '$STRIP'
 cmake = '$CMAKE'
 pkgconfig = '$PKG_CONFIG'
 
+EOF
+
+    # https://mesonbuild.com/Machine-files.html#meson-builtin-options
+    if command_exists_in_filesystem_and_version_matched meson le 0.56.0 ; then
+        cat >> "$MESON_CROSS_FILE" <<EOF
 [properties]
 c_args = $(to_meson_array $CFLAGS $CPPFLAGS)
 c_link_args = $(to_meson_array $LDFLAGS)
 cpp_args = $(to_meson_array $CXXFLAGS $CPPFLAGS)
 cpp_link_args = $(to_meson_array $LDFLAGS)
 EOF
+    else
+        cat >> "$MESON_CROSS_FILE" <<EOF
+[built-in options]
+c_args = $(to_meson_array $CFLAGS $CPPFLAGS)
+c_link_args = $(to_meson_array $LDFLAGS)
+cpp_args = $(to_meson_array $CXXFLAGS $CPPFLAGS)
+cpp_link_args = $(to_meson_array $LDFLAGS)
+EOF
+    fi
+
+    unset MESON_ARGUMENT_DEFAULT_LIBRARY
+
+    case $INSTALL_LIB in
+        static|shared|both) MESON_ARGUMENT_DEFAULT_LIBRARY="-Ddefault_library=$INSTALL_LIB"
+    esac
+
     run "$MESON" setup \
         --prefix="$ABI_INSTALL_DIR" \
-        --buildtype=$MESON_BUILD_TYPE \
+        --buildtype=$BUILD_TYPE \
         --backend=ninja \
         --pkg-config-path="$PKG_CONFIG_PATH" \
         --build.pkg-config-path="$PKG_CONFIG_PATH_FOR_BUILD" \
-        --cross-file="$BUILD_DIR/cross-file" \
-        -Ddefault_library=static \
+        --cross-file="$MESON_CROSS_FILE" \
+        $MESON_ARGUMENT_DEFAULT_LIBRARY \
         $@ "$BUILD_DIR" "$SOURCE_DIR" &&
     {
         if command -v build_configed > /dev/null ; then
