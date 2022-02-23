@@ -5537,8 +5537,8 @@ __config_variables_for_the_given_target() {
      LDFLAGS="-isysroot $SYSROOT -arch $TARGET_OS_ARCH -m${TARGET_OS_NAME_LOWER_CASE}-version-min=$TARGET_OS_VERS"
 
     if [ "$BUILD_TYPE" = release ] ; then
-        CCFLAGS="$CCFLAGS -Wl,--strip-debug -Os -DNDEBUG"
-        LDFLAGS="$LDFLAGS -Wl,--strip-debug"
+        CCFLAGS="$CCFLAGS -Wl,-S -Os -DNDEBUG"
+        LDFLAGS="$LDFLAGS -Wl,-S"
     fi
 
     for item in $PACKAGE_CDEFINE
