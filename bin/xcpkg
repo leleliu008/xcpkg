@@ -6386,7 +6386,7 @@ create_common_linker_script() {
 }
 
 create_common_include_h() {
-    :
+    touch "$1"
 }
 
 die_if_the_given_rule_is_not_available() {
