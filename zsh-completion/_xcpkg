@@ -146,7 +146,7 @@ function _xcpkg() {
                     ;;
                 info)
                     _arguments \
-                        '1:package-name:(@all $(xcpkg ls available))' \
+                        '1:package-name:(@all $(xcpkg ls-available))' \
                         '*:: :->info-subcommand'
                     case $state in
                         info-subcommand)
@@ -217,7 +217,7 @@ function _xcpkg() {
                     ;;
                 upgrade)
                     _arguments \
-                        '1:package-name:(@self $(xcpkg ls outdated))' \
+                        '1:package-name:(@self $(xcpkg ls-outdated))' \
                         '*:: :->upgrade-subcommand'
                     case $state in
                         upgrade-subcommand)
