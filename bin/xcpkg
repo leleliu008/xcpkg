@@ -7007,7 +7007,7 @@ inspect_install_arguments() {
 
 init() {
     # MY represents this software's
-    MY_VERSION=0.1.6
+    MY_VERSION=0.1.7
     MY_HOME_PAGE='https://github.com/leleliu008/xcpkg'
     MY_OFFICAL_FORMULA_REPO_URL='https://github.com/leleliu008/xcpkg-formula-repository.git'
     MY_UPGRAGE_URL='https://raw.githubusercontent.com/leleliu008/xcpkg/master/bin/xcpkg'
