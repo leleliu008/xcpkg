@@ -2235,12 +2235,12 @@ __pmw_is_the_given_package_available() {
 # __pmw_get_available_package_version_by_package_name apt automake
 __pmw_get_available_package_version_by_package_name() {
     case $1 in
-        pkg) pkg show "$2" 2> /dev/null | grep 'Version: ' | head -n 1 | cut -d ' ' -f2 | cut -d- -f1  | cut -d~ -f1 | sed 's/[0-9]://' ;;
-        apt) apt show "$2" 2> /dev/null | grep 'Version: ' | head -n 1 | cut -d ' ' -f2 | cut -d- -f1  | cut -d~ -f1 | sed 's/[0-9]://' ;;
-        apk) apk info "$2" 2> /dev/null | head -n 1 | cut -d ' ' -f1 | cut -d- -f2 ;;
-        yum) yum info "$2" 2> /dev/null | grep 'Version     :'  | head -n 1 | cut -d : -f2 | sed 's/^[[:space:]]//' ;;
-        dnf) dnf info "$2" 2> /dev/null | grep 'Version      :' | head -n 1 | cut -d : -f2 | sed 's/^[[:space:]]//' ;;
-        brew) brew info "$2" 2> /dev/null | grep "$2: " | cut -d ' ' -f3 ;;
+        pkg)   pkg show "$2" 2> /dev/null | sed -n '/Version: /p' | head -n 1 | cut -d ' ' -f2 | cut -d- -f1  | cut -d~ -f1 | sed 's/[0-9]://' ;;
+        apt)   apt show "$2" 2> /dev/null | sed -n '/Version: /p' | head -n 1 | cut -d ' ' -f2 | cut -d- -f1  | cut -d~ -f1 | sed 's/[0-9]://' ;;
+        apk)   apk info "$2" 2> /dev/null | head -n 1 | cut -d ' ' -f1 | cut -d- -f2 ;;
+        yum)   yum info "$2" 2> /dev/null | sed -n '/Version     :/p'  | head -n 1 | cut -d : -f2 | sed 's/^[[:space:]]//' ;;
+        dnf)   dnf info "$2" 2> /dev/null | sed -n '/Version      :/p' | head -n 1 | cut -d : -f2 | sed 's/^[[:space:]]//' ;;
+        brew) brew info "$2" 2> /dev/null | sed -n "/$2: /p" | cut -d ' ' -f3 | sed 's/,//g' ;;
         xbps) xbps-query -R --property=pkgver "$2" | cut -d- -f2 | cut -d_ -f1 ;;
         pacman) pacman -Ss "^$2$" 2> /dev/null | head -n 1 | cut -d ' ' -f2 | cut -d- -f1 ;;
         zyyper) zyyper info "$2" 2> /dev/null | sed -n '/Version        :/p' | sed 's/Version        : \(.*\)/\1/' | cut -d- -f1 ;;
@@ -5293,6 +5293,66 @@ __show_infomation_of_all_available_packages() {
     fi
 }
 
+# __show_infomation_of_the_given_package_as_shell <PACKAGE-NAME>
+__show_infomation_of_the_given_package_as_shell() {
+    __load_formula_of_the_given_package "$1" || return 1
+
+    while read KEY
+    do
+        printf "%s='%s'\n" "$KEY" "$(eval echo \$$KEY)"
+    done <<EOF
+PACKAGE_NAME
+PACKAGE_SUMMARY
+PACKAGE_WEBPAGE
+PACKAGE_GIT_URL
+PACKAGE_GIT_REV
+PACKAGE_GIT_TAG
+PACKAGE_SRC_URL
+PACKAGE_SRC_SUM
+PACKAGE_SRC_NAME
+PACKAGE_SRC_PATH
+PACKAGE_SRC_TYPE
+PACKAGE_VERSION
+PACKAGE_VERSION_MAJOR
+PACKAGE_VERSION_MINOR
+PACKAGE_VERSION_PATCH
+PACKAGE_VERSION_TWEAK
+PACKAGE_LICENSE
+PACKAGE_PATCHES
+PACKAGE_SOURCED
+PACKAGE_BSYSTEM
+PACKAGE_BINSRCD
+PACKAGE_BUILD_SYSTEM
+PACKAGE_BUILD_SYSTEM_GO
+PACKAGE_BUILD_SYSTEM_RAKE
+PACKAGE_BUILD_SYSTEM_NINJA
+PACKAGE_BUILD_SYSTEM_GMAKE
+PACKAGE_BUILD_SYSTEM_CMAKE
+PACKAGE_BUILD_SYSTEM_XMAKE
+PACKAGE_BUILD_SYSTEM_MESON
+PACKAGE_BUILD_SYSTEM_CARGO
+PACKAGE_BUILD_SYSTEM_AUTOGENSH
+PACKAGE_BUILD_SYSTEM_AUTOTOOLS
+PACKAGE_BUILD_SYSTEM_CONFIGURE
+PACKAGE_BUILD_SYSTEM_NDK_BUILD
+PACKAGE_BUILD_IN_SOURCE_DIR
+PACKAGE_BUILD_IN_PARALLEL
+PACKAGE_DEP_CMD
+PACKAGE_DEP_PYM
+PACKAGE_DEP_PLM
+PACKAGE_DEP_PKG
+PACKAGE_DEP_JDK
+PACKAGE_DEP_SDK
+PACKAGE_DEP_NDK
+PACKAGE_CDEFINE
+PACKAGE_CCFLAGS
+PACKAGE_XXFLAGS
+PACKAGE_LDFLAGS
+PACKAGE_FORMULA_FILEPATH
+PACKAGE_SDK_API
+EOF
+}
+
 # examples:
 # __show_infomation_of_the_given_package curl
 # __show_infomation_of_the_given_package curl --json
@@ -5314,6 +5374,9 @@ __show_infomation_of_the_given_package() {
             --json)
                 __load_formula_of_the_given_package "$1"
                 printf "{\"name\":\"%s\",\"version\":\"%s\",\"summary\":\"%s\",\"license\":\"%s\",\"webpage\":\"%s\",\"bsystem\":\"%s\",\"git_url\":\"%s\"}\n"  "$PACKAGE_NAME" "$PACKAGE_VERSION" "$PACKAGE_SUMMARY" "$PACKAGE_LICENSE" "$PACKAGE_WEBPAGE" "$PACKAGE_BUILD_SYSTEM" "$PACKAGE_GIT_URL"
+                ;;
+            --shell)
+                __show_infomation_of_the_given_package_as_shell "$1"
                 ;;
             installed-dir)
                 die_if_package_is_not_installed "$1"
