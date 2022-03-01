@@ -32,11 +32,11 @@ autoload -U compinit && compinit
 
 *   show home directory of this software
 
-        ndk-pkg --homedir
+        xcpkg --homedir
 
 *   show home webpage of this software
 
-        ndk-pkg --homepage
+        xcpkg --homepage
 
 *   show current machine os and [Xcode](https://developer.apple.com/xcode) toolchain info
         
