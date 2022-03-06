@@ -5378,6 +5378,9 @@ __show_infomation_of_the_given_package() {
             --shell)
                 __show_infomation_of_the_given_package_as_shell "$1"
                 ;;
+            formula)
+                __path_of_formula_of_the_given_package "$1"
+                ;;
             installed-dir)
                 die_if_package_is_not_installed "$1"
                 echo "$MY_INSTALL_DIR/$1"
@@ -5747,19 +5750,12 @@ __config_variables_for_the_given_target() {
     fi
 
     if [ "$PACKAGE_BUILD_SYSTEM_CARGO" = yes ] ; then
-        for supportedTarget in $(__list_supported_target_triples)
-        do
-            supportedTarget=$(echo "$supportedTarget" | sed 's/armv7a/armv7/')
-            for installedTarget in $(rustup target list | sed -n '/installed/p' | cut -d ' ' -f1)
-            do
-                [ "$supportedTarget" = "$installedTarget" ] && break
-            done
-            [ "$supportedTarget" = "$installedTarget" ] || {
-                rustup target add "$supportedTarget" || return 1
-            }
-        done
+        case $TARGET_OS_NAME in
+            MacOSX) RUST_TARGET="$TARGET_OS_ARCH-apple-darwin" ;;
+            *)      RUST_TARGET="$TARGET_OS_ARCH-apple-ios"
+        esac
 
-        RUST_TARGET=$(echo "$TARGET_TRIPLE" | sed 's/armv7a/armv7/')
+        rustup target add "$RUST_TARGET" || return 1
 
         # this environment variable is not defined by Rust, but it is widely used by third-party project.
         export RUST_TARGET="$RUST_TARGET"
@@ -5808,14 +5804,7 @@ __config_variables_for_the_given_target() {
         # https://docs.rs/cmake/latest/cmake/
         # https://github.com/alexcrichton/cmake-rs
         # this variable is not motioned in their document. you must read the source code of cmake-rs crate.
-        export TARGET_CMAKE_TOOLCHAIN_FILE="$WORK_DIR/$TIMESTAMP_UNIX/$TARGET_OS_ABI-android.toolchain.cmake"
-
-        printf '%s\n' "
-        set(ANDROID_ABI "${TARGET_OS_ABI}")
-        set(ANDROID_PLATFORM "android-${TARGET_OS_VERS}")
-        include(${ANDROID_NDK_HOME}/build/cmake/android.toolchain.cmake)
-        " > "$TARGET_CMAKE_TOOLCHAIN_FILE"
-
+        export TARGET_CMAKE_TOOLCHAIN_FILE="$WORK_DIR/$TIMESTAMP_UNIX/$TARGET_OS_NAME-$TARGET_OS_ARCH-toolchain.cmake"
 
         for item in $DEPENDENCY_PACKAGE_LIST
         do
