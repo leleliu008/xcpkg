@@ -5751,8 +5751,10 @@ __config_variables_for_the_given_target() {
 
     if [ "$PACKAGE_BUILD_SYSTEM_CARGO" = yes ] ; then
         case $TARGET_OS_NAME in
-            MacOSX) RUST_TARGET="$TARGET_OS_ARCH-apple-darwin" ;;
-            *)      RUST_TARGET="$TARGET_OS_ARCH-apple-ios"
+            MacOSX|*Simulator)
+                RUST_TARGET="$TARGET_OS_ARCH-apple-darwin"
+                ;;
+            *)  RUST_TARGET="$TARGET_OS_ARCH-apple-ios"
         esac
 
         rustup target add "$RUST_TARGET" || return 1
