@@ -183,7 +183,7 @@ getvalue() {
     if [ $# -eq 0 ] ; then
         cut -d= -f2
     else
-        echo "$1" | cut -d= -f2
+        printf '%s\n' "$1" | cut -d= -f2
     fi
 }
 
@@ -4206,10 +4206,8 @@ __tree_the_given_installed_package() {
 }
 
 __uninstall_the_given_packages() {
-    shift
-
     die_if_package_is_not_specified "$1"
-    
+
     for packageName in $@
     do
         __uninstall_the_given_package "$packageName" || return 1
@@ -6916,11 +6914,6 @@ __create_framework_for_the_given_package() {
 }
 
 inspect_install_arguments() {
-    unset ACTION
-    ACTION=$1
-
-    shift
-
     # https://stackoverflow.com/questions/18476490/what-is-purpose-of-target-arch-variable-in-makefiles
     unset TARGET_ARCH
 
@@ -7463,9 +7456,9 @@ main() {
 
         search)  shift; __search_packages "$*" ;;
 
-          install)   __install_the_given_packages $@ ;;
-        reinstall) __reinstall_the_given_packages $@ ;;
-        uninstall) __uninstall_the_given_packages $@ ;;
+          install) shift;   __install_the_given_packages $@ ;;
+        reinstall) shift; __reinstall_the_given_packages $@ ;;
+        uninstall) shift; __uninstall_the_given_packages $@ ;;
 
         upgrade)
             shift
