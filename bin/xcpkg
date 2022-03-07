@@ -5752,12 +5752,18 @@ __config_variables_for_the_given_target() {
     if [ "$PACKAGE_BUILD_SYSTEM_CARGO" = yes ] ; then
         case $TARGET_OS_NAME in
             MacOSX|*Simulator)
-                RUST_TARGET="$TARGET_OS_ARCH-apple-darwin"
+                if [ "$TARGET_OS_ARCH" = arm64 ] ; then
+                    RUST_TARGET="aarch64-apple-darwin"
+                else
+                    RUST_TARGET="$TARGET_OS_ARCH-apple-darwin"
+                fi
                 ;;
-            *)  RUST_TARGET="$TARGET_OS_ARCH-apple-ios"
+            *)  if [ "$TARGET_OS_ARCH" = arm64 ] ; then
+                    RUST_TARGET="aarch64-apple-ios"
+                else
+                    RUST_TARGET="$TARGET_OS_ARCH-apple-ios"
+                fi
         esac
-
-        rustup target add "$RUST_TARGET" || return 1
 
         # this environment variable is not defined by Rust, but it is widely used by third-party project.
         export RUST_TARGET="$RUST_TARGET"
@@ -6072,6 +6078,8 @@ gow() {
 }
 
 cargow() {
+    run rustup target add "$RUST_TARGET" || return 1
+
     case $1 in
         build)
             # https://doc.rust-lang.org/cargo/commands/cargo-clean.html
