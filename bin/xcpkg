@@ -5750,17 +5750,15 @@ __config_variables_for_the_given_target() {
     if [ "$PACKAGE_BUILD_SYSTEM_CARGO" = yes ] ; then
         case $TARGET_OS_NAME in
             MacOSX|*Simulator)
-                if [ "$TARGET_OS_ARCH" = arm64 ] ; then
-                    RUST_TARGET="aarch64-apple-darwin"
-                else
-                    RUST_TARGET="$TARGET_OS_ARCH-apple-darwin"
-                fi
+                case $TARGET_OS_ARCH in
+                    arm64*) RUST_TARGET="aarch64-apple-darwin" ;;
+                    *)      RUST_TARGET="$TARGET_OS_ARCH-apple-darwin"
+                esac
                 ;;
-            *)  if [ "$TARGET_OS_ARCH" = arm64 ] ; then
-                    RUST_TARGET="aarch64-apple-ios"
-                else
-                    RUST_TARGET="$TARGET_OS_ARCH-apple-ios"
-                fi
+            *)  case $TARGET_OS_ARCH in
+                    arm64*) RUST_TARGET="aarch64-apple-ios" ;;
+                    *)      RUST_TARGET="$TARGET_OS_ARCH-apple-ios"
+                esac
         esac
 
         # this environment variable is not defined by Rust, but it is widely used by third-party project.
