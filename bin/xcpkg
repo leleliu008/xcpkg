@@ -5074,6 +5074,14 @@ __install_the_given_package_for_the_given_target() {
     step2 "printf variables for ${COLOR_GREEN}$@${COLOR_OFF}"
     __printf_variables_for_the_given_target $@
 
+    step2 "create build dir for ${COLOR_GREEN}$@${COLOR_OFF}"
+    run install -d "$BUILD_DIR" || return 1
+
+    if [ "$PACKAGE_BUILD_SYSTEM_CMAKE" = yes ] ; then
+        step2 "create cmake toolchain file for ${COLOR_GREEN}$@${COLOR_OFF}"
+        __create_cmake_toolchain_file_for_the_given_target $@ || return 1
+    fi
+
     [ "$DRYRUN" = yes ] && {
         [ -z "$SHELL" ] && SHELL=$(command -v zsh || command -v bash || command -v sh)
         [ -z "$SHELL" ] && SHELL=sh
@@ -5085,7 +5093,6 @@ __install_the_given_package_for_the_given_target() {
             run cd "$SOURCE_DIR" || return 1
         fi
     else
-        run install -d "$BUILD_DIR" || return 1
         run cd "$BUILD_DIR" || return 1
     fi
 
@@ -5783,51 +5790,6 @@ __config_variables_for_the_given_target() {
         fi
 
         TARGET_CMAKE_TOOLCHAIN_FILE="$BUILD_DIR/toolchain.cmake"
-
-        run install -d "$BUILD_DIR"
-
-        cat > "$TARGET_CMAKE_TOOLCHAIN_FILE" <<EOF
-set(CMAKE_VERBOSE_MAKEFILE $CMAKE_VERBOSE_MAKEFILE)
-set(CMAKE_COLOR_MAKEFILE   $CMAKE_COLOR_MAKEFILE)
-
-set(BUILD_SHARED_LIBS $BUILD_SHARED_LIBS)
-
-set(CMAKE_BUILD_TYPE  $CMAKE_BUILD_TYPE)
-
-set(CMAKE_SYSTEM_NAME Darwin)
-set(CMAKE_SYSTEM_PROCESSOR $TARGET_OS_ARCH)
-
-set(CMAKE_ASM_COMPILER $CC)
-set(CMAKE_ASM_FLAGS "-arch $TARGET_OS_ARCH")
-
-set(CMAKE_C_COMPILER "$CC")
-set(CMAKE_C_FLAGS "$CFLAGS $CPPFLAGS $LDFLAGS")
-
-set(CMAKE_CXX_COMPILER "$CXX")
-set(CMAKE_CXX_FLAGS "$CXXFLAGS $CPPFLAGS $LDFLAGS")
-
-set(CMAKE_AR "$AR")
-set(CMAKE_RANLIB "$RANLIB")
-
-set(CMAKE_NM "$NM")
-set(CMAKE_STRIP "$STRIP")
-
-set(CMAKE_OSX_SYSROOT "$SYSROOT")
-
-set(CMAKE_OSX_ARCHITECTURES $TARGET_OS_ARCH)
-
-set(CMAKE_FIND_DEBUG_MODE $CMAKE_FIND_DEBUG_MODE)
-
-set(CMAKE_FIND_ROOT_PATH "$CMAKE_FIND_ROOT_PATH")
-
-set(CMAKE_LIBRARY_PATH "$SYSTEM_LIBRARY_DIR")
-
-set(CMAKE_IGNORE_PATH "$CMAKE_IGNORE_PATH")
-EOF
-
-        if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_QUIET" ] ; then
-            run cat "$TARGET_CMAKE_TOOLCHAIN_FILE"
-        fi
     fi
 
     if [ "$PACKAGE_BUILD_SYSTEM_CARGO" = yes ] ; then
@@ -6068,6 +6030,51 @@ EOF
         echo
         run export -p
         echo
+    fi
+}
+
+__create_cmake_toolchain_file_for_the_given_target() {
+    cat > "$TARGET_CMAKE_TOOLCHAIN_FILE" <<EOF
+set(CMAKE_VERBOSE_MAKEFILE $CMAKE_VERBOSE_MAKEFILE)
+set(CMAKE_COLOR_MAKEFILE   $CMAKE_COLOR_MAKEFILE)
+
+set(BUILD_SHARED_LIBS $BUILD_SHARED_LIBS)
+
+set(CMAKE_BUILD_TYPE  $CMAKE_BUILD_TYPE)
+
+set(CMAKE_SYSTEM_NAME Darwin)
+set(CMAKE_SYSTEM_PROCESSOR $TARGET_OS_ARCH)
+
+set(CMAKE_ASM_COMPILER $CC)
+set(CMAKE_ASM_FLAGS "-arch $TARGET_OS_ARCH")
+
+set(CMAKE_C_COMPILER "$CC")
+set(CMAKE_C_FLAGS "$CFLAGS $CPPFLAGS $LDFLAGS")
+
+set(CMAKE_CXX_COMPILER "$CXX")
+set(CMAKE_CXX_FLAGS "$CXXFLAGS $CPPFLAGS $LDFLAGS")
+
+set(CMAKE_AR "$AR")
+set(CMAKE_RANLIB "$RANLIB")
+
+set(CMAKE_NM "$NM")
+set(CMAKE_STRIP "$STRIP")
+
+set(CMAKE_OSX_SYSROOT "$SYSROOT")
+
+set(CMAKE_OSX_ARCHITECTURES $TARGET_OS_ARCH)
+
+set(CMAKE_FIND_DEBUG_MODE $CMAKE_FIND_DEBUG_MODE)
+
+set(CMAKE_FIND_ROOT_PATH "$CMAKE_FIND_ROOT_PATH")
+
+set(CMAKE_LIBRARY_PATH "$SYSTEM_LIBRARY_DIR")
+
+set(CMAKE_IGNORE_PATH "$CMAKE_IGNORE_PATH")
+EOF
+
+    if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_QUIET" ] ; then
+        run cat "$TARGET_CMAKE_TOOLCHAIN_FILE"
     fi
 }
 
