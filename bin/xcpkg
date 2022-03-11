@@ -6376,7 +6376,7 @@ cmakew() {
         fi
 
         CMAKE_CONFIG_OPTIONS="$CMAKE_CONFIG_OPTIONS
-        -DCMAKE_TOOLCHAIN_FILE='$ANDROID_NDK_HOME/build/cmake/android.toolchain.cmake'
+        -DCMAKE_TOOLCHAIN_FILE='$TARGET_CMAKE_TOOLCHAIN_FILE'
         -DCMAKE_FIND_ROOT_PATH='$CMAKE_FIND_ROOT_PATH'
         -DCMAKE_LIBRARY_PATH='$SYSTEM_LIBRARY_DIR'
         -DCMAKE_IGNORE_PATH='$CMAKE_IGNORE_PATH'
@@ -6384,7 +6384,7 @@ cmakew() {
         -DCMAKE_C_FLAGS='$CFLAGS $CPPFLAGS $LDFLAGS'
         -DCMAKE_CXX_FLAGS='$CFLAGS $CPPFLAGS $LDFLAGS'
         -DCMAKE_OSX_ARCHITECTURES=$TARGET_OS_ARCH
-        -DBUILD_SHARED_LIBS=ON"
+        -DBUILD_SHARED_LIBS=OFF"
 
         # https://stackoverflow.com/questions/11143062/getting-cmake-to-build-out-of-source-without-wrapping-scripts
         if command_exists_in_filesystem_and_version_matched cmake ge 3.13.0 ; then
