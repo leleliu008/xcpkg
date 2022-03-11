@@ -5759,6 +5759,8 @@ __config_variables_for_the_given_target() {
 
         TARGET_CMAKE_TOOLCHAIN_FILE="$BUILD_DIR/toolchain.cmake"
 
+        run install -d "$BUILD_DIR"
+
         cat > "$TARGET_CMAKE_TOOLCHAIN_FILE" <<EOF
 set(CMAKE_SYSTEM_NAME Darwin)
 set(CMAKE_SYSTEM_PROCESSOR $TARGET_OS_ARCH)
