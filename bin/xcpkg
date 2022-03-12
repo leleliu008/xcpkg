@@ -5596,6 +5596,11 @@ __config_variables_for_the_given_target() {
     TARGET_OS_ARCH=$(printf '%s\n' "$2" | cut -d/ -f2)
     TARGET_OS_ABI="$TARGET_OS_NAME/$TARGET_OS_ARCH"
 
+    case $TARGET_OS_ARCH in
+        *64*) TARGET_OS_BIT=64 ;;
+        *)    TARGET_OS_BIT=32 ;;
+    esac
+
     TARGET_TRIPLE=$(print_target_triple_by_arch "$TARGET_OS_ARCH")
 
     SYSROOT="$TOOLCHAIN_ROOT/Platforms/${TARGET_OS_NAME}.platform/Developer/SDKs/${TARGET_OS_NAME}.sdk"
