@@ -6478,6 +6478,11 @@ c_link_args = $(to_meson_array $LDFLAGS)
 cpp_args = $(to_meson_array $CXXFLAGS $CPPFLAGS)
 cpp_link_args = $(to_meson_array $LDFLAGS)
 EOF
+        if [ "$PACKAGE_BUILD_SYSTEM_CMAKE" = yes ] ; then
+            cat >> "$MESON_CROSS_FILE" <<EOF
+cmake_toolchain_file='$TARGET_CMAKE_TOOLCHAIN_FILE'
+EOF
+        fi
     else
         cat >> "$MESON_CROSS_FILE" <<EOF
 [built-in options]
