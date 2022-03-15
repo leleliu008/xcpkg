@@ -3880,16 +3880,27 @@ __update_formula_repositories() {
 
     handle_dependency required exe git
 
-    for repo in $(__list_formula_repositories)
+    for item in $(__list_formula_repositories)
     do
-        unset MY_FORMULA_REPO_NAME
-        unset MY_FORMULA_REPO_URL_
+        unset FORMULA_REPO_NAME
+        unset FORMULA_REPO_URL_
 
-        MY_FORMULA_REPO_NAME=$(echo "$repo" | cut -d= -f1)
-        MY_FORMULA_REPO_URL_=$(echo "$repo" | cut -d= -f2)
+        FORMULA_REPO_NAME=$(printf '%s\n' "$item" | cut -d= -f1)
+        FORMULA_REPO_URL_=$(printf '%s\n' "$item" | cut -d= -f2)
 
-        echo "${COLOR_PURPLE}=== Updating repository${COLOR_OFF} ${COLOR_GREEN}$MY_FORMULA_REPO_NAME${COLOR_OFF}"
-        fetch "$MY_FORMULA_REPO_URL_" --output-dir="$MY_FORMULA_REPO_DIR" --output-name="$MY_FORMULA_REPO_NAME"
+        echo "${COLOR_PURPLE}=== Updating formula repository${COLOR_OFF} ${COLOR_GREEN}$FORMULA_REPO_NAME${COLOR_OFF}"
+
+        if [ -d     "$MY_FORMULA_REPO_DIR/$FORMULA_REPO_NAME" ] ; then
+            run cd  "$MY_FORMULA_REPO_DIR/$FORMULA_REPO_NAME"
+            run git pull origin master:master
+            if [ "$(git branch | sed -n '/^*/p' | cut -d ' ' -f2)" != master ] ;  then
+                run git checkout master
+            fi
+        else
+            run install -d "$MY_FORMULA_REPO_DIR"
+            run cd         "$MY_FORMULA_REPO_DIR"
+            run git clone "$FORMULA_REPO_URL_" "$FORMULA_REPO_NAME"
+        fi
     done
 }
 
@@ -7008,7 +7019,7 @@ inspect_install_arguments() {
 
     BUILD_TYPE=release
 
-    LINK_TYPE=shared-prefered
+    LINK_TYPE=static-prefered
 
     INSTALL_EXE=yes
     INSTALL_MAN=yes
