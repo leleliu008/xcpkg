@@ -1,0 +1,20 @@
+name: xcpkg-brew-version-compare
+
+on:
+  schedule:
+    - cron: '* 20 * * *'
+
+jobs:
+  compare:
+
+    runs-on: macos-11
+
+    steps:
+      - run: brew update
+
+      - uses: actions/checkout@v2
+
+      - run: ./xcpkg --help
+      - run: ./xcpkg env
+      - run: ./xcpkg update
+      - run: ./xcpkg test
