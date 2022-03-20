@@ -75,7 +75,7 @@ function _xcpkg() {
     case $state in
         option)
             case $words[1] in
-                ls--target-versions)
+                ls-target-versions)
                     _arguments ':platform:($(xcpkg ls-target-platforms))'
                     ;;
                 ls-target-archs)
