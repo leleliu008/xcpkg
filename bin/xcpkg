@@ -6429,6 +6429,54 @@ cmakew() {
     fi
 }
 
+# run in a subshell
+xmakew() {
+    XMAKE=$(command -v xmake)
+
+    [ -z "$XMAKE" ] && die "command not found: xmake"
+
+    run xmake --version
+
+    XMAKE_CONFIG_OPTIONS="$@"
+
+    XMAKE_CONFIG_OPTION_CLEAN=
+    XMAKE_CONFIG_OPTION_MODE=
+    XMAKE_CONFIG_OPTION_vD=
+
+    for arg in $@
+    do
+        case $arg in
+            -c|--clean)  XMAKE_CONFIG_OPTION_CLEAN=set ;;
+            -m|--mode=*) XMAKE_CONFIG_OPTION_MODE=set  ;;
+            -vD)         XMAKE_CONFIG_OPTION_vD=set ;;
+        esac
+    done
+
+    if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_DEBUG" ] && [ -z "$XMAKE_CONFIG_OPTION_vD" ]; then
+        XMAKE_CONFIG_OPTIONS="$XMAKE_CONFIG_OPTION_vD -vD"
+    fi
+
+    if [ -z "$XMAKE_CONFIG_OPTION_CLEAN" ] ; then
+        XMAKE_CONFIG_OPTIONS="$XMAKE_CONFIG_OPTIONS --clean"
+    fi
+
+    if [ -z "$XMAKE_CONFIG_OPTION_MODE" ] ; then
+        XMAKE_CONFIG_OPTIONS="$XMAKE_CONFIG_OPTIONS --mode=$BUILD_TYPE"
+    fi
+
+    if [ "$STEP_MESSAGE" = 'build for native' ] ; then
+        run $XMAKE config $XMAKE_CONFIG_OPTIONS --project=$SOURCE_DIR --buildir=$NATIVE_BUILD_DIR &&
+        run $XMAKE --jobs=$BUILD_NJOBS &&
+        run $XMAKE install -o "$NATIVE_INSTALL_DIR"
+    else
+        XMAKE_CONFIG_OPTIONS="$XMAKE_CONFIG_OPTIONS --plat=$TARGET_OS_NAME_LOWER_CASE --arch=$TARGET_OS_ARCH --buildir=$TARGET_BUILD_DIR"
+
+        run $XMAKE config $XMAKE_CONFIG_OPTIONS &&
+        run $XMAKE --jobs=$BUILD_NJOBS &&
+        run $XMAKE install -o "$TARGET_INSTALL_DIR"
+    fi
+}
+
 # https://mesonbuild.com/Cross-compilation.html
 # run in a subshell
 mesonw() {
