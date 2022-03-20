@@ -177,34 +177,34 @@ autoload -U compinit && compinit
         
 *   list the supported target platforms
         
-        xcpkg target platforms
+        xcpkg ls-target-platforms
         
 *   list the supported target platform's versions
 
-        xcpkg target versions
-        xcpkg target versions iPhoneOS
+        xcpkg ls-target-versions
+        xcpkg ls-target-versions iPhoneOS
         
 *   list the supported target archs
 
-        xcpkg target archs
-        xcpkg target archs iPhoneOS
-        xcpkg target archs iPhoneOS 64bit
-        xcpkg target archs iPhoneOS 32bit
-        xcpkg target archs iPhoneOS all
+        xcpkg ls-target-archs
+        xcpkg ls-target-archs iPhoneOS
+        xcpkg ls-target-archs iPhoneOS 64bit
+        xcpkg ls-target-archs iPhoneOS 32bit
+        xcpkg ls-target-archs iPhoneOS all
         
 *   list the supported target abis
 
-        xcpkg target abis
-        xcpkg target abis 64bit
-        xcpkg target abis 32bit
-        xcpkg target abis all
+        xcpkg ls-target-abis
+        xcpkg ls-target-abis 64bit
+        xcpkg ls-target-abis 32bit
+        xcpkg ls-target-abis all
 
 *   list the supported target triples
 
-        xcpkg target triples
-        xcpkg target triples 64bit
-        xcpkg target triples 32bit
-        xcpkg target triples all
+        xcpkg ls-target-triples
+        xcpkg ls-target-triples 64bit
+        xcpkg ls-target-triples 32bit
+        xcpkg ls-target-triples all
         
 *   list the available packages
         

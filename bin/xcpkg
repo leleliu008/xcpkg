@@ -7302,19 +7302,19 @@ ${COLOR_GREEN}xcpkg update${COLOR_OFF}
 ${COLOR_GREEN}xcpkg cleanup${COLOR_OFF}
     cleanup the unused cache.
 
-${COLOR_GREEN}xcpkg target platforms${COLOR_OFF}
+${COLOR_GREEN}xcpkg ls-target-platforms${COLOR_OFF}
     list the supported target platforms.
 
-${COLOR_GREEN}xcpkg target versions [PLATFORM]${COLOR_OFF}
+${COLOR_GREEN}xcpkg ls-target-versions [PLATFORM]${COLOR_OFF}
     list the supported target platform's version.
 
-${COLOR_GREEN}xcpkg target triples [32bit|64bit|all]${COLOR_OFF}
+${COLOR_GREEN}xcpkg ls-target-triples [32bit|64bit|all]${COLOR_OFF}
     list the supported target triples.
 
-${COLOR_GREEN}xcpkg target archs   [32bit|64bit|all] [PLATFORM]${COLOR_OFF}
+${COLOR_GREEN}xcpkg ls-target-archs   [32bit|64bit|all] [PLATFORM]${COLOR_OFF}
     list the supported target archs.
 
-${COLOR_GREEN}xcpkg target abis    [32bit|64bit|all]${COLOR_OFF}
+${COLOR_GREEN}xcpkg ls-target-abis    [32bit|64bit|all]${COLOR_OFF}
     list the supported target abis.
 
 ${COLOR_GREEN}xcpkg ls-available${COLOR_OFF}
@@ -7473,16 +7473,12 @@ main() {
 
             echo "$TOOLCHAIN_NAME $TOOLCHAIN_VERS"
             ;;
-        target)
-            shift
-            case $1 in
-                platforms) shift; __list_supported_target_platforms $@ ;;
-                versions)  shift; __list_supported_target_platform_versions  $@ ;;
-                triples)   shift; __list_supported_target_triples   $@ ;;
-                archs)     shift; __list_supported_target_archs     $@ ;;
-                abis)      shift; __list_supported_target_abis      $@ ;;
-            esac
-            ;;
+
+        ls-target-platforms) shift; __list_supported_target_platforms $@ ;;
+        ls-target-versions)  shift; __list_supported_target_platform_versions  $@ ;;
+        ls-target-triples)   shift; __list_supported_target_triples   $@ ;;
+        ls-target-archs)     shift; __list_supported_target_archs     $@ ;;
+        ls-target-abis)      shift; __list_supported_target_abis      $@ ;;
 
         ls-available) shift; __list_available_packages ;;
         ls-installed) shift; __list_installed_packages ;;
