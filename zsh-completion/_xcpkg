@@ -8,7 +8,11 @@ _commands=(
     '--homedir:show home directory of this command.'
     '--homepage:show home webpage of this command.'
     'search:search packages can be installed.'
-    'target:list the target platforms, target CPU arch, target abis.'
+    'ls-target-platforms:list the supportted platforms of target platforms.'
+    'ls-target-versions:list the supportted versions of target platforms.'
+    'ls-target-triples:list the supportted target triples.'
+    'ls-target-archs:list the supportted archs of target platforms.'
+    'ls-target-abis:list the supportted abis of target platforms.'
     'ls-available:list the available packages.'
     'ls-installed:list the installed packages.'
     'ls-outdated:list the installed packages which can be upgraded.'
@@ -35,21 +39,8 @@ _commands=(
     'pack:pack the given installed package.'
     'logs:show logs of the given installed package.'
     'create-framework:create framework for the given installed package.'
-    'min-version:get the min-version of the given platform or all platforms.'
     'gen-github-workflows:generate github workflows.'
 )
-
-_target=(
-    'platforms:list the supportted platforms of target platforms.'
-    'versions:list the supportted versions of target platforms.'
-    'triples:list the supportted target triples.'
-    'archs:list the supportted archs of target platforms.'
-    'abis:list the supportted abis of target platforms.'
-)
-
-function _xcpkg_target() {
-    _describe 'target' _target
-}
 
 function _xcpkg_commands() {
     _describe 'command' _commands
@@ -84,24 +75,19 @@ function _xcpkg() {
     case $state in
         option)
             case $words[1] in
-                target)
+                ls-target-versions)
+                    _arguments ':platform:($(xcpkg ls-target-platforms))'
+                    ;;
+                ls-target-archs)
                     _arguments \
-                        ':target-subcommand:_xcpkg_target' \
-                        '*:: :->target-option'
-                    case $state in
-                        target-option)
-                            case $words[1] in
-                                versions)
-                                    _arguments ':platform:($(xcpkg target platforms))';;
-                                archs)
-                                    _arguments \
-                                        ':platform:($(xcpkg target platforms))' \
-                                        ':bit:(64bit 32bit all)'
-                                    ;;
-                                abis|triples)
-                                    _arguments '1:bit:(64bit 32bit all)' ;;
-                            esac
-                    esac
+                        ':platform:($(xcpkg ls-target-platforms))' \
+                        ':bit:(64bit 32bit all)'
+                    ;;
+                ls-target-abis)
+                    _arguments '1:bit:(64bit 32bit all)'
+                    ;;
+                ls-target-triples)
+                    _arguments '1:bit:(64bit 32bit all)'
                     ;;
                 formula-repo)
                     _arguments \
@@ -180,11 +166,7 @@ function _xcpkg() {
                 logs)
                     _arguments \
                         '1:package-name:_xcpkg_installed_packages' \
-                        '2:abi:($(xcpkg target abis $words[2]))' \
-                    ;;
-                min-version)
-                    _arguments \
-                        ':platform:($(xcpkg target platforms))'
+                        '2:abi:($(xcpkg ls-target-abis $words[2]))' \
                     ;;
                 install)
                     _arguments \

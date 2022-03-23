@@ -6454,6 +6454,54 @@ cmakew() {
     fi
 }
 
+# run in a subshell
+xmakew() {
+    XMAKE=$(command -v xmake)
+
+    [ -z "$XMAKE" ] && die "command not found: xmake"
+
+    run xmake --version
+
+    XMAKE_CONFIG_OPTIONS="$@"
+
+    XMAKE_CONFIG_OPTION_CLEAN=
+    XMAKE_CONFIG_OPTION_MODE=
+    XMAKE_CONFIG_OPTION_vD=
+
+    for arg in $@
+    do
+        case $arg in
+            -c|--clean)  XMAKE_CONFIG_OPTION_CLEAN=set ;;
+            -m|--mode=*) XMAKE_CONFIG_OPTION_MODE=set  ;;
+            -vD)         XMAKE_CONFIG_OPTION_vD=set ;;
+        esac
+    done
+
+    if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_DEBUG" ] && [ -z "$XMAKE_CONFIG_OPTION_vD" ]; then
+        XMAKE_CONFIG_OPTIONS="$XMAKE_CONFIG_OPTION_vD -vD"
+    fi
+
+    if [ -z "$XMAKE_CONFIG_OPTION_CLEAN" ] ; then
+        XMAKE_CONFIG_OPTIONS="$XMAKE_CONFIG_OPTIONS --clean"
+    fi
+
+    if [ -z "$XMAKE_CONFIG_OPTION_MODE" ] ; then
+        XMAKE_CONFIG_OPTIONS="$XMAKE_CONFIG_OPTIONS --mode=$BUILD_TYPE"
+    fi
+
+    if [ "$STEP_MESSAGE" = 'build for native' ] ; then
+        run $XMAKE config $XMAKE_CONFIG_OPTIONS --project=$SOURCE_DIR --buildir=$NATIVE_BUILD_DIR &&
+        run $XMAKE --jobs=$BUILD_NJOBS &&
+        run $XMAKE install -o "$NATIVE_INSTALL_DIR"
+    else
+        XMAKE_CONFIG_OPTIONS="$XMAKE_CONFIG_OPTIONS --plat=$TARGET_OS_NAME_LOWER_CASE --arch=$TARGET_OS_ARCH --buildir=$TARGET_BUILD_DIR"
+
+        run $XMAKE config $XMAKE_CONFIG_OPTIONS &&
+        run $XMAKE --jobs=$BUILD_NJOBS &&
+        run $XMAKE install -o "$TARGET_INSTALL_DIR"
+    fi
+}
+
 # https://mesonbuild.com/Cross-compilation.html
 # run in a subshell
 mesonw() {
@@ -7168,7 +7216,7 @@ inspect_install_arguments() {
 
 init() {
     # MY represents this software's
-    MY_VERSION=0.1.7
+    MY_VERSION=0.1.9
     MY_HOME_PAGE='https://github.com/leleliu008/xcpkg'
     MY_OFFICAL_FORMULA_REPO_URL='https://github.com/leleliu008/xcpkg-formula-repository.git'
     MY_UPGRAGE_URL='https://raw.githubusercontent.com/leleliu008/xcpkg/master/bin/xcpkg'
@@ -7332,19 +7380,19 @@ ${COLOR_GREEN}xcpkg update${COLOR_OFF}
 ${COLOR_GREEN}xcpkg cleanup${COLOR_OFF}
     cleanup the unused cache.
 
-${COLOR_GREEN}xcpkg target platforms${COLOR_OFF}
+${COLOR_GREEN}xcpkg ls-target-platforms${COLOR_OFF}
     list the supported target platforms.
 
-${COLOR_GREEN}xcpkg target versions [PLATFORM]${COLOR_OFF}
+${COLOR_GREEN}xcpkg ls-target-versions [PLATFORM]${COLOR_OFF}
     list the supported target platform's version.
 
-${COLOR_GREEN}xcpkg target triples [32bit|64bit|all]${COLOR_OFF}
+${COLOR_GREEN}xcpkg ls-target-triples [32bit|64bit|all]${COLOR_OFF}
     list the supported target triples.
 
-${COLOR_GREEN}xcpkg target archs   [32bit|64bit|all] [PLATFORM]${COLOR_OFF}
+${COLOR_GREEN}xcpkg ls-target-archs   [32bit|64bit|all] [PLATFORM]${COLOR_OFF}
     list the supported target archs.
 
-${COLOR_GREEN}xcpkg target abis    [32bit|64bit|all]${COLOR_OFF}
+${COLOR_GREEN}xcpkg ls-target-abis    [32bit|64bit|all]${COLOR_OFF}
     list the supported target abis.
 
 ${COLOR_GREEN}xcpkg ls-available${COLOR_OFF}
@@ -7503,16 +7551,12 @@ main() {
 
             echo "$TOOLCHAIN_NAME $TOOLCHAIN_VERS"
             ;;
-        target)
-            shift
-            case $1 in
-                platforms) shift; __list_supported_target_platforms $@ ;;
-                versions)  shift; __list_supported_target_platform_versions  $@ ;;
-                triples)   shift; __list_supported_target_triples   $@ ;;
-                archs)     shift; __list_supported_target_archs     $@ ;;
-                abis)      shift; __list_supported_target_abis      $@ ;;
-            esac
-            ;;
+
+        ls-target-platforms) shift; __list_supported_target_platforms $@ ;;
+        ls-target-versions)  shift; __list_supported_target_platform_versions  $@ ;;
+        ls-target-triples)   shift; __list_supported_target_triples   $@ ;;
+        ls-target-archs)     shift; __list_supported_target_archs     $@ ;;
+        ls-target-abis)      shift; __list_supported_target_abis      $@ ;;
 
         ls-available) shift; __list_available_packages ;;
         ls-installed) shift; __list_installed_packages ;;

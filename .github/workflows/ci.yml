@@ -66,11 +66,35 @@ jobs:
       - run: bin/xcpkg formula-repo list
       - run: bin/xcpkg formula view curl
 
-      - run: bin/xcpkg target abis
-      - run: bin/xcpkg target archs
-      - run: bin/xcpkg target triples
-      - run: bin/xcpkg target versions
-      - run: bin/xcpkg target platforms
+      - run: bin/xcpkg ls-target-abis
+      - run: bin/xcpkg ls-target-abis all
+      - run: bin/xcpkg ls-target-abis 32bit
+      - run: bin/xcpkg ls-target-abis 64bit
+
+      - run: bin/xcpkg ls-target-archs
+      - run: bin/xcpkg ls-target-archs MacOSX
+      - run: bin/xcpkg ls-target-archs AppleTVOS
+      - run: bin/xcpkg ls-target-archs AppleTVSimulator
+      - run: bin/xcpkg ls-target-archs iPhoneOS
+      - run: bin/xcpkg ls-target-archs iPhoneSimulator
+      - run: bin/xcpkg ls-target-archs WatchOS
+      - run: bin/xcpkg ls-target-archs WatchSimulator
+
+      - run: bin/xcpkg ls-target-triples
+      - run: bin/xcpkg ls-target-triples all
+      - run: bin/xcpkg ls-target-triples 32bit
+      - run: bin/xcpkg ls-target-triples 64bit
+
+      - run: bin/xcpkg ls-target-versions
+      - run: bin/xcpkg ls-target-versions MacOSX
+      - run: bin/xcpkg ls-target-versions AppleTVOS
+      - run: bin/xcpkg ls-target-versions AppleTVSimulator
+      - run: bin/xcpkg ls-target-versions iPhoneOS
+      - run: bin/xcpkg ls-target-versions iPhoneSimulator
+      - run: bin/xcpkg ls-target-versions WatchOS
+      - run: bin/xcpkg ls-target-versions WatchSimulator
+
+      - run: bin/xcpkg ls-target-platforms
 
       - run: bin/xcpkg ls-available
       - run: bin/xcpkg ls-installed
@@ -142,11 +166,35 @@ jobs:
       - run: xcpkg formula-repo list
       - run: xcpkg formula view curl
 
-      - run: xcpkg target abis
-      - run: xcpkg target archs
-      - run: xcpkg target triples
-      - run: xcpkg target versions
-      - run: xcpkg target platforms
+      - run: xcpkg ls-target-abis
+      - run: xcpkg ls-target-abis all
+      - run: xcpkg ls-target-abis 32bit
+      - run: xcpkg ls-target-abis 64bit
+
+      - run: xcpkg ls-target-archs
+      - run: xcpkg ls-target-archs MacOSX
+      - run: xcpkg ls-target-archs AppleTVOS
+      - run: xcpkg ls-target-archs AppleTVSimulator
+      - run: xcpkg ls-target-archs iPhoneOS
+      - run: xcpkg ls-target-archs iPhoneSimulator
+      - run: xcpkg ls-target-archs WatchOS
+      - run: xcpkg ls-target-archs WatchSimulator
+
+      - run: xcpkg ls-target-triples
+      - run: xcpkg ls-target-triples all
+      - run: xcpkg ls-target-triples 32bit
+      - run: xcpkg ls-target-triples 64bit
+
+      - run: xcpkg ls-target-versions
+      - run: xcpkg ls-target-versions MacOSX
+      - run: xcpkg ls-target-versions AppleTVOS
+      - run: xcpkg ls-target-versions AppleTVSimulator
+      - run: xcpkg ls-target-versions iPhoneOS
+      - run: xcpkg ls-target-versions iPhoneSimulator
+      - run: xcpkg ls-target-versions WatchOS
+      - run: xcpkg ls-target-versions WatchSimulator
+
+      - run: xcpkg ls-target-platforms
 
       - run: xcpkg ls-available
       - run: xcpkg ls-installed
