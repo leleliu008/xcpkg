@@ -5009,7 +5009,6 @@ __install_the_given_package() {
     fi
 
     if [ "$CCACHE_ENABLED" = yes ] ; then
-        install -d  "$WORKING_DIR/$TIMESTAMP_UNIX"
         ccache -s > "$WORKING_DIR/$TIMESTAMP_UNIX/ccache-s.txt"
     fi
 
@@ -5051,6 +5050,14 @@ __install_the_given_package() {
     step "record installed files"
     __record_installed_files_of_the_given_package "$1"
 
+    if [ "$CCACHE_ENABLED" = yes ] ; then
+        step "show ccache statistics summary"
+        info "Before Build:"
+        run  cat "$WORKING_DIR/$TIMESTAMP_UNIX/ccache-s.txt"
+        info "After  Build:"
+        run  ccache -s
+    fi
+
     [ "$KEEP_WORKING_DIR" = yes ] || {
         step "clean work directory."
         run rm -rf "$WORKING_DIR"
@@ -5058,14 +5065,6 @@ __install_the_given_package() {
 
     echo
     success "$1 installed successfully."
-
-    if [ "$CCACHE_ENABLED" = yes ] ; then
-        step "show ccache statistics summary"
-        info "Before:"
-        run  cat "$WORKING_DIR/$TIMESTAMP_UNIX/ccache-s.txt"
-        info "After:"
-        run  ccache -s
-    fi
 
     if [ "$NEED_RUN_TREE" = yes ] ; then
         unset STEP_NUM
