@@ -4841,10 +4841,13 @@ __install_the_given_package() {
         bppend_to_PATH "$PERL_HOME/bin"
     fi
 
-    step "create work directory"
-    echo "$COLOR_PURPLE==>$COLOR_OFF ${COLOR_GREEN}mktemp -d$COLOR_OFF"
-    WORKING_DIR=$(mktemp -d) || die "create work directory failed."
+    WORKING_DIR="$MY_HOME_DIR/build.d/$1"
+    SRC_TOP_DIR="$WORKING_DIR/src"
 
+    step "create working directory"
+    if [ -d "$WORKING_DIR" ] ; then
+        run rm -rf "$WORKING_DIR"
+    fi
     run install -d "$WORKING_DIR/$TIMESTAMP_UNIX"
 
     step "calculate dependency packages"
@@ -5107,9 +5110,9 @@ __install_the_given_package_for_the_given_target() {
         if [ -z "$CCACHE" ] ; then
             die "ccache is not installed."
         fi
-        run ln -s "$CCACHE" "$WORKING_DIR/$TARGET_OS_ABI/bin/clang"
-        run ln -s "$CCACHE" "$WORKING_DIR/$TARGET_OS_ABI/bin/clang++"
-        run export PATH="$WORKING_DIR/$TARGET_OS_ABI/bin:$PATH"
+        run ln -sf "$CCACHE" "$WORKING_DIR/$TIMESTAMP_UNIX/clang"
+        run ln -sf "$CCACHE" "$WORKING_DIR/$TIMESTAMP_UNIX/clang++"
+        run export PATH="$WORKING_DIR/$TIMESTAMP_UNIX:$PATH"
     else
         note "ccache is disabled, skipped."
     fi
@@ -5651,6 +5654,12 @@ __config_variables_for_the_given_target() {
             eval $(echo "$tool" | tr a-z A-Z)=$(path_of_tool_in_the_toolchain "$tool")
         fi
     done
+
+    if [ "$CCACHE_ENABLED" = yes ] ; then
+         CC="$WORKING_DIR/$TIMESTAMP_UNIX/clang"
+        CXX="$WORKING_DIR/$TIMESTAMP_UNIX/clang++"
+        CPP="$WORKING_DIR/$TIMESTAMP_UNIX/clang -E"
+    fi
 
     SYSTEM_INCLUDE_DIR="$SYSROOT/usr/include"
     SYSTEM_LIBRARY_DIR="$SYSROOT/usr/lib"
@@ -6832,6 +6841,7 @@ inspect_build_toolchains() {
     TOOLCHAIN_NAME=xcode
     TOOLCHAIN_VERS=$(system_profiler SPDeveloperToolsDataType | grep Version | head -n 1 | cut -d: -f2 | sed 's/^ //g')
     TOOLCHAIN_BIND="$TOOLCHAIN_ROOT/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+    export PATH="$TOOLCHAIN_BIND:$PATH"
 }
 
 __list_rules() {
