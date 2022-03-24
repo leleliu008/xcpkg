@@ -5153,7 +5153,7 @@ __install_the_given_package_for_the_given_target() {
         run ln -s "$CCACHE" "$TARGET_WORKING_DIR/bin/clang++"
         run export CC="$TARGET_WORKING_DIR/bin/clang"
         run export CXX="$TARGET_WORKING_DIR/bin/clang++"
-        run export CPP="$CC -E"
+        run export CPP="'$CC -E'"
         run export PATH="'$TARGET_WORKING_DIR/bin:$PATH'"
     else
         note "ccache is disabled, skipped."
