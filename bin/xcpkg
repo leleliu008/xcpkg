@@ -4859,6 +4859,10 @@ __install_the_given_package() {
     GMAKE=$(command -v gmake || command -v make || true)
     NINJA=$(command -v ninja || true)
 
+    if [ "$CCACHE_ENABLED" = yes ] && [ -z "$CCACHE" ] ; then
+        die "ccache is not installed."
+    fi
+
     PERL_HOME=$(__get_perl_home)
     if [ -n "$PERL_HOME" ] ; then
         bppend_to_PATH "$PERL_HOME/bin"
@@ -5145,11 +5149,11 @@ __install_the_given_package_for_the_given_target() {
 
     step2 "create symbolic link for CC and CXX to use ccache"
     if [ "$CCACHE_ENABLED" = yes ] ; then
-        if [ -z "$CCACHE" ] ; then
-            die "ccache is not installed."
-        fi
-        run ln -s "$CCACHE" "$TARGET_WORKING_DIR/bin/$CC"
-        run ln -s "$CCACHE" "$TARGET_WORKING_DIR/bin/$CXX"
+        run ln -s "$CCACHE" "$TARGET_WORKING_DIR/bin/clang"
+        run ln -s "$CCACHE" "$TARGET_WORKING_DIR/bin/clang++"
+        run export CC="$TARGET_WORKING_DIR/bin/clang"
+        run export CXX="$TARGET_WORKING_DIR/bin/clang++"
+        run export CPP="$CC -E"
         run export PATH="'$TARGET_WORKING_DIR/bin:$PATH'"
     else
         note "ccache is disabled, skipped."
