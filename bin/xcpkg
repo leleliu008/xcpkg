@@ -5005,6 +5005,10 @@ __install_the_given_package() {
         note "no build0  function defined in formula, skipped."
     fi
 
+    if [ "$CCACHE_ENABLED" = yes ] ; then
+        ccache -s > "$WORKING_DIR/$TIMESTAMP_UNIX/ccache-s.txt"
+    fi
+
     step "do some preparation works"
     if command -v prepare > /dev/null ; then
         if [ "$PWD" != "$SOURCE_DIR" ] ; then
@@ -5050,6 +5054,14 @@ __install_the_given_package() {
 
     echo
     success "$1 installed successfully."
+
+    if [ "$CCACHE_ENABLED" = yes ] ; then
+        step "show ccache statistics summary"
+        info "Before:"
+        run  cat "$WORKING_DIR/$TIMESTAMP_UNIX/ccache-s.txt"
+        info "After:"
+        run  ccache -s
+    fi
 
     if [ "$NEED_RUN_TREE" = yes ] ; then
         unset STEP_NUM
