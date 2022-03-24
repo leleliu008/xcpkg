@@ -6123,6 +6123,13 @@ set(CMAKE_LIBRARY_PATH "$SYSTEM_LIBRARY_DIR")
 set(CMAKE_IGNORE_PATH "$CMAKE_IGNORE_PATH")
 EOF
 
+    if [ "$CCACHE_ENABLED" = yes ] ; then
+        cat >> "$TARGET_CMAKE_TOOLCHAIN_FILE" <<EOF
+set(CMAKE_C_COMPILER_LAUNCHER   ccache)
+set(CMAKE_CXX_COMPILER_LAUNCHER ccache)
+EOF
+    fi
+
     if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_QUIET" ] ; then
         run cat "$TARGET_CMAKE_TOOLCHAIN_FILE"
     fi
