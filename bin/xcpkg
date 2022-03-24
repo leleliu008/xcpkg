@@ -5006,6 +5006,7 @@ __install_the_given_package() {
     fi
 
     if [ "$CCACHE_ENABLED" = yes ] ; then
+        install -d  "$WORKING_DIR/$TIMESTAMP_UNIX"
         ccache -s > "$WORKING_DIR/$TIMESTAMP_UNIX/ccache-s.txt"
     fi
 
@@ -5106,8 +5107,8 @@ __install_the_given_package_for_the_given_target() {
         if [ -z "$CCACHE" ] ; then
             die "ccache is not installed."
         fi
-        run ln -s "$CCACHE" "$WORKING_DIR/$TARGET_OS_ABI/bin/$CC"
-        run ln -s "$CCACHE" "$WORKING_DIR/$TARGET_OS_ABI/bin/$CXX"
+        run ln -s "$CCACHE" "$WORKING_DIR/$TARGET_OS_ABI/bin/clang"
+        run ln -s "$CCACHE" "$WORKING_DIR/$TARGET_OS_ABI/bin/clang++"
         run export PATH="$WORKING_DIR/$TARGET_OS_ABI/bin:$PATH"
     else
         note "ccache is disabled, skipped."
