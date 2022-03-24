@@ -5658,6 +5658,9 @@ __config_variables_for_the_given_target() {
          CC="$WORKING_DIR/$TIMESTAMP_UNIX/clang"
         CXX="$WORKING_DIR/$TIMESTAMP_UNIX/clang++"
         CPP="$WORKING_DIR/$TIMESTAMP_UNIX/clang -E"
+         CC_FOR_BUILD="$CC"
+        CXX_FOR_BUILD="$CXX"
+        CPP_FOR_BUILD="$CC -E"
     fi
 
     SYSTEM_INCLUDE_DIR="$SYSROOT/usr/include"
