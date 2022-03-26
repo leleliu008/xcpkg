@@ -6575,7 +6575,7 @@ xmakew() {
         run $XMAKE install -o "$NATIVE_INSTALL_DIR"
     else
         unset XMAKE_PLATFORM
-        XMAKE_PLATFORM="$(printf '%s\n' "$TARGET_OS_NAME_LOWER_CASE" | sed 's|simulator||')"
+        XMAKE_PLATFORM="$(printf '%s\n' "$TARGET_OS_NAME_LOWER_CASE" | sed 's|simulator|os|')"
         XMAKE_CONFIG_OPTIONS="$XMAKE_CONFIG_OPTIONS --plat=$XMAKE_PLATFORM"
 
         case $TARGET_OS_NAME in
