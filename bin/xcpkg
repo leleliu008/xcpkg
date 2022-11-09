@@ -5114,23 +5114,6 @@ __setup_PATH_env() {
     if [ -f "$HOME/.cargo/env" ] ; then
         .   "$HOME/.cargo/env"
     fi
-
-    # https://docs.github.com/en/actions/learn-github-actions/environment-variables#default-environment-variables
-    # https://github.com/actions/virtual-environments/blob/ubuntu18/20211212.1/images/linux/Ubuntu1804-README.md
-    if [ "$GITHUB_ACTIONS" = true ] ; then
-        if [ -n "$GOROOT_1_17_X64" ] && [ -d "$GOROOT_1_17_X64/bin" ] ; then
-            bppend_to_PATH "$GOROOT_1_17_X64/bin"
-        fi
-    fi
-
-    if command -v brew > /dev/null ; then
-        unset __HOMEBREW_PKG_PREFIX__
-        __HOMEBREW_PKG_PREFIX__="$(brew --prefix gnu-sed)"
-        if [ -d "$__HOMEBREW_PKG_PREFIX__/libexec/gnubin" ] ; then
-            bppend_to_PATH "$__HOMEBREW_PKG_PREFIX__/libexec/gnubin"
-        fi
-    fi
-    unset __HOMEBREW_PKG_PREFIX__
 }
 
 help() {
@@ -5410,6 +5393,8 @@ EOF
         error "please run ${COLOR_GREEN}$_0 setup${COLOR_OFF} command first, then try again."
         return 1
     }
+
+    __setup_PATH_env
 
     case $1 in
         env)
