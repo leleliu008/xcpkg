@@ -888,9 +888,6 @@ python_module() {
         is)
             [ $# -eq 3 ] || die "[python_module is] command accept 2 arguments."
 
-            handle_dependency required exe python3:python3.9:python3.8:python3.7:python3.6:python3.5:python
-            handle_dependency required exe pip3:pip3.9:pip3.8:pip3.7:pip3.6:pip3.5:pip
-
             __PYTHON_COMMAND__=$(command -v python3 || command -v python3.9 || command -v python3.8 || command -v python3.7 || command -v python3.6 || command -v python3.5 || command -v python || echo python)
             __PIP_COMMAND__=$(command -v pip3 || command -v pip3.9 || command -v pip3.8 || command -v pip3.7 || command -v pip3.6 || command -v pip3.5 || command -v pip || echo pip)
 
@@ -901,9 +898,6 @@ python_module() {
             ;;
         get)
             [ $# -eq 3 ] || die "[python_module get] command accept 2 arguments."
-
-            handle_dependency required exe python3:python3.9:python3.8:python3.7:python3.6:python3.5:python
-            handle_dependency required exe pip3:pip3.9:pip3.8:pip3.7:pip3.6:pip3.5:pip
 
             __PYTHON_COMMAND__=$(command -v python3 || command -v python3.9 || command -v python3.8 || command -v python3.7 || command -v python3.6 || command -v python3.5 || command -v python || echo python)
             __PIP_COMMAND__=$(command -v pip3 || command -v pip3.9 || command -v pip3.8 || command -v pip3.7 || command -v pip3.6 || command -v pip3.5 || command -v pip || echo pip)
@@ -959,7 +953,6 @@ perl_module() {
             ;;
         is-installed)
             shift
-            handle_dependency required exe perl
             perl -M"$1" -le 'print "installed"' > /dev/null 2>&1
             ;;
         install)
@@ -973,7 +966,6 @@ perl_module() {
                 note "${COLOR_GREEN}$@${COLOR_OFF} ${COLOR_YELLOW}perl module is required, but it is not found on this machine, I will install it via${COLOR_OFF} ${COLOR_GREEN}cpanm${COLOR_OFF}"
                 run cpanm "$1"
             else
-                handle_dependency required exe cpan:cpanm
                 perl_module install $@
             fi
             ;;
@@ -1582,10 +1574,6 @@ __list_formula_repositories() {
 }
 
 __update_formula_repositories() {
-    set -e
-
-    handle_dependency required exe git
-
     for item in $(__list_formula_repositories)
     do
         unset FORMULA_REPO_NAME
@@ -1658,22 +1646,22 @@ __fetch_sources_of_the_given_package() {
                     run git -c protocol.version=2 fetch --no-tags --prune --progress --depth=1 origin +$PACKAGE_GIT_REV:refs/remotes/origin/master &&
                     run git checkout --progress --force -B master refs/remotes/origin/master
                 else
-                    if [ ! -d "$MY_SOURCE_DIR" ] ; then
-                        run install -d "$MY_SOURCE_DIR" || return 1
+                    if [ ! -d "$MY_CACHED_SOURCE_DIR" ] ; then
+                        run install -d "$MY_CACHED_SOURCE_DIR" || return 1
                     fi
-                    run cd "$MY_SOURCE_DIR" &&
+                    run cd "$MY_CACHED_SOURCE_DIR" &&
                     run git clone --recursive "$PACKAGE_SRC_URL" "$PACKAGE_SRC_NAME"
                 fi
             fi
             ;;
-        dir) note "$PACKAGE_SRC_URL is local path, no need to fetch." ;;
-        *)  fetch "$PACKAGE_SRC_URL" --sha256="$PACKAGE_SRC_SUM" --output-path="$PACKAGE_SRC_PATH"
+        dir)  note "$PACKAGE_SRC_URL is local path, no need to fetch." ;;
+        *)  wfetch "$PACKAGE_SRC_URL" --sha256="$PACKAGE_SRC_SUM" --output-path="$PACKAGE_SRC_PATH"
     esac
 }
 
 __fetch_patches_of_the_given_package() {
-    if [ -n "$PACKAGE_FIX_URL" ] ; then
-        fetch "$PACKAGE_FIX_URL" --sha256="$PACKAGE_FIX_SUM" --output-path="$PACKAGE_FIX_PATH"
+    if [ -n    "$PACKAGE_FIX_URL" ] ; then
+        wfetch "$PACKAGE_FIX_URL" --sha256="$PACKAGE_FIX_SUM" --output-path="$PACKAGE_FIX_PATH"
     fi
 }
 
@@ -1978,7 +1966,7 @@ __upgrade_packages() {
 }
 
 __cleanup() {
-    [ -d "$MY_SOURCE_DIR" ] || return 0
+    [ -d "$MY_CACHED_SOURCE_DIR" ] || return 0
     for repo in $(__list_formula_repositories | cut -d= -f1)
     do
         cd "$MY_FORMULA_REPO_DIR/$repo/formula" || return 1
@@ -2083,25 +2071,25 @@ __show_or_open_homepage_of_the_given_package() {
 
 __show_homepage_of_the_given_package() {
     if [ -z "$1" ] ; then
-        PACKAGE_WEBPAGE="$MY_HOME_PAGE"
+        PACKAGE_WEB_URL="$MY_HOME_PAGE"
     else
         __load_formula_of_the_given_package "$1"
     fi
 
-    echo "$PACKAGE_WEBPAGE"
+    echo "$PACKAGE_WEB_URL"
 }
 
 __open_homepage_of_the_given_package() {
     if [ -z "$1" ] ; then
-        PACKAGE_WEBPAGE="$MY_HOME_PAGE"
+        PACKAGE_WEB_URL="$MY_HOME_PAGE"
     else
         __load_formula_of_the_given_package "$1"
     fi
     
     if command -v open > /dev/null ; then
-        run "open '$PACKAGE_WEBPAGE'"
+        run "open '$PACKAGE_WEB_URL'"
     elif command -v termux-open-url > /dev/null ; then
-        run "termux-open-url '$PACKAGE_WEBPAGE'"
+        run "termux-open-url '$PACKAGE_WEB_URL'"
     else
         warn "I don't konw how to open"
     fi
@@ -2270,13 +2258,13 @@ __pack_the_given_installed_package() {
         tar.bz2) run tar jvcf  "$PACKED_FILE_NAME" "$PACKED_DIR_NAME/*" ;;
     esac
 
-    if [ ! -d "$MY_BINARY_DIR" ] ; then
+    if [ ! -d "$MY_CACHED_BINARY_DIR" ] ; then
         step "create cached binary dir"
-        run install -d "$MY_BINARY_DIR"
+        run install -d "$MY_CACHED_BINARY_DIR"
     fi
 
     step "copy packed file to cached binary dir"
-    run cp "$PACKED_FILE_NAME" "$MY_BINARY_DIR/"
+    run cp "$PACKED_FILE_NAME" "$MY_CACHED_BINARY_DIR/"
 
     step "show disk usage statistics"
     run "du -sh $PACKED_FILE_NAME | cut -f1"
@@ -3063,9 +3051,9 @@ __show_infomation_of_all_available_packages() {
             fi
 
             if [ "$I" -eq "$PACKAGE_LIST_LENGTH" ] ; then
-                printf "{\"name\":\"%s\",\"version\":\"%s\",\"summary\":\"%s\",\"license\":\"%s\",\"webpage\":\"%s\",\"bsystem\":\"%s\",\"git_url\":\"%s\"}]\n"  "$PACKAGE_NAME" "$PACKAGE_VERSION" "$PACKAGE_SUMMARY" "$PACKAGE_LICENSE" "$PACKAGE_WEBPAGE" "$PACKAGE_BUILD_SYSTEM" "$PACKAGE_GIT_URL"
+                printf "{\"name\":\"%s\",\"version\":\"%s\",\"summary\":\"%s\",\"license\":\"%s\",\"webpage\":\"%s\",\"bsystem\":\"%s\",\"git_url\":\"%s\"}]\n"  "$PACKAGE_NAME" "$PACKAGE_VERSION" "$PACKAGE_SUMMARY" "$PACKAGE_LICENSE" "$PACKAGE_WEB_URL" "$PACKAGE_BUILD_SYSTEM" "$PACKAGE_GIT_URL"
             else
-                printf "{\"name\":\"%s\",\"version\":\"%s\",\"summary\":\"%s\",\"license\":\"%s\",\"webpage\":\"%s\",\"bsystem\":\"%s\",\"git_url\":\"%s\"},\n"  "$PACKAGE_NAME" "$PACKAGE_VERSION" "$PACKAGE_SUMMARY" "$PACKAGE_LICENSE" "$PACKAGE_WEBPAGE" "$PACKAGE_BUILD_SYSTEM" "$PACKAGE_GIT_URL"
+                printf "{\"name\":\"%s\",\"version\":\"%s\",\"summary\":\"%s\",\"license\":\"%s\",\"webpage\":\"%s\",\"bsystem\":\"%s\",\"git_url\":\"%s\"},\n"  "$PACKAGE_NAME" "$PACKAGE_VERSION" "$PACKAGE_SUMMARY" "$PACKAGE_LICENSE" "$PACKAGE_WEB_URL" "$PACKAGE_BUILD_SYSTEM" "$PACKAGE_GIT_URL"
             fi
         done
     else
@@ -3092,7 +3080,7 @@ __show_infomation_of_the_given_package_as_shell() {
     done <<EOF
 PACKAGE_NAME
 PACKAGE_SUMMARY
-PACKAGE_WEBPAGE
+PACKAGE_WEB_URL
 PACKAGE_GIT_URL
 PACKAGE_GIT_REV
 PACKAGE_GIT_TAG
@@ -3167,7 +3155,7 @@ __show_infomation_of_the_given_package() {
         case $2 in
             --json)
                 __load_formula_of_the_given_package "$1"
-                printf "{\"name\":\"%s\",\"version\":\"%s\",\"summary\":\"%s\",\"license\":\"%s\",\"webpage\":\"%s\",\"bsystem\":\"%s\",\"git_url\":\"%s\"}\n"  "$PACKAGE_NAME" "$PACKAGE_VERSION" "$PACKAGE_SUMMARY" "$PACKAGE_LICENSE" "$PACKAGE_WEBPAGE" "$PACKAGE_BUILD_SYSTEM" "$PACKAGE_GIT_URL"
+                printf "{\"name\":\"%s\",\"version\":\"%s\",\"summary\":\"%s\",\"license\":\"%s\",\"webpage\":\"%s\",\"bsystem\":\"%s\",\"git_url\":\"%s\"}\n"  "$PACKAGE_NAME" "$PACKAGE_VERSION" "$PACKAGE_SUMMARY" "$PACKAGE_LICENSE" "$PACKAGE_WEB_URL" "$PACKAGE_BUILD_SYSTEM" "$PACKAGE_GIT_URL"
                 ;;
             --shell)
                 __show_infomation_of_the_given_package_as_shell "$1"
@@ -3217,7 +3205,7 @@ __show_infomation_of_the_given_package() {
     fi
 
     echo "summary : $PACKAGE_SUMMARY"
-    echo "webpage : $PACKAGE_WEBPAGE"
+    echo "webpage : $PACKAGE_WEB_URL"
 
     [ -z "$PACKAGE_DEP_PKG" ] || {
         unset DEPENDENCIES
@@ -4102,9 +4090,9 @@ configure() {
         do
             for file in $(find "$PACKAGE_BSCRIPT_DIR" -name "$item")
             do
-                CONFIG_XX="$MY_SOURCE_DIR/config/$item"
+                CONFIG_XX="$MY_CACHED_SOURCE_DIR/config/$item"
                 if [ ! -f "$CONFIG_XX" ] ; then
-                    fetch "$(config_url "$item")" --output-path="$CONFIG_XX" || return 1
+                    wfetch "$(config_url "$item")" --output-path="$CONFIG_XX" || return 1
                     run chmod a+x "$CONFIG_XX" || return 1
                     if [ "$item" = 'config.sub' ] ; then
                         sed_in_place 's/arm64-*/arm64-*|arm64e-*/g' "$CONFIG_XX" || return 1
@@ -5355,11 +5343,16 @@ main() {
     fi
 
     MY_FORMULA_REPO_DIR="$MY_HOME_DIR/repos.d"
+
     MY_INSTALL_DIR="$MY_HOME_DIR/installed"
-    MY_SOURCE_DIR="$MY_HOME_DIR/source.d"
-    MY_BINARY_DIR="$MY_HOME_DIR/binary.d"
+
+    MY_CACHE_DIR="$MY_HOME_DIR/cache.d"
+
+    MY_CACHED_SOURCE_DIR="$MY_CACHE_DIR/src"
+    MY_CACHED_BINARY_DIR="$MY_CACHE_DIR/bin"
+    MY_CACHED_PATCH__DIR="$MY_CACHE_DIR/fix"
+
     MY_BACKUP_DIR="$MY_HOME_DIR/backup.d"
-    MY_PATCH__DIR="$MY_HOME_DIR/patch.d"
 
     MY_CORE_DIR="$MY_HOME_DIR/core"
     MY_CORE_BIN_DIR="$MY_CORE_DIR/bin"
@@ -5392,19 +5385,24 @@ EOF
     case $1 in
         ''|--help|-h)
             help
+            return 0
             ;;
         --version|-V)
             printf '%s\n' "$MY_VERSION"
+            return 0
             ;;
         --homedir)
             printf '%s\n' "$MY_HOME_DIR"
+            return 0
             ;;
         --homepage)
             printf '%s\n' "$MY_HOME_PAGE"
+            return 0
             ;;
         setup)
             shift
             __setup
+            return 0
             ;;
     esac
 
