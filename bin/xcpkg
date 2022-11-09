@@ -5394,6 +5394,24 @@ EOF
         return 1
     }
 
+    # https://www.gnu.org/software/automake/manual/html_node/Macro-Search-Path.html
+    if [ -z "$ACLOCAL_PATH" ] ; then
+        export ACLOCAL_PATH="$MY_CORE_DIR/share/aclocal"
+    else
+        export ACLOCAL_PATH="$MY_CORE_DIR/share/aclocal:$ACLOCAL_PATH"
+    fi
+
+    # https://git-scm.com/book/en/v2/Git-Internals-Environment-Variables
+    if [ -d "$HOME/.uppm/installed/git/libexec/git-core" ] ; then
+        export GIT_EXEC_PATH="$HOME/.uppm/installed/git/libexec/git-core"
+        export GIT_TEMPLATE_DIR="$HOME/.uppm/installed/git/share/git-core/templates"
+    fi
+
+    # https://www.openssl.org/docs/man1.1.1/man3/SSL_CTX_set_default_verify_paths.html
+    if [ -f "$MY_CORE_DIR/etc/ssl/certs/cacert.pem" ] ; then
+        export SSL_CERT_FILE="$MY_CORE_DIR/etc/ssl/certs/cacert.pem"
+    fi
+
     __setup_PATH_env
 
     case $1 in
