@@ -30,14 +30,6 @@ autoload -U compinit && compinit
         xcpkg -V
         xcpkg --version
 
-*   show home directory of this software
-
-        xcpkg --homedir
-
-*   show home webpage of this software
-
-        xcpkg --homepage
-
 *   show current machine os and [Xcode](https://developer.apple.com/xcode) toolchain info
         
         xcpkg env
@@ -45,9 +37,6 @@ autoload -U compinit && compinit
 *   integrate `zsh-completion` script
         
         xcpkg integrate zsh
-        xcpkg integrate zsh -x
-        xcpkg integrate zsh --china
-        xcpkg integrate zsh --china -x
         
     I have provide a zsh-completion script for `xcpkg`. when you've typed `xcpkg` then type `TAB` key, it will auto complete the rest for you.
 
@@ -68,14 +57,16 @@ autoload -U compinit && compinit
         xcpkg info curl
         xcpkg info curl version
         xcpkg info curl summary
-        xcpkg info curl webpage
-        xcpkg info curl src.git
+        xcpkg info curl web-url
+        xcpkg info curl git-url
+        xcpkg info curl src-url
         xcpkg info curl installed-dir
         xcpkg info curl installed-metadata
         xcpkg info curl installed-files
-        xcpkg info curl installed-abis
-        xcpkg info curl installed-datetime-unix
-        xcpkg info curl installed-datetime-formatted
+        xcpkg info curl installed-targets
+        xcpkg info curl installed-timestamp-unix
+        xcpkg info curl installed-timestamp-rfc-3339
+        xcpkg info curl installed-timestamp-iso-8601
         xcpkg info curl installed-pkg-version
         xcpkg info curl --json
         xcpkg info curl --json | jq .
@@ -91,10 +82,8 @@ autoload -U compinit && compinit
         xcpkg install curl bzip2 --rule=xx
         xcpkg install curl bzip2 --rule=xx --jobs=4
         xcpkg install curl bzip2 --rule=xx --jobs=4 -v
-        xcpkg install curl bzip2 --rule=xx --jobs=4 -v -d
-        xcpkg install curl bzip2 --rule=xx --jobs=4 -v -d -x
-        xcpkg install curl bzip2 --rule=xx --jobs=4 -v -d -x --dry-run
-        xcpkg install curl bzip2 --rule=xx --jobs=4 -v -d -x --dry-run --keep-work-dir
+        xcpkg install curl bzip2 --rule=xx --jobs=4 -v --dry-run
+        xcpkg install curl bzip2 --rule=xx --jobs=4 -v --dry-run --keep-installing-dir
         
 *   reinstall packages
         
@@ -115,9 +104,6 @@ autoload -U compinit && compinit
 *   upgrade this software
 
         xcpkg upgrade @self
-        xcpkg upgrade @self -x
-        xcpkg upgrade @self --china
-        xcpkg upgrade @self --china -x
         
 *   list the avaliable formula repos
         
@@ -125,7 +111,7 @@ autoload -U compinit && compinit
         
 *   add a new formula repo
         
-        xcpkg formula-repo add my_repo https://github.com/leleliu008/xcpkg-formula-repository.git
+        xcpkg formula-repo add my_repo https://github.com/yourname/xcpkg-formula-repository-my_repo.git
         
 *   delete a existing formula repo
         
@@ -260,13 +246,6 @@ autoload -U compinit && compinit
         xcpkg pack curl --type=tar.bz2
         xcpkg pack curl --type=zip
         xcpkg pack curl --type=7z
-        
-*   show or open the homepage of the given package or this project
-        
-        xcpkg homepage
-        xcpkg homepage --open
-        xcpkg homepage --open curl
-        xcpkg homepage curl --open
         
 *   show the depended packages of the given package
         
