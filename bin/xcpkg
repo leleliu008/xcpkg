@@ -187,67 +187,18 @@ getvalue() {
     fi
 }
 
-trim() {
-    if [ $# -eq 0 ] ; then
-        sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//'
-    else
-        if [ -n "$*" ] ; then
-            echo "$*" | sed 's/^[[:space:]]*//' | sed 's/[[:space:]]*$//'
-        fi
-    fi
-}
-
-tolower() {
-    if [ $# -eq 0 ] ; then
-        if command -v tr > /dev/null ; then
-            tr A-Z a-z
-        elif command -v  awk > /dev/null ; then
-            awk '{print(tolower($0))}'
-        elif command -v gawk > /dev/null ; then
-            gawk '{print(tolower($0))}'
-        else
-            die "please install GNU CoreUtils or awk."
-        fi
-    else
-        if [ -z "$*" ] ; then
-            return 0
-        fi
-        if command -v tr > /dev/null ; then
-            echo "$*" | tr A-Z a-z
-        elif command -v  awk > /dev/null ; then
-            echo "$*" | awk '{print(tolower($0))}'
-        elif command -v gawk > /dev/null ; then
-            echo "$*" | gawk '{print(tolower($0))}'
-        elif command -v python > /dev/null ; then
-            python  -c 'import sys; print(sys.argv[1].lower());' "$*"
-        elif command -v python3 > /dev/null ; then
-            python3 -c 'import sys; print(sys.argv[1].lower());' "$*"
-        elif command -v python2 > /dev/null ; then
-            python2 -c 'import sys; print(sys.argv[1].lower());' "$*"
-        elif command -v perl > /dev/null ; then
-            perl -e 'print @ARGV[0],"\n"' "$1"
-        elif command -v node > /dev/null ; then
-            node -e 'console.log(process.argv[2].toLowerCase())' - "$*"
-        else
-            die "please install GNU CoreUtils or awk."
-        fi
-    fi
-}
-
-own() {
-    if command -v awk > /dev/null ; then
-        ls -ld "$1" | awk '{print $3":"$4}'
-    else
-        ls -ld "$1" | cut -d ' ' -f4,6 | tr ' ' ':'
-    fi
-}
-
 is_integer () {
     case "${1#[+-]}" in
         (*[!0123456789]*) return 1 ;;
         ('')              return 1 ;;
         (*)               return 0 ;;
     esac
+}
+
+# format_unix_timestamp <TIMESTAMP-UNIX> <TO-FORMAT> [-u]
+  format_unix_timestamp() {
+   date $3 -jf "%s" "$1" "$2" 2> /dev/null ||
+   date $3 -d      "@$1" "$2"
 }
 
 # https://equa.space/sh/lolcat/
@@ -1475,15 +1426,6 @@ __rename_formula_of_the_given_package() {
     fi
 }
 
-__list_formulas() {
-    for repo in $(cut -d= -f1 "$MY_HOME_DIR/repos")
-    do
-        if [ -d  "$MY_FORMULA_REPO_DIR/$repo/formula" ] ; then
-            ls "$MY_FORMULA_REPO_DIR/$repo/formula"/*.yml
-        fi
-    done
-}
-
 # __add_a_formula_repo NAME URL
 __add_a_formula_repo() {
     if [ -z "$1" ] ; then
@@ -1504,7 +1446,7 @@ __add_a_formula_repo() {
         *)  die "$2: repo url must end with .git"
     esac
 
-    for repoName in $(__list_formula_repositories | cut -d= -f1)
+    for repoName in $(__list_formula_repository_names)
     do
         if [ "$repoName" = "$1" ] ; then
             die "$1 formula repo already exists."
@@ -1520,17 +1462,19 @@ __del_a_formula_repo() {
         die "please specify a repo name."
     fi
 
-    if [ "$1" = 'offical' ] ; then
-        die "offical formula repo can not be deleted."
+    if [ "$1" = 'offical-core' ] ; then
+        die "offical-core formula repo can not be deleted."
     fi
 
     unset REPO_EXISTS
-    for repoName in $(__list_formula_repositories | cut -d= -f1)
+
+    for repoName in $(__list_formula_repository_names)
     do
         if [ "$repoName" = "$1" ] ; then
             REPO_EXISTS=yes
         fi
     done
+
     if [ "$REPO_EXISTS" = yes ] ; then
         sed_in_place "/^$1=/d" "$MY_HOME_DIR/repos"
     else
@@ -1541,10 +1485,10 @@ __del_a_formula_repo() {
 __repo_of_formula_of_the_given_package() {
     die_if_package_is_not_specified "$1"
 
-    for repo in $(__list_formula_repositories | cut -d= -f1)
+    for repoName in $(__list_formula_repository_names)
     do
-        if [ -e "$MY_FORMULA_REPO_DIR/$repo/formula/$1.yml" ] ; then
-            printf '%s\n' "$repo"
+        if [ -e "$MY_FORMULA_REPO_DIR/$repoName/formula/$1.yml" ] ; then
+            printf '%s\n' "$repoName"
             return 0
         fi
     done
@@ -1555,26 +1499,33 @@ __repo_of_formula_of_the_given_package() {
 __path_of_formula_of_the_given_package() {
     die_if_package_is_not_specified "$1"
 
-    for repo in $(cut -d= -f1 "$MY_HOME_DIR/repos")
+    for repoName in $(__list_formula_repository_names)
     do
-        if [ -e  "$MY_FORMULA_REPO_DIR/$repo/formula/$1.yml" ] ; then
-            echo "$MY_FORMULA_REPO_DIR/$repo/formula/$1.yml"
+        if [ -e  "$MY_FORMULA_REPO_DIR/$repoName/formula/$1.yml" ] ; then
+            echo "$MY_FORMULA_REPO_DIR/$repoName/formula/$1.yml"
             return 0
         fi
     done
 }
 
-__list_formula_repositories() {
-    if [ -e "$MY_HOME_DIR/repos" ] ; then
+__list_formula_repository_items() {
+    if [ -f "$MY_HOME_DIR/repos" ] ; then
         cat "$MY_HOME_DIR/repos"
     else
-        install -d "$MY_HOME_DIR"
-        echo "offical=$MY_OFFICAL_FORMULA_REPO_URL" | tee "$MY_HOME_DIR/repos"
+        printf 'offical-core=%s\n' "$MY_OFFICAL_FORMULA_REPO_URL"
+    fi
+}
+
+__list_formula_repository_names() {
+    if [ -f         "$MY_HOME_DIR/repos" ] ; then
+        cut -d= -f1 "$MY_HOME_DIR/repos"
+    else
+        printf 'offical-core\n'
     fi
 }
 
 __update_formula_repositories() {
-    for item in $(__list_formula_repositories)
+    for item in $(__list_formula_repository_items)
     do
         unset FORMULA_REPO_NAME
         unset FORMULA_REPO_URL_
@@ -1596,6 +1547,23 @@ __update_formula_repositories() {
             run git clone "$FORMULA_REPO_URL_" "$FORMULA_REPO_NAME"
         fi
     done
+}
+
+# __list_formula_search_dirs
+  __list_formula_search_dirs() {
+    for repoName in $(__list_formula_repository_names)
+    do
+        printf '%s\n' "$MY_FORMULA_REPO_DIR/$repoName/formula"
+    done
+}
+
+__list_formula_filepath() {
+    {
+        for FORMULA_SEARCH_DIR in $(__list_formula_search_dirs)
+        do
+            find "$FORMULA_SEARCH_DIR" -maxdepth 1 -type f -name '*.yml' || return 1
+        done
+    } | sort | uniq
 }
 
 # }}}
@@ -1849,12 +1817,22 @@ __gen_github_workflows() {
     fi
 }
 
+__search_packages() {
+    [ -z "$1" ] && {
+        error "please specify a keyword."
+        return 1
+    }
+
+    __list_available_packages | grep "$*"
+}
+
 __list_available_packages() {
-    for repo in $(__list_formula_repositories | cut -d= -f1)
-    do
-        cd "$MY_FORMULA_REPO_DIR/$repo/formula" || return 1
-        ls -1 *.yml | sed 's/\.yml$//g' || return 1
-    done
+    {
+        for FORMULA_SEARCH_DIR in $(__list_formula_search_dirs)
+        do
+            find "$FORMULA_SEARCH_DIR" -maxdepth 1 -type f -name '*.yml' -exec basename {} .yml \; || return 1
+        done
+    } | sort | uniq
 }
 
 __list_installed_packages() {
@@ -1966,32 +1944,7 @@ __upgrade_packages() {
 }
 
 __cleanup() {
-    [ -d "$MY_CACHED_SOURCE_DIR" ] || return 0
-    for repo in $(__list_formula_repositories | cut -d= -f1)
-    do
-        cd "$MY_FORMULA_REPO_DIR/$repo/formula" || return 1
-        for item in $(ls)
-        do
-            if [ -f "$item" ] ; then
-                case $item in
-                    *.yml)
-                        __load_formula_of_the_given_package $(echo "$item" | sed 's/\.yml$//g')
-                esac
-            fi
-        done
-    done
     success "Done."
-}
-
-__search_packages() {
-    if [ -z "$1" ] ; then
-        die "please specify a keyword."
-    fi
-
-    for repo in $(__list_formula_repositories | cut -d= -f1)
-    do
-        cd "$MY_FORMULA_REPO_DIR/$repo/formula" && ls -1 *.yml | sed 's/\.yml$//g' | grep "$*"
-    done
 }
 
 __compare_versions_with_brew() {
@@ -2095,44 +2048,194 @@ __open_homepage_of_the_given_package() {
     fi
 }
 
-__show_depends_of_the_given_package() {
-    die_if_package_is_not_specified "$1"
+# __show_packages_depended_by_the_given_package <PACKAGE-NAME> [--format=<list|json|graph>] [--brief] [-o <OUTPUT-FILE-PATH>]
+__show_packages_depended_by_the_given_package() {
+    [ -z "$1" ] && {
+        error "__show_packages_depended_by_the_given_package <PACKAGE-NAME> [--format=<list|json|graph>] [--brief] [-o <OUTPUT-FILE-PATH>], <PACKAGE-NAME> is not given."
+        return 1
+    }
 
-    __gen_dependency_package_tree_of_the_given_package "$1"
+    PACKAGE_NAME="$1"
 
-    if [ -f "$PACKAGE_DEP_PKG_TREE_FILEPATH_TXT" ] ; then
-        cat "$PACKAGE_DEP_PKG_TREE_FILEPATH_TXT"
-    elif [ -f "$PACKAGE_DEP_PKG_TREE_FILEPATH_PNG" ] ; then
-        for item in open feh eog lsix
-        do
-            if command -v $item > /dev/null && $item "$PACKAGE_DEP_PKG_TREE_FILEPATH_PNG" ; then
-                return 0
-            fi
-        done
-    elif [ -f "$PACKAGE_DEP_PKG_TREE_FILEPATH_DOT" ] ; then
-        cat "$PACKAGE_DEP_PKG_TREE_FILEPATH_DOT"
-    fi
-}
+    shift
 
-__logs_the_given_installed_package() {
-    die_if_package_is_not_installed "$1"
+    unset OUTPUT_FILEPATH
+    unset OUTPUT_FORMAT
+    unset OUTPUT_BRIEF
+    unset RECURSIVE
 
-    if [ -z "$2" ] ; then
-        die "please specify a abi."
-    fi
-
-    for ABI in $(cat "$MY_INSTALL_DIR/$1/installed-abis")
+    while [ -n "$1" ]
     do
-        if [ "$ABI" = "$2" ] ; then
-            break
-        else
-            unset ABI
-        fi
+        case $1 in
+            --format=list)
+                OUTPUT_FORMAT=list
+                ;;
+            --format=json)
+                OUTPUT_FORMAT=json
+                ;;
+            --format=dot)
+                OUTPUT_FORMAT=dot
+                ;;
+            --format=txt)
+                OUTPUT_FORMAT=txt
+                ;;
+            --format=png)
+                OUTPUT_FORMAT=png
+                ;;
+            --format=*)
+                OUTPUT_FORMAT=$(getvalue $1)
+                die "unsupported format: $OUTPUT_FORMAT"
+                ;;
+            --brief)
+                OUTPUT_BRIEF=yes
+                ;;
+            -r) RECURSIVE=yes ;;
+            -o)
+                if [ -z "$2" ] ; then
+                    die "-o <OUTPUT-FILE-PATH>, <OUTPUT-FILE-PATH> must not be empty."
+                else
+                    OUTPUT_FILEPATH="$2"
+                    shift
+                fi
+                ;;
+            *)  die "$_0 depends <PACKAGE-NAME> [--format=<list|json|graph>] [--brief] [-o <OUTPUT-FILE-PATH>], unrecognized argumet: $1"
+        esac
+        shift
     done
 
-    if [ -z "$ABI" ] ; then
-        die "unsupported abi: $1"
+    if [ -z "$OUTPUT_FORMAT" ] ; then
+        OUTPUT_FORMAT=list
     fi
+
+    if [ -z "$OUTPUT_FILEPATH" ] ; then
+        if [ "$OUTPUT_FORMAT" = 'png' ] ; then
+            die "you want png file, but -o <OUTPUT-FILE-PATH> option is not given."
+        fi
+
+        OUTPUT_FILEPATH=/dev/tty
+    else
+        if [ "$OUTPUT_FORMAT" = 'png' ] && [ "$OUTPUT_FILEPATH" = '/dev/tty' ] ; then
+            die "you want png file, /dev/tty is not allowed."
+        fi
+    fi
+
+    case $OUTPUT_FORMAT in
+        list)
+            unset RECURSIVE_DEPENDENT_PACKAGES
+            RECURSIVE_DEPENDENT_PACKAGES=$(__get_packages_that_are_recursively_depended_by_the_given_package "$PACKAGE_NAME")
+
+            if [ -z "$RECURSIVE_DEPENDENT_PACKAGES" ] ; then
+                return 0
+            fi
+
+            unset OUTPUT_CONTENT
+
+            if [ "$OUTPUT_BRIEF" = yes ] ; then
+                OUTPUT_CONTENT="$RECURSIVE_DEPENDENT_PACKAGES"
+            else
+                for DEPENDENCY_PACKAGE_NAME in $RECURSIVE_DEPENDENT_PACKAGES
+                do
+                    unset DEPENDENCY_PACKAGE_DIRECT_DEPS
+                    DEPENDENCY_PACKAGE_DIRECT_DEPS=$(__get_packages_that_are_directly_depended_by_the_given_package "$DEPENDENCY_PACKAGE_NAME")
+                    DEPENDENCY_PACKAGE_DIRECT_DEPS=$(printf '%s\n' "$DEPENDENCY_PACKAGE_DIRECT_DEPS" | tr ' ' ',')
+
+                    unset LINE
+                    LINE=$(printf 'name:%-15s dependencies:%s\n' "$DEPENDENCY_PACKAGE_NAME" "$DEPENDENCY_PACKAGE_DIRECT_DEPS")
+                    if [ -z "$OUTPUT_CONTENT" ] ; then
+                        OUTPUT_CONTENT="$LINE"
+                    else
+                        OUTPUT_CONTENT="$OUTPUT_CONTENT
+$LINE"
+                    fi
+                done
+            fi
+
+            if [ "$OUTPUT_FILEPATH" = '/dev/tty' ] ; then
+                printf '%s\n' "$OUTPUT_CONTENT"
+            else
+                unset OUTPUT_DIR
+
+                case $3 in
+                    /*) OUTPUT_DIR="$(dirname      "$3")" ;;
+                     *) OUTPUT_DIR="$(dirname "$PWD/$3")" ;;
+                esac
+
+                if [ !      -d "$OUTPUT_DIR" ] ; then
+                    install -d "$OUTPUT_DIR"
+                fi
+
+                printf '%s\n' "$OUTPUT_CONTENT" > "$OUTPUT_FILEPATH"
+            fi
+            ;;
+        json)
+            unset RECURSIVE_DEPENDENT_PACKAGES
+            RECURSIVE_DEPENDENT_PACKAGES=$(__get_packages_that_are_recursively_depended_by_the_given_package "$PACKAGE_NAME")
+
+            JSON_ARRAY='['
+
+            if [ "$OUTPUT_BRIEF" = yes ] ; then
+                for DEPENDENCY_PACKAGE_NAME in $RECURSIVE_DEPENDENT_PACKAGES
+                do
+                    JSON_ARRAY="$JSON_ARRAY\"$DEPENDENCY_PACKAGE_NAME\","
+                done
+            else
+                for DEPENDENCY_PACKAGE_NAME in $RECURSIVE_DEPENDENT_PACKAGES
+                do
+                    unset DEPENDENCY_PACKAGE_DIRECT_DEPS
+                    DEPENDENCY_PACKAGE_DIRECT_DEPS=$(__get_packages_that_are_directly_depended_by_the_given_package "$DEPENDENCY_PACKAGE_NAME" | tr ' ' ',')
+
+                    JSON_ARRAY="$JSON_ARRAY{\"name\":\"$DEPENDENCY_PACKAGE_NAME\",\"dependencies\":\"$DEPENDENCY_PACKAGE_DIRECT_DEPS\"},"
+                done
+            fi
+
+            JSON_ARRAY=$(printf '%s\n' "$JSON_ARRAY" | sed 's|,$||')
+
+            JSON_ARRAY="$JSON_ARRAY]"
+
+            if [ "$OUTPUT_FILEPATH" = '/dev/tty' ] ; then
+                printf '%s\n' "$JSON_ARRAY"
+            else
+                unset OUTPUT_DIR
+
+                case $3 in
+                    /*) OUTPUT_DIR="$(dirname      "$3")" ;;
+                     *) OUTPUT_DIR="$(dirname "$PWD/$3")" ;;
+                esac
+
+                if [ !      -d "$OUTPUT_DIR" ] ; then
+                    install -d "$OUTPUT_DIR"
+                fi
+
+                printf '%s\n' "$JSON_ARRAY" > "$OUTPUT_FILEPATH"
+            fi
+            ;;
+        dot)
+            __gen_dependency_graph_recursively_depended_by_the_given_package "$PACKAGE_NAME" dot "$OUTPUT_FILEPATH"
+            ;;
+        txt)
+            __gen_dependency_graph_recursively_depended_by_the_given_package "$PACKAGE_NAME" txt "$OUTPUT_FILEPATH"
+            ;;
+        png)
+            __gen_dependency_graph_recursively_depended_by_the_given_package "$PACKAGE_NAME" png "$OUTPUT_FILEPATH"
+
+            if [ "$OUTPUT_FILEPATH" != '/dev/tty' ] ; then
+                for item in open feh eog lsix
+                do
+                    if command -v "$item" > /dev/null ; then
+                        "$item" "$OUTPUT_FILEPATH" &
+                        return 0
+                    fi
+                done
+            fi
+    esac
+}
+
+# __logs_the_given_installed_package <PACKAGE-NAME>
+  __logs_the_given_installed_package() {
+    [ -z "$1" ] && {
+        error "$_0 logs <PACKAGE-NAME>, <PACKAGE-NAME> is not given."
+        return 1
+    }
 
     if command -v bat > /dev/null ; then
         VIEWER=bat
@@ -2140,28 +2243,25 @@ __logs_the_given_installed_package() {
         VIEWER=less
     fi
 
-    __logs_the_given_dir() {
-        for item in $(ls "$1")
-        do
-            item="$1/$item"
-            if [ -d "$item" ] ; then
-                continue
-            fi
-            if [ "$VIEWER" = 'bat' ] ; then
-                case $item in
-                    *.png) ;;
-                    *.yml|*/installed-metadata)
-                        bat -l bash "$item" ;;
-                    *)  bat "$item"
-                esac
-            else
-                "$VIEWER" "$item"
-            fi
-        done
-    }
+    for item in $(ls "$MY_INSTALLED_DIR/$1/.ppkg")
+    do
+        item="$MY_INSTALLED_DIR/$1/.ppkg/$item"
 
-    __logs_the_given_dir "$MY_INSTALL_DIR/$1"
-    __logs_the_given_dir "$MY_INSTALL_DIR/$1/$2/share/log"
+        if [ -d "$item" ] ; then
+            continue
+        fi
+
+        if [ "$VIEWER" = 'bat' ] ; then
+            case $item in
+                *.png) ;;
+                */receipt.yml)
+                    bat -l yaml "$item" ;;
+                *)  bat "$item"
+            esac
+        else
+            "$VIEWER" "$item"
+        fi
+    done
 
     if [ "$VIEWER" != 'bat' ] ; then
         prompt_user_to_install_bat
@@ -2169,206 +2269,305 @@ __logs_the_given_installed_package() {
 }
 
 # examples:
-# __pack_the_given_installed_package autoconf
-# __pack_the_given_installed_package autoconf --type=tar.xz
-__pack_the_given_installed_package() {
-    set -e
+# __pack_the_given_installed_package <PACKAGE-NAME> [--type=TYPE] [--keep-packing-dir]
+# __pack_the_given_installed_package    autoconf     --type=tar.xz
+  __pack_the_given_installed_package() {
+    __load_receipt_of_the_given_package "$1"
 
-    __load_installed_metadata_of_the_given_package "$1"
+    RECEIPT_PACKAGE_NAME="$1"
+
+    unset PACKED_FILETYPE
 
     shift
 
-    unset PACKED_FILE_SUFFIX
-
-    for arg in $@
+    while [ -n "$1" ]
     do
-        case $arg in
-            --type=*)
-                PACKED_FILE_SUFFIX=$(getvalue $arg)
-                if [ -z "$PACKED_FILE_SUFFIX" ] ; then
-                    die "--type=<VALUE> , VALUE must not be empty."
-                fi
+        case $1 in
+            --keep-packing-dir)
+                KEEP_PACKING_DIR=yes
                 ;;
-            *)  die "unrecognized argument: $arg"
+            --type=*)
+                PACKED_FILETYPE=$(getvalue "$1")
+                case $PACKED_FILETYPE in
+                    7z|zip|tar.gz|tar.xz|tar.bz2) ;;
+                    '')die "$_0 pack <PACKAGE-NAME> [--type=<TYPE>], <TYPE> must not be empty." ;;
+                    *) die "$_0 pack <PACKAGE-NAME> [--type=<TYPE>], unsupported <TYPE>: $PACKED_FILETYPE, the supported types are zip tar.gz tar.xz tar.bz2."
+                esac
+                ;;
+            *)  die "$_0 pack <PACKAGE-NAME> [--type=TYPE] [--keep-packing-dir], unrecognized option: $1"
         esac
+        shift
     done
 
-    if [ -z "$PACKED_FILE_SUFFIX" ] ; then
-        if command -v 7za > /dev/null ; then
-            PACKED_FILE_SUFFIX=7z
-        elif command -v zip > /dev/null ; then
-            PACKED_FILE_SUFFIX=zip
-        elif command -v tar > /dev/null ; then
-            if command -v xz > /dev/null ; then
-                PACKED_FILE_SUFFIX=tar.xz
-            elif command -v bzip2 > /dev/null ; then
-                PACKED_FILE_SUFFIX=tar.bz2
-            elif command -v gzip > /dev/null ; then
-                PACKED_FILE_SUFFIX=tar.gz
-            else
-                handle_dependency required exe xz
-                PACKED_FILE_SUFFIX=tar.xz
-            fi
-        else
-            handle_dependency required exe zip
-            PACKED_FILE_SUFFIX=tar.xz
-        fi
-    else
-        case $PACKED_FILE_SUFFIX in
-            7z) handle_dependency required exe 7za ;;
-            zip)handle_dependency required exe zip ;;
-            tar.gz)
-                handle_dependency required exe tar
-                handle_dependency required exe gzip
-                ;;
-            tar.xz)
-                handle_dependency required exe tar
-                handle_dependency required exe xz
-                ;;
-            tar.bz2)
-                handle_dependency required exe tar 
-                handle_dependency required exe bzip2 
-                ;;
-            *) die "unsupported type: $PACKED_FILE_SUFFIX, the supported types are 7z zip tar.gz tar.xz tar.bz2."
-        esac
+    if [ -z "$PACKED_FILETYPE" ] ; then
+        PACKED_FILETYPE='tar.xz'
     fi
 
-    unset PACKED_DIR_NAME
-    unset PACKED_FILE_NAME
+    if [ "$NATIVE_OS_KIND" = 'darwin' ] ; then
+        NATIVE_OS_KIND=macos
+    fi
 
-    PACKED_DIR_NAME="$INSTALLED_PKG_NAME-$INSTALLED_PKG_VERS-bin"
-    PACKED_FILE_NAME="$PACKED_DIR_NAME.$PACKED_FILE_SUFFIX"
+    PACKED_FILENAME_NEED_CONTAIN_LIBC_NAME=no
 
-    step "create working directory"
-    echo "$COLOR_PURPLE==>$COLOR_OFF ${COLOR_GREEN}mktemp -d$COLOR_OFF"
-    WORKING_DIR=$(mktemp -d)
+    if [ "$NATIVE_OS_KIND" = linux ] ; then
+        if [ -d "$MY_INSTALLED_DIR/$RECEIPT_PACKAGE_NAME/lib" ] ; then
+            for FILEPATH in $(find "$MY_INSTALLED_DIR/$RECEIPT_PACKAGE_NAME/lib" -type f)
+            do
+                case $FILEPATH in
+                    */lib*.a)   PACKED_FILENAME_NEED_CONTAIN_LIBC_NAME=yes; break ;;
+                    */lib*.so*) PACKED_FILENAME_NEED_CONTAIN_LIBC_NAME=yes; break ;;
+                    */*.o)      PACKED_FILENAME_NEED_CONTAIN_LIBC_NAME=yes; break ;;
+                esac
+            done
+        fi
 
-    step "change to working directory"
-    run cd $WORKING_DIR
+        if [ -z "$PACKED_DIR_NAME" ] ; then
+            if [ -d "$MY_INSTALLED_DIR/$RECEIPT_PACKAGE_NAME/bin" ] ; then
+                for FILEPATH in $(find "$MY_INSTALLED_DIR/$RECEIPT_PACKAGE_NAME/bin" -type f)
+                do
+                    unset FILE_MAGIC
+
+                    FILE_MAGIC="$(hexdump -n 4 -v -e '1/1 "%02X" ""' "$FILEPATH")"
+
+                    if [ "$FILE_MAGIC" = '7F454C46' ] ; then
+                        # http://www.sco.com/developers/gabi/latest/ch4.eheader.html
+                        unset PT_INTERP
+                        PT_INTERP="$(patchelf --print-interpreter "$FILEPATH" 2>/dev/null || true)"
+
+                        if [ -n "$PT_INTERP" ] ; then
+                            PACKED_FILENAME_NEED_CONTAIN_LIBC_NAME=yes
+                            break
+                        fi
+                    fi
+                done
+            fi
+        fi
+
+        if [ -z "$PACKED_DIR_NAME" ] ; then
+            for FILEPATH in $(find "$MY_INSTALLED_DIR/$RECEIPT_PACKAGE_NAME" -type f -a -name "*.a")
+            do
+                PACKED_FILENAME_NEED_CONTAIN_LIBC_NAME=yes
+            done
+        fi
+    fi
+
+    if [ "$PACKED_FILENAME_NEED_CONTAIN_LIBC_NAME" = yes ] ; then
+        PACKED_DIR_NAME="$RECEIPT_PACKAGE_NAME-$RECEIPT_PACKAGE_VERSION-$NATIVE_OS_KIND-$NATIVE_OS_ARCH-$NATIVE_OS_LIBC"
+    else
+        PACKED_DIR_NAME="$RECEIPT_PACKAGE_NAME-$RECEIPT_PACKAGE_VERSION-$NATIVE_OS_KIND-$NATIVE_OS_ARCH"
+    fi
+
+    PACKED_FILENAME="$PACKED_DIR_NAME.$PACKED_FILETYPE"
+
+    step "create packing directory"
+    printf '%b\n' "$COLOR_PURPLE==>$COLOR_OFF ${COLOR_GREEN}mktemp -d$COLOR_OFF"
+    PACKING_DIR=$(mktemp -d)
+
+    step "change to packing directory"
+    run cd $PACKING_DIR
 
     step "make link refer to installed package root dir"
-    run ln -s "$MY_INSTALL_DIR/$INSTALLED_PKG_NAME" "$PACKED_DIR_NAME"
+    run ln -s "$MY_INSTALLED_DIR/$RECEIPT_PACKAGE_NAME" "$PACKED_DIR_NAME"
 
     step "packing"
-    case $PACKED_FILE_SUFFIX in
-        7z)  run 7za a -t7z -r "$PACKED_FILE_NAME" "$PACKED_DIR_NAME/*" ;;
-        zip) run zip -9 -r     "$PACKED_FILE_NAME" "$PACKED_DIR_NAME"   ;;
-        tar.gz)  run tar zvcf  "$PACKED_FILE_NAME" "$PACKED_DIR_NAME/*" ;;
-        tar.xz)  run tar Jvcf  "$PACKED_FILE_NAME" "$PACKED_DIR_NAME/*" ;;
-        tar.bz2) run tar jvcf  "$PACKED_FILE_NAME" "$PACKED_DIR_NAME/*" ;;
+    case $PACKED_FILETYPE in
+        zip) run zip -9 -r     "$PACKED_FILENAME" "$PACKED_DIR_NAME" ;;
+        7z)  run 7za a -t7z -r "$PACKED_FILENAME" "$PACKED_DIR_NAME/*" "$PACKED_DIR_NAME/.ppkg" ;;
+        tar.gz)  run tar zvcf  "$PACKED_FILENAME" "$PACKED_DIR_NAME/*" "$PACKED_DIR_NAME/.ppkg" ;;
+        tar.xz)  run tar Jvcf  "$PACKED_FILENAME" "$PACKED_DIR_NAME/*" "$PACKED_DIR_NAME/.ppkg" ;;
+        tar.bz2) run tar jvcf  "$PACKED_FILENAME" "$PACKED_DIR_NAME/*" "$PACKED_DIR_NAME/.ppkg" ;;
     esac
 
-    if [ ! -d "$MY_CACHED_BINARY_DIR" ] ; then
+    step "check integrity of packed file"
+    case $PACKED_FILETYPE in
+        7z)    run 7za t -t7z "$PACKED_FILENAME" ;;
+        zip)   run unzip -t   "$PACKED_FILENAME" ;;
+        tar.*) run tar   -tf  "$PACKED_FILENAME" ;;
+    esac
+
+    step "show size of packed file"
+    run "du -sh $PACKED_FILENAME | cut -f1"
+
+    if [ ! -d "$MY_CACHE_DIR/bin" ] ; then
         step "create cached binary dir"
-        run install -d "$MY_CACHED_BINARY_DIR"
+        run install -d "$MY_CACHE_DIR/bin"
     fi
 
-    step "copy packed file to cached binary dir"
-    run cp "$PACKED_FILE_NAME" "$MY_CACHED_BINARY_DIR/"
+    step "copy packed file to cached dir"
+    run cp "$PACKED_FILENAME" "$MY_CACHE_DIR/bin/"
 
-    step "show disk usage statistics"
-    run "du -sh $PACKED_FILE_NAME | cut -f1"
-
-    step "delete working directory"
-    run rm -rf $WORKING_DIR
+    if [ "$KEEP_PACKING_DIR" = yes ] ; then
+        echo
+        note "the work dir [$PACKING_DIR] is not deleted as --keep-packing-dir option is given."
+    else
+        step "delete packing directory"
+        run rm -rf $PACKING_DIR
+    fi
 }
 
-get_direct_dependency_package_list_of_the_given_package() {
-    grep '^\s*package set dep\.pkg\s*".*"' $(__path_of_formula_of_the_given_package $1) | sed 's/.*package set dep\.pkg.*"\(.*\)"/\1/'
+# this fuction should be run in subshell
+# __get_packages_that_are_directly_depended_by_the_given_package <PACKAGE-NAME>
+  __get_packages_that_are_directly_depended_by_the_given_package() {
+      __load_formula_of_the_given_package "$1" && printf '%s\n' "$PACKAGE_DEP_PKG"
 }
 
-# $1 packageName, if packageName is not specified, USER_SPECIFIED_PACKAGE_LIST will be used
-# $2=yes invoked by myself
-__gen_dependency_package_list_of_the_given_package() {
-    [ "$2" = yes ] || {
-        unset I
-        unset DEPENDENCY_PACKAGE_LIST
+# this fuction should be run in subshell
+#
+# __get_packages_that_are_recursively_depended_by_the_given_packages <PACKAGE-NAME>...
+  __get_packages_that_are_recursively_depended_by_the_given_packages() {
+      [ -z "$1" ] && {
+          error "__get_packages_that_are_recursively_depended_by_the_given_packages <PACKAGE-NAME>..., <PACKAGE-NAME> is not given."
+          return 1
+      }
+
+      __get_packages_that_are_recursively_depended_by_the_given_package ";$(printf '%s\n' "$*" | tr ' ' ';')"
+}
+
+# this fuction should be run in subshell
+#
+# __get_packages_that_are_recursively_depended_by_the_given_package <PACKAGE-NAME>
+# __get_packages_that_are_recursively_depended_by_the_given_package <PACKAGE-NAME> internal
+  __get_packages_that_are_recursively_depended_by_the_given_package() {
+    [ -z "$1" ] && {
+        error "__get_packages_that_are_recursively_depended_by_the_given_package <PACKAGE-NAME> [internal], <PACKAGE-NAME> is not given."
+        return 1
     }
 
-    unset DIRECT_DEPENDENCY_PACKAGE_LIST
-    if [ -z "$1" ] ; then
-        DIRECT_DEPENDENCY_PACKAGE_LIST="$USER_SPECIFIED_PACKAGE_LIST"
-    else
-        DIRECT_DEPENDENCY_PACKAGE_LIST=$(get_direct_dependency_package_list_of_the_given_package "$1")
-    fi
+    unset DIRECT_DEPENDENT_PACKAGES
 
-    for dependencyPkgName in $DIRECT_DEPENDENCY_PACKAGE_LIST
+    case $1 in
+        *\;*) DIRECT_DEPENDENT_PACKAGES=$(printf '%s\n' "$1" | tr ';' ' ') ;;
+        *)    DIRECT_DEPENDENT_PACKAGES=$(__get_packages_that_are_directly_depended_by_the_given_package "$1")
+    esac
+
+    [ "$2" != internal ] && {
+        DEPTH=1
+        RESULT=
+    }
+
+    DEPTH=$(expr "$DEPTH" + 1)
+
+    for DIRECT_DEPENDENT_PACKAGE_NAME in $DIRECT_DEPENDENT_PACKAGES
     do
-        die_if_package_is_not_available "$dependencyPkgName"
+        is_package_available "$DIRECT_DEPENDENT_PACKAGE_NAME" || {
+            error "package [$DIRECT_DEPENDENT_PACKAGE_NAME] is not available."
+            return 1
+        }
 
-        DEPENDENCY_PACKAGE_LIST_TEMP=""
+        if [ "$(printf '%s\n' "$RESULT" | sed -n "/^$DIRECT_DEPENDENT_PACKAGE_NAME$/p")" = "$DIRECT_DEPENDENT_PACKAGE_NAME" ] ; then
+            RESULT=$(printf '%s\n' "$RESULT" | sed "/^$DIRECT_DEPENDENT_PACKAGE_NAME$/d")
+        fi
 
-        for item in $DEPENDENCY_PACKAGE_LIST
-        do
-            if [ "$dependencyPkgName" = "$item" ] ; then
-                continue
-            else
-                DEPENDENCY_PACKAGE_LIST_TEMP="$DEPENDENCY_PACKAGE_LIST_TEMP $item"
-            fi
-        done
+        if [ -z "$RESULT" ] ; then
+            RESULT="$DIRECT_DEPENDENT_PACKAGE_NAME"
+        else
+            RESULT="$DIRECT_DEPENDENT_PACKAGE_NAME
+$RESULT"
+        fi
 
-        DEPENDENCY_PACKAGE_LIST="$dependencyPkgName $DEPENDENCY_PACKAGE_LIST_TEMP"
-
-        __gen_dependency_package_list_of_the_given_package "$dependencyPkgName" yes
+        __get_packages_that_are_recursively_depended_by_the_given_package "$DIRECT_DEPENDENT_PACKAGE_NAME" internal
     done
+
+    DEPTH=$(expr "$DEPTH" - 1)
+
+    if [ "$DEPTH" -eq 1 ] ; then
+        printf '%s\n' "$RESULT"
+    fi
 }
 
 __get_dot_file_contents() {
     for PKG in $@
     do
-        unset DIRECT_DEPENDENCY_PACKAGE_LIST
-        DIRECT_DEPENDENCY_PACKAGE_LIST="$(get_direct_dependency_package_list_of_the_given_package "$PKG")"
-        if [ -n "$DIRECT_DEPENDENCY_PACKAGE_LIST" ] ; then
-            printf '"%s" -> { "%s" }\n' "$PKG" "$(printf '%s\n' "$DIRECT_DEPENDENCY_PACKAGE_LIST" | sed 's/ /" "/g')"
-            __get_dot_file_contents $DIRECT_DEPENDENCY_PACKAGE_LIST
+        unset DIRECT_DEPENDENT_PACKAGES
+        DIRECT_DEPENDENT_PACKAGES="$(__get_packages_that_are_directly_depended_by_the_given_package "$PKG")"
+        if [ -n "$DIRECT_DEPENDENT_PACKAGES" ] ; then
+            printf '"%s" -> { "%s" }\n' "$PKG" "$(printf '%s\n' "$DIRECT_DEPENDENT_PACKAGES" | sed 's/ /" "/g')"
+            __get_dot_file_contents $DIRECT_DEPENDENT_PACKAGES
         fi
     done
 }
 
-# __gen_dependency_package_tree_of_the_given_package <PKG> [OUTPUT-DIR]
-__gen_dependency_package_tree_of_the_given_package() {
-    unset DIRECT_DEPENDENCY_PACKAGE_LIST
-    DIRECT_DEPENDENCY_PACKAGE_LIST="$(get_direct_dependency_package_list_of_the_given_package "$1")"
+# __gen_dependency_graph_recursively_depended_by_the_given_package <PKG> <dot|txt|png> <OUTPUT-FILEPATH>
+__gen_dependency_graph_recursively_depended_by_the_given_package() {
+    unset DIRECT_DEPENDENT_PACKAGES
+    DIRECT_DEPENDENT_PACKAGES="$(__get_packages_that_are_directly_depended_by_the_given_package "$1")"
 
-    if [ -z "$DIRECT_DEPENDENCY_PACKAGE_LIST" ] ; then
+    if [ -z "$DIRECT_DEPENDENT_PACKAGES" ] ; then
         return 0
     fi
 
-    unset PACKAGE_DEP_PKG_TREE_OUTPUT_DIR
+    case $2 in
+        dot|txt|png) ;;
+        '') die "__gen_dependency_graph_recursively_depended_by_the_given_package <PKG> <dot|txt|png> <OUTPUT-FILEPATH>, format must not be empty." ;;
+        *)  die "__gen_dependency_graph_recursively_depended_by_the_given_package <PKG> <dot|txt|png> <OUTPUT-FILEPATH>, unrecognized format: $2"
+    esac
 
-    if [ -z "$2" ] ; then
-        PACKAGE_DEP_PKG_TREE_OUTPUT_DIR=$(mktemp -d) || return 1
-    else
-        PACKAGE_DEP_PKG_TREE_OUTPUT_DIR="$2"
-        [ -d "$2" ] || install -d "$2"
+    if [ -z "$3" ] ; then
+        die "__gen_dependency_graph_recursively_depended_by_the_given_package <PKG> <dot|txt|png> <OUTPUT-FILEPATH>, <OUTPUT-FILEPATH> must be not empty."
     fi
 
-    unset PACKAGE_DEP_PKG_TREE_FILEPATH_DOT
-    unset PACKAGE_DEP_PKG_TREE_FILEPATH_PNG
-    unset PACKAGE_DEP_PKG_TREE_FILEPATH_TXT
+    unset GEN_DEPENDENCY_GRAPH_WORKING_DIR
+    unset GEN_DEPENDENCY_GRAPH_DOT_FILEPATH
 
-    PACKAGE_DEP_PKG_TREE_FILEPATH_DOT="$PACKAGE_DEP_PKG_TREE_OUTPUT_DIR/dependencies.gv"
-    PACKAGE_DEP_PKG_TREE_FILEPATH_PNG="$PACKAGE_DEP_PKG_TREE_OUTPUT_DIR/dependencies.png"
-    PACKAGE_DEP_PKG_TREE_FILEPATH_TXT="$PACKAGE_DEP_PKG_TREE_OUTPUT_DIR/dependencies.txt"
+    GEN_DEPENDENCY_GRAPH_WORKING_DIR=$(mktemp -d) || return 1
+    GEN_DEPENDENCY_GRAPH_DOT_FILEPATH="$GEN_DEPENDENCY_GRAPH_WORKING_DIR/dependencies.dot"
+    GEN_DEPENDENCY_GRAPH_TXT_FILEPATH="$GEN_DEPENDENCY_GRAPH_WORKING_DIR/dependencies.txt"
+    GEN_DEPENDENCY_GRAPH_PNG_FILEPATH="$GEN_DEPENDENCY_GRAPH_WORKING_DIR/dependencies.png"
 
-    printf 'digraph G {\n'       >  "$PACKAGE_DEP_PKG_TREE_FILEPATH_DOT"
-    __get_dot_file_contents "$1" >> "$PACKAGE_DEP_PKG_TREE_FILEPATH_DOT"
-    printf '}\n'                 >> "$PACKAGE_DEP_PKG_TREE_FILEPATH_DOT"
+    printf 'digraph G {\n'       >  "$GEN_DEPENDENCY_GRAPH_DOT_FILEPATH"
+    __get_dot_file_contents "$1" >> "$GEN_DEPENDENCY_GRAPH_DOT_FILEPATH"
+    printf '}\n'                 >> "$GEN_DEPENDENCY_GRAPH_DOT_FILEPATH"
 
-    if command -v dot > /dev/null ; then
-        run dot -Tpng -o "$PACKAGE_DEP_PKG_TREE_FILEPATH_PNG" "$PACKAGE_DEP_PKG_TREE_FILEPATH_DOT"
-    else
-        note "graphviz is not installed. we do not generate png format dependency image."
+    if [ "$3" != '/dev/tty' ] ; then
+        unset GEN_DEPENDENCY_GRAPH_OUTPUT_DIR
+
+        case $3 in
+            /*) GEN_DEPENDENCY_GRAPH_OUTPUT_DIR="$(dirname      "$3")" ;;
+             *) GEN_DEPENDENCY_GRAPH_OUTPUT_DIR="$(dirname "$PWD/$3")" ;;
+        esac
+
+        if [ !      -d "$GEN_DEPENDENCY_GRAPH_OUTPUT_DIR" ] ; then
+            install -d "$GEN_DEPENDENCY_GRAPH_OUTPUT_DIR" || return 1
+        fi
     fi
 
-    # https://github.com/ggerganov/dot-to-ascii
-    curl \
-        -o "$PACKAGE_DEP_PKG_TREE_FILEPATH_TXT" \
-        -s \
-        -G \
-        --data-urlencode "boxart=1" \
-        --data-urlencode "src=$(cat $PACKAGE_DEP_PKG_TREE_FILEPATH_DOT)" \
-        "https://dot-to-ascii.ggerganov.com/dot-to-ascii.php" || true
+    case $2 in
+        dot)
+            if [ "$3" = '/dev/tty' ] ; then
+                cat   "$GEN_DEPENDENCY_GRAPH_DOT_FILEPATH"
+            else
+                cp -f "$GEN_DEPENDENCY_GRAPH_DOT_FILEPATH" "$3"
+            fi
+            ;;
+        txt)
+            # https://github.com/ggerganov/dot-to-ascii
+            curl \
+                -o "$GEN_DEPENDENCY_GRAPH_TXT_FILEPATH" \
+                -s \
+                -G \
+                --data-urlencode "boxart=1" \
+                --data-urlencode "src=$(cat $GEN_DEPENDENCY_GRAPH_DOT_FILEPATH)" \
+                "https://dot-to-ascii.ggerganov.com/dot-to-ascii.php" || return 1
+
+            if [ "$3" = '/dev/tty' ] ; then
+                cat   "$GEN_DEPENDENCY_GRAPH_TXT_FILEPATH"
+            else
+                cp -f "$GEN_DEPENDENCY_GRAPH_TXT_FILEPATH" "$3"
+            fi
+            ;;
+        png)
+            (main install graphviz) || return 1
+
+            if command -v fc-match > /dev/null ; then
+                # Error: fontconfig: Couldn't find font.
+                if [ -z "$(fc-match)" ] ; then
+                    wfetch 'https://github.com/ryanoasis/nerd-fonts/blob/master/patched-fonts/Meslo/M/Regular/complete/Meslo%20LG%20M%20Regular%20Nerd%20Font%20Complete%20Mono%20Windows%20Compatible.ttf?raw=true' --output-dir="$HOME/.fonts" --output-name='Meslo LG M DZ Regular Nerd Font Complete Mono.ttf' || return 1
+                fi
+            fi
+
+            run dot -Tpng -o "$3" "$GEN_DEPENDENCY_GRAPH_DOT_FILEPATH"
+            ;;
+    esac
 }
 
 __config_native_toolchain_environment_variables() {
@@ -2403,24 +2602,33 @@ __config_native_toolchain_environment_variables() {
 __install_the_given_packages() {
     inspect_install_arguments $@
 
-    die_if_package_is_not_specified $USER_SPECIFIED_PACKAGE_LIST
+    [ -z "$USER_SPECIFIED_PACKAGES" ] && {
+        error "$_0 install <PACKAGE-NAME>..., <PACKAGE-NAME> is not given."
+        return 1
+    }
 
-    __config_native_toolchain_environment_variables
+    unset RECURSIVE_DEPENDENT_PACKAGES
+    RECURSIVE_DEPENDENT_PACKAGES="$(__get_packages_that_are_recursively_depended_by_the_given_packages $USER_SPECIFIED_PACKAGES)"
 
-    __gen_dependency_package_list_of_the_given_package || return 1
-
-    if [ $(list_length $DEPENDENCY_PACKAGE_LIST) -gt 1 ] ; then
-        echo "$COLOR_PURPLE==>$COLOR_OFF to install$COLOR_GREEN $DEPENDENCY_PACKAGE_LIST $COLOR_OFF\n"
+    if [ $(list_length $RECURSIVE_DEPENDENT_PACKAGES) -gt 1 ] ; then
+        RECURSIVE_DEPENDENT_PACKAGES="$(printf '%s\n' "$RECURSIVE_DEPENDENT_PACKAGES" | tr '\n' ' ')"
+        printf '%b\n' "$COLOR_PURPLE==>$COLOR_OFF to install$COLOR_GREEN $RECURSIVE_DEPENDENT_PACKAGES $COLOR_OFF\n"
     fi
 
-    for INSTALLING_PACKAGE in $DEPENDENCY_PACKAGE_LIST
+    for INSTALLING_PACKAGE in $RECURSIVE_DEPENDENT_PACKAGES
     do
         if is_package_installed "$INSTALLING_PACKAGE" ; then
-            if [ "$LOG_LEVEL" -gt "$LOG_LEVEL_QUIET" ] ; then
+            if [ "$VERBOSE_LEVEL" -gt 0 ] ; then
                 printf "$COLOR_GREEN%-10s$COLOR_OFF already have been installed.\n" "$INSTALLING_PACKAGE"
             fi
         else
-            (__install_the_given_package "$INSTALLING_PACKAGE") || return 1
+            (
+                # brew install meson
+                # Error: The current work directory doesn't exist, cannot proceed.
+                # beacuse previous package's work direcotory is deleted.
+                cd ~
+                __install_the_given_package "$INSTALLING_PACKAGE"
+            )
         fi
     done
 }
@@ -2428,11 +2636,6 @@ __install_the_given_packages() {
 # Note: this function must run in a subshell
 __install_the_given_package() {
     echo "${COLOR_PURPLE}=============== Installing ${COLOR_OFF}${COLOR_GREEN}${1}${COLOR_OFF}${COLOR_PURPLE} ===============${COLOR_OFF}"
-
-    # brew install meson
-    # Error: The current work directory doesn't exist, cannot proceed.
-    # beacuse previous package's work direcotory is deleted.
-    cd ~ || return 1
 
     unset PACKAGE_WORKING_DIR
     unset PACKAGE_SRC_DIR
@@ -2474,55 +2677,7 @@ __install_the_given_package() {
     step "load formula"
     __load_formula_of_the_given_package "$1"
 
-    if [ "$PACKAGE_DEP_JDK" = yes ] ; then
-        step "find Java Development Kit"
-        install_jdk_if_needed
-    fi
-
-    if [ "$PACKAGE_DEP_SDK" = yes ] ; then
-        step "find Android SDK"
-        install_android_sdk_if_needed
-    fi
-
-    if [ "$PACKAGE_DEP_NDK" = yes ] ; then
-        step "find Android NDK"
-        setup_build_toolchains_env
-    fi
-
     calculate_TARGET_OS_VERS "$PACKAGE_NAME" "$PACKAGE_SDK_API" "$USER_EXPECTED_TARGET_OS_VERS"
-
-    if [ "$CCACHE_ENABLED" = yes ] ; then
-        package add dep.cmd ccache
-    fi
-
-    step "handle required dependencies"
-    for item in $PACKAGE_DEP_CMD
-    do
-        handle_dependency $(__parse_require_dependency_item exe "$item") || return 1
-    done
-    for item in $PACKAGE_DEP_PYM
-    do
-        handle_dependency $(__parse_require_dependency_item pym "$item") || return 1
-    done
-    for item in $PACKAGE_DEP_PLM
-    do
-        handle_dependency $(__parse_require_dependency_item plm "$item") || return 1
-    done
-
-    step "printf required dependencies"
-    __printf_dependency TYPE NAME OP EXPECT ACTUAL LOCATION
-    for item in $PACKAGE_DEP_CMD
-    do
-        printf_dependency $(__parse_require_dependency_item exe "$item")
-    done
-    for item in $PACKAGE_DEP_PYM
-    do
-        printf_dependency $(__parse_require_dependency_item pym "$item")
-    done
-    for item in $PACKAGE_DEP_PLM
-    do
-        printf_dependency $(__parse_require_dependency_item plm "$item")
-    done
 
     unset PKG_CONFIG
     unset CCACHE
@@ -4669,43 +4824,43 @@ __list_supported_target_archs() {
 
 __print_platform_arch_table_64bit() {
     cat <<EOF
-┌───────────┬───────────────────────────┐
-│ platform  │ arch                      │
-│           │                           │
-│ AppleTVOS │ arm64                     │
-│ WatchOS   │ arm64_32                  │
-│ iPhoneOS  │ arm64 arm64e              │
-│ MacOSX    │ arm64 x86_64              │
-│ *Simulator│ arm64 x86_64              │
-└───────────┴───────────────────────────┘
+┌──────────┬───────────────────────┐
+│ platform   │ arch                      │
+│            │                           │
+│ AppleTVOS  │ arm64                     │
+│ WatchOS    │ arm64_32                  │
+│ iPhoneOS   │ arm64 arm64e              │
+│ MacOSX     │ arm64 x86_64              │
+│ *Simulator │ arm64 x86_64              │
+└──────────┴───────────────────────┘
 EOF
 }
 
 __print_platform_arch_table_32bit() {
     cat <<EOF
-┌───────────┬───────────────────────────┐
-│ platform  │ arch                      │
-│           │                           │
-│ AppleTVOS │                           │
-│ WatchOS   │ armv7k                    │
-│ iPhoneOS  │ armv7 armv7s              │
-│ MacOSX    │ i386                      │
-│ *Simulator│ i386                      │
-└───────────┴───────────────────────────┘
+┌──────────┬───────────────────────┐
+│ platform   │ arch                      │
+│            │                           │
+│ AppleTVOS  │                           │
+│ WatchOS    │ armv7k                    │
+│ iPhoneOS   │ armv7 armv7s              │
+│ MacOSX     │ i386                      │
+│ *Simulator │ i386                      │
+└──────────┴───────────────────────┘
 EOF
 }
 
 __print_platform_arch_table_all() {
     cat <<EOF
-┌───────────┬───────────────────────────┐
-│ platform  │ arch                      │
-│           │                           │
-│ AppleTVOS │ arm64                     │
-│ WatchOS   │ arm64_32 armv7k           │
-│ iPhoneOS  │ arm64 arm64e armv7 armv7s │
-│ MacOSX    │ arm64 x86_64              │
-│ *Simulator│ arm64 x86_64              │
-└───────────┴───────────────────────────┘
+┌──────────┬───────────────────────┐
+│ platform   │ arch                      │
+│            │                           │
+│ AppleTVOS  │ arm64                     │
+│ WatchOS    │ arm64_32 armv7k           │
+│ iPhoneOS   │ arm64 arm64e armv7 armv7s │
+│ MacOSX     │ arm64 x86_64              │
+│ *Simulator │ arm64 x86_64              │
+└──────────┴───────────────────────┘
 EOF
 }
 
@@ -4870,8 +5025,6 @@ inspect_install_arguments() {
             --rule=*)
                 RULE=$(getvalue "$1")
                 [ -z "$RULE" ] && die "--rule=<VALUE> , VALUE must not be empty."
-                ;;
-            --china)
                 ;;
             --xtrace|-x)
                 LOG_LEVEL=$LOG_LEVEL_TRACE
@@ -5040,7 +5193,7 @@ __setup() {
 
     export SSL_CERT_FILE="$MY_CORE_DIR/etc/ssl/certs/cacert.pem"
 
-    if [ -f ~/.uppm/repos.d/offical/.git/config ] ; then
+    if [ -f ~/.uppm/repos.d/offical-core/.git/config ] ; then
         CLONE=no
     else
         CLONE=yes
@@ -5050,7 +5203,7 @@ __setup() {
     run "$MY_CORE_BIN_DIR/uppm update"
 
     if [ "$CLONE" = yes ] ; then
-        cat >> ~/.uppm/repos.d/offical/.git/config <<EOF
+        cat >> ~/.uppm/repos.d/offical-core/.git/config <<EOF
 [user]
     email = leleliu008@gmail.com
     name = leleliu008
@@ -5068,7 +5221,7 @@ __is_core_tools_installed() {
 
     for item in bash coreutils util-linux findutils gawk gsed grep tree curl git zip unzip gtar gzip xz bzip2 lzip patch patchelf pkg-config yq
     do
-        "$MY_CORE_BIN_DIR/uppm" is-package-installed "$item" || return 1
+        "$MY_CORE_BIN_DIR/uppm" is-installed "$item" || return 1
     done
 
     return 0
@@ -5153,7 +5306,7 @@ ${COLOR_GREEN}xcpkg --homepage${COLOR_OFF}
 ${COLOR_GREEN}xcpkg env${COLOR_OFF}
     show current machine os and xcode toolchain info.
 
-${COLOR_GREEN}xcpkg integrate zsh [-x | --china]${COLOR_OFF}
+${COLOR_GREEN}xcpkg integrate zsh [-v]${COLOR_OFF}
     download a zsh-completion script file to a approprivate location.
 
 ${COLOR_GREEN}xcpkg update${COLOR_OFF}
@@ -5462,7 +5615,7 @@ EOF
                 rename) shift; __rename_formula_of_the_given_package $@ ;;
                 view)   shift;   __view_formula_of_the_given_package $@ ;;
                 edit)   shift;   __edit_formula_of_the_given_package $@ ;;
-                list)   shift; __list_formulas ;;
+                list)   shift; __list_formula_filepath ;;
                    *)   help 1
             esac
             ;;
@@ -5528,7 +5681,7 @@ EOF
             shift
             __gen_github_workflows $@
             ;;
-        test)
+        compare-versions)
             __compare_versions_with_brew
             ;;
         *)  die "unrecognized argument: $1"
