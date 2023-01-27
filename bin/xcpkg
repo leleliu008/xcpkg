@@ -147,14 +147,6 @@ shiftn() {
     shift "$1" && shift && echo "$@"
 }
 
-globing() {
-    case $1 in
-        '')   ;;
-        \~/*) printf '%s\n' "$HOME/$(printf '%s\n' "$1" | cut -c3-)" ;;
-        *)    printf '%s\n' "$1"
-    esac
-}
-
 sed_in_place() {
     if command -v gsed > /dev/null ; then
         unset SED_IN_PLACE_ACTION
@@ -555,14 +547,12 @@ wfetch() {
         case $arg in
             --output-dir=*)
                 OUTPUT_DIR=$(getvalue "$1")
-                if [ -z "$OUTPUT_DIR" ] ; then
-                    error "__integrate_zsh_completions <URL> [--output-dir=<DIR>] , <DIR> must not be empty."
-                    return 1
-                fi
-                OUTPUT_DIR=$(globing "$OUTPUT_DIR")
+                case $OUTPUT_DIR in
+                    '')   die "__integrate_zsh_completions <URL> [--output-dir=<DIR>] , <DIR> must not be empty." ;;
+                    \~/*) printf '%s\n' "$HOME/$(printf '%s\n' "$OUTPUT_DIR" | cut -c3-)" ;;
+                esac
                 ;;
-            *)  error "__integrate_zsh_completions <URL> [--output-dir=<DIR>] , unrecognized argument: $arg"
-                return 1
+            *)  die "__integrate_zsh_completions <URL> [--output-dir=<DIR>] , unrecognized argument: $arg"
         esac
     done
 
@@ -2486,7 +2476,12 @@ __install_the_given_package() {
 
     #########################################################################################
 
-    calculate_TARGET_PLATFORM_VERS "$PACKAGE_NAME" "$TARGET_PLATFORM_VERS_ALLOWED_MIN" "$TARGET_PLATFORM_VERS_EXPECTED"
+    if [ -z "$TARGET_PLATFORM_VERS_ALLOWED_MIN" ] ; then
+        # no limit
+        :
+    else
+        :
+    fi
 
     #########################################################################################
 
@@ -4233,6 +4228,7 @@ PACKAGE_INSTALL_DIR = $PACKAGE_INSTALL_DIR
      NATIVE_OS_EUID = $NATIVE_OS_EUID
      NATIVE_OS_GUID = $NATIVE_OS_GUID
 
+TARGET_PLATFORM_SPEC = $TARGET_PLATFORM_NAME
 TARGET_PLATFORM_NAME = $TARGET_PLATFORM_NAME
 TARGET_PLATFORM_VERS = $TARGET_PLATFORM_VERS
 TARGET_PLATFORM_ARCH = $TARGET_PLATFORM_ARCH
@@ -5236,7 +5232,7 @@ inspect_install_arguments() {
             --dry-run)
                 DRYRUN=yes
                 ;;
-            --keep-work-dir)
+            --keep-working-dir)
                 KEEP_WORKING_DIR=yes
                 ;;
             --install-doc)
@@ -5248,28 +5244,18 @@ inspect_install_arguments() {
             --install-exe)
                 INSTALL_EXE=yes
                 ;;
-            --target-platform-name=*)
-                TARGET_PLATFORM_NAME=$(getvalue "$1")
+            --target=*)
+                TARGET_PLATFORM_SPEC=$(getvalue "$1")
+
+                [ -z "$TARGET_PLATFORM_SPEC"] && die "--target-platform=<VALUE>, VALUE must be non-empty."
+
+                TARGET_PLATFORM_NAME=$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f1)
+                TARGET_PLATFORM_VERS=$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f2)
+                TARGET_PLATFORM_ARCH=$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f3)
+
                 case $TARGET_PLATFORM_NAME in
                     MacOSX|AppleTVOS|iPhoneOS|WatchOS|AppleTVSimulator|iPhoneSimulator|WatchSimulator) ;;
-                    '') die "--target-platform=<VALUE>, VALUE must be non-empty." ;;
-                    *)  die "--target-platform=<VALUE>, VALUE must be any of MacOSX|AppleTVOS|iPhoneOS|WatchOS|AppleTVSimulator|iPhoneSimulator|WatchSimulator"
-                esac
-                ;;
-            --target-platform-arch=*)
-                TARGET_PLATFORM_ARCH=$(getvalue "$1")
-                case $TARGET_PLATFORM_ARCH in
-                    MacOSX|AppleTVOS|iPhoneOS|WatchOS|AppleTVSimulator|iPhoneSimulator|WatchSimulator) ;;
-                    '') die "--target-platform=<VALUE>, VALUE must be non-empty." ;;
-                    *)  die "--target-platform=<VALUE>, VALUE must be any of MacOSX|AppleTVOS|iPhoneOS|WatchOS|AppleTVSimulator|iPhoneSimulator|WatchSimulator"
-                esac
-                ;;
-            --target-platform-vers=*)
-                TARGET_PLATFORM_VERS=$(getvalue "$1")
-                case $TARGET_PLATFORM_VERS in
-                    MacOSX|AppleTVOS|iPhoneOS|WatchOS|AppleTVSimulator|iPhoneSimulator|WatchSimulator) ;;
-                    '') die "--target-platform=<VALUE>, VALUE must be non-empty." ;;
-                    *)  die "--target-platform=<VALUE>, VALUE must be any of MacOSX|AppleTVOS|iPhoneOS|WatchOS|AppleTVSimulator|iPhoneSimulator|WatchSimulator"
+                    *)  die "invalid target spec: $TARGET_PLATFORM_SPEC"
                 esac
                 ;;
             --install-lib=*)
@@ -5300,29 +5286,54 @@ inspect_install_arguments() {
                 BUILD_NJOBS=$(getvalue "$1")
                 is_integer "$BUILD_NJOBS" || die "--jobs=INTEGER argument's value must be a integer."
                 ;;
-            [a-z]*)
-                if [ "$1" = 'all' ] ; then
+            -*) die "unrecognized option: $1"
+                ;;
+            *)  if [ "$1" = 'all' ] ; then
                     USER_SPECIFIED_PACKAGE_LIST="$(__list_available_packages)"
                 else
-                    if [ -z "$USER_SPECIFIED_PACKAGE_LIST" ] ; then
-                        USER_SPECIFIED_PACKAGE_LIST="$1"
+                    if printf '%s\n' "$1" | grep -E '^[A-Za-z0-9+-._]{1,50}$' ; then
+                        if [ -z "$USER_SPECIFIED_PACKAGE_LIST" ] ; then
+                            USER_SPECIFIED_PACKAGE_LIST="$1"
+                        else
+                            USER_SPECIFIED_PACKAGE_LIST="$USER_SPECIFIED_PACKAGE_LIST $1"
+                        fi
                     else
-                        USER_SPECIFIED_PACKAGE_LIST="$USER_SPECIFIED_PACKAGE_LIST $1"
+                        die "unrecognized argument: $1"
                     fi
                 fi
-                ;;
-            *)  die "unrecognized argument: $1"
         esac
         shift
     done
 
-    if [ "$LOG_LEVEL" -eq "$LOG_LEVEL_QUIET" ] ; then
+    [ "$LOG_LEVEL" -eq "$LOG_LEVEL_QUIET" ] && {
         exec 1>/dev/null
         exec 2>&1
+    }
+
+    [ "$LOG_LEVEL" -gt "$LOG_LEVEL_DEBUG" ] && {
+        export PKG_CONFIG_DEBUG_SPEW=set
+    }
+
+    [ -z "$TARGET_PLATFORM_NAME" ] && TARGET_PLATFORM_NAME=MacOSX
+
+    if [ -z "$TARGET_PLATFORM_VERS" ] ; then
+        case $TARGET_PLATFORM_NAME in
+            iPhoneOS|iPhoneSimulator)   TARGET_PLATFORM_VERS=9.0 ;;
+            WatchOS|WatchSimulator)     TARGET_PLATFORM_VERS=5.0 ;;
+            AppleTVOS|AppleTVSimulator) TARGET_PLATFORM_VERS=9.0 ;;
+            MacOSX)                     TARGET_PLATFORM_VERS=$NATIVE_OS_VERS ;;
+            *)                          die "unsupported platform : $1."
+        esac
     fi
 
-    if [ "$LOG_LEVEL" -gt "$LOG_LEVEL_DEBUG" ] ; then
-        export PKG_CONFIG_DEBUG_SPEW=set
+    if [ -z "$TARGET_PLATFORM_ARCH" ] ; then
+        case $TARGET_PLATFORM_NAME in
+            iPhoneOS|iPhoneSimulator)   TARGET_PLATFORM_ARCH=arm64 ;;
+            WatchOS|WatchSimulator)     TARGET_PLATFORM_VERS=arm64e ;;
+            AppleTVOS|AppleTVSimulator) TARGET_PLATFORM_VERS=arm64e ;;
+            MacOSX)                     TARGET_PLATFORM_VERS=$NATIVE_OS_ARCH ;;
+            *)                          die "unsupported platform : $1."
+        esac
     fi
 }
 
@@ -5669,13 +5680,13 @@ ${COLOR_GREEN}xcpkg fetch <PACKAGE>${COLOR_OFF}
 ${COLOR_GREEN}xcpkg depends <PACKAGE>${COLOR_OFF}
     show the packages that are depended by the given package.
 
-${COLOR_GREEN}xcpkg install   <PACKAGE>... [--platform=xx --jobs=N -v -d -q --dry-run --keep-work-dir]${COLOR_OFF}
+${COLOR_GREEN}xcpkg install   <PACKAGE>... [--target=<TARGET-SPEC> --jobs=N -v -d -q --dry-run --keep-working-dir]${COLOR_OFF}
     install the given packages.
 
-${COLOR_GREEN}xcpkg reinstall <PACKAGE>... [--platform=xx --jobs=N -v -d -q --dry-run --keep-work-dir]${COLOR_OFF}
+${COLOR_GREEN}xcpkg reinstall <PACKAGE>... [--target=<TARGET-SPEC> --jobs=N -v -d -q --dry-run --keep-working-dir]${COLOR_OFF}
     reinstall the given packages.
 
-${COLOR_GREEN}xcpkg upgrade   [PACKAGE...] [--platform=xx --jobs=N -v -d -q --dry-run --keep-work-dir]${COLOR_OFF}
+${COLOR_GREEN}xcpkg upgrade   [PACKAGE...] [--target=<TARGET-SPEC> --jobs=N -v -d -q --dry-run --keep-working-dir]${COLOR_OFF}
     upgrade the given outdated packages.
 
 ${COLOR_GREEN}xcpkg upgrade-self${COLOR_OFF}

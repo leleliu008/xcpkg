@@ -132,7 +132,7 @@ function _xcpkg() {
                         '--toolchain=-[set which toolchain to use]:toolchain:(zig gcc llvm)' \
                         '--jobs=-[set the number of jobs you can run in parallel]:jobs:(1 2 3 4 5 6 7 8 9)' \
                         '--dry-run[dry-run]' \
-                        '--keep-installing-dir[do not delete installing dir even if installed success]' \
+                        '--keep-working-dir[do not delete installing dir even if installed success]' \
                         '--build-type=-[set build type]:build-type:(debug release)' \
                         '--link-type=-[link static or shared library]:link-type:(static-only shared-only static-prefered shared-prefered)' \
                         '--install-lib=-[install static or shared library]:install-lib:(static shared both yes no)' \
@@ -154,7 +154,7 @@ function _xcpkg() {
                         '--toolchain=-[set which toolchain to use]:toolchain:(zig gcc llvm)' \
                         '--jobs=-[set the number of jobs you can run in parallel]:jobs:(1 2 3 4 5 6 7 8 9)' \
                         '--dry-run[dry-run]' \
-                        '--keep-installing-dir[do not delete installing dir even if installed success]' \
+                        '--keep-working-dir[do not delete installing dir even if installed success]' \
                         '--build-type=-[set build type]:build-type:(debug release)' \
                         '--link-type=-[link static or shared library]:link-type:(static-only shared-only static-prefered shared-prefered)' \
                         '--install-lib=-[install static or shared library]:install-lib:(static shared both yes no)' \
@@ -175,7 +175,7 @@ function _xcpkg() {
                         ':package-name:_xcpkg_outdated_packages' \
                         '--jobs=-[set the number of jobs you can run in parallel]:jobs:(1 2 3 4 5 6 7 8 9)' \
                         '--dry-run[dry-run]' \
-                        '--keep-installing-dir[do not delete installing dir even if installed success]' \
+                        '--keep-working-dir[do not delete installing dir even if installed success]' \
                         '--build-type=-[set build type]:build-type:(debug release)' \
                         '--link-type=-[link static or shared library]:link-type:(static-only shared-only static-prefered shared-prefered)' \
                         '--install-lib=-[install static or shared library]:install-lib:(static shared both yes no)' \
