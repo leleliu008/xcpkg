@@ -6043,7 +6043,7 @@ EOF
             ;;
         depends)
             shift
-            __show_depends_of_the_given_package $@
+            __show_packages_depended_by_the_given_package $@
             ;;
         fetch)
             shift

@@ -43,7 +43,7 @@ jobs:
 
       - run: bin/xcpkg info zlib
       - run: bin/xcpkg info zlib version
-      - run: bin/xcpkg info zlib webpage
+      - run: bin/xcpkg info zlib license
 
       - run: bin/xcpkg depends zlib
       - run: bin/xcpkg depends curl
@@ -142,7 +142,7 @@ jobs:
 
       - run: xcpkg info zlib
       - run: xcpkg info zlib version
-      - run: xcpkg info zlib webpage
+      - run: xcpkg info zlib license
 
       - run: xcpkg depends zlib
       - run: xcpkg depends curl
