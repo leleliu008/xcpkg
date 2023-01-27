@@ -33,12 +33,12 @@ all relevant dirs and files are located in `~/.xcpkg` directory.
 
         xcpkg -V
         xcpkg --version
- 
+
 *   **show your system and [Xcode](https://developer.apple.com/xcode) toolchain information**
-   
+
         xcpkg env
 
- *   **integrate `zsh-completion` script**
+*   **integrate `zsh-completion` script**
 
         xcpkg integrate zsh
         xcpkg integrate zsh --output-dir=/usr/local/share/zsh/site-functions
@@ -214,7 +214,7 @@ all relevant dirs and files are located in `~/.xcpkg` directory.
 
         xcpkg formula-edit curl
         
-**Note:** xcpkg do NOT save your changes, that's to say, your changes may be lost after the formula repository is updated!
+    **Note:** xcpkg do NOT save your changes, that's to say, your changes may be lost after the formula repository is updated!
 
 *   **list the supported target platforms**
         
