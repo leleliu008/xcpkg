@@ -5586,7 +5586,10 @@ __setup_homebrew() {
     run install -d                         "$XCPKG_CORE_DIR/etc/ssl/certs"
     run cp "$SETUP_WORKING_DIR/cacert.pem" "$XCPKG_CORE_DIR/etc/ssl/certs"
 
-    printf 'export ACLOCAL_PATH=/usr/local/share/aclocal' > "$XCPKG_CORE_DIR/env"
+    cat > "$XCPKG_CORE_DIR/env" <<EOF
+XCPKG_USE_EXTERNAL_PM=uppm
+ACLOCAL_PATH=/usr/local/share/aclocal
+EOF
 }
 
 # use commands: uname curl tar gzip xz sed
@@ -5657,6 +5660,10 @@ __setup_uppm() {
     do
         run "$XCPKG_CORE_BIN_DIR/uppm install $item"
     done
+
+    cat > "$XCPKG_CORE_DIR/env" <<EOF
+XCPKG_USE_EXTERNAL_PM=uppm
+EOF
 }
 
 __is_core_tools_installed() {
