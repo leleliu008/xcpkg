@@ -5741,7 +5741,7 @@ ${COLOR_GREEN}xcpkg -V${COLOR_OFF}
     show version of this command.
 
 ${COLOR_GREEN}xcpkg env${COLOR_OFF}
-    show your system and toolchain information.
+    show your system and xcode toolchain information.
 
 ${COLOR_GREEN}xcpkg integrate zsh [-v]${COLOR_OFF}
     download a zsh-completion script file to a approprivate location.
@@ -5785,34 +5785,25 @@ ${COLOR_GREEN}xcpkg is-installed <PACKAGE-NAME>${COLOR_OFF}
 ${COLOR_GREEN}xcpkg is-outdated  <PACKAGE-NAME>${COLOR_OFF}
     check if the given package is outdated.
 
-${COLOR_GREEN}xcpkg search <KEYWORD>${COLOR_OFF}
+${COLOR_GREEN}xcpkg search <REGULAR-EXPRESS-PARTTEN>${COLOR_OFF}
     search all available packages whose name matches the given regular express partten.
 
-${COLOR_GREEN}xcpkg formula create <PACKAGE>${COLOR_OFF}
-    create a new formula.
-
-${COLOR_GREEN}xcpkg formula delete <PACKAGE>${COLOR_OFF}
-    delete a exist formula.
-
-${COLOR_GREEN}xcpkg formula rename <P1> <P2>${COLOR_OFF}
-    rename a exist formula to new name.
-
-${COLOR_GREEN}xcpkg formula view <PACKAGE>${COLOR_OFF}
+${COLOR_GREEN}xcpkg formula-view <PACKAGE>${COLOR_OFF}
     view the formula of the given package.
 
-${COLOR_GREEN}xcpkg formula edit <PACKAGE>${COLOR_OFF}
+${COLOR_GREEN}xcpkg formula-edit <PACKAGE>${COLOR_OFF}
     edit the formula of the given package.
 
-${COLOR_GREEN}xcpkg formula list${COLOR_OFF}
+${COLOR_GREEN}xcpkg formula-list${COLOR_OFF}
     list all formulas.
 
 ${COLOR_GREEN}xcpkg formula-repo [list]${COLOR_OFF}
     list all available formula repositories.
 
-${COLOR_GREEN}xcpkg formula-repo add <NAME> <URL>${COLOR_OFF}
+${COLOR_GREEN}xcpkg formula-repo-add <NAME> <URL>${COLOR_OFF}
     add a new formula-repo.
 
-${COLOR_GREEN}xcpkg formula-repo del <NAME>${COLOR_OFF}
+${COLOR_GREEN}xcpkg formula-repo-del <NAME>${COLOR_OFF}
     delete a exist formula-repo.
 
 ${COLOR_GREEN}xcpkg tree <PACKAGE> [--dirsfirst | -L N]${COLOR_OFF}
@@ -5824,10 +5815,10 @@ ${COLOR_GREEN}xcpkg pack <PACKAGE> [--type=zip|tar.gz|tar.xz|tar.lz|tar.bz2]${CO
 ${COLOR_GREEN}xcpkg logs <PACKAGE> <PLATFORM/ARCH>${COLOR_OFF}
     show logs of the given installed package.
 
-${COLOR_GREEN}xcpkg info <PACKAGE> [KEY|--json]${COLOR_OFF}
+${COLOR_GREEN}xcpkg info <PACKAGE> [KEY]${COLOR_OFF}
     show information of the given package.
 
-${COLOR_GREEN}xcpkg info @all [--json]${COLOR_OFF}
+${COLOR_GREEN}xcpkg info @all [--json|--yaml|--shell]${COLOR_OFF}
     show information of all the available packages.
 
 ${COLOR_GREEN}xcpkg fetch <PACKAGE>${COLOR_OFF}
@@ -5869,7 +5860,7 @@ main() {
         set -x
     fi
 
-    #[ "$(uname)" = 'Darwin' ] || die "this software can only be run on macOS."
+    [ "$(uname)" = 'Darwin' ] || die "this software can only be run on macOS."
 
     unset NATIVE_OS_KIND
     unset NATIVE_OS_TYPE
@@ -5879,9 +5870,9 @@ main() {
 
     NATIVE_OS_KIND=darwin
     NATIVE_OS_TYPE=macos
-    #NATIVE_OS_VERS="$(sw_vers -productVersion)"
+    NATIVE_OS_VERS="$(sw_vers -productVersion)"
     NATIVE_OS_ARCH="$(uname -m)"
-    #NATIVE_OS_NCPU="$(sysctl -n machdep.cpu.thread_count)"
+    NATIVE_OS_NCPU="$(sysctl -n machdep.cpu.thread_count)"
     NATIVE_OS_EUID="$(id -u)"
     NATIVE_OS_EGID="$(id -g)"
 
