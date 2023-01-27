@@ -81,6 +81,13 @@ bppend_to_PATH() {
     esac
 }
 
+bppend_to_ACLOCAL_PATH() {
+    case ":${ACLOCAL_PATH}:" in
+        *:"$1":*) ;;
+        *) export ACLOCAL_PATH="$1:$ACLOCAL_PATH" ;;
+    esac
+}
+
 # check if file exists
 # $1 FILEPATH
 file_exists() {
