@@ -2530,6 +2530,8 @@ __install_the_given_package() {
         run "$UPPM" env
         run "$UPPM" update
         run "$UPPM" install "$PACKAGE_DEP_UPP"
+
+        __setup_PATH_env
     }
 
     #########################################################################################
@@ -4294,19 +4296,35 @@ TARGET_PLATFORM_ARCH = $TARGET_PLATFORM_ARCH
         done
     done
 
-    echo
+    printf '%s\n'
+
+    printf 'PKG_CONFIG          = %s\n' "$PKG_CONFIG"
+
+    printf 'PKG_CONFIG_PATH     = '
+    __printf_colon_separated_list "$PKG_CONFIG_PATH"
+
+    printf '%s\n'
+
+    printf 'PKG_CONFIG_LIBDIR   = '
+    __printf_colon_separated_list "$PKG_CONFIG_LIBDIR"
+
+    printf '%s\n'
+
+    printf 'PKG_CONFIG_DEBUG_SPEW= %s\n\n' "$PKG_CONFIG_DEBUG_SPEW"
+
+    printf '    LD_LIBRARY_PATH = '
+    __printf_colon_separated_list "$LD_LIBRARY_PATH"
+
+    printf "\n%19s = " ACLOCAL_PATH
+    __printf_colon_separated_list "$ACLOCAL_PATH"
 
     printf "\n%19s = " PATH
-    FIRST=yes
-    for item in $(printf '%s\n' "$PATH" | tr ' ' '|' | tr ':' ' ')
-    do
-        if [ "$FIRST" = yes ] ; then
-            FIRST=no
-            printf '%s\n' "$item" | tr '|' ' '
-        else
-            printf '%s\n' "                      $item" | tr '|' ' '
-        fi
-    done
+    __printf_colon_separated_list "$PATH"
+
+    if [ "$PACKAGE_BUILD_SYSTEM_CMAKE" = yes ] ; then
+        printf '%s\n'
+        env | sed -n '/^CMAKE_/p'
+    fi
 
     if [ "$PACKAGE_BUILD_SYSTEM_CARGO" = yes ] ; then
         echo
@@ -4356,6 +4374,20 @@ EOF
         run export -p
         echo
     fi
+}
+
+__printf_colon_separated_list() {
+    FIRST=yes
+
+    for item in $(printf '%s\n' "$@" | tr ' ' '|' | tr ':' ' ')
+    do
+        if [ "$FIRST" = yes ] ; then
+            FIRST=no
+            printf '%s\n' "$item" | tr '|' ' '
+        else
+            printf '%s\n' "                      $item" | tr '|' ' '
+        fi
+    done
 }
 
 __create_cmake_toolchain_file_for_the_given_target() {
