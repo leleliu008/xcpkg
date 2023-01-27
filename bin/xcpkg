@@ -2423,13 +2423,13 @@ __config_native_toolchain_environment_variables() {
 __install_the_given_packages() {
     inspect_install_arguments $@
 
-    [ -z "$USER_SPECIFIED_PACKAGES" ] && {
+    [ -z "$USER_SPECIFIED_PACKAGE_LIST" ] && {
         error "$_0 install <PACKAGE-NAME>..., <PACKAGE-NAME> is not given."
         return 1
     }
 
     unset RECURSIVE_DEPENDENT_PACKAGES
-    RECURSIVE_DEPENDENT_PACKAGES="$(__get_packages_that_are_recursively_depended_by_the_given_packages $USER_SPECIFIED_PACKAGES)"
+    RECURSIVE_DEPENDENT_PACKAGES="$(__get_packages_that_are_recursively_depended_by_the_given_packages $USER_SPECIFIED_PACKAGE_LIST)"
 
     if [ $(list_length $RECURSIVE_DEPENDENT_PACKAGES) -gt 1 ] ; then
         RECURSIVE_DEPENDENT_PACKAGES="$(printf '%s\n' "$RECURSIVE_DEPENDENT_PACKAGES" | tr '\n' ' ')"
@@ -5291,7 +5291,7 @@ inspect_install_arguments() {
             *)  if [ "$1" = 'all' ] ; then
                     USER_SPECIFIED_PACKAGE_LIST="$(__list_available_packages)"
                 else
-                    if printf '%s\n' "$1" | grep -E '^[A-Za-z0-9+-._]{1,50}$' ; then
+                    if printf '%s\n' "$1" | grep -q -E '^[A-Za-z0-9+-._]{1,50}$' ; then
                         if [ -z "$USER_SPECIFIED_PACKAGE_LIST" ] ; then
                             USER_SPECIFIED_PACKAGE_LIST="$1"
                         else
