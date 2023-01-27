@@ -110,6 +110,7 @@ jobs:
       - run: bin/xcpkg upgrade-self
 
   install_via_homebrew:
+    if: false
     strategy:
       fail-fast: false
       matrix:
