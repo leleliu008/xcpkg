@@ -3032,10 +3032,10 @@ EOF
 
     if [ -d "$PACKAGE_INSTALL_DIR/lib" ] ; then
         step "adjust .la files for ${COLOR_GREEN}$@${COLOR_OFF}"
-        __adjust_la_files_for_the_given_target $@
+        __justfy_la_files_for_the_given_target $@
 
         step "adjust .pc files for ${COLOR_GREEN}$@${COLOR_OFF}"
-        __adjust_pc_files_for_the_given_target $@
+        __justfy_pc_files_for_the_given_target $@
     fi
 
     #########################################################################################
@@ -3058,7 +3058,7 @@ EOF
     __generate_receipt_of_the_given_package "$1"
 
     if [ "$PACKAGE_SYMLINK" = yes ] ; then
-        step "symlink installed files to $XCPKG_PACKAGE_SYMLINKED_DIR"
+        step "symlink installed files to $XCPKG_PACKAGE_SYMLINKED_ROOT"
         __symlink_installed_files_of_the_given_package "$1"
     fi
 
@@ -3579,8 +3579,8 @@ EOF
             fi
             ;;
         symlinked-files)
-            if [ -f "$XCPKG_PACKAGE_SYMLINKED_DIR/.registry/$1" ] ; then
-                cat "$XCPKG_PACKAGE_SYMLINKED_DIR/.registry/$1"
+            if [ -f "$XCPKG_PACKAGE_SYMLINKED_ROOT/.registry/$1" ] ; then
+                cat "$XCPKG_PACKAGE_SYMLINKED_ROOT/.registry/$1"
             fi
             ;;
         installed-dir)
@@ -3649,10 +3649,10 @@ mark_is_package_installed_or_not() {
     #         D)  ;;
     #         *)  case $Y in
     #                 share/info/dir) ;;
-    #                 *)  if [ -L "$XCPKG_PACKAGE_SYMLINKED_DIR/$Y" ] || [ -e "$XCPKG_PACKAGE_SYMLINKED_DIR/$Y" ] ; then
-    #                         die "$XCPKG_PACKAGE_SYMLINKED_DIR/$Y already exists."
+    #                 *)  if [ -L "$XCPKG_PACKAGE_SYMLINKED_ROOT/$Y" ] || [ -e "$XCPKG_PACKAGE_SYMLINKED_ROOT/$Y" ] ; then
+    #                         die "$XCPKG_PACKAGE_SYMLINKED_ROOT/$Y already exists."
     #                     # else
-    #                     #     echo "$XCPKG_PACKAGE_SYMLINKED_DIR/$Y"
+    #                     #     echo "$XCPKG_PACKAGE_SYMLINKED_ROOT/$Y"
     #                     fi
     #             esac
     #     esac
@@ -3660,11 +3660,11 @@ mark_is_package_installed_or_not() {
 
     # ############################################################################
 
-    if [ !      -d "$XCPKG_PACKAGE_SYMLINKED_DIR/.registry" ] ; then
-        install -d "$XCPKG_PACKAGE_SYMLINKED_DIR/.registry"
+    if [ !      -d "$XCPKG_PACKAGE_SYMLINKED_ROOT/.registry" ] ; then
+        install -d "$XCPKG_PACKAGE_SYMLINKED_ROOT/.registry"
     fi
 
-    exec 7> "$XCPKG_PACKAGE_SYMLINKED_DIR/.registry/$1"
+    exec 7> "$XCPKG_PACKAGE_SYMLINKED_ROOT/.registry/$1"
 
     while read -r item
     do
@@ -3673,13 +3673,13 @@ mark_is_package_installed_or_not() {
 
         case $X in
             d|D)
-                if [ !      -d "$XCPKG_PACKAGE_SYMLINKED_DIR/$Y" ] ; then
-                    install -d "$XCPKG_PACKAGE_SYMLINKED_DIR/$Y"
+                if [ !      -d "$XCPKG_PACKAGE_SYMLINKED_ROOT/$Y" ] ; then
+                    install -d "$XCPKG_PACKAGE_SYMLINKED_ROOT/$Y"
                 fi
                 ;;
             *)  case $Y in
                     share/info/dir) ;;
-                    *)  run ln -sfr "\"$XCPKG_PACKAGE_INSTALLED_DIR/$1/$Y\"" "\"$XCPKG_PACKAGE_SYMLINKED_DIR/$Y\""
+                    *)  run ln -sfr "\"$XCPKG_PACKAGE_INSTALLED_DIR/$1/$Y\"" "\"$XCPKG_PACKAGE_SYMLINKED_ROOT/$Y\""
                         printf '%s\n' "$Y" >&7
                 esac
         esac
@@ -5803,6 +5803,7 @@ main() {
     XCPKG_FORMULA_REPO_DIR="$XCPKG_HOME/repos.d"
 
     XCPKG_PACKAGE_INSTALLED_ROOT="$XCPKG_HOME/installed"
+    XCPKG_PACKAGE_SYMLINKED_ROOT="$XCPKG_HOME/symlinked"
 
     XCPKG_DOWNLOADS_DIR="$XCPKG_HOME/downloads"
 
