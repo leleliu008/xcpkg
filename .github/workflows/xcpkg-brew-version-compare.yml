@@ -2,19 +2,20 @@ name: xcpkg-brew-version-compare
 
 on:
   schedule:
-    - cron: '* 20 * * *'
+    - cron: '0 20 * * *'
 
 jobs:
   compare:
 
-    runs-on: macos-11
+    runs-on: macos-12
 
     steps:
       - run: brew update
+      - run: brew uninstall go@1.17
+      - run: brew install --overwrite python@3.10 python@3.11
 
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
-      - run: bin/xcpkg --help
       - run: bin/xcpkg env
       - run: bin/xcpkg update
-      - run: bin/xcpkg test
+      - run: bin/xcpkg version-compare brew

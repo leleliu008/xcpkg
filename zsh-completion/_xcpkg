@@ -5,8 +5,6 @@ _commands=(
     '--help:show help of this command.'
     '-V:show version of this command.'
     '--version:show version of this command.'
-    '--homedir:show home directory of this command.'
-    '--homepage:show home webpage of this command.'
     'search:search packages can be installed.'
     'ls-target-platforms:list the supportted platforms of target platforms.'
     'ls-target-versions:list the supportted versions of target platforms.'
@@ -21,7 +19,6 @@ _commands=(
     'is-outdated:is the given package outdated.'
     'tree:list files of the given installed package in a tree-like format.'
     'info:show infomation of the given package or all available packages.'
-    'rule:view, edit a rule or create a new rule.'
     'formula:create, delete, rename, view, edit the formula of the given package.'
     'formula-repo:add, delete, list the formula-repos.'
     'install:install packages.'
@@ -30,12 +27,12 @@ _commands=(
     'cleanup:cleanup the unused cache.'
     'update:update the formula repository.'
     'upgrade:upgrade the outdated packages.'
+    'upgrade-self:upgrade this software.'
     'fetch:download formula resources of the given package to the cache.'
     'homepage:show or open the homepage of the given package or this project.'
     'integrate:integrate zsh completions.'
     'env:show current machine os and xcode toolchain info.'
     'depends:show depends of the given package.'
-    'prefix:show the installation direcotory of the given package or the home dir of this project.'
     'pack:pack the given installed package.'
     'logs:show logs of the given installed package.'
     'create-framework:create framework for the given installed package.'
@@ -83,163 +80,129 @@ function _xcpkg() {
                         ':platform:($(xcpkg ls-target-platforms))' \
                         ':bit:(64bit 32bit all)'
                     ;;
-                ls-target-abis)
-                    _arguments '1:bit:(64bit 32bit all)'
-                    ;;
                 ls-target-triples)
                     _arguments '1:bit:(64bit 32bit all)'
                     ;;
-                formula-repo)
-                    _arguments \
-                        ':action:(add del list)' \
-                        '*:: :->action'
-                    case $state in
-                        action)
-                            case $words[1] in
-                                del) _arguments '1:repo-name:($(xcpkg formula-repo list | cut -d= -f1))' ;;
-                            esac
-                    esac
+                formula-repo-del)
+                    _arguments '1:repo-name:($(xcpkg formula-repo-list | sed -n "/name: /p" | cut -c7-))'
                     ;;
-                formula)
-                    _arguments \
-                        ':action:(create delete rename view edit list)' \
-                        '*:: :->action'
-                    case $state in
-                        action)
-                            case $words[1] in
-                                delete|rename|edit)
-                                    _arguments '1:package-name:_xcpkg_available_packages'
-                                    ;;
-                                view)
-                                    _arguments \
-                                        '1:package-name:_xcpkg_available_packages' \
-                                        '--paging=-[when use pager]:paging:(auto always never)'
-                                    ;;
-                            esac
-                    esac
-                    ;;
-                rule)
-                    _arguments \
-                        ':action:(create delete rename view edit list)' \
-                        '*:: :->action'
-                    case $state in
-                        action)
-                            case $words[1] in
-                                delete|rename|view|edit)
-                                    _arguments ':package-name:($(xcpkg rule list))'
-                            esac
-                    esac
+                integrate)
+                    _arguments '1:what:(zsh)'
                     ;;
                 info)
-                    _arguments \
-                        '1:package-name:(@all $(xcpkg ls-available))' \
-                        '*:: :->info-subcommand'
-                    case $state in
-                        info-subcommand)
-                            case $words[1] in
-                                @all) _arguments '--json[output format is json]' ;;
-                                *) _arguments '1:key:(summary webpage version license src.git src.url src.sum dep.cmd dep.pkg patches cdefine ccflags xxflags ldflags sourced binsrcd bsystem installed-dir installed-metadata installed-datetime-unix installed-datetime-formatted installed-pkg-version installed-files installed-abis --json)'
-                            esac
+                    case $words[3] in
+                        installed-*|receipt-*)
+                            _arguments \
+                                '1:package-name:()' \
+                                '2:key:(installed-dir installed-files receipt-path receipt-yaml receipt-json installed-timestamp-unix installed-timestamp-rfc-3339 installed-timestamp-iso-8601 installed-timestamp-rfc-3339-utc installed-timestamp-iso-8601-utc installed-version)'
+                            ;;
+                        *)  _arguments \
+                                '1:package-name:(@all $(xcpkg ls-available 2>/dev/null))' \
+                                '2:key:(formula-path formula-json formula-yaml summary version license web-url git-url git-sha src-url src-sha fix-url fix-sha res-url res-sha dep-pkg dep-upp dep-pym dep-plm cdefine ccflags xxflags ldflags bscript binbstd bsystem install symlink installed-dir installed-files receipt-path receipt-yaml receipt-json installed-timestamp-unix installed-timestamp-rfc-3339 installed-timestamp-rfc-3339-utc installed-timestamp-iso-8601 installed-timestamp-iso-8601-utc installed-version symlinked-files)'
                     esac
                     ;;
-                fetch|depends)
-                    _arguments ':package-name:_xcpkg_available_packages'
+                fetch)
+                    _arguments ':package-name:(@all $(xcpkg ls-available 2>/dev/null))'
                     ;;
-                prefix|create-framework)
-                    _arguments ':package-name:_xcpkg_installed_packages'
+                depends)
+                    _arguments \
+                        '1:package-name:_xcpkg_available_packages' \
+                        '--format=-[set output format]:format:(dot box svg png)'
                     ;;
                 pack)
                     _arguments \
                         '1:package-name:_xcpkg_installed_packages' \
-                        '--type=-[output file type]:type:(7z zip tar.gz tar.xz tar.bz2)'
-                    ;;
-                homepage)
-                    _arguments \
-                        ':package-name:_xcpkg_available_packages' \
-                        '--open[open in the web browser]'
+                        '--type=-[set output type]:output-type:(zip tar.gz tar.xz tar.lz tar.bz2)' \
+                        '--keep-packing-dir[do not delete packing dir even if succesully packed]'
                     ;;
                 tree)
                     _arguments \
                         '1:package-name:_xcpkg_installed_packages' \
-                        '-L[level]:level:(4)'
+                        '-a[show all files, including hidden ones]' \
+                        '--dirsfirst[list directories before files]' \
+                        '-L[level]:level:(3)'
                     ;;
                 logs)
                     _arguments \
-                        '1:package-name:_xcpkg_installed_packages' \
-                        '2:abi:($(xcpkg ls-target-abis $words[2]))' \
+                        '1:package-name:_xcpkg_installed_packages'
                     ;;
                 install)
                     _arguments \
-                        '1:package-name:_xcpkg_available_packages' \
-                        '--rule=-[rule to install]:rule:($(xcpkg rule list))' \
-                        '--jobs=-[set the number of jobs you can run in parallel with make]:jobs:(1 2 3 4 5 6 7 8 9)' \
+                        ':package-name:(@all $(xcpkg ls-available 2>/dev/null))' \
+                        '--toolchain=-[set which toolchain to use]:toolchain:(zig gcc llvm)' \
+                        '--jobs=-[set the number of jobs you can run in parallel]:jobs:(1 2 3 4 5 6 7 8 9)' \
                         '--dry-run[dry-run]' \
-                        '--keep-working-dir[do not delete working-dir even if installed success]' \
-                        '(--verbose -v)'{--verbose,-v}'[verbose output log]' \
-                        '(--debug -d)'{--debug,-d}'[debug]' \
-                        '(--xtrace -x)'{--xtrace,-x}'[trace execution of commands]' \
+                        '--keep-installing-dir[do not delete installing dir even if installed success]' \
                         '--build-type=-[set build type]:build-type:(debug release)' \
-                        '--link-type=-[link static or shared library]:link-type:(static-only shared-only static-prefered shared-prefgered)' \
+                        '--link-type=-[link static or shared library]:link-type:(static-only shared-only static-prefered shared-prefered)' \
                         '--install-lib=-[install static or shared library]:install-lib:(static shared both yes no)' \
                         '--install-exe[install executable programs]' \
                         '--install-doc[install documents]' \
                         '--install-man[install manpages]' \
-                        '--tree[list installed files in a tree-like format after installed successfully]' \
-                        '--pack[pack after installed successfully]' \
-                        '--tree-args=-[set arguments of tree]:tree-args:(--dirsfirst)' \
-                        '--pack-type=-[set output file type]:pack-type:(7z zip tar.gz tar.xz tar.bz2)'
+                        '--export-compile-commands-json[generates compile_commands.json]' \
+                        '--disable-ccache[do not use ccache]' \
+                        '--tree-args=-[set arguments of tree command]:tree-args:(--dirsfirst -a)' \
+                        '--strip-args=-[set arguments of strip command]:strip-args:(--strip-debug --strip-unneeded)' \
+                        + '(verbose_level)' \
+                        '-vv[debug mode. many many messages will be output to terminal]' \
+                        '-v[verbose mode. many messages will be output to terminal]' \
+                        '-q[silent mode. no any messages will be output to terminal]'
                     ;;
                 reinstall)
                     _arguments \
-                        '1:package-name:_xcpkg_installed_packages' \
-                        '--jobs=-[set the number of jobs you can run in parallel with make]:jobs:(1 2 3 4 5 6 7 8 9)' \
-                        '(--verbose -v)'{--verbose,-v}'[verbose output log]' \
-                        '(--debug -d)'{--debug,-d}'[debug]' \
-                        '(--xtrace -x)'{--xtrace,-x}'[trace execution of commands]'
+                        ':package-name:_xcpkg_installed_packages' \
+                        '--toolchain=-[set which toolchain to use]:toolchain:(zig gcc llvm)' \
+                        '--jobs=-[set the number of jobs you can run in parallel]:jobs:(1 2 3 4 5 6 7 8 9)' \
+                        '--dry-run[dry-run]' \
+                        '--keep-installing-dir[do not delete installing dir even if installed success]' \
+                        '--build-type=-[set build type]:build-type:(debug release)' \
+                        '--link-type=-[link static or shared library]:link-type:(static-only shared-only static-prefered shared-prefered)' \
+                        '--install-lib=-[install static or shared library]:install-lib:(static shared both yes no)' \
+                        '--install-exe[install executable programs]' \
+                        '--install-doc[install documents]' \
+                        '--install-man[install manpages]' \
+                        '--export-compile-commands-json[generates compile_commands.json]' \
+                        '--disable-ccache[do not use ccache]' \
+                        '--tree-args=-[set arguments of tree command]:tree-args:(--dirsfirst -a)' \
+                        '--strip-args=-[set arguments of strip command]:strip-args:(--strip-debug --strip-unneeded)' \
+                        + '(verbose_level)' \
+                        '-vv[debug mode. many many messages will be output to terminal]' \
+                        '-v[verbose mode. many messages will be output to terminal]' \
+                        '-q[silent mode. no any messages will be output to terminal]'
                     ;;
                 upgrade)
                     _arguments \
-                        '1:package-name:(@self $(xcpkg ls-outdated))' \
-                        '*:: :->upgrade-subcommand'
-                    case $state in
-                        upgrade-subcommand)
-                            case $words[1] in
-                                @self)
-                                    _arguments \
-                                        '-x[trace execution of commands]' \
-                                        '--china[use china mirror url]'
-                                    ;;
-                                *)
-                                    _arguments \
-                                        ':package-name:_xcpkg_outdated_packages' \
-                                        '--rule=-[rule to install]:rule:($(xcpkg rule list))' \
-                                        '--jobs=-[set the number of jobs you can run in parallel with make]:jobs:(1 2 3 4 5 6 7 8 9)' \
-                                        '(--verbose -v)'{--verbose,-v}'[verbose output log]' \
-                                        '(--debug -d)'{--debug,-d}'[debug]' \
-                                        '(--xtrace -x)'{--xtrace,-x}'[trace execution of commands]'
-                            esac
-                        esac
+                        ':package-name:_xcpkg_outdated_packages' \
+                        '--jobs=-[set the number of jobs you can run in parallel]:jobs:(1 2 3 4 5 6 7 8 9)' \
+                        '--dry-run[dry-run]' \
+                        '--keep-installing-dir[do not delete installing dir even if installed success]' \
+                        '--build-type=-[set build type]:build-type:(debug release)' \
+                        '--link-type=-[link static or shared library]:link-type:(static-only shared-only static-prefered shared-prefered)' \
+                        '--install-lib=-[install static or shared library]:install-lib:(static shared both yes no)' \
+                        '--install-exe[install executable programs]' \
+                        '--install-doc[install documents]' \
+                        '--install-man[install manpages]' \
+                        '--export-compile-commands-json[generates compile_commands.json]' \
+                        '--disable-ccache[do not use ccache]' \
+                        '--tree-args=-[set arguments of tree command]:tree-args:(--dirsfirst -a)' \
+                        '--strip-args=-[set arguments of strip command]:strip-args:(--strip-debug --strip-unneeded)' \
+                        + '(verbose_level)' \
+                        '-vv[debug mode. many many messages will be output to terminal]' \
+                        '-v[verbose mode. many messages will be output to terminal]' \
+                        '-q[silent mode. no any messages will be output to terminal]'
                     ;;
                 uninstall)
                     _arguments '*:package-name:_xcpkg_installed_packages'
                     ;;
                 is-available)
-                    _arguments \
-                        '1:package-name:_xcpkg_available_packages' \
-                        '2:condition-operator:(eq ne ge gt le lt)'
+                    _arguments '1:package-name:_xcpkg_available_packages'
                     ;;
                 is-installed)
-                    _arguments '1:package-name:_xcpkg_installed_packages';;
-                is-outdated)
-                    _arguments '1:package-name:_xcpkg_outdated_packages' ;;
-                integrate)
-                    _arguments ':what:(zsh)' ;;
-                gen-github-workflows)
-                    _arguments \
-                        '--group-size=-[set the group size]:group-size:(50 40 30 20)' \
-                        '--output-dir=-[set the output dir]:output-dir:{_files -/}'
+                    _arguments '1:package-name:_xcpkg_installed_packages'
                     ;;
-                *);;
+                is-outdated)
+                    _arguments '1:package-name:_xcpkg_outdated_packages'
+                    ;;
             esac
             ;;
         *);;

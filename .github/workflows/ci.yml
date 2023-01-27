@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-11, macos-10.15]
+        os: [macos-11, macos-12]
 
     runs-on: ${{ matrix.os }}
 
@@ -19,7 +19,7 @@ jobs:
       HOMEBREW_NO_INSTALL_CLEANUP: set
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - run: export -p
 
@@ -108,13 +108,13 @@ jobs:
 
       - run: bin/xcpkg fetch curl
 
-      - run: bin/xcpkg upgrade @self
+      - run: bin/xcpkg upgrade-self
 
   install_via_homebrew:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-11, macos-10.15]
+        os: [macos-11, macos-12]
 
     runs-on: ${{ matrix.os }}
 
@@ -208,4 +208,4 @@ jobs:
 
       - run: xcpkg fetch curl
 
-      - run: xcpkg upgrade @self
+      - run: xcpkg upgrade-self
