@@ -2931,6 +2931,8 @@ EOF
 
     #########################################################################################
 
+    step "building"
+
     if [ "$PACKAGE_BUILD_IN_BSCRIPT_DIR" = yes ] ; then
         if [ "$PWD" != "$PACKAGE_BSCRIPT_DIR" ] ; then
             run cd "$PACKAGE_BSCRIPT_DIR" || return 1
@@ -2942,10 +2944,6 @@ EOF
     if [ -d "$PACKAGE_INSTALL_DIR" ] ; then
         run rm -rf "$PACKAGE_INSTALL_DIR" || return 1
     fi
-
-    #########################################################################################
-
-    step "building"
 
     if [ -n "$PACKAGE_INSTALL_ACTIONS" ] ; then
         cat > "$PACKAGE_INSTALLING_TMP_DIR/install.sh" <<EOF
@@ -4249,7 +4247,7 @@ PACKAGE_INSTALL_DIR = $PACKAGE_INSTALL_DIR
      NATIVE_OS_EUID = $NATIVE_OS_EUID
      NATIVE_OS_EGID = $NATIVE_OS_EGID
 
-TARGET_PLATFORM_SPEC = $TARGET_PLATFORM_NAME
+TARGET_PLATFORM_SPEC = $TARGET_PLATFORM_SPEC
 TARGET_PLATFORM_NAME = $TARGET_PLATFORM_NAME
 TARGET_PLATFORM_VERS = $TARGET_PLATFORM_VERS
 TARGET_PLATFORM_ARCH = $TARGET_PLATFORM_ARCH
@@ -4726,6 +4724,8 @@ makew() {
 # https://cmake.org/cmake/help/latest/command/enable_testing.html?highlight=build_testing
 # run in a subshell
 cmakew() {
+    CMAKE=$(command -v cmake) || die "command not found: cmake"
+
     if [ "$STEP_MESSAGE" = 'build for native' ] ; then
         # https://cmake.org/cmake/help/latest/variable/CMAKE_FIND_DEBUG_MODE.html
         if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_DEBUG" ] ; then
@@ -4761,11 +4761,9 @@ cmakew() {
 
 # run in a subshell
 xmakew() {
-    XMAKE=$(command -v xmake)
+    XMAKE=$(command -v xmake) || die "command not found: xmake"
 
-    [ -z "$XMAKE" ] && die "command not found: xmake"
-
-    run xmake --version
+    run "$XMAKE" --version
 
     XMAKE_CONFIG_OPTIONS="$@"
 
