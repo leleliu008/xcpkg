@@ -2468,7 +2468,7 @@ __install_the_given_packages() {
     for INSTALLING_PACKAGE in $RECURSIVE_DEPENDENT_PACKAGES
     do
         if is_package_installed "$INSTALLING_PACKAGE" ; then
-            if [ "$VERBOSE_LEVEL" -gt 0 ] ; then
+            if [ "$LOG_LEVEL" -gt 0 ] ; then
                 printf "$COLOR_GREEN%-10s$COLOR_OFF already have been installed.\n" "$INSTALLING_PACKAGE"
             fi
         else
@@ -2527,9 +2527,9 @@ __install_the_given_package() {
     [ -n "$PACKAGE_DEP_UPP" ] && {
         step "install depentent tools via uppm"
 
-        run uppm env
-        run uppm update
-        run uppm install "$PACKAGE_DEP_UPP"
+        run "$UPPM" env
+        run "$UPPM" update
+        run "$UPPM" install "$PACKAGE_DEP_UPP"
     }
 
     #########################################################################################
@@ -3934,7 +3934,7 @@ __config_variables_for_the_given_target() {
      XXFLAGS="-isysroot $SYSROOT -arch $TARGET_PLATFORM_ARCH -m${TARGET_PLATFORM_NAME_LOWER_CASE}-version-min=$TARGET_PLATFORM_VERS -Qunused-arguments $XXFLAGS"
      LDFLAGS="-isysroot $SYSROOT -arch $TARGET_PLATFORM_ARCH -m${TARGET_PLATFORM_NAME_LOWER_CASE}-version-min=$TARGET_PLATFORM_VERS -Wl,-search_paths_first"
 
-    if [ "$VERBOSE_LEVEL" -ge 3 ] ; then
+    if [ "$LOG_LEVEL" -ge 3 ] ; then
         CCFLAGS="$CCFLAGS -v"
         XXFLAGS="$XXFLAGS -v"
         LDFLAGS="$LDFLAGS -Wl,-v"
@@ -5351,17 +5351,17 @@ inspect_install_arguments() {
             WatchOS|WatchSimulator)     TARGET_PLATFORM_VERS=5.0 ;;
             AppleTVOS|AppleTVSimulator) TARGET_PLATFORM_VERS=9.0 ;;
             MacOSX)                     TARGET_PLATFORM_VERS=$NATIVE_OS_VERS ;;
-            *)                          die "unsupported platform : $1."
+            *)                          die "unsupported platform : $TARGET_PLATFORM_NAME."
         esac
     fi
 
     if [ -z "$TARGET_PLATFORM_ARCH" ] ; then
         case $TARGET_PLATFORM_NAME in
             iPhoneOS|iPhoneSimulator)   TARGET_PLATFORM_ARCH=arm64 ;;
-            WatchOS|WatchSimulator)     TARGET_PLATFORM_VERS=arm64e ;;
-            AppleTVOS|AppleTVSimulator) TARGET_PLATFORM_VERS=arm64e ;;
-            MacOSX)                     TARGET_PLATFORM_VERS=$NATIVE_OS_ARCH ;;
-            *)                          die "unsupported platform : $1."
+            WatchOS|WatchSimulator)     TARGET_PLATFORM_ARCH=arm64e ;;
+            AppleTVOS|AppleTVSimulator) TARGET_PLATFORM_ARCH=arm64e ;;
+            MacOSX)                     TARGET_PLATFORM_ARCH=$NATIVE_OS_ARCH ;;
+            *)                          die "unsupported platform : $TARGET_PLATFORM_NAME."
         esac
     fi
 }
@@ -5450,8 +5450,8 @@ __setup_homebrew() {
     run ln -sf /usr/local/opt/bison/bin/bison  "$XCPKG_CORE_BIN_DIR/bison"
     run ln -sf /usr/local/opt/bison/bin/yacc   "$XCPKG_CORE_BIN_DIR/yacc"
 
-    printf '%s\n' '#!/bin/sh' > "$UPPM_COMMAND"
-    chmod +x                    "$UPPM_COMMAND"
+    printf '%s\n' '#!/bin/sh' > "$XCPKG_CORE_BIN_DIR/uppm"
+    chmod +x                    "$XCPKG_CORE_BIN_DIR/uppm"
 
     ##################################################################################
 
@@ -5528,13 +5528,11 @@ __setup_uppm() {
 
     export SSL_CERT_FILE="$XCPKG_CORE_DIR/etc/ssl/certs/cacert.pem"
 
-    run "$XCPKG_CORE_BIN_DIR/uppm env"
-    run "$XCPKG_CORE_BIN_DIR/uppm update"
+    UPPM="$XCPKG_CORE_BIN_DIR/uppm"
 
-    for item in bash coreutils util-linux findutils gawk gsed grep tree curl git zip unzip gtar gzip xz bzip2 lzip patch patchelf pkg-config yq
-    do
-        run "$XCPKG_CORE_BIN_DIR/uppm install $item"
-    done
+    run "$UPPM" env
+    run "$UPPM" update
+    run "$UPPM" install coreutils findutils gawk gsed grep tree curl git zip unzip gtar gzip xz bzip2 lzip pkg-config jq yq
 
     cat > "$XCPKG_CORE_DIR/env" <<EOF
 XCPKG_USE_EXTERNAL_PM=uppm
@@ -5790,6 +5788,8 @@ main() {
 
     XCPKG_CORE_DIR="$XCPKG_HOME/core"
     XCPKG_CORE_BIN_DIR="$XCPKG_CORE_DIR/bin"
+
+    UPPM="$XCPKG_CORE_BIN_DIR/uppm"
 
     unset TIMESTAMP_UNIX
 
