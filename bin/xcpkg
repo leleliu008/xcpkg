@@ -2096,10 +2096,10 @@ __show_packages_depended_by_the_given_package() {
     __gen_dependency_graph_recursively_depended_by_the_given_package "$PACKAGE_NAME" "$OUTPUT_FORMAT"
 }
 
-# __logs_the_given_installed_package <PACKAGE-NAME>
+# __logs_the_given_installed_package <PACKAGE-SPEC>
   __logs_the_given_installed_package() {
     [ -z "$1" ] && {
-        error "$_0 logs <PACKAGE-NAME>, <PACKAGE-NAME> is not given."
+        error "$_0 logs <PACKAGE-SPEC>, <PACKAGE-SPEC> is not given."
         return 1
     }
 
@@ -2109,9 +2109,9 @@ __show_packages_depended_by_the_given_package() {
         VIEWER=less
     fi
 
-    for item in $(ls "$MY_INSTALLED_DIR/$1/.xcpkg")
+    for item in $(ls "$XCPKG_PACKAGE_INSTALLED_ROOT/$1/.xcpkg")
     do
-        item="$MY_INSTALLED_DIR/$1/.xcpkg/$item"
+        item="$XCPKG_PACKAGE_INSTALLED_ROOT/$1/.xcpkg/$item"
 
         if [ -d "$item" ] ; then
             continue
@@ -2140,7 +2140,8 @@ __show_packages_depended_by_the_given_package() {
   __pack_the_given_installed_package() {
     __load_receipt_of_the_given_package "$1"
 
-    RECEIPT_PACKAGE_NAME="$(basename "$1")"
+    TARGET_PLATFORM_ARCH="$(printf '%s\n' "$1" | cut -d/ -f3)"
+    RECEIPT_PACKAGE_NAME="$(printf '%s\n' "$1" | cut -d/ -f4)"
 
     unset PACKED_FILETYPE
 
@@ -2169,7 +2170,7 @@ __show_packages_depended_by_the_given_package() {
         PACKED_FILETYPE='tar.xz'
     fi
 
-    PACKED_DIR_NAME="$RECEIPT_PACKAGE_NAME-$RECEIPT_PACKAGE_VERSION-$NATIVE_OS_TYPE-$NATIVE_OS_ARCH"
+    PACKED_DIR_NAME="$RECEIPT_PACKAGE_NAME-$RECEIPT_PACKAGE_VERSION-macos-$TARGET_PLATFORM_ARCH"
 
     PACKED_FILENAME="$PACKED_DIR_NAME.$PACKED_FILETYPE"
 
@@ -2181,7 +2182,7 @@ __show_packages_depended_by_the_given_package() {
     run cd $PACKING_DIR
 
     step "make link refer to installed package root dir"
-    run ln -s "$MY_INSTALLED_DIR/$RECEIPT_PACKAGE_NAME" "$PACKED_DIR_NAME"
+    run ln -s "$XCPKG_PACKAGE_INSTALLED_ROOT/$1" "$PACKED_DIR_NAME"
 
     step "packing"
     case $PACKED_FILETYPE in
@@ -4630,7 +4631,7 @@ configure() {
         do
             for file in $(find "$PACKAGE_BSCRIPT_DIR" -name "$item")
             do
-                CONFIG_XX="$MY_CACHED_SOURCE_DIR/config/$item"
+                CONFIG_XX="$XCPKG_DOWNLOADS_DIR/config/$item"
                 if [ ! -f "$CONFIG_XX" ] ; then
                     wfetch "$(config_url "$item")" --output-path="$CONFIG_XX" || return 1
                     run chmod a+x "$CONFIG_XX" || return 1
