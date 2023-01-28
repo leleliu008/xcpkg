@@ -5334,17 +5334,28 @@ inspect_install_arguments() {
             WatchOS|WatchSimulator)     TARGET_PLATFORM_VERS=5.0 ;;
             AppleTVOS|AppleTVSimulator) TARGET_PLATFORM_VERS=9.0 ;;
             MacOSX)                     TARGET_PLATFORM_VERS=$NATIVE_OS_VERS ;;
-            *)                          die "unsupported platform : $TARGET_PLATFORM_NAME."
+            *)                          die "unsupported platform : $TARGET_PLATFORM_NAME"
         esac
     fi
 
     if [ -z "$TARGET_PLATFORM_ARCH" ] ; then
         case $TARGET_PLATFORM_NAME in
-            iPhoneOS|iPhoneSimulator)   TARGET_PLATFORM_ARCH=arm64 ;;
-            WatchOS|WatchSimulator)     TARGET_PLATFORM_ARCH=arm64e ;;
-            AppleTVOS|AppleTVSimulator) TARGET_PLATFORM_ARCH=arm64e ;;
-            MacOSX)                     TARGET_PLATFORM_ARCH=$NATIVE_OS_ARCH ;;
-            *)                          die "unsupported platform : $TARGET_PLATFORM_NAME."
+            WatchOS)
+                TARGET_PLATFORM_ARCH=arm64_32
+                ;;
+            WatchSimulator)
+                TARGET_PLATFORM_ARCH=arm64
+                ;;
+            iPhoneOS|iPhoneSimulator)
+                TARGET_PLATFORM_ARCH=arm64
+                ;;
+            AppleTVOS|AppleTVSimulator)
+                TARGET_PLATFORM_ARCH=arm64
+                ;;
+            MacOSX)
+                TARGET_PLATFORM_ARCH=$NATIVE_OS_ARCH
+                ;;
+            *)  die "unsupported platform : $TARGET_PLATFORM_NAME"
         esac
     fi
 }

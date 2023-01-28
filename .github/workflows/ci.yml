@@ -93,7 +93,7 @@ jobs:
       - run: bin/xcpkg ls-installed
       - run: bin/xcpkg ls-outdated
 
-      - run: bin/xcpkg is-available MacOSX/10.15/x86_64/zlib
+      - run: bin/xcpkg is-available zlib
       - run: bin/xcpkg is-installed MacOSX/10.15/x86_64/zlib
       - run: bin/xcpkg is-outdated  MacOSX/10.15/x86_64/zlib || echo 'not outdated'
 
