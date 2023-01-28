@@ -5422,8 +5422,15 @@ __setup_homebrew() {
     run ln -sf /usr/local/opt/bison/bin/bison  "$XCPKG_CORE_BIN_DIR/bison"
     run ln -sf /usr/local/opt/bison/bin/yacc   "$XCPKG_CORE_BIN_DIR/yacc"
 
-    printf '%s\n' '#!/bin/sh' > "$XCPKG_CORE_BIN_DIR/uppm"
-    chmod +x                    "$XCPKG_CORE_BIN_DIR/uppm"
+    ##################################################################################
+
+    cat > "$XCPKG_CORE_BIN_DIR/uppm" <<EOF
+#!/bin/sh
+set -e
+exec brew "$@"
+EOF
+
+    chmod +x "$XCPKG_CORE_BIN_DIR/uppm"
 
     ##################################################################################
 
@@ -5432,6 +5439,8 @@ __setup_homebrew() {
 
     run install -d                         "$XCPKG_CORE_DIR/etc/ssl/certs"
     run cp "$SETUP_WORKING_DIR/cacert.pem" "$XCPKG_CORE_DIR/etc/ssl/certs"
+
+    ##################################################################################
 
     cat > "$XCPKG_CORE_DIR/env" <<EOF
 XCPKG_USE_EXTERNAL_PM=uppm
@@ -5779,7 +5788,7 @@ main() {
             ;;
         setup)
             shift
-            __setup
+            __setup $@
             return 0
             ;;
     esac
