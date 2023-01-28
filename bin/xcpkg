@@ -4697,6 +4697,10 @@ configure() {
 
 # make wrapper
 gmakew() {
+    GMAKE=$(command -v gmake || command -v make) || die "command not found: make"
+
+    run "$GMAKE" --version
+
     if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_DEBUG" ] ; then
         run "$GMAKE -w -j$BUILD_NJOBS --debug V=1 $*"
     else
