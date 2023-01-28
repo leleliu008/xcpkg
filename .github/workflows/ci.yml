@@ -48,27 +48,19 @@ jobs:
       - run: bin/xcpkg depends zlib
       - run: bin/xcpkg depends curl
 
-      - run: bin/xcpkg install zlib
+      - run: bin/xcpkg install zlib --target=MacOSX/10.15/x86_64
 
-      - run: bin/xcpkg info zlib
-      - run: bin/xcpkg info zlib installed-dir
-      - run: bin/xcpkg info zlib installed-metadata
-      - run: bin/xcpkg info zlib installed-files
-      - run: bin/xcpkg info zlib installed-abis
-      - run: bin/xcpkg info zlib installed-datetime-unix
-      - run: bin/xcpkg info zlib installed-datetime-formatted
-      - run: bin/xcpkg info zlib installed-pkg-version
+      - run: bin/xcpkg info MacOSX/10.15/x86_64/zlib installed-dir
+      - run: bin/xcpkg info MacOSX/10.15/x86_64/zlib installed-files
+      - run: bin/xcpkg info MacOSX/10.15/x86_64/zlib installed-timestamp-unix
+      - run: bin/xcpkg info MacOSX/10.15/x86_64/zlib installed-timestamp-iso-8601
+      - run: bin/xcpkg info MacOSX/10.15/x86_64/zlib installed-pkg-version
 
-      - run: bin/xcpkg tree zlib
-      - run: bin/xcpkg pack zlib
+      - run: bin/xcpkg tree MacOSX/10.15/x86_64/zlib
+      - run: bin/xcpkg pack MacOSX/10.15/x86_64/zlib
 
       - run: bin/xcpkg formula-repo list
       - run: bin/xcpkg formula view curl
-
-      - run: bin/xcpkg ls-target-abis
-      - run: bin/xcpkg ls-target-abis all
-      - run: bin/xcpkg ls-target-abis 32bit
-      - run: bin/xcpkg ls-target-abis 64bit
 
       - run: bin/xcpkg ls-target-archs
       - run: bin/xcpkg ls-target-archs MacOSX
@@ -99,11 +91,11 @@ jobs:
       - run: bin/xcpkg ls-installed
       - run: bin/xcpkg ls-outdated
 
-      - run: bin/xcpkg is-available zlib
-      - run: bin/xcpkg is-installed zlib
-      - run: bin/xcpkg is-outdated zlib || echo 'not outdated'
+      - run: bin/xcpkg is-available MacOSX/10.15/x86_64/zlib
+      - run: bin/xcpkg is-installed MacOSX/10.15/x86_64/zlib
+      - run: bin/xcpkg is-outdated  MacOSX/10.15/x86_64/zlib || echo 'not outdated'
 
-      - run: bin/xcpkg uninstall zlib
+      - run: bin/xcpkg uninstall MacOSX/10.15/x86_64/zlib
 
       - run: bin/xcpkg fetch curl
 

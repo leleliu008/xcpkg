@@ -2419,7 +2419,7 @@ __gen_dependency_graph_recursively_depended_by_the_given_package() {
 }
 
 __config_native_toolchain_environment_variables() {
-    for TOOLNAME in $(list_tools_in_the_toolchain)
+    for TOOLNAME in cc cxx cpp as ar ranlib ld nm strip size strings objdump
     do
         unset TOOLPATH
 
@@ -2440,7 +2440,7 @@ __config_native_toolchain_environment_variables() {
     unset TOOLNAME
     unset TOOLPATH
 
-    for FLAG in $(list_flags_used_by_tools_in_the_toolchain)
+    for FLAG in CFLAGS CXXFLAGS CPPFLAGS LDFLAGS
     do
         eval export "${FLAG}_FOR_BUILD=\"\$$FLAG\""
     done
@@ -2762,13 +2762,13 @@ __install_the_given_package() {
 
             echo
 
-            for TOOL in $(list_tools_in_the_toolchain | tr a-z A-Z)
+            for TOOL in CC CXX CPP AS AR RANLIB LD NM STRIP SIZE STRINGS OBJDUMP
             do
                 eval export "$TOOL=\"\$${TOOL}_FOR_BUILD\""
                 printf "%19s = %s\n" "$TOOL" "$(eval echo \$$TOOL)"
             done
 
-            for FLAG in $(list_flags_used_by_tools_in_the_toolchain)
+            for FLAG in CFLAGS CXXFLAGS CPPFLAGS LDFLAGS
             do
                 eval export "$FLAG=\"\$${FLAG}_FOR_BUILD\""
                 printf "\n%19s = " "$FLAG"
@@ -2819,7 +2819,7 @@ EOF
             fi
         fi
     else
-        note "no build0  function defined in formula, skipped."
+        note "no build0  mapping not found in formula, skipped."
     fi
 
     #########################################################################################
@@ -2883,14 +2883,14 @@ EOF
     else
         case $PACKAGE_BUILD_SYSTEM in
             autogen)
-                note "no prepare function defined in formula."
+                note "prepare mapping not found in formula."
                 run NOCONFIGURE=yes ./autogen.sh    || return 1
                 ;;
             autotools)
-                note "no prepare function defined in formula."
+                note "prepare mapping not found in formula."
                 run autoreconf -ivf || return 1
                 ;;
-            *)  note "no prepare function defined in formula, skipped."
+            *)  note "prepare mapping not found in formula, skipped."
         esac
     fi
 
@@ -3632,6 +3632,7 @@ mark_is_package_installed_or_not() {
 
 # __symlink_installed_files_of_the_given_package <PACKAGE-NAME>
   __symlink_installed_files_of_the_given_package() {
+      return 0
     # while read -r item
     # do
     #     X=$(printf '%s\n' "$item" | cut -d '|' -f1)
@@ -3880,9 +3881,9 @@ EOF
 __config_variables_for_the_given_target() {
     SYSROOT="$TOOLCHAIN_ROOT/Platforms/${TARGET_PLATFORM_NAME}.platform/Developer/SDKs/${TARGET_PLATFORM_NAME}.sdk"
 
-    TARGET_PLATFORM_NAME_LOWER_CASE="$(printf "$TARGET_PLATFORM_NAME" | awk '{print(tolower($0))}')"
+    TARGET_PLATFORM_NAME_LOWER_CASE="$(printf "$TARGET_PLATFORM_NAME" | tr A-Z a-z)"
 
-    for tool in $(list_tools_in_the_toolchain)
+    for tool in cc cxx cpp as ar ranlib ld nm strip size strings objdump
     do
         if [ "$tool" = 'cpp' ] ; then
             CPP="$CC -E"
@@ -3976,7 +3977,7 @@ __config_variables_for_the_given_target() {
     unset CMAKE_INCLUDE_PATH
     unset CMAKE_LIBRARY_PATH
 
-    for DEPENDENT_PACKAGE_NAME in $DEPENDENT_PACKAGE_LIST
+    for DEPENDENT_PACKAGE_NAME in $RECURSIVE_DEPENDENT_PACKAGES
     do
         DEPENDENT_PACKAGE_INSTALL_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$TARGET_PLATFORM_NAME/$TARGET_PLATFORM_VERS/$TARGET_PLATFORM_ARCH/$DEPENDENT_PACKAGE_NAME"
         DEPENDENT_PACKAGE_INCLUDE_DIR="$DEPENDENT_PACKAGE_INSTALL_DIR/include"
@@ -4024,8 +4025,8 @@ __config_variables_for_the_given_target() {
     unset DEPENDENT_PACKAGE_LIBRARY_DIR
     unset DEPENDENT_PACKAGE_PKGCONF_DIR
 
-    CPPFLAGS="-I$PACKAGE_WORKING_DIR/include -I$PACKAGE_WORKING_DIR $CPPFLAGS"
-     LDFLAGS="-L$PACKAGE_WORKING_DIR/lib     -L$PACKAGE_WORKING_DIR  $LDFLAGS"
+    CPPFLAGS="-I$PACKAGE_WORKING_DIR/include $CPPFLAGS"
+     LDFLAGS="-L$PACKAGE_WORKING_DIR/lib      $LDFLAGS"
 
     if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
         CCFLAGS="$CCFLAGS -v -Wl,-v"
@@ -4041,8 +4042,36 @@ __config_variables_for_the_given_target() {
 
     PKG_CONFIG_LIBDIR="$PKG_CONFIG_PATH"
 
-    # https://cmake.org/cmake/help/latest/manual/cmake-env-variables.7.html#manual:cmake-env-variables(7)
+    export   CFLAGS="$CCFLAGS"
+    export CXXFLAGS="$XXFLAGS"
+    export CPPFLAGS="$CPPFLAGS"
+    export  LDFLAGS="$LDFLAGS"
+
+    export       CC_FOR_BUILD="$CC"
+    export      CXX_FOR_BUILD="$CXX"
+    export      CPP_FOR_BUILD="$CPP"
+    export   CFLAGS_FOR_BUILD="$CFLAGS"
+    export CXXFLAGS_FOR_BUILD="$CXXFLAGS"
+    export CPPFLAGS_FOR_BUILD="$CPPFLAGS"
+    export  LDFLAGS_FOR_BUILD="$LDFLAGS"
+
+    unset PKG_CONFIG
+
+    PKG_CONFIG=$(command -v pkg-config || command -v pkgconf || true)
+
+    export PKG_CONFIG
+
+    unset M4
+
+    M4=$(command -v m4 || true)
+
+    export M4
+
+    ##################################################################################
+
     if [ "$PACKAGE_BUILD_SYSTEM_CMAKE" = yes ] ; then
+        # https://cmake.org/cmake/help/latest/manual/cmake-env-variables.7.html#manual:cmake-env-variables(7)
+
         unset CMAKE_PREFIX_PATH
         unset CMAKE_APPLE_SILICON_PROCESSOR
         unset CMAKE_BUILD_PARALLEL_LEVEL
@@ -4179,7 +4208,7 @@ __config_variables_for_the_given_target() {
         # this variable is not motioned in their document. you must read the source code of cmake-rs crate.
         export TARGET_CMAKE_TOOLCHAIN_FILE="$TARGET_CMAKE_TOOLCHAIN_FILE"
 
-        for item in $DEPENDENT_PACKAGE_LIST
+        for item in $RECURSIVE_DEPENDENT_PACKAGES
         do
             case $item in
                 openssl)
@@ -4190,6 +4219,8 @@ __config_variables_for_the_given_target() {
             esac
         done
     fi
+
+    ##################################################################################
 
     if [ "$PACKAGE_BUILD_SYSTEM_GO" = yes ] ; then
         # https://golang.org/doc/install/source#environment
@@ -4257,7 +4288,7 @@ TARGET_PLATFORM_ARCH = $TARGET_PLATFORM_ARCH
  SYSTEM_LIBRARY_DIR = $SYSTEM_LIBRARY_DIR
     "
 
-    for TOOL in $(list_tools_in_the_toolchain | tr a-z A-Z)
+    for TOOL in CC CXX CPP AS AR RANLIB LD NM STRIP SIZE STRINGS OBJDUMP
     do
         eval export "$TOOL=\"\$$TOOL\""
         printf "%19s = %s\n" "$TOOL" "$(eval echo \$$TOOL)"
@@ -4265,7 +4296,7 @@ TARGET_PLATFORM_ARCH = $TARGET_PLATFORM_ARCH
 
     echo
 
-    for TOOL in $(list_tools_in_the_toolchain | tr a-z A-Z)
+    for TOOL in CC CXX CPP AS AR RANLIB LD NM STRIP SIZE STRINGS OBJDUMP
     do
         eval export "${TOOL}_FOR_BUILD=\"\$${TOOL}_FOR_BUILD\""
         printf "%19s = %s\n" "${TOOL}_FOR_BUILD" "$(eval echo \$${TOOL}_FOR_BUILD)"
@@ -4273,7 +4304,7 @@ TARGET_PLATFORM_ARCH = $TARGET_PLATFORM_ARCH
 
     echo
 
-    for FLAG in $(list_flags_used_by_tools_in_the_toolchain)
+    for FLAG in CFLAGS CXXFLAGS CPPFLAGS LDFLAGS
     do
         eval export "$FLAG=\"\$$FLAG\""
         printf "\n%19s = " "$FLAG"
@@ -5146,18 +5177,6 @@ print_target_triple_by_arch() {
     fi
 }
 
-print_target_arch_by_abi() {
-    echo "$1" | cut -d/ -f2
-}
-
-list_tools_in_the_toolchain() {
-    list cc cxx cpp as ar ranlib ld nm strip size strings objdump
-}
-
-list_flags_used_by_tools_in_the_toolchain() {
-    list CFLAGS CXXFLAGS CPPFLAGS LDFLAGS PKG_CONFIG_PATH PKG_CONFIG_LIBDIR
-}
-
 path_of_tool_in_the_toolchain() {
     unset TOOL_PATH
     case $1 in
@@ -5222,7 +5241,7 @@ __create_framework_for_the_given_package() {
     if command -v create_framework > /dev/null ; then
         create_framework
     else
-        die "create_framework function is not declared in formula $MY_FORMULA_DIR/$1.yml"
+        die "create_framework mapping not found in formula $MY_FORMULA_DIR/$1.yml"
     fi
 }
 
