@@ -5399,7 +5399,7 @@ __setup_homebrew() {
     }
 
     run brew update
-    run brew install bash coreutils findutils gawk gsed grep tree unzip zip gnu-tar gzip lzip gpatch patchelf pkg-config golang jq yq git curl cmake xmake ninja make libtool nasm yasm flex bison m4
+    run brew install coreutils findutils gawk gsed grep tree unzip zip gnu-tar gzip lzip patchelf pkg-config jq yq git curl
 
     run ln -sf /usr/local/bin/gln      "$XCPKG_CORE_BIN_DIR/ln"
     run ln -sf /usr/local/bin/gtar     "$XCPKG_CORE_BIN_DIR/tar"
@@ -5407,20 +5407,20 @@ __setup_homebrew() {
     run ln -sf /usr/local/bin/gawk     "$XCPKG_CORE_BIN_DIR/awk"
     run ln -sf /usr/local/bin/ggrep    "$XCPKG_CORE_BIN_DIR/grep"
     run ln -sf /usr/local/bin/gfind    "$XCPKG_CORE_BIN_DIR/find"
-    run ln -sf /usr/local/bin/gmake    "$XCPKG_CORE_BIN_DIR/make"
+    #run ln -sf /usr/local/bin/gmake    "$XCPKG_CORE_BIN_DIR/make"
     run ln -sf /usr/local/bin/gbase64  "$XCPKG_CORE_BIN_DIR/base64"
     run ln -sf /usr/local/bin/gunlink  "$XCPKG_CORE_BIN_DIR/unlink"
     run ln -sf /usr/local/bin/ginstall "$XCPKG_CORE_BIN_DIR/install"
     run ln -sf /usr/local/bin/gsha256sum "$XCPKG_CORE_BIN_DIR/sha256sum"
 
-    run ln -sf /usr/local/opt/m4/bin/m4        "$XCPKG_CORE_BIN_DIR/m4"
+    #run ln -sf /usr/local/opt/m4/bin/m4        "$XCPKG_CORE_BIN_DIR/m4"
 
-    run ln -sf /usr/local/opt/flex/bin/lex     "$XCPKG_CORE_BIN_DIR/lex"
-    run ln -sf /usr/local/opt/flex/bin/flex    "$XCPKG_CORE_BIN_DIR/flex"
-    run ln -sf /usr/local/opt/flex/bin/flex++  "$XCPKG_CORE_BIN_DIR/flex++"
+    #run ln -sf /usr/local/opt/flex/bin/lex     "$XCPKG_CORE_BIN_DIR/lex"
+    #run ln -sf /usr/local/opt/flex/bin/flex    "$XCPKG_CORE_BIN_DIR/flex"
+    #run ln -sf /usr/local/opt/flex/bin/flex++  "$XCPKG_CORE_BIN_DIR/flex++"
 
-    run ln -sf /usr/local/opt/bison/bin/bison  "$XCPKG_CORE_BIN_DIR/bison"
-    run ln -sf /usr/local/opt/bison/bin/yacc   "$XCPKG_CORE_BIN_DIR/yacc"
+    #run ln -sf /usr/local/opt/bison/bin/bison  "$XCPKG_CORE_BIN_DIR/bison"
+    #run ln -sf /usr/local/opt/bison/bin/yacc   "$XCPKG_CORE_BIN_DIR/yacc"
 
     ##################################################################################
 
