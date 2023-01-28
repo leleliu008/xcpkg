@@ -1912,8 +1912,6 @@ __reinstall_the_given_packages() {
         die_if_package_is_not_installed "$packageName"
     done
 
-    __config_native_toolchain_environment_variables
-
     for PACKAGE_NAME in $USER_SPECIFIED_PACKAGE_LIST
     do
         [ -d "$XCPKG_BACKUP_DIR" ] || {
@@ -1940,8 +1938,6 @@ __upgrade_packages() {
         die_if_package_is_not_available "$packageName"
         die_if_package_is_not_installed "$packageName"
     done
-
-    __config_native_toolchain_environment_variables
 
     for PACKAGE_NAME in $USER_SPECIFIED_PACKAGE_LIST
     do
@@ -2366,35 +2362,6 @@ __gen_dependency_graph_recursively_depended_by_the_given_package() {
             run dot -Tpng "$GEN_DEPENDENCY_GRAPH_DOT_FILEPATH"
             ;;
     esac
-}
-
-__config_native_toolchain_environment_variables() {
-    for TOOLNAME in cc cxx cpp as ar ranlib ld nm strip size strings objdump
-    do
-        unset TOOLPATH
-
-        case $TOOLNAME in
-            cc)  TOOLPATH="$(command -v cc  || command -v gcc || command -v clang   || true)" ;;
-            cxx) TOOLPATH="$(command -v c++ || command -v g++ || command -v clang++ || true)" ;;
-            *)   TOOLPATH="$(command -v "$TOOLNAME" || true)"
-        esac
-
-        unset TOOLNAME_UPPERCASE
-        TOOLNAME_UPPERCASE=$(printf '%s\n' "$TOOLNAME" | tr a-z A-Z)
-
-        eval export "${TOOLNAME_UPPERCASE}='$TOOLPATH'"
-        eval export "${TOOLNAME_UPPERCASE}_FOR_BUILD='$TOOLPATH'"
-    done
-
-    unset TOOLNAME_UPPERCASE
-    unset TOOLNAME
-    unset TOOLPATH
-
-    for FLAG in CFLAGS CXXFLAGS CPPFLAGS LDFLAGS
-    do
-        eval export "${FLAG}_FOR_BUILD=\"\$$FLAG\""
-    done
-    unset FLAG
 }
 
 __install_the_given_packages() {
@@ -3024,7 +2991,7 @@ EOF
     success "$1 have been successfully installed."
 
     step "show installed files in tree-like format"
-    __tree_the_given_installed_package "$1"
+    __tree_the_given_installed_package "$1" -a --dirsfirst
 }
 
 __adjust_mach_o_files_for_the_given_target() {
@@ -3873,6 +3840,16 @@ __config_variables_for_the_given_target() {
 
     ##################################################################################
 
+    export       CC_FOR_BUILD="$TOOLCHAIN_BIND/clang"
+    export      CXX_FOR_BUILD="$TOOLCHAIN_BIND/clang++"
+    export      CPP_FOR_BUILD="$TOOLCHAIN_BIND/clang -E"
+    export   CFLAGS_FOR_BUILD="-isysroot $TOOLCHAIN_ROOT/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -mmacosx-version-min=$NATIVE_OS_VERS -arch $NATIVE_OS_ARCH -Qunused-arguments"
+    export CXXFLAGS_FOR_BUILD="-isysroot $TOOLCHAIN_ROOT/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -mmacosx-version-min=$NATIVE_OS_VERS -arch $NATIVE_OS_ARCH -Qunused-arguments"
+    export CPPFLAGS_FOR_BUILD="-isysroot $TOOLCHAIN_ROOT/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -Qunused-arguments"
+    export  LDFLAGS_FOR_BUILD="-isysroot $TOOLCHAIN_ROOT/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -mmacosx-version-min=$NATIVE_OS_VERS -arch $NATIVE_OS_ARCH"
+
+    ##################################################################################
+
     CPPFLAGS="-isysroot $SYSROOT -Qunused-arguments $CPPFLAGS"
      CCFLAGS="-isysroot $SYSROOT -arch $TARGET_PLATFORM_ARCH -m${TARGET_PLATFORM_NAME_LOWER_CASE}-version-min=$TARGET_PLATFORM_VERS -Qunused-arguments $CCFLAGS"
      XXFLAGS="-isysroot $SYSROOT -arch $TARGET_PLATFORM_ARCH -m${TARGET_PLATFORM_NAME_LOWER_CASE}-version-min=$TARGET_PLATFORM_VERS -Qunused-arguments $XXFLAGS"
@@ -3996,14 +3973,6 @@ __config_variables_for_the_given_target() {
     export CXXFLAGS="$XXFLAGS"
     export CPPFLAGS="$CPPFLAGS"
     export  LDFLAGS="$LDFLAGS"
-
-    export       CC_FOR_BUILD="$CC"
-    export      CXX_FOR_BUILD="$CXX"
-    export      CPP_FOR_BUILD="$CPP"
-    export   CFLAGS_FOR_BUILD="$CFLAGS"
-    export CXXFLAGS_FOR_BUILD="$CXXFLAGS"
-    export CPPFLAGS_FOR_BUILD="$CPPFLAGS"
-    export  LDFLAGS_FOR_BUILD="$LDFLAGS"
 
     unset PKG_CONFIG
 
