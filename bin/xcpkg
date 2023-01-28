@@ -4690,13 +4690,13 @@ configure() {
         unset Makefile
     fi
 
-    makew clean &&
-    makew       &&
-    makew install
+    gmakew clean &&
+    gmakew       &&
+    gmakew install
 }
 
 # make wrapper
-makew() {
+gmakew() {
     if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_DEBUG" ] ; then
         run "$GMAKE -w -j$BUILD_NJOBS --debug V=1 $*"
     else
