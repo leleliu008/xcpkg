@@ -1705,27 +1705,24 @@ is_package_available() {
     esac
 }
 
-# is_package_installed <PACKAGE-NAME> <PLATFORM-NAME> <PLATFORM-VERS> <PLATFORM-ARCH>
+# is_package_installed <PACKAGE-SPEC>
   is_package_installed() {
     [ -z "$1" ] && {
-        error "is_package_installed <PACKAGE-NAME>, <PACKAGE-NAME> is not given."
+        error "is_package_installed <PACKAGE-SPEC>, <PACKAGE-SPEC> is not given."
         return 1
     }
 
-    [ -d "$XCPKG_PACKAGE_INSTALLED_DIR/$1" ]                    || return 10
-    [ -d "$XCPKG_PACKAGE_INSTALLED_DIR/$1/.xcpkg" ]              || return 11
-    [ -f "$XCPKG_PACKAGE_INSTALLED_DIR/$1/.xcpkg/buildon.yml" ]  || return 12
-    [ -f "$XCPKG_PACKAGE_INSTALLED_DIR/$1/.xcpkg/manifest.txt" ] || return 13
-    [ -f "$XCPKG_PACKAGE_INSTALLED_DIR/$1/.xcpkg/receipt.yml" ]  || return 14
+    [ -f "$XCPKG_PACKAGE_INSTALLED_ROOT/$1/.xcpkg/buildon.yml" ]  || return 12
+    [ -f "$XCPKG_PACKAGE_INSTALLED_ROOT/$1/.xcpkg/manifest.txt" ] || return 13
+    [ -f "$XCPKG_PACKAGE_INSTALLED_ROOT/$1/.xcpkg/receipt.yml" ]  || return 14
 }
 
+# is_package__outdated <PACKAGE-SPEC>
+  is_package__outdated() {
+    __load_formula_of_the_given_package "$(basename "$1")"
+    __load_receipt_of_the_given_package "$1"
 
-is_package__outdated() {
-    __load_formula_of_the_given_package "$1"
-
-    __load_installed_metadata_of_the_given_package "$1"
-
-    version_match "$PACKAGE_VERSION" gt "$INSTALLED_PKG_VERS"
+    version_match "$PACKAGE_VERSION" gt "$INSTALLED_PACKAGE_VERSION"
 }
 
 __gen_github_workflows() {
@@ -1881,9 +1878,9 @@ __list__outdated_packages() {
     done
 }
 
-__tree_the_given_installed_package() {
+# __tree_the_given_installed_package <PACKAGE-SPEC>
+  __tree_the_given_installed_package() {
     die_if_package_is_not_installed "$1"
-    handle_dependency required exe tree
     run tree $(shiftn 1 $@) "$XCPKG_PACKAGE_INSTALLED_ROOT/$1"
 }
 
@@ -1896,7 +1893,8 @@ __uninstall_the_given_packages() {
     done
 }
 
-__uninstall_the_given_package() {
+# __uninstall_the_given_package <PACKAGE-SPEC>
+  __uninstall_the_given_package() {
     die_if_package_is_not_installed "$1"
 
     run rm -rf "$XCPKG_PACKAGE_INSTALLED_ROOT/$1"
@@ -1915,17 +1913,17 @@ __reinstall_the_given_packages() {
 
     __config_native_toolchain_environment_variables
 
-    for INSTALLING_PACKAGE in $USER_SPECIFIED_PACKAGE_LIST
+    for PACKAGE_NAME in $USER_SPECIFIED_PACKAGE_LIST
     do
         [ -d "$XCPKG_BACKUP_DIR" ] || {
             install -d "$XCPKG_BACKUP_DIR" || return 1
         }
 
-        mv "$XCPKG_PACKAGE_INSTALLED_ROOT/$INSTALLING_PACKAGE" "$XCPKG_BACKUP_DIR/$INSTALLING_PACKAGE" || return 1
+        mv "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_NAME" "$XCPKG_BACKUP_DIR/$PACKAGE_NAME" || return 1
 
-        (__install_the_given_package "$INSTALLING_PACKAGE") || return 1
+        (__install_the_given_package "$PACKAGE_NAME") || return 1
 
-        rm -rf "$XCPKG_BACKUP_DIR/$INSTALLING_PACKAGE" || return 1
+        rm -rf "$XCPKG_BACKUP_DIR/$PACKAGE_NAME" || return 1
     done
 }
 
@@ -1944,17 +1942,17 @@ __upgrade_packages() {
 
     __config_native_toolchain_environment_variables
 
-    for INSTALLING_PACKAGE in $USER_SPECIFIED_PACKAGE_LIST
+    for PACKAGE_NAME in $USER_SPECIFIED_PACKAGE_LIST
     do
         [ -d "$XCPKG_BACKUP_DIR" ] || {
             install -d "$XCPKG_BACKUP_DIR" || return 1
         }
 
-        mv "$XCPKG_PACKAGE_INSTALLED_ROOT/$INSTALLING_PACKAGE" "$XCPKG_BACKUP_DIR/$INSTALLING_PACKAGE" || return 1
+        mv "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_NAME" "$XCPKG_BACKUP_DIR/$PACKAGE_NAME" || return 1
 
-        (__install_the_given_package "$INSTALLING_PACKAGE") || return 1
+        (__install_the_given_package "$PACKAGE_NAME") || return 1
 
-        rm -rf "$XCPKG_BACKUP_DIR/$INSTALLING_PACKAGE" || return 1
+        rm -rf "$XCPKG_BACKUP_DIR/$PACKAGE_NAME" || return 1
     done
 }
 
@@ -2465,14 +2463,16 @@ __install_the_given_packages() {
         printf '%b\n' "$COLOR_PURPLE==>$COLOR_OFF to install$COLOR_GREEN $RECURSIVE_DEPENDENT_PACKAGES $COLOR_OFF\n"
     fi
 
-    for INSTALLING_PACKAGE in $RECURSIVE_DEPENDENT_PACKAGES
+    for PACKAGE_NAME in $RECURSIVE_DEPENDENT_PACKAGES
     do
-        if is_package_installed "$INSTALLING_PACKAGE" ; then
+        PACKAGE_SPEC="$TARGET_PLATFORM_NAME/$TARGET_PLATFORM_VERS/$TARGET_PLATFORM_ARCH/$PACKAGE_NAME"
+
+        if is_package_installed "$PACKAGE_SPEC" ; then
             if [ "$LOG_LEVEL" -gt 0 ] ; then
-                printf "$COLOR_GREEN%-10s$COLOR_OFF already have been installed.\n" "$INSTALLING_PACKAGE"
+                printf "$COLOR_GREEN%-10s$COLOR_OFF already have been installed.\n" "$PACKAGE_SPEC"
             fi
         else
-            (__install_the_given_package "$INSTALLING_PACKAGE") || die "package [$INSTALLING_PACKAGE] install failed"
+            (__install_the_given_package "$PACKAGE_SPEC") || die "package [$PACKAGE_SPEC] install failed"
         fi
     done
 }
@@ -2486,22 +2486,15 @@ __install_the_given_package() {
     # beacuse previous package's work direcotory is deleted.
     cd ~
 
-    unset PACKAGE_WORKING_DIR
-    unset PACKAGE_SRC_DIR
-    unset PACKAGE_BSCRIPT_DIR
-
-    unset NATIVE_BCACHED_DIR
-    unset NATIVE_INSTALL_DIR
-
     unset CONFIG_XX_UPDATED
 
     __setup_PATH_env
 
     step "view formula"
-    __view_formula_of_the_given_package "$1" --paging=never
+    __view_formula_of_the_given_package "$PACKAGE_NAME" --paging=never
 
     step "load formula"
-    __load_formula_of_the_given_package "$1"
+    __load_formula_of_the_given_package "$PACKAGE_NAME"
 
     #########################################################################################
 
@@ -2595,9 +2588,9 @@ __install_the_given_package() {
 
     #########################################################################################
 
-    PACKAGE_INSTALL_DIR="$XCPKG_HOME/installed/$TARGET_PLATFORM_NAME/$TARGET_PLATFORM_VERS/$TARGET_PLATFORM_ARCH/$1"
+    PACKAGE_INSTALL_DIR="$XCPKG_HOME/installed/$1"
 
-    PACKAGE_WORKING_DIR="$XCPKG_HOME/installing/$TARGET_PLATFORM_NAME/$TARGET_PLATFORM_VERS/$TARGET_PLATFORM_ARCH/$1"
+    PACKAGE_WORKING_DIR="$XCPKG_HOME/installing/$1"
 
     PACKAGE_INSTALLING_SRC_DIR="$PACKAGE_WORKING_DIR/src"
     PACKAGE_INSTALLING_FIX_DIR="$PACKAGE_WORKING_DIR/fix"
@@ -2857,7 +2850,7 @@ EOF
 
         for DEPENDENT_PACKAGE_NAME in $RECURSIVE_DEPENDENT_PACKAGES
         do
-            DEPENDENT_PACKAGE_INSTALLED_LIBRARY_DIR="$XCPKG_PACKAGE_INSTALLED_DIR/$DEPENDENT_PACKAGE_NAME/lib"
+            DEPENDENT_PACKAGE_INSTALLED_LIBRARY_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$DEPENDENT_PACKAGE_NAME/lib"
             if [ -d "$DEPENDENT_PACKAGE_INSTALLED_LIBRARY_DIR" ] ; then
                 for item in $(find "$DEPENDENT_PACKAGE_INSTALLED_LIBRARY_DIR" -maxdepth 1 -mindepth 1 -name "lib*.$LINK_LIBRARY_TYPE" -exec basename {} \;)
                 do
@@ -3502,7 +3495,7 @@ EOF
             ;;
         receipt-yaml)
             if is_package_installed "$1" ; then
-                cat "$XCPKG_PACKAGE_INSTALLED_DIR/$1/.xcpkg/receipt.yml"
+                cat "$XCPKG_PACKAGE_INSTALLED_ROOT/$1/.xcpkg/receipt.yml"
             else
                 error "package [$1] is not installed."
                 return 1
@@ -3572,7 +3565,7 @@ EOF
             ;;
         receipt-path)
             if is_package_installed "$1" ; then
-                printf '%s\n' "$XCPKG_PACKAGE_INSTALLED_DIR/$1/.xcpkg/receipt.yml"
+                printf '%s\n' "$XCPKG_PACKAGE_INSTALLED_ROOT/$1/.xcpkg/receipt.yml"
             else
                 error "package [$1] is not installed."
                 return 1
@@ -3585,7 +3578,7 @@ EOF
             ;;
         installed-dir)
             if is_package_installed "$1" ; then
-                printf '%s\n' "$XCPKG_PACKAGE_INSTALLED_DIR/$1"
+                printf '%s\n' "$XCPKG_PACKAGE_INSTALLED_ROOT/$1"
             else
                 error "package [$1] is not installed."
                 return 1
@@ -3593,7 +3586,7 @@ EOF
             ;;
         installed-files)
             if is_package_installed "$1" ; then
-                cut -d '|' -f3 "$XCPKG_PACKAGE_INSTALLED_DIR/$1/.xcpkg/manifest.txt"
+                cut -d '|' -f3 "$XCPKG_PACKAGE_INSTALLED_ROOT/$1/.xcpkg/manifest.txt"
             else
                 error "package [$1] is not installed."
                 return 1
@@ -3679,7 +3672,7 @@ mark_is_package_installed_or_not() {
                 ;;
             *)  case $Y in
                     share/info/dir) ;;
-                    *)  run ln -sfr "\"$XCPKG_PACKAGE_INSTALLED_DIR/$1/$Y\"" "\"$XCPKG_PACKAGE_SYMLINKED_ROOT/$Y\""
+                    *)  run ln -sfr "\"$XCPKG_PACKAGE_INSTALLED_ROOT/$1/$Y\"" "\"$XCPKG_PACKAGE_SYMLINKED_ROOT/$Y\""
                         printf '%s\n' "$Y" >&7
                 esac
         esac
@@ -3825,7 +3818,7 @@ EOF
 
     #######################################################################################################
 
-    PACKAGE_INSTALLED_DIR="$XCPKG_PACKAGE_INSTALLED_DIR/$1"
+    PACKAGE_INSTALLED_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$1"
     PACKAGE_RECEIPT_FILEPATH="$PACKAGE_INSTALLED_DIR/.xcpkg/receipt.yml"
 
     unset PACKAGE_RECEIPT_SIGNATURE
