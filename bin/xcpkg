@@ -2135,12 +2135,12 @@ __show_packages_depended_by_the_given_package() {
 }
 
 # examples:
-# __pack_the_given_installed_package <PACKAGE-NAME> [--type=TYPE] [--keep-packing-dir]
+# __pack_the_given_installed_package <PACKAGE-SPEC> [--type=TYPE] [--keep-packing-dir]
 # __pack_the_given_installed_package    autoconf     --type=tar.xz
   __pack_the_given_installed_package() {
     __load_receipt_of_the_given_package "$1"
 
-    RECEIPT_PACKAGE_NAME="$1"
+    RECEIPT_PACKAGE_NAME="$(basename "$1")"
 
     unset PACKED_FILETYPE
 
@@ -2169,59 +2169,7 @@ __show_packages_depended_by_the_given_package() {
         PACKED_FILETYPE='tar.xz'
     fi
 
-    if [ "$NATIVE_OS_KIND" = 'darwin' ] ; then
-        NATIVE_OS_KIND=macos
-    fi
-
-    PACKED_FILENAME_NEED_CONTAIN_LIBC_NAME=no
-
-    if [ "$NATIVE_OS_KIND" = linux ] ; then
-        if [ -d "$MY_INSTALLED_DIR/$RECEIPT_PACKAGE_NAME/lib" ] ; then
-            for FILEPATH in $(find "$MY_INSTALLED_DIR/$RECEIPT_PACKAGE_NAME/lib" -type f)
-            do
-                case $FILEPATH in
-                    */lib*.a)   PACKED_FILENAME_NEED_CONTAIN_LIBC_NAME=yes; break ;;
-                    */lib*.so*) PACKED_FILENAME_NEED_CONTAIN_LIBC_NAME=yes; break ;;
-                    */*.o)      PACKED_FILENAME_NEED_CONTAIN_LIBC_NAME=yes; break ;;
-                esac
-            done
-        fi
-
-        if [ -z "$PACKED_DIR_NAME" ] ; then
-            if [ -d "$MY_INSTALLED_DIR/$RECEIPT_PACKAGE_NAME/bin" ] ; then
-                for FILEPATH in $(find "$MY_INSTALLED_DIR/$RECEIPT_PACKAGE_NAME/bin" -type f)
-                do
-                    unset FILE_MAGIC
-
-                    FILE_MAGIC="$(hexdump -n 4 -v -e '1/1 "%02X" ""' "$FILEPATH")"
-
-                    if [ "$FILE_MAGIC" = '7F454C46' ] ; then
-                        # http://www.sco.com/developers/gabi/latest/ch4.eheader.html
-                        unset PT_INTERP
-                        PT_INTERP="$(patchelf --print-interpreter "$FILEPATH" 2>/dev/null || true)"
-
-                        if [ -n "$PT_INTERP" ] ; then
-                            PACKED_FILENAME_NEED_CONTAIN_LIBC_NAME=yes
-                            break
-                        fi
-                    fi
-                done
-            fi
-        fi
-
-        if [ -z "$PACKED_DIR_NAME" ] ; then
-            for FILEPATH in $(find "$MY_INSTALLED_DIR/$RECEIPT_PACKAGE_NAME" -type f -a -name "*.a")
-            do
-                PACKED_FILENAME_NEED_CONTAIN_LIBC_NAME=yes
-            done
-        fi
-    fi
-
-    if [ "$PACKED_FILENAME_NEED_CONTAIN_LIBC_NAME" = yes ] ; then
-        PACKED_DIR_NAME="$RECEIPT_PACKAGE_NAME-$RECEIPT_PACKAGE_VERSION-$NATIVE_OS_KIND-$NATIVE_OS_ARCH-$NATIVE_OS_LIBC"
-    else
-        PACKED_DIR_NAME="$RECEIPT_PACKAGE_NAME-$RECEIPT_PACKAGE_VERSION-$NATIVE_OS_KIND-$NATIVE_OS_ARCH"
-    fi
+    PACKED_DIR_NAME="$RECEIPT_PACKAGE_NAME-$RECEIPT_PACKAGE_VERSION-$NATIVE_OS_TYPE-$NATIVE_OS_ARCH"
 
     PACKED_FILENAME="$PACKED_DIR_NAME.$PACKED_FILETYPE"
 
@@ -2254,13 +2202,13 @@ __show_packages_depended_by_the_given_package() {
     step "show size of packed file"
     run "du -sh $PACKED_FILENAME | cut -f1"
 
-    if [ ! -d "$XCPKG_DOWNLOADS_DIR/bin" ] ; then
+    if [ ! -d "$XCPKG_HOME/packed" ] ; then
         step "create cached binary dir"
-        run install -d "$XCPKG_DOWNLOADS_DIR/bin"
+        run install -d "$XCPKG_HOME/packed"
     fi
 
     step "copy packed file to cached dir"
-    run cp "$PACKED_FILENAME" "$XCPKG_DOWNLOADS_DIR/bin/"
+    run cp "$PACKED_FILENAME" "$XCPKG_HOME/packed/"
 
     if [ "$KEEP_PACKING_DIR" = yes ] ; then
         echo
