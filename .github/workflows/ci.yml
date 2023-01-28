@@ -54,7 +54,7 @@ jobs:
       - run: bin/xcpkg info MacOSX/10.15/x86_64/zlib installed-files
       - run: bin/xcpkg info MacOSX/10.15/x86_64/zlib installed-timestamp-unix
       - run: bin/xcpkg info MacOSX/10.15/x86_64/zlib installed-timestamp-iso-8601
-      - run: bin/xcpkg info MacOSX/10.15/x86_64/zlib installed-pkg-version
+      - run: bin/xcpkg info MacOSX/10.15/x86_64/zlib installed-version
 
       - run: bin/xcpkg tree MacOSX/10.15/x86_64/zlib
       - run: bin/xcpkg pack MacOSX/10.15/x86_64/zlib

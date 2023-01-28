@@ -5310,7 +5310,7 @@ inspect_install_arguments() {
             --target=*)
                 TARGET_PLATFORM_SPEC=$(getvalue "$1")
 
-                [ -z "$TARGET_PLATFORM_SPEC"] && die "--target-platform=<VALUE>, VALUE must be non-empty."
+                [ -z "$TARGET_PLATFORM_SPEC" ] && die "--target-platform=<VALUE>, VALUE must be non-empty."
 
                 TARGET_PLATFORM_NAME=$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f1)
                 TARGET_PLATFORM_VERS=$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f2)
