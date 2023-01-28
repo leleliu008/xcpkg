@@ -279,7 +279,7 @@ lolcat_awk() {
 # wfetch <URL> [--uri=URL-MIRROR] [--silent] [--sha256=SHA256] [--output-dir=DIR] <--output-name=NAME>
 
 # influential environment variable:
-# WFETCH_URL_TRANSFORM
+# XCPKG_URL_TRANSFORM
 wfetch() {
     unset FETCH_URL
     unset FETCH_URI
@@ -294,10 +294,10 @@ wfetch() {
         return 1
     fi
 
-    if [ -z "$WFETCH_URL_TRANSFORM" ] ; then
+    if [ -z "$XCPKG_URL_TRANSFORM" ] ; then
         FETCH_URL="$1"
     else
-        FETCH_URL="$("$WFETCH_URL_TRANSFORM" "$1")"
+        FETCH_URL="$("$XCPKG_URL_TRANSFORM" "$1")" || return 1
     fi
 
     shift
@@ -318,8 +318,8 @@ wfetch() {
                     error "wfetch <URL> --uri=<URL-MIRROR> , <URL-MIRROR> must not be empty."
                     return 1
                 fi
-                if [ -n "$WFETCH_URL_TRANSFORM" ] ; then
-                    FETCH_URI="$("$WFETCH_URL_TRANSFORM" "$FETCH_URI")"
+                if [ -n "$XCPKG_URL_TRANSFORM" ] ; then
+                    FETCH_URI="$("$XCPKG_URL_TRANSFORM" "$FETCH_URI")" || return 1
                 fi
                 ;;
             --output-dir=*)
@@ -393,7 +393,7 @@ wfetch() {
         *.git)
             if [    -d "$FETCH_OUTPUT_PATH" ] ; then
                 run cd "$FETCH_OUTPUT_PATH" || return 1
-                if      git rev-parse 2> /dev/null ; then
+                if      git rev-parse HEAD > /dev/null 2>&1 ; then
                     run git pull || return 1
                     run git submodule update --recursive || return 1
                 else
@@ -484,6 +484,7 @@ wfetch() {
             fi
     esac
 }
+
 
 # }}}
 ##############################################################################
@@ -1569,10 +1570,10 @@ __fetch_sources_of_the_given_package() {
         .git)
             unset GIT_FETCH_URL
 
-            if [ -z "$PPKG_URL_TRANSFORM" ] ; then
+            if [ -z "$XCPKG_URL_TRANSFORM" ] ; then
                 GIT_FETCH_URL="$PACKAGE_GIT_URL"
             else
-                GIT_FETCH_URL="$("$PPKG_URL_TRANSFORM" "$PACKAGE_GIT_URL")" || return 1
+                GIT_FETCH_URL="$("$XCPKG_URL_TRANSFORM" "$PACKAGE_GIT_URL")" || return 1
             fi
 
             if [ -z "$PACKAGE_GIT_SHA" ] ; then
@@ -5587,7 +5588,7 @@ __setup_PATH_env() {
         done
     fi
 
-    bppend_to_PATH "$PPKG_CORE_BIN_DIR"
+    bppend_to_PATH "$XCPKG_CORE_BIN_DIR"
 }
 
 __help() {
