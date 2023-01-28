@@ -2942,10 +2942,10 @@ EOF
 
     if [ -d "$PACKAGE_INSTALL_DIR/lib" ] ; then
         step "adjust .la files for ${COLOR_GREEN}$@${COLOR_OFF}"
-        __justfy_la_files_for_the_given_target $@
+        __adjust_la_files_for_the_given_target $@
 
         step "adjust .pc files for ${COLOR_GREEN}$@${COLOR_OFF}"
-        __justfy_pc_files_for_the_given_target $@
+        __adjust_pc_files_for_the_given_target $@
     fi
 
     #########################################################################################
@@ -3065,30 +3065,74 @@ __adjust_mach_o_files_for_the_given_target() {
     done
 }
 
-__justfy_la_files_for_the_given_target() {
-    if [ -d "$PACKAGE_INSTALL_DIR/lib" ] ; then
-        for lafile in $(find "$PACKAGE_INSTALL_DIR/lib" -name "*.la")
-        do
-            sed_in_place "s|-L$SYSTEM_LIBRARY_DIR||" "$lafile" || return 1
-        done
-    fi
+__adjust_la_files_for_the_given_target() {
+    [ -d "$PACKAGE_INSTALL_DIR/lib" ] || {
+        note "no .la files installed, skipped"
+        return 0
+    }
+
+    LA_FILES="$(find "$PACKAGE_INSTALL_DIR/lib" -name "*.la")"
+
+    [ -z "$LA_FILES" ] && {
+        note "no .la files installed, skipped"
+        return 0
+    }
+
+    for lafile in $LA_FILES
+    do
+        sed_in_place 's|-Wl,--strip-debug||g'      "$lafile"
+        sed_in_place "s|-L$XCPKG_HOME[^' ]*||g"    "$lafile"
+        sed_in_place "s|-R[^' ]*||g"               "$lafile"
+        #sed_in_place "s|-L$SYSTEM_LIBRARY_DIR||g"  "$lafile"
+        #sed_in_place "s|--sysroot $SYSROOT||g"     "$lafile"
+    done
 }
 
-__justfy_pc_files_for_the_given_target() {
-    if [ -d "$PACKAGE_INSTALL_DIR/lib/pkgconfig" ] ; then
-        for pcfile in $(find "$PACKAGE_INSTALL_DIR/lib/pkgconfig" -name "*.pc")
-        do
-            sed_in_place "s|$PACKAGE_INSTALL_DIR|\${pcfiledir}/../..|g" "$pcfile" || return 1
+__adjust_pc_files_for_the_given_target() {
+    [ -d "$PACKAGE_INSTALL_DIR/lib/pkgconfig" ] || {
+        note "no .pc files installed, skipped"
+        return 0
+    }
 
-            if grep 'Libs.private:' "$pcfile" > /dev/null ; then
-                LIBS_CONTENT=$(awk '/Libs:/{print}' "$pcfile" || return 1)
-                LIBS_PRIVATE_CONTENT=$(awk -F: '/Libs.private:/{print $2}' "$pcfile" || return 1)
-                sed_in_place "s|$LIBS_CONTENT|$LIBS_CONTENT$LIBS_PRIVATE_CONTENT|" "$pcfile" || return 1
-                sed_in_place '/Libs.private/d' "$pcfile" || return 1
+    PC_FILES="$(find "$PACKAGE_INSTALL_DIR/lib/pkgconfig" -name "*.pc")"
+
+    [ -z "$PC_FILES" ] && {
+        note "no .pc files installed, skipped"
+        return 0
+    }
+
+    # cc: error: unrecognized command line option ‘-R’
+    for pcfile in $PC_FILES
+    do
+        sed_in_place "s|$PACKAGE_INSTALL_DIR|\${pcfiledir}/../..|g" "$pcfile"
+        sed_in_place 's|-Wl,--strip-debug||g'      "$pcfile"
+        sed_in_place "s|-L$XCPKG_HOME[^' ]*||g"    "$pcfile"
+        sed_in_place "s|-R[^' ]*||g"               "$pcfile"
+        #sed_in_place "s|-L$SYSTEM_LIBRARY_DIR||g"  "$pcfile"
+        #sed_in_place "s|--sysroot $SYSROOT||"      "$pcfile"
+
+        if grep 'Libs.private:' "$pcfile" > /dev/null ; then
+            if grep 'Libs:' "$pcfile" > /dev/null ; then
+                LIBS_PRIVATE_CONTENT=$(sed -n '/Libs.private:/p' "$pcfile" | cut -c14-)
+                sed_in_place "/Libs:/s|\$|$LIBS_PRIVATE_CONTENT|" "$pcfile"
+                sed_in_place '/Libs.private:/d' "$pcfile"
+            else
+                sed_in_place 's|Libs.private:|Libs:|' "$pcfile"
             fi
-        done
-    fi
+        fi
+
+        if grep 'Requires.private:' "$pcfile" > /dev/null ; then
+            if grep 'Requires:' "$pcfile" > /dev/null ; then
+                REQUIRES_PRIVATE_CONTENT=$(sed -n '/Requires.private:/p' "$pcfile" | cut -c18-)
+                sed_in_place "/Requires:/s|\$|$REQUIRES_PRIVATE_CONTENT|" "$pcfile"
+                sed_in_place '/Requires.private:/d' "$pcfile"
+            else
+                sed_in_place 's|Requires.private:|Requires:|' "$pcfile"
+            fi
+        fi
+    done
 }
+
 
 __install_pc_file_if_needed_for_the_given_target() {
     if [ -d "$PACKAGE_INSTALL_DIR/lib" ] ; then
@@ -3796,53 +3840,12 @@ EOF
 # __config_variables_for_the_given_target <PACKAGE-NAME>
 # __config_variables_for_the_given_target      curl
 __config_variables_for_the_given_target() {
-    SYSROOT="$TOOLCHAIN_ROOT/Platforms/${TARGET_PLATFORM_NAME}.platform/Developer/SDKs/${TARGET_PLATFORM_NAME}.sdk"
-
-    TARGET_PLATFORM_NAME_LOWER_CASE="$(printf "$TARGET_PLATFORM_NAME" | tr A-Z a-z)"
-
-    for tool in cc cxx cpp as ar ranlib ld nm strip size strings objdump
-    do
-        if [ "$tool" = 'cpp' ] ; then
-            CPP="$CC -E"
-        else
-            eval $(echo "$tool" | tr a-z A-Z)=$(path_of_tool_in_the_toolchain "$tool")
-        fi
-    done
-
-    SYSTEM_INCLUDE_DIR="$SYSROOT/usr/include"
-    SYSTEM_LIBRARY_DIR="$SYSROOT/usr/lib"
-
-    ##################################################################################
-
-    CCFLAGS="-fPIC -fno-common $CFLAGS"
-    XXFLAGS="-fPIC -fno-common $CXXFLAGS"
-
-    for item in $PACKAGE_CDEFINE
-    do
-        CPPFLAGS="$CPPFLAGS -D$item"
-    done
-
-    if [ -n "$PACKAGE_CCFLAGS" ] ; then
-        CCFLAGS="$CCFLAGS $PACKAGE_CCFLAGS"
-    fi
-
-    if [ -n "$PACKAGE_XXFLAGS" ] ; then
-        XXFLAGS="$XXFLAGS $PACKAGE_XXFLAGS"
-    fi
-
-    if [ -n "$PACKAGE_LDFLAGS" ] ; then
-        LDFLAGS="$LDFLAGS $PACKAGE_LDFLAGS"
-    fi
-
-    CCFLAGS="$(printf '%s\n' "$CCFLAGS" | sed -e 's|--static||g' -e 's|-static||g')"
-    XXFLAGS="$(printf '%s\n' "$XXFLAGS" | sed -e 's|--static||g' -e 's|-static||g')"
-    LDFLAGS="$(printf '%s\n' "$LDFLAGS" | sed -e 's|--static||g' -e 's|-static||g')"
-
-    ##################################################################################
-
     export       CC_FOR_BUILD="$TOOLCHAIN_BIND/clang"
     export      CXX_FOR_BUILD="$TOOLCHAIN_BIND/clang++"
     export      CPP_FOR_BUILD="$TOOLCHAIN_BIND/clang -E"
+
+    ##################################################################################
+
     export   CFLAGS_FOR_BUILD="-isysroot $TOOLCHAIN_ROOT/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -mmacosx-version-min=$NATIVE_OS_VERS -arch $NATIVE_OS_ARCH -Qunused-arguments"
     export CXXFLAGS_FOR_BUILD="-isysroot $TOOLCHAIN_ROOT/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -mmacosx-version-min=$NATIVE_OS_VERS -arch $NATIVE_OS_ARCH -Qunused-arguments"
     export CPPFLAGS_FOR_BUILD="-isysroot $TOOLCHAIN_ROOT/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -Qunused-arguments"
@@ -3850,43 +3853,66 @@ __config_variables_for_the_given_target() {
 
     ##################################################################################
 
-    CPPFLAGS="-isysroot $SYSROOT -Qunused-arguments $CPPFLAGS"
-     CCFLAGS="-isysroot $SYSROOT -arch $TARGET_PLATFORM_ARCH -m${TARGET_PLATFORM_NAME_LOWER_CASE}-version-min=$TARGET_PLATFORM_VERS -Qunused-arguments $CCFLAGS"
-     XXFLAGS="-isysroot $SYSROOT -arch $TARGET_PLATFORM_ARCH -m${TARGET_PLATFORM_NAME_LOWER_CASE}-version-min=$TARGET_PLATFORM_VERS -Qunused-arguments $XXFLAGS"
-     LDFLAGS="-isysroot $SYSROOT -arch $TARGET_PLATFORM_ARCH -m${TARGET_PLATFORM_NAME_LOWER_CASE}-version-min=$TARGET_PLATFORM_VERS -Wl,-search_paths_first"
+    export       CC="$TOOLCHAIN_BIND/clang"
+    export      CXX="$TOOLCHAIN_BIND/clang++"
+    export      CPP="$TOOLCHAIN_BIND/clang -E"
+    export       AS="$TOOLCHAIN_BIND/as"
+    export       AR="$TOOLCHAIN_BIND/ar"
+    export   RANLIB="$TOOLCHAIN_BIND/ranlib"
+    export       LD="$TOOLCHAIN_BIND/ld"
+    export       NM="$TOOLCHAIN_BIND/nm"
+    export    STRIP="$TOOLCHAIN_BIND/strip"
+    export     SIZE="$TOOLCHAIN_BIND/size"
+    export  STRINGS="$TOOLCHAIN_BIND/strings"
+    export  OBJDUMP="$TOOLCHAIN_BIND/objdump"
 
-    if [ "$LOG_LEVEL" -ge 3 ] ; then
-        CCFLAGS="$CCFLAGS -v"
-        XXFLAGS="$XXFLAGS -v"
-        LDFLAGS="$LDFLAGS -Wl,-v"
-    fi
+    ##################################################################################
 
-    if [ "$BUILD_TYPE" = release ] ; then
-       CPPFLAGS="$CPPFLAGS -DNDEBUG"
-        CCFLAGS="$CCFLAGS -Os"
-        XXFLAGS="$XXFLAGS -Os"
-        LDFLAGS="$LDFLAGS -Wl,-S"
-    fi
+    case $TARGET_PLATFORM_ARCH in
+        armv7*) CPPFLAGS="-D__arm__"   ;;
+        arm64*) CPPFLAGS="-D__arm64__" ;;
+        i386)   CPPFLAGS="-D__i386__"  ;;
+        x86_64) CPPFLAGS="-D__x86_64__";;
+    esac
 
     for item in $PACKAGE_CDEFINE
     do
         CPPFLAGS="$CPPFLAGS -D$item"
     done
 
-    if [ -n "$PACKAGE_CCFLAGS" ] ; then
-        CCFLAGS="$CCFLAGS $PACKAGE_CCFLAGS"
-    fi
+    CCFLAGS="-fPIC -fno-common $PACKAGE_CCFLAGS"
+    XXFLAGS="-fPIC -fno-common $PACKAGE_XXFLAGS"
+    LDFLAGS="$PACKAGE_LDFLAGS"
 
-    if [ -n "$PACKAGE_LDFLAGS" ] ; then
-        LDFLAGS="$LDFLAGS $PACKAGE_LDFLAGS"
-    fi
+    CCFLAGS="$(printf '%s\n' "$CCFLAGS" | sed -e 's|--static||g' -e 's|-static||g')"
+    XXFLAGS="$(printf '%s\n' "$XXFLAGS" | sed -e 's|--static||g' -e 's|-static||g')"
+    LDFLAGS="$(printf '%s\n' "$LDFLAGS" | sed -e 's|--static||g' -e 's|-static||g')"
 
-    case $TARGET_PLATFORM_ARCH in
-        armv7*) CPPFLAGS="$CPPFLAGS -D__arm__"   ;;
-        arm64*) CPPFLAGS="$CPPFLAGS -D__arm64__" ;;
-        i386)   CPPFLAGS="$CPPFLAGS -D__i386__"  ;;
-        x86_64) CPPFLAGS="$CPPFLAGS -D__x86_64__";;
-    esac
+    ##################################################################################
+
+    SYSROOT="$TOOLCHAIN_ROOT/Platforms/${TARGET_PLATFORM_NAME}.platform/Developer/SDKs/${TARGET_PLATFORM_NAME}.sdk"
+
+    TARGET_PLATFORM_NAME_LOWER_CASE="$(printf "$TARGET_PLATFORM_NAME" | tr A-Z a-z)"
+
+    CPPFLAGS="-isysroot $SYSROOT -Qunused-arguments $CPPFLAGS"
+     CCFLAGS="-isysroot $SYSROOT -arch $TARGET_PLATFORM_ARCH -m${TARGET_PLATFORM_NAME_LOWER_CASE}-version-min=$TARGET_PLATFORM_VERS -Qunused-arguments $CCFLAGS"
+     XXFLAGS="-isysroot $SYSROOT -arch $TARGET_PLATFORM_ARCH -m${TARGET_PLATFORM_NAME_LOWER_CASE}-version-min=$TARGET_PLATFORM_VERS -Qunused-arguments $XXFLAGS"
+     LDFLAGS="-isysroot $SYSROOT -arch $TARGET_PLATFORM_ARCH -m${TARGET_PLATFORM_NAME_LOWER_CASE}-version-min=$TARGET_PLATFORM_VERS -Wl,-search_paths_first"
+
+    [ "$LOG_LEVEL" -ge 3 ] && {
+        CCFLAGS="$CCFLAGS -v"
+        XXFLAGS="$XXFLAGS -v"
+        LDFLAGS="$LDFLAGS -Wl,-v"
+    }
+
+    [ "$BUILD_TYPE" = release ] && {
+       CPPFLAGS="$CPPFLAGS -DNDEBUG"
+        CCFLAGS="$CCFLAGS -Os"
+        XXFLAGS="$XXFLAGS -Os"
+        LDFLAGS="$LDFLAGS -Wl,-S"
+    }
+
+    ##################################################################################
 
     # https://www.freedesktop.org/wiki/Software/pkg-config/CrossCompileProposal
     unset PKG_CONFIG_SYSROOT_DIR
@@ -3952,27 +3978,16 @@ __config_variables_for_the_given_target() {
     unset DEPENDENT_PACKAGE_LIBRARY_DIR
     unset DEPENDENT_PACKAGE_PKGCONF_DIR
 
-    CPPFLAGS="-I$PACKAGE_WORKING_DIR/include $CPPFLAGS"
-     LDFLAGS="-L$PACKAGE_WORKING_DIR/lib      $LDFLAGS"
+    export CPPFLAGS="-I$PACKAGE_WORKING_DIR/include $CPPFLAGS"
+    export  LDFLAGS="-L$PACKAGE_WORKING_DIR/lib      $LDFLAGS"
+    export   CFLAGS="$CCFLAGS"
+    export CXXFLAGS="$XXFLAGS"
 
-    if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
-        CCFLAGS="$CCFLAGS -v -Wl,-v"
-        LDFLAGS="$LDFLAGS -v -Wl,-v"
-    fi
-
-      CFLAGS="$CCFLAGS"
-    CXXFLAGS="$CCFLAGS"
-
-    if [ -n "$PACKAGE_XXFLAGS" ] ; then
-        CXXFLAGS="$CXXFLAGS $PACKAGE_XXFLAGS"
-    fi
+    export PATH="$PACKAGE_INSTALLING_BIN_DIR:$PATH"
 
     PKG_CONFIG_LIBDIR="$PKG_CONFIG_PATH"
 
-    export   CFLAGS="$CCFLAGS"
-    export CXXFLAGS="$XXFLAGS"
-    export CPPFLAGS="$CPPFLAGS"
-    export  LDFLAGS="$LDFLAGS"
+    ##################################################################################
 
     unset PKG_CONFIG
 
@@ -4064,6 +4079,8 @@ __config_variables_for_the_given_target() {
         TARGET_CMAKE_TOOLCHAIN_FILE="$PACKAGE_WORKING_DIR/toolchain.cmake"
     fi
 
+    ##################################################################################
+
     if [ "$PACKAGE_BUILD_SYSTEM_CARGO" = yes ] ; then
         case $TARGET_PLATFORM_NAME in
             MacOSX|*Simulator)
@@ -4090,7 +4107,8 @@ __config_variables_for_the_given_target() {
 
         export CARGO_BUILD_JOBS="$BUILD_NJOBS"
 
-        export RUSTFLAGS="-Clink-arg=-L$PACKAGE_WORKING_DIR/lib -Clink-arg=-L$PACKAGE_WORKING_DIR"
+        # https://doc.rust-lang.org/rustc/codegen-options/index.html#link-arg
+        export RUSTFLAGS="-Clinker=$CC -Clink-arg=-L$PACKAGE_WORKING_DIR/lib $RUSTFLAGS"
 
         # https://libraries.io/cargo/cc
         # https://crates.io/crates/cc
@@ -4202,9 +4220,6 @@ TARGET_PLATFORM_ARCH = $TARGET_PLATFORM_ARCH
      TOOLCHAIN_BIND = $TOOLCHAIN_BIND
 
             SYSROOT = $SYSROOT
-
- SYSTEM_INCLUDE_DIR = $SYSTEM_INCLUDE_DIR
- SYSTEM_LIBRARY_DIR = $SYSTEM_LIBRARY_DIR
     "
 
     for TOOL in CC CXX CPP AS AR RANLIB LD NM STRIP SIZE STRINGS OBJDUMP
@@ -4369,7 +4384,7 @@ set(CMAKE_FIND_DEBUG_MODE $CMAKE_FIND_DEBUG_MODE)
 
 set(CMAKE_FIND_ROOT_PATH "$CMAKE_FIND_ROOT_PATH")
 
-set(CMAKE_LIBRARY_PATH "$SYSTEM_LIBRARY_DIR")
+set(CMAKE_LIBRARY_PATH "$SYSROOT/usr/lib")
 
 set(CMAKE_IGNORE_PATH "$CMAKE_IGNORE_PATH")
 EOF
@@ -5094,17 +5109,6 @@ print_target_triple_by_arch() {
             echo "$1-apple-darwin"
         fi
     fi
-}
-
-path_of_tool_in_the_toolchain() {
-    unset TOOL_PATH
-    case $1 in
-        cc)  TOOL_PATH="$TOOLCHAIN_BIND/clang"   ;;
-        cxx) TOOL_PATH="$TOOLCHAIN_BIND/clang++" ;;
-        *)   TOOL_PATH="$TOOLCHAIN_BIND/$1"
-    esac
-    die_if_not_executable "$TOOL_PATH"
-    echo "$TOOL_PATH"
 }
 
 __list_supported_target_platform_versions() {
