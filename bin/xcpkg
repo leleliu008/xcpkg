@@ -2182,7 +2182,7 @@ __show_packages_depended_by_the_given_package() {
     run cd $PACKING_DIR
 
     step "make link refer to installed package root dir"
-    run ln -s "$XCPKG_PACKAGE_INSTALLED_ROOT/$1" "$PACKED_DIR_NAME"
+    run ln -s "$PACKAGE_INSTALLED_DIR" "$PACKED_DIR_NAME"
 
     step "packing"
     case $PACKED_FILETYPE in
@@ -3719,10 +3719,10 @@ timestamp: $TIMESTAMP_UNIX
 EOF
 }
 
-# __load_receipt_of_the_given_package <PACKAGE-NAME>
+# __load_receipt_of_the_given_package <PACKAGE-SPEC>
   __load_receipt_of_the_given_package() {
     [ -z "$1" ] && {
-        error "__load_receipt_of_the_given_package <PACKAGE-NAME>, <PACKAGE-NAME> is not given."
+        error "__load_receipt_of_the_given_package <PACKAGE-SPEC>, <PACKAGE-SPEC> is not given."
         return 1
     }
 
