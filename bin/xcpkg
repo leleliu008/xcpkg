@@ -4962,7 +4962,7 @@ inspect_build_toolchains() {
 
     TOOLCHAIN_VERS=$(system_profiler SPDeveloperToolsDataType | grep Version | head -n 1 | cut -d: -f2 | sed 's/^ //g')
     TOOLCHAIN_BIND="$TOOLCHAIN_ROOT/Toolchains/XcodeDefault.xctoolchain/usr/bin"
-    export PATH="$TOOLCHAIN_BIND:$PATH"
+    #export PATH="$TOOLCHAIN_BIND:$PATH"
 }
 
 __list_supported_target_platforms() {
@@ -5141,12 +5141,6 @@ get_supported_min_version() {
     else
         __list_supported_target_platform_versions "$1" | awk '{print $1}'
     fi
-}
-
-echo_tool_of_chain() {
-    TOOL="$TOOLCHAIN_BIND/$1"
-    die_if_not_executable "$TOOL"
-    echo "$TOOL"
 }
 
 __create_framework_for_the_given_packages() {
