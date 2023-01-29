@@ -2232,18 +2232,6 @@ __show_packages_depended_by_the_given_package() {
 
 # this fuction should be run in subshell
 #
-# __get_packages_that_are_recursively_depended_by_the_given_packages <PACKAGE-NAME>...
-  __get_packages_that_are_recursively_depended_by_the_given_packages() {
-      [ -z "$1" ] && {
-          error "__get_packages_that_are_recursively_depended_by_the_given_packages <PACKAGE-NAME>..., <PACKAGE-NAME> is not given."
-          return 1
-      }
-
-      __get_packages_that_are_recursively_depended_by_the_given_package ";$(printf '%s\n' "$*" | tr ' ' ';')"
-}
-
-# this fuction should be run in subshell
-#
 # __get_packages_that_are_recursively_depended_by_the_given_package <PACKAGE-NAME>
 # __get_packages_that_are_recursively_depended_by_the_given_package <PACKAGE-NAME> internal
   __get_packages_that_are_recursively_depended_by_the_given_package() {
@@ -2253,11 +2241,7 @@ __show_packages_depended_by_the_given_package() {
     }
 
     unset DIRECT_DEPENDENT_PACKAGES
-
-    case $1 in
-        *\;*) DIRECT_DEPENDENT_PACKAGES=$(printf '%s\n' "$1" | tr ';' ' ') ;;
-        *)    DIRECT_DEPENDENT_PACKAGES=$(__get_packages_that_are_directly_depended_by_the_given_package "$1")
-    esac
+    DIRECT_DEPENDENT_PACKAGES=$(__get_packages_that_are_directly_depended_by_the_given_package "$1")
 
     [ "$2" != internal ] && {
         DEPTH=1
@@ -2393,33 +2377,47 @@ __install_the_given_packages() {
     inspect_install_arguments $@
 
     [ -z "$USER_SPECIFIED_PACKAGE_SPEC_LIST" ] && {
-        error "$_0 install <PACKAGE-NAME>..., <PACKAGE-NAME> is not given."
+        error "$_0 install <PACKAGE-SPEC|PACKAGE-NAME>..., <|PACKAGE-SPEC|PACKAGE-NAME> is not given."
         return 1
     }
 
-    unset RECURSIVE_DEPENDENT_PACKAGES
-    RECURSIVE_DEPENDENT_PACKAGES="$(__get_packages_that_are_recursively_depended_by_the_given_packages $USER_SPECIFIED_PACKAGE_SPEC_LIST)"
-
-    if [ $(list_length $RECURSIVE_DEPENDENT_PACKAGES) -gt 1 ] ; then
-        RECURSIVE_DEPENDENT_PACKAGES="$(printf '%s\n' "$RECURSIVE_DEPENDENT_PACKAGES" | tr '\n' ' ')"
-        printf '%b\n' "$COLOR_PURPLE==>$COLOR_OFF to install$COLOR_GREEN $RECURSIVE_DEPENDENT_PACKAGES $COLOR_OFF\n"
-    fi
-
-    for PACKAGE_NAME in $RECURSIVE_DEPENDENT_PACKAGES
+    for PACKAGE_SPEC in $USER_SPECIFIED_PACKAGE_SPEC_LIST
     do
-        PACKAGE_SPEC="$TARGET_PLATFORM_NAME/$TARGET_PLATFORM_VERS/$TARGET_PLATFORM_ARCH/$PACKAGE_NAME"
+        unset PACKAGE_NAME
 
-        if is_package_installed "$PACKAGE_SPEC" ; then
-            if [ "$LOG_LEVEL" -gt 0 ] ; then
-                printf "$COLOR_GREEN%-10s$COLOR_OFF already have been installed.\n" "$PACKAGE_SPEC"
-            fi
-        else
-            (__install_the_given_package "$PACKAGE_SPEC")
+        unset TARGET_PLATFORM_NAME
+        unset TARGET_PLATFORM_VERS
+        unset TARGET_PLATFORM_ARCH
 
-            if [ "$DRYRUN" = no ] ; then
-                is_package_installed "$PACKAGE_SPEC" || die "package [$PACKAGE_SPEC] install failed"
-            fi
+        TARGET_PLATFORM_NAME=$(printf '%s\n' "$PACKAGE_SPEC" | cut -d/ -f1)
+        TARGET_PLATFORM_VERS=$(printf '%s\n' "$PACKAGE_SPEC" | cut -d/ -f2)
+        TARGET_PLATFORM_ARCH=$(printf '%s\n' "$PACKAGE_SPEC" | cut -d/ -f3)
+                PACKAGE_NAME=$(printf '%s\n' "$PACKAGE_SPEC" | cut -d/ -f4)
+
+        unset RECURSIVE_DEPENDENT_PACKAGES
+        RECURSIVE_DEPENDENT_PACKAGES="$(__get_packages_that_are_recursively_depended_by_the_given_package $PACKAGE_NAME) $PACKAGE_NAME"
+
+        if [ $(list_length $RECURSIVE_DEPENDENT_PACKAGES) -gt 1 ] ; then
+            RECURSIVE_DEPENDENT_PACKAGES="$(printf '%s\n' "$RECURSIVE_DEPENDENT_PACKAGES" | tr '\n' ' ')"
+            printf '%b\n' "$COLOR_PURPLE==>$COLOR_OFF to install$COLOR_GREEN $RECURSIVE_DEPENDENT_PACKAGES $COLOR_OFF\n"
         fi
+
+        for PACKAGE_NAME in $RECURSIVE_DEPENDENT_PACKAGES
+        do
+            PACKAGE_SPEC="$TARGET_PLATFORM_NAME/$TARGET_PLATFORM_VERS/$TARGET_PLATFORM_ARCH/$PACKAGE_NAME"
+
+            if is_package_installed "$PACKAGE_SPEC" ; then
+                if [ "$LOG_LEVEL" -gt 0 ] ; then
+                    printf "$COLOR_GREEN%-10s$COLOR_OFF already have been installed.\n" "$PACKAGE_SPEC"
+                fi
+            else
+                (__install_the_given_package "$PACKAGE_SPEC")
+
+                if [ "$DRYRUN" = no ] ; then
+                    is_package_installed "$PACKAGE_SPEC" || die "package [$PACKAGE_SPEC] install failed"
+                fi
+            fi
+        done
     done
 }
 
@@ -2630,7 +2628,7 @@ __install_the_given_package() {
 
     if [ -n "$PACKAGE_DEP_PKG" ] ; then
         step "generating dependency tree of $1"
-        RECURSIVE_DEPENDENT_PACKAGES="$(__get_packages_that_are_recursively_depended_by_the_given_packages $PACKAGE_DEP_PKG)"
+        RECURSIVE_DEPENDENT_PACKAGES="$(__get_packages_that_are_recursively_depended_by_the_given_package $PACKAGE_DEP_PKG)"
 
         PACKAGE_DEPENDENCY_GRAPH_FILEPATH_DOT="$PACKAGE_WORKING_DIR/dependencies.dot"
         PACKAGE_DEPENDENCY_GRAPH_FILEPATH_BOX="$PACKAGE_WORKING_DIR/dependencies.txt"
@@ -5356,7 +5354,8 @@ inspect_install_arguments() {
             -*) die "unrecognized option: $1"
                 ;;
             *)  if printf '%s\n' "$1" | grep -q -E '^[A-Za-z0-9+-._]{1,50}$' ; then
-                    PACKAGE_SPEC="MacOSX/$NATIVE_OS_VERS/$NATIVE_OS_ARCH/$1"
+                    PACKAGE_NAME="$1"
+                    PACKAGE_SPEC="MacOSX/$NATIVE_OS_VERS/$NATIVE_OS_ARCH/$PACKAGE_NAME"
 
                     warn "$1 will be treated as a package name, and it will be expanded to $PACKECK_SPEC"
 
@@ -5377,6 +5376,11 @@ inspect_install_arguments() {
                             TARGET_PLATFORM_NAME=$(printf '%s\n' "$PACKAGE_SPEC" | cut -d/ -f1)
                             TARGET_PLATFORM_VERS=$(printf '%s\n' "$PACKAGE_SPEC" | cut -d/ -f2)
                             TARGET_PLATFORM_ARCH=$(printf '%s\n' "$PACKAGE_SPEC" | cut -d/ -f3)
+                                    PACKAGE_NAME=$(printf '%s\n' "$PACKAGE_SPEC" | cut -d/ -f4)
+
+                            if [ -z "$PACKAGE_NAME" ] ; then
+                                die "invalid package spec: $1\npackage name is unspecified."
+                            fi
 
                             case $TARGET_PLATFORM_NAME in
                                 MacOSX|AppleTVOS|iPhoneOS|WatchOS|AppleTVSimulator|iPhoneSimulator|WatchSimulator)
@@ -5421,9 +5425,17 @@ inspect_install_arguments() {
                                         ;;
                                 esac
                             fi
+
+                            PACKAGE_SPEC="$TARGET_PLATFORM_NAME/$TARGET_PLATFORM_VERS/$TARGET_PLATFORM_ARCH/$PACKAGE_NAME"
                             ;;
                         *)  die "invalid package spec: $1"
                     esac
+                fi
+
+                if [ -z "$USER_SPECIFIED_PACKAGE_SPEC_LIST" ] ; then
+                    USER_SPECIFIED_PACKAGE_SPEC_LIST="$PACKAGE_SPEC"
+                else
+                    USER_SPECIFIED_PACKAGE_SPEC_LIST="$USER_SPECIFIED_PACKAGE_SPEC_LIST $PACKAGE_SPEC"
                 fi
         esac
         shift
