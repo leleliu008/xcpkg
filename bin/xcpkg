@@ -5870,7 +5870,6 @@ EOF
                 run brew --version
                 run brew --env
             else
-                run uppm --version
                 run uppm env
             fi
 

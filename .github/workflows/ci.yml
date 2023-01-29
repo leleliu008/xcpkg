@@ -39,27 +39,27 @@ jobs:
       - run: bin/xcpkg update
 
       - run: bin/xcpkg search lib
-      - run: bin/xcpkg search zlib
+      - run: bin/xcpkg search uctags
 
-      - run: bin/xcpkg info zlib
-      - run: bin/xcpkg info zlib version
-      - run: bin/xcpkg info zlib license
+      - run: bin/xcpkg info uctags
+      - run: bin/xcpkg info uctags version
+      - run: bin/xcpkg info uctags license
 
-      - run: bin/xcpkg depends zlib
+      - run: bin/xcpkg depends uctags
       - run: bin/xcpkg depends curl
 
-      - run: bin/xcpkg install zlib --target=MacOSX/10.15/x86_64
+      - run: bin/xcpkg install uctags --target=MacOSX/10.15/x86_64
 
-      - run: bin/xcpkg info MacOSX/10.15/x86_64/zlib installed-dir
-      - run: bin/xcpkg info MacOSX/10.15/x86_64/zlib installed-files
-      - run: bin/xcpkg info MacOSX/10.15/x86_64/zlib installed-timestamp-unix
-      - run: bin/xcpkg info MacOSX/10.15/x86_64/zlib installed-timestamp-iso-8601
-      - run: bin/xcpkg info MacOSX/10.15/x86_64/zlib installed-version
+      - run: bin/xcpkg info MacOSX/10.15/x86_64/uctags installed-dir
+      - run: bin/xcpkg info MacOSX/10.15/x86_64/uctags installed-files
+      - run: bin/xcpkg info MacOSX/10.15/x86_64/uctags installed-timestamp-unix
+      - run: bin/xcpkg info MacOSX/10.15/x86_64/uctags installed-timestamp-iso-8601
+      - run: bin/xcpkg info MacOSX/10.15/x86_64/uctags installed-version
 
-      - run: bin/xcpkg tree MacOSX/10.15/x86_64/zlib
-      - run: bin/xcpkg tree MacOSX/10.15/x86_64/zlib -a
+      - run: bin/xcpkg tree MacOSX/10.15/x86_64/uctags
+      - run: bin/xcpkg tree MacOSX/10.15/x86_64/uctags -a
 
-      - run: bin/xcpkg pack MacOSX/10.15/x86_64/zlib
+      - run: bin/xcpkg pack MacOSX/10.15/x86_64/uctags
 
       - run: bin/xcpkg formula-repo list
       - run: bin/xcpkg formula view curl
@@ -93,11 +93,11 @@ jobs:
       - run: bin/xcpkg ls-installed
       - run: bin/xcpkg ls-outdated
 
-      - run: bin/xcpkg is-available zlib
-      - run: bin/xcpkg is-installed MacOSX/10.15/x86_64/zlib
-      - run: bin/xcpkg is-outdated  MacOSX/10.15/x86_64/zlib || echo 'not outdated'
+      - run: bin/xcpkg is-available uctags
+      - run: bin/xcpkg is-installed MacOSX/10.15/x86_64/uctags
+      - run: bin/xcpkg is-outdated  MacOSX/10.15/x86_64/uctags || echo 'not outdated'
 
-      - run: bin/xcpkg uninstall MacOSX/10.15/x86_64/zlib
+      - run: bin/xcpkg uninstall MacOSX/10.15/x86_64/uctags
 
       - run: bin/xcpkg fetch curl
 
@@ -133,28 +133,28 @@ jobs:
       - run: xcpkg update
 
       - run: xcpkg search lib
-      - run: xcpkg search zlib
+      - run: xcpkg search uctags
 
-      - run: xcpkg info zlib
-      - run: xcpkg info zlib version
-      - run: xcpkg info zlib license
+      - run: xcpkg info uctags
+      - run: xcpkg info uctags version
+      - run: xcpkg info uctags license
 
-      - run: xcpkg depends zlib
+      - run: xcpkg depends uctags
       - run: xcpkg depends curl
 
-      - run: xcpkg install zlib
+      - run: xcpkg install uctags
 
-      - run: xcpkg info zlib
-      - run: xcpkg info zlib installed-dir
-      - run: xcpkg info zlib installed-metadata
-      - run: xcpkg info zlib installed-files
-      - run: xcpkg info zlib installed-abis
-      - run: xcpkg info zlib installed-datetime-unix
-      - run: xcpkg info zlib installed-datetime-formatted
-      - run: xcpkg info zlib installed-pkg-version
+      - run: xcpkg info uctags
+      - run: xcpkg info uctags installed-dir
+      - run: xcpkg info uctags installed-metadata
+      - run: xcpkg info uctags installed-files
+      - run: xcpkg info uctags installed-abis
+      - run: xcpkg info uctags installed-datetime-unix
+      - run: xcpkg info uctags installed-datetime-formatted
+      - run: xcpkg info uctags installed-pkg-version
 
-      - run: xcpkg tree zlib
-      - run: xcpkg pack zlib
+      - run: xcpkg tree uctags
+      - run: xcpkg pack uctags
 
       - run: xcpkg formula-repo list
       - run: xcpkg formula view curl
@@ -193,11 +193,11 @@ jobs:
       - run: xcpkg ls-installed
       - run: xcpkg ls-outdated
 
-      - run: xcpkg is-available zlib
-      - run: xcpkg is-installed zlib
-      - run: xcpkg is-outdated zlib || echo 'not outdated'
+      - run: xcpkg is-available uctags
+      - run: xcpkg is-installed uctags
+      - run: xcpkg is-outdated uctags || echo 'not outdated'
 
-      - run: xcpkg uninstall zlib
+      - run: xcpkg uninstall uctags
 
       - run: xcpkg fetch curl
 
