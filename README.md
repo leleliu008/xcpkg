@@ -100,15 +100,20 @@ all relevant dirs and files are located in `~/.xcpkg` directory.
         
         xcpkg depends curl
 
-        xcpkg depends curl --format=dot
-        xcpkg depends curl --format=box
-        xcpkg depends curl --format=png
-        xcpkg depends curl --format=svg
+        xcpkg depends curl -t dot
+        xcpkg depends curl -t box
+        xcpkg depends curl -t png
+        xcpkg depends curl -t svg
 
-        xcpkg depends curl --format=dot -o xx.dot
-        xcpkg depends curl --format=box -o xx.txt
-        xcpkg depends curl --format=png -o xx.png
-        xcpkg depends curl --format=svg -o xx.svg
+        xcpkg depends curl -t dot -o dependencies/
+        xcpkg depends curl -t box -o dependencies/
+        xcpkg depends curl -t png -o dependencies/
+        xcpkg depends curl -t svg -o dependencies/
+
+        xcpkg depends curl -o curl-dependencies.dot
+        xcpkg depends curl -o curl-dependencies.box
+        xcpkg depends curl -o curl-dependencies.png
+        xcpkg depends curl -o curl-dependencies.svg
         
 *   **download resources of the given package to the local cache**
         
@@ -199,11 +204,13 @@ all relevant dirs and files are located in `~/.xcpkg` directory.
         
         xcpkg pack curl
         xcpkg pack iPhoneOS/9.0/armv7s/curl
-        xcpkg pack iPhoneOS/9.0/armv7s/curl --type=tar.xz
-        xcpkg pack iPhoneOS/9.0/armv7s/curl --type=tar.gz
-        xcpkg pack iPhoneOS/9.0/armv7s/curl --type=tar.lz
-        xcpkg pack iPhoneOS/9.0/armv7s/curl --type=tar.bz2
-        xcpkg pack iPhoneOS/9.0/armv7s/curl --type=zip
+        xcpkg pack iPhoneOS/9.0/armv7s/curl -t tar.xz
+        xcpkg pack iPhoneOS/9.0/armv7s/curl -t tar.gz
+        xcpkg pack iPhoneOS/9.0/armv7s/curl -t tar.lz
+        xcpkg pack iPhoneOS/9.0/armv7s/curl -t tar.bz2
+        xcpkg pack iPhoneOS/9.0/armv7s/curl -t zip
+        xcpkg pack iPhoneOS/9.0/armv7s/curl -t zip -o a/
+        xcpkg pack iPhoneOS/9.0/armv7s/curl -o a/x.zip
         
 *   **delete the unused cached files**
         

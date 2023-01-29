@@ -47,6 +47,10 @@ jobs:
       - run: bin/xcpkg info uctags license
 
       - run: bin/xcpkg depends uctags
+      - run: bin/xcpkg depends uctags -t dot
+      - run: bin/xcpkg depends uctags -t box
+      - run: bin/xcpkg depends uctags -t dot -o a/
+      - run: bin/xcpkg depends uctags -o uctags.box
 
       - run: bin/xcpkg install MacOSX/10.15/x86_64/uctags
 
@@ -60,6 +64,11 @@ jobs:
       - run: bin/xcpkg tree MacOSX/10.15/x86_64/uctags -a
 
       - run: bin/xcpkg pack MacOSX/10.15/x86_64/uctags
+      - run: bin/xcpkg pack MacOSX/10.15/x86_64/uctags -t tar.gz
+      - run: bin/xcpkg pack MacOSX/10.15/x86_64/uctags -t tar.xz
+      - run: bin/xcpkg pack MacOSX/10.15/x86_64/uctags -t tar.xz -o .
+      - run: bin/xcpkg pack MacOSX/10.15/x86_64/uctags -o .
+      - run: bin/xcpkg pack MacOSX/10.15/x86_64/uctags -o xx.tar.xz
 
       - run: bin/xcpkg formula-repo list
       - run: bin/xcpkg formula view curl
