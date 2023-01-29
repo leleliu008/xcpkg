@@ -1148,8 +1148,8 @@ __load_formula_of_the_given_package() {
     for item in $PACKAGE_BUILD_SYSTEM
     do
         case $item in
-            autogen)     PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP automake" ;;
-            autotools)   PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP automake" ;;
+            autogen)     PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP automake autoconf gm4 gmake" ;;
+            autotools)   PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP automake autoconf gm4 gmake" ;;
             configure)   PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP gmake"  ;;
             cmake-gmake) PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP cmake gmake"  ;;
             cmake-ninja) PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP cmake ninja"  ;;
@@ -1159,7 +1159,6 @@ __load_formula_of_the_given_package() {
             ninja)       PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP ninja"  ;;
             gmake)       PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP gmake"  ;;
             rake)        PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP ruby"   ;;
-            #cargo)       PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP rustup" ;;
             go)          PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP golang" ;;
         esac
     done
@@ -1957,30 +1956,32 @@ __cleanup() {
     success "Done."
 }
 
-__compare_versions_with_brew() {
-    get_brew_package_name_from_my_package_name() {
-        case $1 in
-            file)     printf '%s\n' 'file-formula' ;;
-            delta)    printf '%s\n' 'git-delta' ;;
-            gmake)    printf '%s\n' 'make'      ;;
-            gtar)     printf '%s\n' 'gnu-tar'   ;;
-            libjxl)   printf '%s\n' 'jpeg-xl'   ;;
-            blake3)   printf '%s\n' 'b3sum'     ;;
-            libwebp)  printf '%s\n' 'webp'      ;;
-            proj7)    printf '%s\n' 'proj@7'    ;;
-            openssl)  printf '%s\n' 'openssl@1.1';;
-            freetype2)printf '%s\n' 'freetype'  ;;
-            freetype2-with-harfbuzz)
-                      printf '%s\n' 'freetype'  ;;
-            gnu-coreutils)
-                      printf '%s\n' 'coreutils' ;;
-            libmediainfo|mediainfo)
-                      printf '%s\n' 'media-info';;
-            tcl-core) printf '%s\n' 'tcl-tk'    ;;
-            *)        printf '%s\n' "$1"
-        esac
-    }
+package_name_transform_from_uppm_to_brew() {
+    case $1 in
+        file)     printf '%s\n' 'file-formula' ;;
+        delta)    printf '%s\n' 'git-delta' ;;
+        gmake)    printf '%s\n' 'make'      ;;
+        gtar)     printf '%s\n' 'gnu-tar'   ;;
+        gm4)      printf '%s\n' 'm4'        ;;
+        libjxl)   printf '%s\n' 'jpeg-xl'   ;;
+        blake3)   printf '%s\n' 'b3sum'     ;;
+        libwebp)  printf '%s\n' 'webp'      ;;
+        proj7)    printf '%s\n' 'proj@7'    ;;
+        openssl)  printf '%s\n' 'openssl@1.1';;
+        freetype2)printf '%s\n' 'freetype'  ;;
+        freetype2-with-harfbuzz)
+                  printf '%s\n' 'freetype'  ;;
+        gnu-coreutils)
+                  printf '%s\n' 'coreutils' ;;
+        libmediainfo|mediainfo)
+                  printf '%s\n' 'media-info';;
+        tcl-core) printf '%s\n' 'tcl-tk'    ;;
+        *)        printf '%s\n' "$1"
+    esac
+}
 
+
+__compare_versions_with_brew() {
     set -e
 
     cd "$XCPKG_HOME/repos.d/offical-core/formula"
@@ -1988,9 +1989,12 @@ __compare_versions_with_brew() {
     for item in $(ls -1 *.yml | sed 's/\.yml$//')
     do
         __load_formula_of_the_given_package "$item"
-        BREW_PKG_NMAE="$(get_brew_package_name_from_my_package_name $PACKAGE_NAME)"
+
+        BREW_PKG_NMAE="$(package_name_transform_from_uppm_to_brew $PACKAGE_NAME)"
+
         if brew info "$BREW_PKG_NMAE" > /dev/null 2>&1 ; then
             BREW_PKG_VERS=$(__pmw_get_available_package_version_by_package_name brew "$BREW_PKG_NMAE")
+
             if version_match "$BREW_PKG_VERS" gt "$PACKAGE_VERSION" ; then
                 printf "${COLOR_RED}%-10s %-10s  |  %-10s %-10s${COLOR_OFF}\n" "$PACKAGE_NAME" "$PACKAGE_VERSION" "$BREW_PKG_NMAE" "$BREW_PKG_VERS"
             else
@@ -2440,17 +2444,18 @@ __install_the_given_package() {
         if [ "$XCPKG_USE_BREW" = yes ] ; then
             step "install needed packages via brew"
 
-            BREW=$(command -v brew)
+            unset BREW; BREW=$(command -v brew)
 
             run "$BREW" update
             run "$BREW" --env
 
             for item in $PACKAGE_DEP_UPP
             do
-                run "$BREW" install "$item"
+                unset BREW_PACKAGE_NAME; BREW_PACKAGE_NAME=$(package_name_transform_from_uppm_to_brew "$item")
 
-                unset BREW_PACKAGE_INSTALLED_DIR
-                BREW_PACKAGE_INSTALLED_DIR="$("$BREW" --prefix "$item")"
+                run "$BREW" install "$BREW_PACKAGE_NAME"
+
+                unset BREW_PACKAGE_INSTALLED_DIR; BREW_PACKAGE_INSTALLED_DIR="$("$BREW" --prefix "$BREW_PACKAGE_NAME")"
 
                 if [ -d  "$BREW_PACKAGE_INSTALLED_DIR/bin" ] ; then
                     PATH="$BREW_PACKAGE_INSTALLED_DIR/bin:$PATH"
@@ -5495,7 +5500,7 @@ __setup_homebrew() {
     ##################################################################################
 
     cat > "$XCPKG_CORE_DIR/env" <<EOF
-XCPKG_USE_BREW=no
+XCPKG_USE_BREW=yes
 
 export ACLOCAL_PATH=/usr/local/share/aclocal
 export PATH="$BREW_PACKAGE_EXEFIND_PATH:$PATH"
