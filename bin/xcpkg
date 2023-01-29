@@ -1196,7 +1196,7 @@ __load_formula_of_the_given_package() {
 # __view_formula_of_the_given_package curl --paging=never
   __view_formula_of_the_given_package() {
     [ -z "$1" ] && {
-        error "__view_formula_of_the_given_package <PACKAGE-NAME>, <PACKAGE-NAME> is not given."
+        error "__view_formula_of_the_given_package <PACKAGE-NAME>, <PACKAGE-NAME> is unspecified."
         return 1
     }
 
@@ -1256,7 +1256,7 @@ __load_formula_of_the_given_package() {
 # __edit_formula_of_the_given_package <PACKAGE-NAME>
   __edit_formula_of_the_given_package() {
     [ -z "$1" ] && {
-        error "__edit_formula_of_the_given_package <PACKAGE-NAME>, <PACKAGE-NAME> is not given."
+        error "__edit_formula_of_the_given_package <PACKAGE-NAME>, <PACKAGE-NAME> is unspecified."
         return 1
     }
 
@@ -1275,7 +1275,7 @@ __load_formula_of_the_given_package() {
 # __create_formula_of_the_given_package <PACKAGE-NAME>
   __create_formula_of_the_given_package() {
     [ -z "$1" ] && {
-        error "__create_formula_of_the_given_package <PACKAGE-NAME>, <PACKAGE-NAME> is not given."
+        error "__create_formula_of_the_given_package <PACKAGE-NAME>, <PACKAGE-NAME> is unspecified."
         return 1
     }
 
@@ -1302,7 +1302,7 @@ EOF
 # __delete_formula_of_the_given_package <PACKAGE-NAME>
   __delete_formula_of_the_given_package() {
     [ -z "$1" ] && {
-        error "__delete_formula_of_the_given_package <PACKAGE-NAME>, <PACKAGE-NAME> is not given."
+        error "__delete_formula_of_the_given_package <PACKAGE-NAME>, <PACKAGE-NAME> is unspecified."
         return 1
     }
 
@@ -1315,12 +1315,12 @@ EOF
 # __rename_formula_of_the_given_package <OLD-PACKAGE-NAME> <NEW-PACKAGE-NAME>
 __rename_formula_of_the_given_package() {
     [ -z "$1" ] && {
-        error "__rename_formula_of_the_given_package <OLD-PACKAGE-NAME> <NEW-PACKAGE-NAME>, <OLD-PACKAGE-NAME> is not given."
+        error "__rename_formula_of_the_given_package <OLD-PACKAGE-NAME> <NEW-PACKAGE-NAME>, <OLD-PACKAGE-NAME> is unspecified."
         return 1
     }
 
     [ -z "$2" ] && {
-        error "__rename_formula_of_the_given_package <OLD-PACKAGE-NAME> <NEW-PACKAGE-NAME>, <NEW-PACKAGE-NAME> is not given."
+        error "__rename_formula_of_the_given_package <OLD-PACKAGE-NAME> <NEW-PACKAGE-NAME>, <NEW-PACKAGE-NAME> is unspecified."
         return 1
     }
 
@@ -1404,7 +1404,7 @@ EOF
 
 __repo_of_formula_of_the_given_package() {
     [ -z "$1" ] && {
-        error "__repo_of_formula_of_the_given_package <PACKAGE-NAME>, <PACKAGE-NAME> is not given."
+        error "__repo_of_formula_of_the_given_package <PACKAGE-NAME>, <PACKAGE-NAME> is unspecified."
         return 1
     }
 
@@ -1427,7 +1427,7 @@ __repo_of_formula_of_the_given_package() {
 # __path_of_formula_of_the_given_package <PACKAGE-NAME>
   __path_of_formula_of_the_given_package() {
     [ -z "$1" ] && {
-        error "__path_of_formula_of_the_given_package <PACKAGE-NAME>, <PACKAGE-NAME> is not given."
+        error "__path_of_formula_of_the_given_package <PACKAGE-NAME>, <PACKAGE-NAME> is unspecified."
         return 1
     }
 
@@ -1633,7 +1633,7 @@ __fetch_patches_of_the_given_package() {
 
 __fetch_resources_of_the_given_package() {
     [ -z "$1" ] && {
-        error "__fetch_resources_of_the_given_package <PACKAGE-NAME>, <PACKAGE-NAME> is not given."
+        error "__fetch_resources_of_the_given_package <PACKAGE-NAME>, <PACKAGE-NAME> is unspecified."
         return 1
     }
 
@@ -1702,7 +1702,7 @@ is_package_available() {
 # is_package_installed <PACKAGE-SPEC>
   is_package_installed() {
     [ -z "$1" ] && {
-        error "is_package_installed <PACKAGE-SPEC>, <PACKAGE-SPEC> is not given."
+        error "is_package_installed <PACKAGE-SPEC>, <PACKAGE-SPEC> is unspecified."
         return 1
     }
 
@@ -2059,7 +2059,7 @@ __open_homepage_of_the_given_package() {
 # __show_packages_depended_by_the_given_package <PACKAGE-NAME> [--format=<dot|box|svg|png>] [-o <OUTPUT-FILEPATH]
 __show_packages_depended_by_the_given_package() {
     [ -z "$1" ] && {
-        error "__show_packages_depended_by_the_given_package <PACKAGE-NAME> [--format=<dot|box|svg|png>], <PACKAGE-NAME> is not given."
+        error "__show_packages_depended_by_the_given_package <PACKAGE-NAME> [--format=<dot|box|svg|png>], <PACKAGE-NAME> is unspecified."
         return 1
     }
 
@@ -2103,7 +2103,7 @@ __show_packages_depended_by_the_given_package() {
 # __logs_the_given_installed_package <PACKAGE-SPEC>
   __logs_the_given_installed_package() {
     [ -z "$1" ] && {
-        error "$_0 logs <PACKAGE-SPEC>, <PACKAGE-SPEC> is not given."
+        error "$_0 logs <PACKAGE-SPEC>, <PACKAGE-SPEC> is unspecified."
         return 1
     }
 
@@ -2236,7 +2236,7 @@ __show_packages_depended_by_the_given_package() {
 # __get_packages_that_are_recursively_depended_by_the_given_package <PACKAGE-NAME> internal
   __get_packages_that_are_recursively_depended_by_the_given_package() {
     [ -z "$1" ] && {
-        error "__get_packages_that_are_recursively_depended_by_the_given_package <PACKAGE-NAME> [internal], <PACKAGE-NAME> is not given."
+        error "__get_packages_that_are_recursively_depended_by_the_given_package <PACKAGE-NAME> [internal], <PACKAGE-NAME> is unspecified."
         return 1
     }
 
@@ -2377,7 +2377,7 @@ __install_the_given_packages() {
     inspect_install_arguments $@
 
     [ -z "$USER_SPECIFIED_PACKAGE_SPEC_LIST" ] && {
-        error "$_0 install <PACKAGE-SPEC|PACKAGE-NAME>..., <|PACKAGE-SPEC|PACKAGE-NAME> is not given."
+        error "$_0 install <PACKAGE-SPEC|PACKAGE-NAME>..., <|PACKAGE-SPEC|PACKAGE-NAME> is unspecified."
         return 1
     }
 
@@ -3518,7 +3518,7 @@ EOF
 # __show_information_of_the_given_package curl web-url
   __show_information_of_the_given_package() {
     [ -z "$1" ] && {
-        error "__show_information_of_the_given_package <PACKAGE-NAME> [ARGUMENTS], <PACKAGE-NAME> is not given."
+        error "__show_information_of_the_given_package <PACKAGE-NAME> [ARGUMENTS], <PACKAGE-NAME> is unspecified."
         return 1
     }
 
@@ -3762,7 +3762,7 @@ mark_is_package_installed_or_not() {
 # __generate_receipt_of_the_given_package <PACKAGE-NAME>
   __generate_receipt_of_the_given_package() {
     [ -z "$1" ] && {
-        error "__generate_receipt_of_the_given_package <PACKAGE-NAME>, <PACKAGE-NAME> is not given."
+        error "__generate_receipt_of_the_given_package <PACKAGE-NAME>, <PACKAGE-NAME> is unspecified."
         return 1
     }
 
@@ -3816,7 +3816,7 @@ EOF
 # __load_receipt_of_the_given_package <PACKAGE-SPEC>
   __load_receipt_of_the_given_package() {
     [ -z "$1" ] && {
-        error "__load_receipt_of_the_given_package <PACKAGE-SPEC>, <PACKAGE-SPEC> is not given."
+        error "__load_receipt_of_the_given_package <PACKAGE-SPEC>, <PACKAGE-SPEC> is unspecified."
         return 1
     }
 
@@ -5373,10 +5373,10 @@ inspect_install_arguments() {
                             unset TARGET_PLATFORM_VERS
                             unset TARGET_PLATFORM_ARCH
 
-                            TARGET_PLATFORM_NAME=$(printf '%s\n' "$PACKAGE_SPEC" | cut -d/ -f1)
-                            TARGET_PLATFORM_VERS=$(printf '%s\n' "$PACKAGE_SPEC" | cut -d/ -f2)
-                            TARGET_PLATFORM_ARCH=$(printf '%s\n' "$PACKAGE_SPEC" | cut -d/ -f3)
-                                    PACKAGE_NAME=$(printf '%s\n' "$PACKAGE_SPEC" | cut -d/ -f4)
+                            TARGET_PLATFORM_NAME=$(printf '%s\n' "$1" | cut -d/ -f1)
+                            TARGET_PLATFORM_VERS=$(printf '%s\n' "$1" | cut -d/ -f2)
+                            TARGET_PLATFORM_ARCH=$(printf '%s\n' "$1" | cut -d/ -f3)
+                                    PACKAGE_NAME=$(printf '%s\n' "$1" | cut -d/ -f4)
 
                             if [ -z "$PACKAGE_NAME" ] ; then
                                 die "invalid package spec: $1\npackage name is unspecified."
@@ -5493,7 +5493,7 @@ case \$1 in
     https://github.com/*)
         printf 'https://ghproxy.com/%s\n' "\$1"
         ;;
-    '') printf '%s\n' "\$0 <URL>, <URL> is not given." >&2 ;;
+    '') printf '%s\n' "\$0 <URL>, <URL> is unspecified." >&2 ;;
     *)  printf '%s\n' "\$1"
 esac
 EOF
