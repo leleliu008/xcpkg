@@ -1148,8 +1148,8 @@ __load_formula_of_the_given_package() {
     for item in $PACKAGE_BUILD_SYSTEM
     do
         case $item in
-            autogen)     PACKAGE_DEP_PKG="$PACKAGE_DEP_PKG automake" ;;
-            autotools)   PACKAGE_DEP_PKG="$PACKAGE_DEP_PKG automake" ;;
+            autogen)     PACKAGE_DEP_PKG="$PACKAGE_DEP_UPP automake" ;;
+            autotools)   PACKAGE_DEP_PKG="$PACKAGE_DEP_UPP automake" ;;
             configure)   PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP gmake"  ;;
             cmake-gmake) PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP cmake gmake"  ;;
             cmake-ninja) PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP cmake ninja"  ;;
@@ -1169,11 +1169,11 @@ __load_formula_of_the_given_package() {
     fi
 
     if [ -n "$PACKAGE_DEP_PYM" ] ; then
-        PACKAGE_DEP_PKG="$PACKAGE_DEP_PKG python3"
+        PACKAGE_DEP_PKG="$PACKAGE_DEP_UPP python3"
     fi
 
     if [ -n "$PACKAGE_DEP_PLM" ] ; then
-        PACKAGE_DEP_PKG="$PACKAGE_DEP_PKG perl"
+        PACKAGE_DEP_PKG="$PACKAGE_DEP_UPP perl"
     fi
 
     if [ "$PACKAGE_BUILD_IN_PARALLEL" = no ] ; then
@@ -2553,9 +2553,9 @@ __install_the_given_package() {
         PACKAGE_DEPENDENCY_GRAPH_FILEPATH_SVG="$PACKAGE_WORKING_DIR/dependencies.svg"
         PACKAGE_DEPENDENCY_GRAPH_FILEPATH_PNG="$PACKAGE_WORKING_DIR/dependencies.png"
 
-        __gen_dependency_graph_recursively_depended_by_the_given_package "$1" dot "$PACKAGE_DEPENDENCY_GRAPH_FILEPATH_DOT" || true
-        __gen_dependency_graph_recursively_depended_by_the_given_package "$1" box "$PACKAGE_DEPENDENCY_GRAPH_FILEPATH_BOX" || true
-        # __gen_dependency_graph_recursively_depended_by_the_given_package "$1" png "$PACKAGE_DEPENDENCY_GRAPH_FILEPATH_PNG" || true
+        __gen_dependency_graph_recursively_depended_by_the_given_package "$PACKAGE_NAME" dot "$PACKAGE_DEPENDENCY_GRAPH_FILEPATH_DOT" || true
+        __gen_dependency_graph_recursively_depended_by_the_given_package "$PACKAGE_NAME" box "$PACKAGE_DEPENDENCY_GRAPH_FILEPATH_BOX" || true
+        # __gen_dependency_graph_recursively_depended_by_the_given_package "$PACKAGE_NAME" png "$PACKAGE_DEPENDENCY_GRAPH_FILEPATH_PNG" || true
 
         if [ -f "$PACKAGE_DEPENDENCY_GRAPH_FILEPATH_BOX" ] ; then
             cat "$PACKAGE_DEPENDENCY_GRAPH_FILEPATH_BOX"
@@ -5426,8 +5426,13 @@ __setup_homebrew() {
 
     cat > "$XCPKG_CORE_BIN_DIR/uppm" <<EOF
 #!/bin/sh
+
 set -e
-exec brew "$@"
+
+case \$1 in
+    env) exec brew --env ;;
+    *)   exec brew "\$@"
+esac
 EOF
 
     chmod +x "$XCPKG_CORE_BIN_DIR/uppm"
