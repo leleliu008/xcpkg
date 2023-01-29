@@ -2389,7 +2389,11 @@ __install_the_given_packages() {
                 printf "$COLOR_GREEN%-10s$COLOR_OFF already have been installed.\n" "$PACKAGE_SPEC"
             fi
         else
-            (__install_the_given_package "$PACKAGE_SPEC") || die "package [$PACKAGE_SPEC] install failed"
+            (__install_the_given_package "$PACKAGE_SPEC")
+
+            if [ "$DRYRUN" = no ] ; then
+                is_package_installed "$PACKAGE_SPEC" || die "package [$PACKAGE_SPEC] install failed"
+            fi
         fi
     done
 }
@@ -2404,8 +2408,6 @@ __install_the_given_package() {
     cd ~
 
     unset CONFIG_XX_UPDATED
-
-    __setup_PATH_env
 
     step "view formula"
     __view_formula_of_the_given_package "$PACKAGE_NAME" --paging=never
@@ -2435,13 +2437,64 @@ __install_the_given_package() {
     #########################################################################################
 
     [ -n "$PACKAGE_DEP_UPP" ] && {
-        step "install depentent tools via uppm"
+        if [ "$XCPKG_USE_BREW" = yes ] ; then
+            step "install needed packages via brew"
 
-        run "$UPPM" env
-        run "$UPPM" update
-        run "$UPPM" install "$PACKAGE_DEP_UPP"
+            BREW=$(command -v brew)
 
-        __setup_PATH_env
+            run "$BREW" update
+            run "$BREW" --env
+
+            for item in $PACKAGE_DEP_UPP
+            do
+                run "$BREW" install "$item"
+
+                unset BREW_PACKAGE_INSTALLED_DIR
+                BREW_PACKAGE_INSTALLED_DIR="$("$BREW" --prefix "$item")"
+
+                if [ -d  "$BREW_PACKAGE_INSTALLED_DIR/bin" ] ; then
+                    PATH="$BREW_PACKAGE_INSTALLED_DIR/bin:$PATH"
+                fi
+
+                if [ -d  "$BREW_PACKAGE_INSTALLED_DIR/sbin" ] ; then
+                    PATH="$BREW_PACKAGE_INSTALLED_DIR/sbin:$PATH"
+                fi
+
+                if [ -d  "$BREW_PACKAGE_INSTALLED_DIR/libexec/gnubin" ] ; then
+                    PATH="$BREW_PACKAGE_INSTALLED_DIR/libexec/gnubin:$PATH"
+                fi
+            done
+        else
+            step "install needed packages via uppm"
+
+            UPPM="$XCPKG_CORE_BIN_DIR/uppm"
+
+            run "$UPPM" env
+            run "$UPPM" update
+
+            for item in $PACKAGE_DEP_UPP
+            do
+                run "$UPPM" install "$item"
+
+                unset UPPM_PACKAGE_INSTALLED_DIR
+                UPPM_PACKAGE_INSTALLED_DIR="$("$UPPM" info "$item" installed-dir)"
+
+                if [ -d  "$UPPM_PACKAGE_INSTALLED_DIR/bin" ] ; then
+                    PATH="$UPPM_PACKAGE_INSTALLED_DIR/bin:$PATH"
+                fi
+
+                if [ -d  "$UPPM_PACKAGE_INSTALLED_DIR/sbin" ] ; then
+                    PATH="$UPPM_PACKAGE_INSTALLED_DIR/sbin:$PATH"
+                fi
+
+                if [ -d          "$UPPM_PACKAGE_INSTALLED_DIR/share/aclocal" ] ; then
+                    ACLOCAL_PATH="$UPPM_PACKAGE_INSTALLED_DIR/share/aclocal:$ACLOCAL_PATH"
+                fi
+            done
+        fi
+
+        export PATH
+        export ACLOCAL_PATH
     }
 
     #########################################################################################
@@ -2481,6 +2534,11 @@ __install_the_given_package() {
                 run "printf '%s\n' 'yes' | cpan $item"
             fi
         done
+
+        if [ -d "$HOME/perl5/bin" ] ; then
+            # cpan install to default local location
+            bppend_to_PATH "$HOME/perl5/bin"
+        fi
     }
 
     #########################################################################################
@@ -2498,7 +2556,7 @@ __install_the_given_package() {
 
             run bash "$XCPKG_HOME/tmp.d/rustup-init.sh" -y || return 1
 
-            export CARGO_HOME=$HOME/.cargo
+            export CARGO_HOME="$HOME/.cargo"
             export PATH="$CARGO_HOME/bin:$PATH"
         }
     }
@@ -4187,6 +4245,10 @@ __config_variables_for_the_given_target() {
 # __printf_variables_for_the_given_target      curl      iPhoneOS/arm64/8.0
 __printf_variables_for_the_given_target() {
     printf '%s\n' "
+              SHELL = $SHELL
+
+                 M4 = $M4
+
 XCPKG_VERSION       = $XCPKG_VERSION
 XCPKG_HOME          = $XCPKG_HOME
 XCPKG               = $XCPKG
@@ -5383,17 +5445,41 @@ EOF
 }
 
 __setup_homebrew() {
-    unset SETUP_WORKING_DIR
-    SETUP_WORKING_DIR=$(mktemp -d)
+    unset BREW; BREW=$(command -v brew || true)
 
-    command -v brew > /dev/null || {
-        HOMEBREW_INSTALL_SCRIPT_FILEPATH="$SETUP_WORKING_DIR/homebrew-install.sh"
-        run curl -L -o "$HOMEBREW_INSTALL_SCRIPT_FILEPATH" 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh'
-        run "yes | bash $HOMEBREW_INSTALL_SCRIPT_FILEPATH"
-    }
+    if [ -z "$BREW" ] ; then
+        unset SETUP_WORKING_DIR
+        SETUP_WORKING_DIR=$(mktemp -d)
 
-    run brew update
-    run brew install coreutils findutils gawk gsed grep tree unzip zip gnu-tar gzip lzip patchelf pkg-config jq yq git curl
+        run curl -L -o "$SETUP_WORKING_DIR/homebrew-install.sh" 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh'
+        run "yes | bash $SETUP_WORKING_DIR/homebrew-install.sh"
+
+        BREW=$(command -v brew || true)
+    else
+        run "$BREW" update
+    fi
+
+    unset BREW_PACKAGE_EXEFIND_PATH
+
+    for item in coreutils findutils gawk gsed grep gnu-tar gzip lzip unzip zip jq yq git curl tree
+    do
+        run "$BREW" install "$item"
+
+        unset BREW_PACKAGE_INSTALLED_DIR
+        BREW_PACKAGE_INSTALLED_DIR="$(brew --prefix "$item")"
+
+        if [ -d "$BREW_PACKAGE_INSTALLED_DIR/bin" ] ; then
+            BREW_PACKAGE_EXEFIND_PATH="$BREW_PACKAGE_EXEFIND_PATH:$BREW_PACKAGE_INSTALLED_DIR/bin"
+        fi
+
+        if [ -d "$BREW_PACKAGE_INSTALLED_DIR/sbin" ] ; then
+            BREW_PACKAGE_EXEFIND_PATH="$BREW_PACKAGE_EXEFIND_PATH:$BREW_PACKAGE_INSTALLED_DIR/sbin"
+        fi
+
+        if [ -d "$BREW_PACKAGE_INSTALLED_DIR/libexec/gnubin" ] ; then
+            BREW_PACKAGE_EXEFIND_PATH="$BREW_PACKAGE_EXEFIND_PATH:$BREW_PACKAGE_INSTALLED_DIR/libexec/gnubin"
+        fi
+    done
 
     run ln -sf /usr/local/bin/gln      "$XCPKG_CORE_BIN_DIR/ln"
     run ln -sf /usr/local/bin/gtar     "$XCPKG_CORE_BIN_DIR/tar"
@@ -5401,49 +5487,18 @@ __setup_homebrew() {
     run ln -sf /usr/local/bin/gawk     "$XCPKG_CORE_BIN_DIR/awk"
     run ln -sf /usr/local/bin/ggrep    "$XCPKG_CORE_BIN_DIR/grep"
     run ln -sf /usr/local/bin/gfind    "$XCPKG_CORE_BIN_DIR/find"
-    #run ln -sf /usr/local/bin/gmake    "$XCPKG_CORE_BIN_DIR/make"
     run ln -sf /usr/local/bin/gbase64  "$XCPKG_CORE_BIN_DIR/base64"
     run ln -sf /usr/local/bin/gunlink  "$XCPKG_CORE_BIN_DIR/unlink"
     run ln -sf /usr/local/bin/ginstall "$XCPKG_CORE_BIN_DIR/install"
     run ln -sf /usr/local/bin/gsha256sum "$XCPKG_CORE_BIN_DIR/sha256sum"
 
-    #run ln -sf /usr/local/opt/m4/bin/m4        "$XCPKG_CORE_BIN_DIR/m4"
-
-    #run ln -sf /usr/local/opt/flex/bin/lex     "$XCPKG_CORE_BIN_DIR/lex"
-    #run ln -sf /usr/local/opt/flex/bin/flex    "$XCPKG_CORE_BIN_DIR/flex"
-    #run ln -sf /usr/local/opt/flex/bin/flex++  "$XCPKG_CORE_BIN_DIR/flex++"
-
-    #run ln -sf /usr/local/opt/bison/bin/bison  "$XCPKG_CORE_BIN_DIR/bison"
-    #run ln -sf /usr/local/opt/bison/bin/yacc   "$XCPKG_CORE_BIN_DIR/yacc"
-
-    ##################################################################################
-
-    cat > "$XCPKG_CORE_BIN_DIR/uppm" <<EOF
-#!/bin/sh
-
-set -e
-
-case \$1 in
-    env) exec brew --env ;;
-    *)   exec brew "\$@"
-esac
-EOF
-
-    chmod +x "$XCPKG_CORE_BIN_DIR/uppm"
-
-    ##################################################################################
-
-    # https://curl.se/docs/caextract.html
-    wfetch 'https://curl.se/ca/cacert.pem' --output-dir="$SETUP_WORKING_DIR"
-
-    run install -d                         "$XCPKG_CORE_DIR/etc/ssl/certs"
-    run cp "$SETUP_WORKING_DIR/cacert.pem" "$XCPKG_CORE_DIR/etc/ssl/certs"
-
     ##################################################################################
 
     cat > "$XCPKG_CORE_DIR/env" <<EOF
-XCPKG_USE_EXTERNAL_PM=uppm
-ACLOCAL_PATH=/usr/local/share/aclocal
+XCPKG_USE_BREW=no
+
+export ACLOCAL_PATH=/usr/local/share/aclocal
+export PATH="$BREW_PACKAGE_EXEFIND_PATH:$PATH"
 EOF
 }
 
@@ -5512,68 +5567,42 @@ __setup_uppm() {
 
     run "$UPPM" env
     run "$UPPM" update
-    run "$UPPM" install coreutils findutils gawk gsed grep tree curl git zip unzip gtar gzip xz bzip2 lzip pkg-config jq yq
 
-    cat > "$XCPKG_CORE_DIR/env" <<EOF
-XCPKG_USE_EXTERNAL_PM=uppm
-EOF
-}
+    unset UPPM_PACKAGE_EXEFIND_PATH
+    unset UPPM_PACKAGE_ACLOCAL_PATH
 
-__is_core_tools_installed() {
-    [ -e "$XCPKG_CORE_BIN_DIR/uppm" ] || return 1
-
-    for item in bash coreutils util-linux findutils gawk gsed grep tree curl git zip unzip gtar gzip xz bzip2 lzip patch patchelf pkg-config yq
+    for item in coreutils findutils gawk gsed grep gtar gzip lzip unzip zip jq yq git curl tree
     do
-        "$XCPKG_CORE_BIN_DIR/uppm" is-installed "$item" || return 1
+        run "$UPPM" install "$item"
+
+        unset UPPM_PACKAGE_INSTALLED_DIR
+        UPPM_PACKAGE_INSTALLED_DIR="$("$UPPM" info "$item" installed-dir)"
+
+        if [ -d "$UPPM_PACKAGE_INSTALLED_DIR/bin" ] ; then
+            UPPM_PACKAGE_EXEFIND_PATH="$UPPM_PACKAGE_EXEFIND_PATH:$UPPM_PACKAGE_INSTALLED_DIR/bin"
+        fi
+
+        if [ -d "$UPPM_PACKAGE_INSTALLED_DIR/sbin" ] ; then
+            UPPM_PACKAGE_EXEFIND_PATH="$UPPM_PACKAGE_EXEFIND_PATH:$UPPM_PACKAGE_INSTALLED_DIR/sbin"
+        fi
+
+        if [ -d "$UPPM_PACKAGE_INSTALLED_DIR/share/aclocal" ] ; then
+            UPPM_PACKAGE_ACLOCAL_PATH="$UPPM_PACKAGE_ACLOCAL_PATH:$UPPM_PACKAGE_INSTALLED_DIR/share/aclocal"
+        fi
     done
 
-    return 0
-}
+    cat > "$XCPKG_CORE_DIR/env" <<EOF
+XCPKG_USE_BREW=no
 
-__get_perl_home() {
-    if [ -z "$1" ] ; then
-        if command_exists_in_filesystem perl ; then
-            __get_perl_home perl
-        fi
-    else
-        for item in $($1 -V:config_args)
-        do
-            case $item in
-                -Dprefix=*) getvalue "$item"; break
-            esac
-        done
-    fi
-}
+export ACLOCAL_PATH="$UPPM_PACKAGE_ACLOCAL_PATH:$ACLOCAL_PATH"
+export PATH="$UPPM_PACKAGE_EXEFIND_PATH:$PATH"
 
-__setup_PATH_env() {
-    # pip install --user <PKG>
-    bppend_to_PATH "$HOME/.local/bin"
-
-    # cpan install to default local location
-    bppend_to_PATH "$HOME/perl5/bin"
-
-    if [ -f "$HOME/.cargo/env" ] ; then
-        .   "$HOME/.cargo/env"
-    fi
-
-    UPPM_PACKAGE_INSTALLED_DIR="$HOME/.uppm/installed"
-
-    if [ -d "$UPPM_PACKAGE_INSTALLED_DIR" ] ; then
-        for item in $(ls "$UPPM_PACKAGE_INSTALLED_DIR")
-        do
-            if [ -f "$UPPM_PACKAGE_INSTALLED_DIR/$item/.uppm/receipt.yml" ] ; then
-                if [ -d "$UPPM_PACKAGE_INSTALLED_DIR/$item/bin" ] ; then
-                    bppend_to_PATH "$UPPM_PACKAGE_INSTALLED_DIR/$item/bin"
-                fi
-
-                if [ -d "$UPPM_PACKAGE_INSTALLED_DIR/$item/share/aclocal" ] ; then
-                    bppend_to_ACLOCAL_PATH "$UPPM_PACKAGE_INSTALLED_DIR/$item/share/aclocal"
-                fi
-            fi
-        done
-    fi
-
-    bppend_to_PATH "$XCPKG_CORE_BIN_DIR"
+# https://git-scm.com/book/en/v2/Git-Internals-Environment-Variables
+if [ -d "$HOME/.uppm/installed/git/libexec/git-core" ] ; then
+    export GIT_EXEC_PATH="$HOME/.uppm/installed/git/libexec/git-core"
+    export GIT_TEMPLATE_DIR="$HOME/.uppm/installed/git/share/git-core/templates"
+fi
+EOF
 }
 
 __help() {
@@ -5720,9 +5749,7 @@ ${COLOR_GREEN}xcpkg create-framework <PACKAGE>...${COLOR_OFF}
 main() {
     set -e
 
-    if [ -n "$XCPKG_XTRACE" ] ; then
-        set -x
-    fi
+    [ -n "$XCPKG_XTRACE" ] && set -x
 
     [ "$(uname)" = 'Darwin' ] || die "this software can only be run on macOS."
 
@@ -5770,11 +5797,7 @@ main() {
     XCPKG_CORE_DIR="$XCPKG_HOME/core"
     XCPKG_CORE_BIN_DIR="$XCPKG_CORE_DIR/bin"
 
-    UPPM="$XCPKG_CORE_BIN_DIR/uppm"
-
-    unset TIMESTAMP_UNIX
-
-    TIMESTAMP_UNIX="$(date +%s)"
+    unset TIMESTAMP_UNIX; TIMESTAMP_UNIX="$(date +%s)"
 
     case $1 in
         ''|--help|-h)
@@ -5805,18 +5828,22 @@ main() {
         export ACLOCAL_PATH="$XCPKG_CORE_DIR/share/aclocal:$ACLOCAL_PATH"
     fi
 
-    # https://git-scm.com/book/en/v2/Git-Internals-Environment-Variables
-    if [ -d "$HOME/.uppm/installed/git/libexec/git-core" ] ; then
-        export GIT_EXEC_PATH="$HOME/.uppm/installed/git/libexec/git-core"
-        export GIT_TEMPLATE_DIR="$HOME/.uppm/installed/git/share/git-core/templates"
-    fi
-
     # https://www.openssl.org/docs/man1.1.1/man3/SSL_CTX_set_default_verify_paths.html
     if [ -f "$XCPKG_CORE_DIR/etc/ssl/certs/cacert.pem" ] ; then
         export SSL_CERT_FILE="$XCPKG_CORE_DIR/etc/ssl/certs/cacert.pem"
     fi
 
-    __setup_PATH_env
+    # pip install --user <PKG>
+    bppend_to_PATH "$HOME/.local/bin"
+
+    # cpan install to default local location
+    bppend_to_PATH "$HOME/perl5/bin"
+
+    if [ -f "$HOME/.cargo/env" ] ; then
+        .   "$HOME/.cargo/env"
+    fi
+
+    bppend_to_PATH "$XCPKG_CORE_BIN_DIR"
 
     case $1 in
         env)
@@ -5834,6 +5861,13 @@ xcpkg.home : $XCPKG_HOME
 xcpkg.path : $XCPKG
 xcpkg.link : https://github.com/leleliu008/xcpkg
 EOF
+            if [ "$XCPKG_USE_BREW" = yes ] ; then
+                run brew --version
+                run brew --env
+            else
+                run uppm --version
+                run uppm env
+            fi
 
             inspect_build_toolchains
 
@@ -5842,6 +5876,10 @@ EOF
 xcode.root: $TOOLCHAIN_ROOT
 xcode.vers: $TOOLCHAIN_VERS
 EOF
+            if [ "$2" = '-v' ] ; then
+                echo "${COLOR_PURPLE}==>${COLOR_OFF} ${COLOR_GREEN}PATH${COLOR_OFF}"
+                printf '%s\n' "$PATH" | tr : '\n'
+            fi
             ;;
 
         ls-target-platforms) shift; __list_supported_target_platforms $@ ;;
