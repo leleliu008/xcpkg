@@ -2083,12 +2083,12 @@ __show_packages_depended_by_the_given_package() {
                 ;;
             -o) shift
                 if [ -z "$1" ] ; then
-                    die "$_0 depends <PACKAGE-NAME> [--format=<dot|box|svg|png>] [-o <OUTPUT-FILEPATH>, -o option follow a value."
+                    die "$_0 depends <PACKAGE-NAME> [--format=<dot|box|svg|png>] [-o <OUTPUT-FILEPATH>], -o option follow a value."
                 else
                     OUTPUT_FILEPATH="$1"
                 fi
                 ;;
-            *)  die "$_0 depends <PACKAGE-NAME> [--format=<dot|box|svg|png>] [-o <OUTPUT-FILEPATH>, unrecognized option: $1"
+            *)  die "$_0 depends <PACKAGE-NAME> [--format=<dot|box|svg|png>] [-o <OUTPUT-FILEPATH>], unrecognized option: $1"
         esac
         shift
     done
@@ -2317,14 +2317,14 @@ __gen_dependency_graph_recursively_depended_by_the_given_package() {
 
     case $2 in
         dot)
-            if [ -z "$3"] ; then
+            if [ -z "$3" ] ; then
                 cat "$GEN_DEPENDENCY_GRAPH_DOT_FILEPATH"
             else
                 cp  "$GEN_DEPENDENCY_GRAPH_DOT_FILEPATH" "$3"
             fi
             ;;
         box)
-            if [ -z "$3"] ; then
+            if [ -z "$3" ] ; then
                 CURL_OPTS=
             else
                 CURL_OPTS="-o $3"
@@ -2348,7 +2348,7 @@ __gen_dependency_graph_recursively_depended_by_the_given_package() {
                 fi
             fi
 
-            if [ -z "$3"] ; then
+            if [ -z "$3" ] ; then
                 run dot -Tsvg "$GEN_DEPENDENCY_GRAPH_DOT_FILEPATH"
             else
                 run dot -Tsvg "-o$3" "$GEN_DEPENDENCY_GRAPH_DOT_FILEPATH"
@@ -2364,7 +2364,7 @@ __gen_dependency_graph_recursively_depended_by_the_given_package() {
                 fi
             fi
 
-            if [ -z "$3"] ; then
+            if [ -z "$3" ] ; then
                 run dot -Tpng "$GEN_DEPENDENCY_GRAPH_DOT_FILEPATH"
             else
                 run dot -Tpng "-o$3" "$GEN_DEPENDENCY_GRAPH_DOT_FILEPATH"

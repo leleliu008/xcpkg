@@ -105,10 +105,10 @@ all relevant dirs and files are located in `~/.xcpkg` directory.
         xcpkg depends curl --format=png
         xcpkg depends curl --format=svg
 
-        xcpkg depends curl --format=dot > xx.dot
-        xcpkg depends curl --format=box > xx.txt
-        xcpkg depends curl --format=png > xx.png
-        xcpkg depends curl --format=svg > xx.svg
+        xcpkg depends curl --format=dot -o xx.dot
+        xcpkg depends curl --format=box -o xx.txt
+        xcpkg depends curl --format=png -o xx.png
+        xcpkg depends curl --format=svg -o xx.svg
         
 *   **download resources of the given package to the local cache**
         
