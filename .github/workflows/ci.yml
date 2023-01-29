@@ -31,8 +31,9 @@ jobs:
       - run: bin/xcpkg -h
       - run: bin/xcpkg -V
 
-      - run: bin/xcpkg setup
+      - run: bin/xcpkg setup --use-brew
       - run: bin/xcpkg env
+      - run: bin/xcpkg env -v
 
       - run: bin/xcpkg integrate zsh
 
@@ -46,7 +47,6 @@ jobs:
       - run: bin/xcpkg info uctags license
 
       - run: bin/xcpkg depends uctags
-      - run: bin/xcpkg depends curl
 
       - run: bin/xcpkg install MacOSX/10.15/x86_64/uctags
 
