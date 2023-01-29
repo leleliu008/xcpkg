@@ -172,35 +172,38 @@ all relevant dirs and files are located in `~/.xcpkg` directory.
         
 *   **check if the given package is available**
         
-        xcpkg is-available curl iPhoneOS/9.0/armv7s
+        xcpkg is-available curl
         
 *   **check if the given package is installed**
         
-        xcpkg is-installed curl iPhoneOS/9.0/armv7s
+        xcpkg is-installed curl
+        xcpkg is-installed iPhoneOS/9.0/armv7s/curl
         
 *   **check if the given package is outdated**
         
-        xcpkg is-outdated  curl iPhoneOS/9.0/armv7s
+        xcpkg is-outdated  curl
+        xcpkg is-outdated  iPhoneOS/9.0/armv7s/curl
         
 *   **list installed files of the given installed package in a tree-like format**
         
         xcpkg tree curl
-        xcpkg tree curl iPhoneOS/9.0/armv7s -L 3
+        xcpkg tree iPhoneOS/9.0/armv7s/curl -L 3
         
 *   **show logs of the given installed package**
         
         xcpkg logs curl
-        xcpkg logs curl iPhoneOS/9.0/armv7s
-        xcpkg logs curl iPhoneOS/9.0/arm64
+        xcpkg logs curl iPhoneOS/9.0/armv7s/curl
+        xcpkg logs curl iPhoneOS/9.0/arm64/curl
         
 *   **pack the given installed package**
         
-        xcpkg pack curl iPhoneOS/9.0/armv7s
-        xcpkg pack curl iPhoneOS/9.0/armv7s --type=tar.xz
-        xcpkg pack curl iPhoneOS/9.0/armv7s --type=tar.gz
-        xcpkg pack curl iPhoneOS/9.0/armv7s --type=tar.lz
-        xcpkg pack curl iPhoneOS/9.0/armv7s --type=tar.bz2
-        xcpkg pack curl iPhoneOS/9.0/armv7s --type=zip
+        xcpkg pack curl
+        xcpkg pack iPhoneOS/9.0/armv7s/curl
+        xcpkg pack iPhoneOS/9.0/armv7s/curl --type=tar.xz
+        xcpkg pack iPhoneOS/9.0/armv7s/curl --type=tar.gz
+        xcpkg pack iPhoneOS/9.0/armv7s/curl --type=tar.lz
+        xcpkg pack iPhoneOS/9.0/armv7s/curl --type=tar.bz2
+        xcpkg pack iPhoneOS/9.0/armv7s/curl --type=zip
         
 *   **delete the unused cached files**
         
@@ -300,6 +303,16 @@ all relevant dirs and files are located in `~/.xcpkg` directory.
 
     ```bash
     export XCPKG_XTRACE=1
+    ```
+
+*   **XCPKG_DEFAULT_TARGET_PLATFORM_SPEC**
+
+    some commands need `<PACKAGE-SPEC>` to be specified. `<PACKAGE-SPEC>` has the form `<TARGET-PLATFORM-SPEC>/<PACKAGE-NAME>`, you can omit `<TARGET-PLATFORM-SPEC>/`. If `<TARGET-PLATFORM-SPEC>/` is omitted, this environment variables will be used, if this environment variables is not set, then will retrive your current os's info.
+
+    example:
+
+    ```bash
+    export XCPKG_DEFAULT_TARGET_PLATFORM_SPEC=MacOSX/10.15/arm64
     ```
 
 *   **other relevant environment variables**

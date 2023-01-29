@@ -17,12 +17,6 @@
 
 # https://github.com/leleliu008/xcpkg
 
-
-# References:
-# https://clang.llvm.org/docs/ClangCommandLineReference.html
-# https://clang.llvm.org/docs/CrossCompilation.html
-# https://commandlinefanatic.com/cgi-bin/showarticle.cgi?article=art024
-
 _0=$0
 
 unset CURRENT_SCRIPT_DIR
@@ -1903,15 +1897,15 @@ __uninstall_the_given_packages() {
 __reinstall_the_given_packages() {
     inspect_install_arguments $@
 
-    die_if_package_is_not_specified $USER_SPECIFIED_PACKAGE_LIST
+    die_if_package_is_not_specified $USER_SPECIFIED_PACKAGE_SPEC_LIST
 
-    for packageName in $USER_SPECIFIED_PACKAGE_LIST
+    for packageName in $USER_SPECIFIED_PACKAGE_SPEC_LIST
     do
         die_if_package_is_not_available "$packageName"
         die_if_package_is_not_installed "$packageName"
     done
 
-    for PACKAGE_NAME in $USER_SPECIFIED_PACKAGE_LIST
+    for PACKAGE_NAME in $USER_SPECIFIED_PACKAGE_SPEC_LIST
     do
         [ -d "$XCPKG_BACKUP_DIR" ] || {
             install -d "$XCPKG_BACKUP_DIR" || return 1
@@ -1928,17 +1922,17 @@ __reinstall_the_given_packages() {
 __upgrade_packages() {
     inspect_install_arguments $@
 
-    if [ -z "$USER_SPECIFIED_PACKAGE_LIST" ] ; then
-        USER_SPECIFIED_PACKAGE_LIST=$(__list__outdated_packages)
+    if [ -z "$USER_SPECIFIED_PACKAGE_SPEC_LIST" ] ; then
+        USER_SPECIFIED_PACKAGE_SPEC_LIST=$(__list__outdated_packages)
     fi
 
-    for packageName in $USER_SPECIFIED_PACKAGE_LIST
+    for packageName in $USER_SPECIFIED_PACKAGE_SPEC_LIST
     do
         die_if_package_is_not_available "$packageName"
         die_if_package_is_not_installed "$packageName"
     done
 
-    for PACKAGE_NAME in $USER_SPECIFIED_PACKAGE_LIST
+    for PACKAGE_NAME in $USER_SPECIFIED_PACKAGE_SPEC_LIST
     do
         [ -d "$XCPKG_BACKUP_DIR" ] || {
             install -d "$XCPKG_BACKUP_DIR" || return 1
@@ -2062,7 +2056,7 @@ __open_homepage_of_the_given_package() {
     fi
 }
 
-# __show_packages_depended_by_the_given_package <PACKAGE-NAME> [--format=<dot|box|svg|png>]
+# __show_packages_depended_by_the_given_package <PACKAGE-NAME> [--format=<dot|box|svg|png>] [-o <OUTPUT-FILEPATH]
 __show_packages_depended_by_the_given_package() {
     [ -z "$1" ] && {
         error "__show_packages_depended_by_the_given_package <PACKAGE-NAME> [--format=<dot|box|svg|png>], <PACKAGE-NAME> is not given."
@@ -2074,18 +2068,27 @@ __show_packages_depended_by_the_given_package() {
     shift
 
     unset OUTPUT_FORMAT
+    unset OUTPUT_FILEPATH
 
     while [ -n "$1" ]
     do
         case $1 in
             --format=*)
                 OUTPUT_FORMAT=$(getvalue $1)
+
                 case $OUTPUT_FORMAT in
                     dot|box|svg|png) ;;
-                    *)  die "unsupported format: $OUTPUT_FORMAT"
+                    *)  die "$_0 depends <PACKAGE-NAME> [--format=<dot|box|svg|png>], unsupported format: $OUTPUT_FORMAT"
                 esac
                 ;;
-            *)  die "$_0 depends <PACKAGE-NAME> [--format=<dot|box|svg|png>] , unrecognized option: $1"
+            -o) shift
+                if [ -z "$1" ] ; then
+                    die "$_0 depends <PACKAGE-NAME> [--format=<dot|box|svg|png>] [-o <OUTPUT-FILEPATH>, -o option follow a value."
+                else
+                    OUTPUT_FILEPATH="$1"
+                fi
+                ;;
+            *)  die "$_0 depends <PACKAGE-NAME> [--format=<dot|box|svg|png>] [-o <OUTPUT-FILEPATH>, unrecognized option: $1"
         esac
         shift
     done
@@ -2094,7 +2097,7 @@ __show_packages_depended_by_the_given_package() {
         OUTPUT_FORMAT=box
     fi
 
-    __gen_dependency_graph_recursively_depended_by_the_given_package "$PACKAGE_NAME" "$OUTPUT_FORMAT"
+    __gen_dependency_graph_recursively_depended_by_the_given_package "$PACKAGE_NAME" "$OUTPUT_FORMAT" "$OUTPUT_FILEPATH"
 }
 
 # __logs_the_given_installed_package <PACKAGE-SPEC>
@@ -2303,7 +2306,7 @@ __get_dot_file_contents() {
     done
 }
 
-# __gen_dependency_graph_recursively_depended_by_the_given_package <PKG> <dot|box|svg|png>
+# __gen_dependency_graph_recursively_depended_by_the_given_package <PACKAGE-NAME> <dot|box|svg|png> [OUTPUT-FILEPATH]
 __gen_dependency_graph_recursively_depended_by_the_given_package() {
     unset DIRECT_DEPENDENT_PACKAGES
     DIRECT_DEPENDENT_PACKAGES="$(__get_packages_that_are_directly_depended_by_the_given_package "$1")"
@@ -2330,11 +2333,21 @@ __gen_dependency_graph_recursively_depended_by_the_given_package() {
 
     case $2 in
         dot)
-            cat "$GEN_DEPENDENCY_GRAPH_DOT_FILEPATH"
+            if [ -z "$3"] ; then
+                cat "$GEN_DEPENDENCY_GRAPH_DOT_FILEPATH"
+            else
+                cp  "$GEN_DEPENDENCY_GRAPH_DOT_FILEPATH" "$3"
+            fi
             ;;
         box)
+            if [ -z "$3"] ; then
+                CURL_OPTS=
+            else
+                CURL_OPTS="-o $3"
+            fi
+
             # https://github.com/ggerganov/dot-to-ascii
-            curl \
+            curl $CURL_OPTS \
                 -s \
                 -G \
                 --data-urlencode "boxart=1" \
@@ -2351,7 +2364,11 @@ __gen_dependency_graph_recursively_depended_by_the_given_package() {
                 fi
             fi
 
-            run dot -Tsvg "$GEN_DEPENDENCY_GRAPH_DOT_FILEPATH"
+            if [ -z "$3"] ; then
+                run dot -Tsvg "$GEN_DEPENDENCY_GRAPH_DOT_FILEPATH"
+            else
+                run dot -Tsvg "-o$3" "$GEN_DEPENDENCY_GRAPH_DOT_FILEPATH"
+            fi
             ;;
         png)
             command -v dot > /dev/null || "$CURRENT_SCRIPT_FILEPATH" install graphviz || return 1
@@ -2363,7 +2380,11 @@ __gen_dependency_graph_recursively_depended_by_the_given_package() {
                 fi
             fi
 
-            run dot -Tpng "$GEN_DEPENDENCY_GRAPH_DOT_FILEPATH"
+            if [ -z "$3"] ; then
+                run dot -Tpng "$GEN_DEPENDENCY_GRAPH_DOT_FILEPATH"
+            else
+                run dot -Tpng "-o$3" "$GEN_DEPENDENCY_GRAPH_DOT_FILEPATH"
+            fi
             ;;
     esac
 }
@@ -2371,13 +2392,13 @@ __gen_dependency_graph_recursively_depended_by_the_given_package() {
 __install_the_given_packages() {
     inspect_install_arguments $@
 
-    [ -z "$USER_SPECIFIED_PACKAGE_LIST" ] && {
+    [ -z "$USER_SPECIFIED_PACKAGE_SPEC_LIST" ] && {
         error "$_0 install <PACKAGE-NAME>..., <PACKAGE-NAME> is not given."
         return 1
     }
 
     unset RECURSIVE_DEPENDENT_PACKAGES
-    RECURSIVE_DEPENDENT_PACKAGES="$(__get_packages_that_are_recursively_depended_by_the_given_packages $USER_SPECIFIED_PACKAGE_LIST)"
+    RECURSIVE_DEPENDENT_PACKAGES="$(__get_packages_that_are_recursively_depended_by_the_given_packages $USER_SPECIFIED_PACKAGE_SPEC_LIST)"
 
     if [ $(list_length $RECURSIVE_DEPENDENT_PACKAGES) -gt 1 ] ; then
         RECURSIVE_DEPENDENT_PACKAGES="$(printf '%s\n' "$RECURSIVE_DEPENDENT_PACKAGES" | tr '\n' ' ')"
@@ -3902,6 +3923,15 @@ EOF
 
 # __config_variables_for_the_given_target <PACKAGE-NAME>
 # __config_variables_for_the_given_target      curl
+#
+#
+## References:
+# https://clang.llvm.org/docs/ClangCommandLineReference.html
+# https://clang.llvm.org/docs/CommandGuide/clang.html#cmdoption-mmacosx-version-min
+# https://clang.llvm.org/docs/CommandGuide/clang.html#envvar-MACOSX_DEPLOYMENT_TARGET
+# https://clang.llvm.org/docs/CrossCompilation.html
+# https://commandlinefanatic.com/cgi-bin/showarticle.cgi?article=art024
+#
 __config_variables_for_the_given_target() {
     export       CC_FOR_BUILD="$TOOLCHAIN_BIND/clang"
     export      CXX_FOR_BUILD="$TOOLCHAIN_BIND/clang++"
@@ -5239,7 +5269,7 @@ inspect_install_arguments() {
     # https://stackoverflow.com/questions/18476490/what-is-purpose-of-target-arch-variable-in-makefiles
     unset TARGET_ARCH
 
-    unset USER_SPECIFIED_PACKAGE_LIST
+    unset USER_SPECIFIED_PACKAGE_SPEC_LIST
 
     unset DRYRUN
 
@@ -5295,20 +5325,6 @@ inspect_install_arguments() {
             --install-exe)
                 INSTALL_EXE=yes
                 ;;
-            --target=*)
-                TARGET_PLATFORM_SPEC=$(getvalue "$1")
-
-                [ -z "$TARGET_PLATFORM_SPEC" ] && die "--target-platform=<VALUE>, VALUE must be non-empty."
-
-                TARGET_PLATFORM_NAME=$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f1)
-                TARGET_PLATFORM_VERS=$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f2)
-                TARGET_PLATFORM_ARCH=$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f3)
-
-                case $TARGET_PLATFORM_NAME in
-                    MacOSX|AppleTVOS|iPhoneOS|WatchOS|AppleTVSimulator|iPhoneSimulator|WatchSimulator) ;;
-                    *)  die "invalid target spec: $TARGET_PLATFORM_SPEC"
-                esac
-                ;;
             --install-lib=*)
                 INSTALL_LIB=$(getvalue "$1")
                 case $INSTALL_LIB in
@@ -5339,63 +5355,87 @@ inspect_install_arguments() {
                 ;;
             -*) die "unrecognized option: $1"
                 ;;
-            *)  if [ "$1" = 'all' ] ; then
-                    USER_SPECIFIED_PACKAGE_LIST="$(__list_available_packages)"
-                else
-                    if printf '%s\n' "$1" | grep -q -E '^[A-Za-z0-9+-._]{1,50}$' ; then
-                        if [ -z "$USER_SPECIFIED_PACKAGE_LIST" ] ; then
-                            USER_SPECIFIED_PACKAGE_LIST="$1"
-                        else
-                            USER_SPECIFIED_PACKAGE_LIST="$USER_SPECIFIED_PACKAGE_LIST $1"
-                        fi
+            *)  if printf '%s\n' "$1" | grep -q -E '^[A-Za-z0-9+-._]{1,50}$' ; then
+                    PACKAGE_SPEC="MacOSX/$NATIVE_OS_VERS/$NATIVE_OS_ARCH/$1"
+
+                    warn "$1 will be treated as a package name, and it will be expanded to $PACKECK_SPEC"
+
+                    if [ -z "$USER_SPECIFIED_PACKAGE_SPEC_LIST" ] ; then
+                        USER_SPECIFIED_PACKAGE_SPEC_LIST="$PACKAGE_SPEC"
                     else
-                        die "unrecognized argument: $1"
+                        USER_SPECIFIED_PACKAGE_SPEC_LIST="$USER_SPECIFIED_PACKAGE_SPEC_LIST $PACKAGE_SPEC"
                     fi
+                else
+                    case $1 in
+                        */*/*/*)
+                            unset PACKAGE_NAME
+
+                            unset TARGET_PLATFORM_NAME
+                            unset TARGET_PLATFORM_VERS
+                            unset TARGET_PLATFORM_ARCH
+
+                            TARGET_PLATFORM_NAME=$(printf '%s\n' "$PACKAGE_SPEC" | cut -d/ -f1)
+                            TARGET_PLATFORM_VERS=$(printf '%s\n' "$PACKAGE_SPEC" | cut -d/ -f2)
+                            TARGET_PLATFORM_ARCH=$(printf '%s\n' "$PACKAGE_SPEC" | cut -d/ -f3)
+
+                            case $TARGET_PLATFORM_NAME in
+                                MacOSX|AppleTVOS|iPhoneOS|WatchOS|AppleTVSimulator|iPhoneSimulator|WatchSimulator)
+                                    ;;
+                                '') TARGET_PLATFORM_NAME=MacOSX ;;
+                                *)  die "invalid package spec: $1\nunrecognized platform name: $TARGET_PLATFORM_NAME"
+                            esac
+
+                            if [ -z "$TARGET_PLATFORM_VERS" ] ; then
+                                case $TARGET_PLATFORM_NAME in
+                                    iPhoneOS|iPhoneSimulator)
+                                        TARGET_PLATFORM_VERS=9.0
+                                        ;;
+                                    WatchOS|WatchSimulator)
+                                        TARGET_PLATFORM_VERS=5.0
+                                        ;;
+                                    AppleTVOS|AppleTVSimulator)
+                                        TARGET_PLATFORM_VERS=9.0
+                                        ;;
+                                    MacOSX)
+                                        TARGET_PLATFORM_VERS=$NATIVE_OS_VERS
+                                        ;;
+                                esac
+                            fi
+
+                            if [ -z "$TARGET_PLATFORM_ARCH" ] ; then
+                                case $TARGET_PLATFORM_NAME in
+                                    WatchOS)
+                                        TARGET_PLATFORM_ARCH=arm64_32
+                                        ;;
+                                    WatchSimulator)
+                                        TARGET_PLATFORM_ARCH=arm64
+                                        ;;
+                                    iPhoneOS|iPhoneSimulator)
+                                        TARGET_PLATFORM_ARCH=arm64
+                                        ;;
+                                    AppleTVOS|AppleTVSimulator)
+                                        TARGET_PLATFORM_ARCH=arm64
+                                        ;;
+                                    MacOSX)
+                                        TARGET_PLATFORM_ARCH=$NATIVE_OS_ARCH
+                                        ;;
+                                esac
+                            fi
+                            ;;
+                        *)  die "invalid package spec: $1"
+                    esac
                 fi
         esac
         shift
     done
 
-    [ "$LOG_LEVEL" -eq "$LOG_LEVEL_QUIET" ] && {
+    if [ "$LOG_LEVEL" -eq "$LOG_LEVEL_QUIET" ] ; then
         exec 1>/dev/null
         exec 2>&1
-    }
-
-    [ "$LOG_LEVEL" -gt "$LOG_LEVEL_DEBUG" ] && {
-        export PKG_CONFIG_DEBUG_SPEW=set
-    }
-
-    [ -z "$TARGET_PLATFORM_NAME" ] && TARGET_PLATFORM_NAME=MacOSX
-
-    if [ -z "$TARGET_PLATFORM_VERS" ] ; then
-        case $TARGET_PLATFORM_NAME in
-            iPhoneOS|iPhoneSimulator)   TARGET_PLATFORM_VERS=9.0 ;;
-            WatchOS|WatchSimulator)     TARGET_PLATFORM_VERS=5.0 ;;
-            AppleTVOS|AppleTVSimulator) TARGET_PLATFORM_VERS=9.0 ;;
-            MacOSX)                     TARGET_PLATFORM_VERS=$NATIVE_OS_VERS ;;
-            *)                          die "unsupported platform : $TARGET_PLATFORM_NAME"
-        esac
     fi
 
-    if [ -z "$TARGET_PLATFORM_ARCH" ] ; then
-        case $TARGET_PLATFORM_NAME in
-            WatchOS)
-                TARGET_PLATFORM_ARCH=arm64_32
-                ;;
-            WatchSimulator)
-                TARGET_PLATFORM_ARCH=arm64
-                ;;
-            iPhoneOS|iPhoneSimulator)
-                TARGET_PLATFORM_ARCH=arm64
-                ;;
-            AppleTVOS|AppleTVSimulator)
-                TARGET_PLATFORM_ARCH=arm64
-                ;;
-            MacOSX)
-                TARGET_PLATFORM_ARCH=$NATIVE_OS_ARCH
-                ;;
-            *)  die "unsupported platform : $TARGET_PLATFORM_NAME"
-        esac
+    if [ "$LOG_LEVEL" -gt "$LOG_LEVEL_DEBUG" ] ; then
+        export PKG_CONFIG_DEBUG_SPEW=set
     fi
 }
 
@@ -5638,7 +5678,7 @@ ${COLOR_GREEN}xcpkg --version${COLOR_OFF}
 ${COLOR_GREEN}xcpkg -V${COLOR_OFF}
     show version of this command.
 
-${COLOR_GREEN}xcpkg env${COLOR_OFF}
+${COLOR_GREEN}xcpkg env [-v]${COLOR_OFF}
     show your system and xcode toolchain information.
 
 ${COLOR_GREEN}xcpkg integrate zsh [-v]${COLOR_OFF}
@@ -5662,9 +5702,6 @@ ${COLOR_GREEN}xcpkg ls-target-triples [32bit|64bit|all]${COLOR_OFF}
 ${COLOR_GREEN}xcpkg ls-target-archs   [32bit|64bit|all] [PLATFORM]${COLOR_OFF}
     list the supported target archs.
 
-${COLOR_GREEN}xcpkg ls-target-abis    [32bit|64bit|all]${COLOR_OFF}
-    list the supported target abis.
-
 ${COLOR_GREEN}xcpkg ls-available${COLOR_OFF}
     list all available packages.
 
@@ -5674,22 +5711,22 @@ ${COLOR_GREEN}xcpkg ls-installed${COLOR_OFF}
 ${COLOR_GREEN}xcpkg ls-outdated${COLOR_OFF}
     list all outdated  packages.
 
-${COLOR_GREEN}xcpkg is-available <PACKAGE-NAME>${COLOR_OFF}
+${COLOR_GREEN}xcpkg is-available <PACKAGE-SPEC>${COLOR_OFF}
     check if the given package is available.
 
-${COLOR_GREEN}xcpkg is-installed <PACKAGE-NAME>${COLOR_OFF}
+${COLOR_GREEN}xcpkg is-installed <PACKAGE-SPEC>${COLOR_OFF}
     check if the given package is installed.
 
-${COLOR_GREEN}xcpkg is-outdated  <PACKAGE-NAME>${COLOR_OFF}
+${COLOR_GREEN}xcpkg is-outdated  <PACKAGE-SPEC>${COLOR_OFF}
     check if the given package is outdated.
 
 ${COLOR_GREEN}xcpkg search <REGULAR-EXPRESS-PARTTEN>${COLOR_OFF}
     search all available packages whose name matches the given regular express partten.
 
-${COLOR_GREEN}xcpkg formula-view <PACKAGE>${COLOR_OFF}
+${COLOR_GREEN}xcpkg formula-view <PACKAGE-NAME>${COLOR_OFF}
     view the formula of the given package.
 
-${COLOR_GREEN}xcpkg formula-edit <PACKAGE>${COLOR_OFF}
+${COLOR_GREEN}xcpkg formula-edit <PACKAGE-NAME>${COLOR_OFF}
     edit the formula of the given package.
 
 ${COLOR_GREEN}xcpkg formula-list${COLOR_OFF}
@@ -5704,44 +5741,61 @@ ${COLOR_GREEN}xcpkg formula-repo-add <NAME> <URL>${COLOR_OFF}
 ${COLOR_GREEN}xcpkg formula-repo-del <NAME>${COLOR_OFF}
     delete a exist formula-repo.
 
-${COLOR_GREEN}xcpkg tree <PACKAGE> [--dirsfirst | -L N]${COLOR_OFF}
+${COLOR_GREEN}xcpkg tree <PACKAGE-SPEC> [--dirsfirst | -L N]${COLOR_OFF}
     list installed files of the given installed package in a tree-like format.
 
-${COLOR_GREEN}xcpkg pack <PACKAGE> [--type=zip|tar.gz|tar.xz|tar.lz|tar.bz2]${COLOR_OFF}
+${COLOR_GREEN}xcpkg pack <PACKAGE-SPEC> [--type=zip|tar.gz|tar.xz|tar.lz|tar.bz2]${COLOR_OFF}
     pack the installed package.
 
-${COLOR_GREEN}xcpkg logs <PACKAGE> <PLATFORM/ARCH>${COLOR_OFF}
+${COLOR_GREEN}xcpkg logs <PACKAGE-SPEC>${COLOR_OFF}
     show logs of the given installed package.
 
-${COLOR_GREEN}xcpkg info <PACKAGE> [KEY]${COLOR_OFF}
+${COLOR_GREEN}xcpkg info <PACKAGE-NAME|PACKAGE-SPEC> [KEY]${COLOR_OFF}
     show information of the given package.
 
 ${COLOR_GREEN}xcpkg info @all [--json|--yaml|--shell]${COLOR_OFF}
     show information of all the available packages.
 
-${COLOR_GREEN}xcpkg fetch <PACKAGE>${COLOR_OFF}
+${COLOR_GREEN}xcpkg fetch <PACKAGE-NAME>${COLOR_OFF}
     download resources of the given package to the local cache.
 
-${COLOR_GREEN}xcpkg depends <PACKAGE>${COLOR_OFF}
+${COLOR_GREEN}xcpkg depends <PACKAGE-NAME> [--format=<dot|box|svg|png>] [-o <OUTPUT-FILEPATH]${COLOR_OFF}
     show the packages that are depended by the given package.
 
-${COLOR_GREEN}xcpkg install   <PACKAGE>... [--target=<TARGET-SPEC> --jobs=N -v -d -q --dry-run --keep-working-dir]${COLOR_OFF}
+${COLOR_GREEN}xcpkg install   <PACKAGE-SPEC>... [--jobs=N -v -d -q --dry-run --keep-working-dir]${COLOR_OFF}
     install the given packages.
 
-${COLOR_GREEN}xcpkg reinstall <PACKAGE>... [--target=<TARGET-SPEC> --jobs=N -v -d -q --dry-run --keep-working-dir]${COLOR_OFF}
+${COLOR_GREEN}xcpkg reinstall <PACKAGE-SPEC>... [--jobs=N -v -d -q --dry-run --keep-working-dir]${COLOR_OFF}
     reinstall the given packages.
 
-${COLOR_GREEN}xcpkg upgrade   [PACKAGE...] [--target=<TARGET-SPEC> --jobs=N -v -d -q --dry-run --keep-working-dir]${COLOR_OFF}
+${COLOR_GREEN}xcpkg upgrade   [PACKAGE-SPEC]... [--jobs=N -v -d -q --dry-run --keep-working-dir]${COLOR_OFF}
     upgrade the given outdated packages.
 
 ${COLOR_GREEN}xcpkg upgrade-self${COLOR_OFF}
     upgrade this software.
 
-${COLOR_GREEN}xcpkg uninstall <PACKAGE>...${COLOR_OFF}
+${COLOR_GREEN}xcpkg uninstall <PACKAGE-SPEC>...${COLOR_OFF}
     uninstall the given packages.
 
 ${COLOR_GREEN}xcpkg create-framework <PACKAGE>...${COLOR_OFF}
     create framework for packages.
+
+
+${COLOR_GREEN}PACKAGE-SPEC:${COLOR_OFF}
+    a formatted srting that has form: <TARGET-PLATFORM-SPEC>/<PACKAGE-NAME>
+
+${COLOR_GREEN}TARGET-PLATFORM-SPEC:${COLOR_OFF}
+    a formatted srting that has form: <PLATFORM-NAME>/<PLATFORM-VERSION>/<PLATFORM-ARCH>
+    indicates which platform should be built for.
+
+${COLOR_GREEN}PLATFORM-VERSION:${COLOR_OFF}
+    the minimum version supported by this package.
+
+${COLOR_GREEN}PLATFORM-NAME:${COLOR_OFF}
+    xcpkg ls-target-platforms command will list the supported platform names.
+
+${COLOR_GREEN}PACKAGE-NAME:${COLOR_OFF}
+    must match regular expression partten ^[A-Za-z0-9+-._]{1,50}$
     "
 
     if [ -z "$1" ] ; then

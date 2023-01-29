@@ -48,7 +48,7 @@ jobs:
       - run: bin/xcpkg depends uctags
       - run: bin/xcpkg depends curl
 
-      - run: bin/xcpkg install uctags --target=MacOSX/10.15/x86_64
+      - run: bin/xcpkg install MacOSX/10.15/x86_64/uctags
 
       - run: bin/xcpkg info MacOSX/10.15/x86_64/uctags installed-dir
       - run: bin/xcpkg info MacOSX/10.15/x86_64/uctags installed-files
