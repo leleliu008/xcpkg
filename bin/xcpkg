@@ -1148,8 +1148,8 @@ __load_formula_of_the_given_package() {
     for item in $PACKAGE_BUILD_SYSTEM
     do
         case $item in
-            autogen)     PACKAGE_DEP_PKG="$PACKAGE_DEP_UPP automake" ;;
-            autotools)   PACKAGE_DEP_PKG="$PACKAGE_DEP_UPP automake" ;;
+            autogen)     PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP automake" ;;
+            autotools)   PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP automake" ;;
             configure)   PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP gmake"  ;;
             cmake-gmake) PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP cmake gmake"  ;;
             cmake-ninja) PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP cmake ninja"  ;;
