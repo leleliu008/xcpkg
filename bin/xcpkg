@@ -1162,11 +1162,11 @@ __load_formula_of_the_given_package() {
     fi
 
     if [ -n "$PACKAGE_DEP_PYM" ] ; then
-        PACKAGE_DEP_PKG="$PACKAGE_DEP_UPP python3"
+        PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP python3"
     fi
 
     if [ -n "$PACKAGE_DEP_PLM" ] ; then
-        PACKAGE_DEP_PKG="$PACKAGE_DEP_UPP perl"
+        PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP perl"
     fi
 
     if [ "$PACKAGE_BUILD_IN_PARALLEL" = no ] ; then
@@ -2528,6 +2528,8 @@ __install_the_given_packages() {
         TARGET_PLATFORM_ARCH=$(printf '%s\n' "$PACKAGE_SPEC" | cut -d/ -f3)
                 PACKAGE_NAME=$(printf '%s\n' "$PACKAGE_SPEC" | cut -d/ -f4)
 
+        TARGET_PLATFORM_SPEC="$TARGET_PLATFORM_NAME/$TARGET_PLATFORM_VERS/$TARGET_PLATFORM_ARCH"
+
         unset RECURSIVE_DEPENDENT_PACKAGES
         RECURSIVE_DEPENDENT_PACKAGES="$(__get_packages_that_are_recursively_depended_by_the_given_package $PACKAGE_NAME) $PACKAGE_NAME"
 
@@ -2952,7 +2954,7 @@ EOF
             fi
         fi
     else
-        note "no build0  mapping not found in formula, skipped."
+        note "build0 mapping not found in formula, skipped."
     fi
 
     #########################################################################################
@@ -2971,10 +2973,10 @@ EOF
 
     #########################################################################################
 
-    step "create symbolic links for dependent libs"
+    step "create symbolic links for dependent libraries"
 
     if [ -z "$RECURSIVE_DEPENDENT_PACKAGES" ] ; then
-        note "no dependent libs, skipped."
+        note "no dependent libraries, skipped."
     else
         case $LINK_TYPE in
             static-only|static-prefered) LINK_LIBRARY_TYPE=a  ;;

@@ -263,11 +263,15 @@ all relevant dirs and files are located in `~/.xcpkg` directory.
 
 *   **HOME**
 
-    this environment variable already have been set on macOS, if not set or set a empty string, you will receive an error message.
+    This environment variable already have been set on macOS, if not set or set a empty string, you will receive an error message.
 
 *   **PATH**
 
-    this environment variable already have been set on macOS, if not set or set a empty string, you will receive an error message.
+    This environment variable already have been set on macOS, if not set or set a empty string, you will receive an error message.
+
+*   **DEVELOPER_DIR**
+
+    If this environment variable is set, `xcpkg` will use it as the Xcode developer dir, otherwise, `xcpkg` will run command `xcode-select -p` to determine the Xcode developer dir.
 
 *   **SSL_CERT_FILE**
 
