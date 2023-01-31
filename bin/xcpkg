@@ -2762,10 +2762,10 @@ __install_the_given_package() {
 
     if [ -n "$PACKAGE_DEP_PKG" ] ; then
         step "generating dependency tree of $1"
-        RECURSIVE_DEPENDENT_PACKAGES="$(__get_packages_that_are_recursively_depended_by_the_given_package $PACKAGE_DEP_PKG)"
+        RECURSIVE_DEPENDENT_PACKAGES="$(__get_packages_that_are_recursively_depended_by_the_given_package $PACKAGE_NAME)"
 
         PACKAGE_DEPENDENCY_GRAPH_FILEPATH_DOT="$PACKAGE_WORKING_DIR/dependencies.dot"
-        PACKAGE_DEPENDENCY_GRAPH_FILEPATH_BOX="$PACKAGE_WORKING_DIR/dependencies.txt"
+        PACKAGE_DEPENDENCY_GRAPH_FILEPATH_BOX="$PACKAGE_WORKING_DIR/dependencies.box"
         PACKAGE_DEPENDENCY_GRAPH_FILEPATH_SVG="$PACKAGE_WORKING_DIR/dependencies.svg"
         PACKAGE_DEPENDENCY_GRAPH_FILEPATH_PNG="$PACKAGE_WORKING_DIR/dependencies.png"
 
@@ -3941,6 +3941,8 @@ mark_is_package_installed_or_not() {
     }
 
     cat >> "$PACKAGE_RECEIPT_FILEPATH" <<EOF
+
+built-for: $TARGET_PLATFORM_NAME/$TARGET_PLATFORM_VERS/$TARGET_PLATFORM_ARCH
 
 signature: $XCPKG_VERSION
 timestamp: $TIMESTAMP_UNIX
