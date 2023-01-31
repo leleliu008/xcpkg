@@ -2983,12 +2983,13 @@ EOF
 
         for DEPENDENT_PACKAGE_NAME in $RECURSIVE_DEPENDENT_PACKAGES
         do
-            DEPENDENT_PACKAGE_INSTALLED_LIBRARY_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$DEPENDENT_PACKAGE_NAME/lib"
-            if [ -d "$DEPENDENT_PACKAGE_INSTALLED_LIBRARY_DIR" ] ; then
-                for item in $(find "$DEPENDENT_PACKAGE_INSTALLED_LIBRARY_DIR" -maxdepth 1 -mindepth 1 -name "lib*.$LINK_LIBRARY_TYPE" -exec basename {} \;)
+            DEPENDENT_PACKAGE_LIBRARY_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$TARGET_PLATFORM_NAME/$TARGET_PLATFORM_VERS/$TARGET_PLATFORM_ARCH/$DEPENDENT_PACKAGE_NAME/lib"
+
+            if [ -d "$DEPENDENT_PACKAGE_LIBRARY_DIR" ] ; then
+                for item in $(find "$DEPENDENT_PACKAGE_LIBRARY_DIR" -maxdepth 1 -mindepth 1 -name "lib*.$LINK_LIBRARY_TYPE" -exec basename {} \;)
                 do
                     if [ ! -e "$PACKAGE_INSTALLING_LIB_DIR/$item" ] ; then
-                        run ln -s "$DEPENDENT_PACKAGE_INSTALLED_LIBRARY_DIR/$item" "$PACKAGE_INSTALLING_LIB_DIR/$item"
+                        run ln -s "$DEPENDENT_PACKAGE_LIBRARY_DIR/$item" "$PACKAGE_INSTALLING_LIB_DIR/$item"
                     fi
                 done
             fi
