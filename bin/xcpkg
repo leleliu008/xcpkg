@@ -1825,7 +1825,7 @@ __gen_github_workflows() {
 
 __search_packages() {
     [ -z "$1" ] && {
-        error "please specify a regular express partten."
+        error "please specify a regular express pattern."
         return 1
     }
 
@@ -5183,19 +5183,38 @@ EOF
     done
 }
 
-inspect_build_toolchains() {
-    TOOLCHAIN_ROOT="$(xcode-select -p)"
+inspect_xcode_information() {
+    if [ -z "$DEVELOPER_DIR" ] ; then
+        export DEVELOPER_DIR="$(xcode-select -p)"
+    fi
+
+    TOOLCHAIN_ROOT="$DEVELOPER_DIR"
 
     [ -z "$TOOLCHAIN_ROOT" ] && die "please run command 'xcode-select --switch DIR', then try again."
     [ -d "$TOOLCHAIN_ROOT" ] || die "TOOLCHAIN_ROOT=$TOOLCHAIN_ROOT directory is not exist."
 
     TOOLCHAIN_VERS=$(system_profiler SPDeveloperToolsDataType | grep Version | head -n 1 | cut -d: -f2 | sed 's/^ //g')
     TOOLCHAIN_BIND="$TOOLCHAIN_ROOT/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+
+    export       CC="$TOOLCHAIN_BIND/clang"
+    export      CXX="$TOOLCHAIN_BIND/clang++"
+    export      CPP="$TOOLCHAIN_BIND/cpp"
+    export       AS="$TOOLCHAIN_BIND/as"
+    export       AR="$TOOLCHAIN_BIND/ar"
+    export   RANLIB="$TOOLCHAIN_BIND/ranlib"
+    export       LD="$TOOLCHAIN_BIND/ld"
+    export       NM="$TOOLCHAIN_BIND/nm"
+    export    STRIP="$TOOLCHAIN_BIND/strip"
+    export     SIZE="$TOOLCHAIN_BIND/size"
+    export  STRINGS="$TOOLCHAIN_BIND/strings"
+    export  OBJDUMP="$TOOLCHAIN_BIND/objdump"
+
+
     #export PATH="$TOOLCHAIN_BIND:$PATH"
 }
 
 __list_supported_target_platforms() {
-    [ -z "$TOOLCHAIN_ROOT" ] && inspect_build_toolchains
+    [ -z "$TOOLCHAIN_ROOT" ] && inspect_xcode_information
     ls "$TOOLCHAIN_ROOT/Platforms" | sed 's/.platform//g'
     #print_list AppleTVOS AppleTVSimulator MacOSX iPhoneOS iPhoneSimulator WatchOS WatchSimulator
 }
@@ -5396,7 +5415,7 @@ __create_framework_for_the_given_package() {
 }
 
 inspect_install_arguments() {
-    inspect_build_toolchains
+    inspect_xcode_information
 
     # https://stackoverflow.com/questions/18476490/what-is-purpose-of-target-arch-variable-in-makefiles
     unset TARGET_ARCH
@@ -5825,7 +5844,13 @@ ${COLOR_GREEN}xcpkg -V${COLOR_OFF}
     show version of this command.
 
 ${COLOR_GREEN}xcpkg env [-v]${COLOR_OFF}
-    show your system and xcode toolchain information.
+    show your system and Xcode information.
+
+${COLOR_GREEN}xcpkg sysinfo${COLOR_OFF}
+    show your system information.
+
+${COLOR_GREEN}xcpkg xcode${COLOR_OFF}
+    show your Xcode information.
 
 ${COLOR_GREEN}xcpkg integrate zsh [-v]${COLOR_OFF}
     download a zsh-completion script file to a approprivate location.
@@ -5866,8 +5891,8 @@ ${COLOR_GREEN}xcpkg is-installed <PACKAGE-SPEC>${COLOR_OFF}
 ${COLOR_GREEN}xcpkg is-outdated  <PACKAGE-SPEC>${COLOR_OFF}
     check if the given package is outdated.
 
-${COLOR_GREEN}xcpkg search <REGULAR-EXPRESS-PARTTEN>${COLOR_OFF}
-    search all available packages whose name matches the given regular express partten.
+${COLOR_GREEN}xcpkg search <REGULAR-EXPRESS-PATTERN>${COLOR_OFF}
+    search all available packages whose name matches the given regular express pattern.
 
 ${COLOR_GREEN}xcpkg formula-view <PACKAGE-NAME>${COLOR_OFF}
     view the formula of the given package.
@@ -5957,7 +5982,7 @@ ${COLOR_GREEN}PLATFORM-NAME:${COLOR_OFF}
     xcpkg ls-target-platforms command will list the supported platform names.
 
 ${COLOR_GREEN}PACKAGE-NAME:${COLOR_OFF}
-    must match regular expression partten ^[A-Za-z0-9+-._]{1,50}$
+    must match regular expression pattern ^[A-Za-z0-9+-._]{1,50}$
     "
 
     if [ -z "$1" ] ; then
@@ -6034,6 +6059,81 @@ main() {
             __setup $@
             return 0
             ;;
+        sysinfo)
+            cat <<EOF
+sysinfo.ncpu: $NATIVE_OS_NCPU
+sysinfo.arch: $NATIVE_OS_ARCH
+sysinfo.kind: $NATIVE_OS_KIND
+sysinfo.type: $NATIVE_OS_TYPE
+sysinfo.vers: $NATIVE_OS_VERS
+sysinfo.euid: $NATIVE_OS_EUID
+sysinfo.egid: $NATIVE_OS_EGID
+EOF
+            ;;
+        xcinfo)
+            inspect_xcode_information
+
+            cat <<EOF
+xcode-root: $TOOLCHAIN_ROOT
+xcode-vers: $TOOLCHAIN_VERS
+
+tools:
+    CC:      $TOOLCHAIN_BIND/clang
+    CXX:     $TOOLCHAIN_BIND/clang++
+    CPP:     $TOOLCHAIN_BIND/cpp
+    AS:      $TOOLCHAIN_BIND/as
+    AR:      $TOOLCHAIN_BIND/ar
+    RANLIB:  $TOOLCHAIN_BIND/ranlib
+    LD:      $TOOLCHAIN_BIND/ld
+    NM:      $TOOLCHAIN_BIND/nm
+    STRIP:   $TOOLCHAIN_BIND/strip
+    SIZE:    $TOOLCHAIN_BIND/size
+    STRINGS: $TOOLCHAIN_BIND/strings
+    OBJDUMP: $TOOLCHAIN_BIND/objdump
+
+platforms:
+    MacOSX:
+        SDKROOT: $(xcrun --sdk macosx --show-sdk-path)
+        supported:
+            archs: $(__list_supported_target_archs MacOSX)
+            versions: $(__list_supported_target_platform_versions MacOSX)
+
+    WatchOS:
+        SDKROOT: $(xcrun --sdk watchos --show-sdk-path)
+        supported:
+            archs: $(__list_supported_target_archs WatchOS)
+            versions: $(__list_supported_target_platform_versions WatchOS)
+
+    WatchSimulator:
+        SDKROOT: $(xcrun --sdk watchsimulator --show-sdk-path)
+        supported:
+            archs: $(__list_supported_target_archs WatchSimulator)
+            versions: $(__list_supported_target_platform_versions WatchSimulator)
+
+    iPhoneOS:
+        SDKROOT: $(xcrun --sdk iphoneos --show-sdk-path)
+        supported:
+            archs: $(__list_supported_target_archs iPhoneOS)
+            versions: $(__list_supported_target_platform_versions iPhoneOS)
+
+    iPhoneSimulator:
+        SDKROOT: $(xcrun --sdk iphonesimulator --show-sdk-path)
+        supported:
+            archs: $(__list_supported_target_archs iPhoneSimulator)
+            versions: $(__list_supported_target_platform_versions iPhoneSimulator)
+
+    AppleTVOS:
+        SDKROOT: $(xcrun --sdk appletvos --show-sdk-path)
+        supported:
+            archs: $(__list_supported_target_archs AppleTVOS)
+            versions: $(__list_supported_target_platform_versions AppleTVOS)
+
+    AppleTVSimulator:
+        SDKROOT: $(xcrun --sdk appletvsimulator --show-sdk-path)
+        supported:
+            archs: $(__list_supported_target_archs AppleTVSimulator)
+            versions: $(__list_supported_target_platform_versions AppleTVSimulator)
+EOF
     esac
 
     if [ -f "$XCPKG_CORE_DIR/env" ] ; then
@@ -6089,7 +6189,7 @@ EOF
                 run uppm env
             fi
 
-            inspect_build_toolchains
+            inspect_xcode_information
 
             cat <<EOF
 
