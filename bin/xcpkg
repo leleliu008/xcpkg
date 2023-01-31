@@ -5849,8 +5849,10 @@ ${COLOR_GREEN}xcpkg env [-v]${COLOR_OFF}
 ${COLOR_GREEN}xcpkg sysinfo${COLOR_OFF}
     show your system information.
 
-${COLOR_GREEN}xcpkg xcode${COLOR_OFF}
+${COLOR_GREEN}xcpkg xcinfo${COLOR_OFF}
     show your Xcode information.
+
+    If ${COLOR_PURPLE}DEVELOPER_DIR${COLOR_OFF} environment variable is set, xcpkg will use it, otherwize, run command ${COLOR_PURPLE}xcode-select -p${COLOR_OFF} to determine.
 
 ${COLOR_GREEN}xcpkg integrate zsh [-v]${COLOR_OFF}
     download a zsh-completion script file to a approprivate location.
@@ -6069,6 +6071,7 @@ sysinfo.vers: $NATIVE_OS_VERS
 sysinfo.euid: $NATIVE_OS_EUID
 sysinfo.egid: $NATIVE_OS_EGID
 EOF
+            return 0;
             ;;
         xcinfo)
             inspect_xcode_information
@@ -6134,6 +6137,8 @@ platforms:
             archs: $(__list_supported_target_archs AppleTVSimulator)
             versions: $(__list_supported_target_platform_versions AppleTVSimulator)
 EOF
+            return 0;
+            ;;
     esac
 
     if [ -f "$XCPKG_CORE_DIR/env" ] ; then

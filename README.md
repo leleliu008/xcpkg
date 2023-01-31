@@ -34,7 +34,15 @@ all relevant dirs and files are located in `~/.xcpkg` directory.
         xcpkg -V
         xcpkg --version
 
-*   **show your system and [Xcode](https://developer.apple.com/xcode) toolchain information**
+*   **show your system's information**
+
+        xcpkg sysinfo
+
+*   **show your current actived [Xcode](https://developer.apple.com/xcode) information**
+
+        xcpkg xcinfo
+
+*   **show your system and current actived [Xcode](https://developer.apple.com/xcode) information**
 
         xcpkg env
 
