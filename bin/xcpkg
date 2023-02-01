@@ -3178,12 +3178,62 @@ EOF
 
     #########################################################################################
 
+    # reassigned to make sure it has the right value, becsuse it may be changed in prepare and install block.
+
+    PACKAGE_INSTALLING_SRC_DIR="$PACKAGE_WORKING_DIR/src"
+    PACKAGE_INSTALLING_FIX_DIR="$PACKAGE_WORKING_DIR/fix"
+    PACKAGE_INSTALLING_RES_DIR="$PACKAGE_WORKING_DIR/res"
+    PACKAGE_INSTALLING_BIN_DIR="$PACKAGE_WORKING_DIR/bin"
+    PACKAGE_INSTALLING_LIB_DIR="$PACKAGE_WORKING_DIR/lib"
+    PACKAGE_INSTALLING_INC_DIR="$PACKAGE_WORKING_DIR/include"
+    PACKAGE_INSTALLING_TMP_DIR="$PACKAGE_WORKING_DIR/tmp"
+
+    #########################################################################################
+
     PACKAGE_METAINF_DIR="$PACKAGE_INSTALL_DIR/.xcpkg"
 
     PACKAGE_MANIFEST_FILEPATH="$PACKAGE_METAINF_DIR/manifest.txt"
     PACKAGE_RECEIPT_FILEPATH="$PACKAGE_METAINF_DIR/receipt.yml"
 
     install -d "$PACKAGE_METAINF_DIR"
+
+    #########################################################################################
+
+    step "install COPYING file"
+
+    if [ -f "$PACKAGE_INSTALLING_SRC_DIR/COPYING" ] ; then
+        install -v -m 644 "$PACKAGE_INSTALLING_SRC_DIR/COPYING" "$PACKAGE_METAINF_DIR/"
+    else
+        note "COPYING file not found, skipped."
+    fi
+
+    #########################################################################################
+
+    step "install AUTHORS"
+
+    if [ -f "$PACKAGE_INSTALLING_SRC_DIR/AUTHORS" ] ; then
+        install -v -m 644 "$PACKAGE_INSTALLING_SRC_DIR/AUTHORS" "$PACKAGE_METAINF_DIR/"
+    else
+        note "'AUTHORS' named file not found, skipped."
+    fi
+
+    #########################################################################################
+
+    step "install README"
+
+    README_FOUND=0
+
+    for item in README README.md
+    do
+        if [ -f "$PACKAGE_INSTALLING_SRC_DIR/$item" ] ; then
+            README_FOUND=1
+            install -v -m 644 "$PACKAGE_INSTALLING_SRC_DIR/$item" "$PACKAGE_METAINF_DIR/"
+        fi
+    done
+
+    if [ "$README_FOUND" = 0 ] ; then
+        note "neither 'README' nor 'README.md' named file was found, skipped."
+    fi
 
     #########################################################################################
 
