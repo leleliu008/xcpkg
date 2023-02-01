@@ -677,16 +677,16 @@ __load_formula_of_the_given_package() {
     fi
 
     if [ -z "$PACKAGE_SUMMARY" ] ; then
-        die "summary mapping not found in $PACKAGE_FORMULA_FILEPATH"
+        die "summary mapping was not found in $PACKAGE_FORMULA_FILEPATH"
     fi
 
     if [ -z "$PACKAGE_WEB_URL" ] && [ -z "$PACKAGE_GIT_URL" ] ; then
-        die "web-url or git-url mapping not found in $PACKAGE_FORMULA_FILEPATH"
+        die "web-url or git-url mapping was not found in $PACKAGE_FORMULA_FILEPATH"
     fi
 
     if [ -z "$PACKAGE_SRC_URL" ] ; then
         if [ -z "$PACKAGE_GIT_URL" ] ; then
-            die "src-url or git-url mapping not found in $PACKAGE_FORMULA_FILEPATH"
+            die "src-url or git-url mapping was not found in $PACKAGE_FORMULA_FILEPATH"
         else
             PACKAGE_SRC_FILETYPE=.git
             PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP git"
@@ -726,13 +726,13 @@ __load_formula_of_the_given_package() {
             ;;
         *)
             if [ -z "$PACKAGE_SRC_SHA" ] ; then
-                die "src-sha mapping not found in $PACKAGE_FORMULA_FILEPATH"
+                die "src-sha mapping was not found in $PACKAGE_FORMULA_FILEPATH"
             fi
 
             if [ -z "$PACKAGE_VERSION" ] ; then
                 PACKAGE_VERSION="$(basename "$PACKAGE_SRC_URL" | tr '_@' - | sed -e 's|\.tar\.[glx]z$||' -e 's|\.tar\.bz2$||' -e 's|\.t[glx]z$||' -e 's|\.zip$||' -e 's|-stable||' -e 's|-source||' -e 's|[-.]src$||' -e 's|\.orig||' | awk -F- '{print $NF}')"
                 case $PACKAGE_VERSION in
-                    '') die "version mapping not found in $PACKAGE_FORMULA_FILEPATH" ;;
+                    '') die "version mapping was not found in $PACKAGE_FORMULA_FILEPATH" ;;
                     v*) PACKAGE_VERSION=$(printf '%s\n' "$PACKAGE_VERSION" | cut -c2-)
                 esac
             fi
@@ -743,7 +743,7 @@ __load_formula_of_the_given_package() {
 
     if [ -n "$PACKAGE_FIX_URL" ] ; then
         if [ -z "$PACKAGE_FIX_SHA" ] ; then
-            die "fix-sha mapping not found in $PACKAGE_FORMULA_FILEPATH"
+            die "fix-sha mapping was not found in $PACKAGE_FORMULA_FILEPATH"
         fi
 
         PACKAGE_FIX_FILETYPE="$(get_file_extension_from_url "$PACKAGE_FIX_URL")"
@@ -764,7 +764,7 @@ __load_formula_of_the_given_package() {
 
     if [ -n "$PACKAGE_RES_URL" ] ; then
         if [ -z "$PACKAGE_RES_SHA" ] ; then
-            die "res-sha mapping not found in $PACKAGE_FORMULA_FILEPATH"
+            die "res-sha mapping was not found in $PACKAGE_FORMULA_FILEPATH"
         fi
 
         PACKAGE_RES_FILETYPE="$(get_file_extension_from_url "$PACKAGE_RES_URL")"
@@ -2770,7 +2770,7 @@ __install_the_given_package() {
     [ "$PACKAGE_BUILD_SYSTEM_CARGO" = yes ] && {
         command -v rustup > /dev/null || {
             # https://www.rust-lang.org/tools/install
-            note "${COLOR_GREEN}rustup cargo rustc${COLOR_OFF} ${COLOR_YELLOW}commands are required, but it is not found, let's install it.${COLOR_OFF}"
+            note "${COLOR_GREEN}rustup cargo rustc${COLOR_OFF} ${COLOR_YELLOW}commands are required, but it was not found, let's install it.${COLOR_OFF}"
 
             if [ -f    "$XCPKG_HOME/tmp.d/rustup-init.sh" ] ; then
                 run rm "$XCPKG_HOME/tmp.d/rustup-init.sh" || return 1
@@ -3018,7 +3018,7 @@ EOF
             fi
         fi
     else
-        note "build0 mapping not found in formula, skipped."
+        note "build0 mapping was not found in formula, skipped."
     fi
 
     #########################################################################################
@@ -3083,14 +3083,14 @@ EOF
     else
         case $PACKAGE_BUILD_SYSTEM in
             autogen)
-                note "prepare mapping not found in formula."
+                note "prepare mapping was not found in formula."
                 run NOCONFIGURE=yes ./autogen.sh    || return 1
                 ;;
             autotools)
-                note "prepare mapping not found in formula."
+                note "prepare mapping was not found in formula."
                 run autoreconf -ivf || return 1
                 ;;
-            *)  note "prepare mapping not found in formula, skipped."
+            *)  note "prepare mapping was not found in formula, skipped."
         esac
     fi
 
@@ -3199,12 +3199,29 @@ EOF
 
     #########################################################################################
 
-    step "install COPYING file"
+    step "install COPYING"
 
-    if [ -f "$PACKAGE_INSTALLING_SRC_DIR/COPYING" ] ; then
-        install -v -m 644 "$PACKAGE_INSTALLING_SRC_DIR/COPYING" "$PACKAGE_METAINF_DIR/"
+    COPYING_FOUND=0
+
+    for item in $(find "$PACKAGE_INSTALLING_SRC_DIR" -mindepth 1 -maxdepth 1 -name "COPYING*")
+    do
+        if [ -f "$item" ] ; then
+            install -v -m 644 "$item" "$PACKAGE_METAINF_DIR/"
+        fi
+    done
+
+    if [ "$COPYING_FOUND" = 0 ] ; then
+        note "'COPYING' named file was not found, skipped."
+    fi
+
+    #########################################################################################
+
+    step "install LICENSE"
+
+    if [ -f "$PACKAGE_INSTALLING_SRC_DIR/LICENSE" ] ; then
+        install -v -m 644 "$PACKAGE_INSTALLING_SRC_DIR/LICENSE" "$PACKAGE_METAINF_DIR/"
     else
-        note "COPYING file not found, skipped."
+        note "'LICENSE' named file was not found, skipped."
     fi
 
     #########################################################################################
@@ -3214,7 +3231,25 @@ EOF
     if [ -f "$PACKAGE_INSTALLING_SRC_DIR/AUTHORS" ] ; then
         install -v -m 644 "$PACKAGE_INSTALLING_SRC_DIR/AUTHORS" "$PACKAGE_METAINF_DIR/"
     else
-        note "'AUTHORS' named file not found, skipped."
+        note "'AUTHORS' named file was not found, skipped."
+    fi
+
+    #########################################################################################
+
+    step "install CONTRIBUTORS"
+
+    CONTRIBUTORS_FOUND=0
+
+    for item in CONTRIBUTORS CONTRIBUTORS.md CONTRIBUTORS.rst
+    do
+        if [ -f "$PACKAGE_INSTALLING_SRC_DIR/$item" ] ; then
+            CONTRIBUTORS_FOUND=1
+            install -v -m 644 "$PACKAGE_INSTALLING_SRC_DIR/$item" "$PACKAGE_METAINF_DIR/"
+        fi
+    done
+
+    if [ "$CONTRIBUTORS_FOUND" = 0 ] ; then
+        note "neither of 'CONTRIBUTORS' 'CONTRIBUTORS.md' 'CONTRIBUTORS.rst' named files was found, skipped."
     fi
 
     #########################################################################################
@@ -3223,7 +3258,7 @@ EOF
 
     README_FOUND=0
 
-    for item in README README.md
+    for item in README README.md README.rst
     do
         if [ -f "$PACKAGE_INSTALLING_SRC_DIR/$item" ] ; then
             README_FOUND=1
@@ -3232,7 +3267,84 @@ EOF
     done
 
     if [ "$README_FOUND" = 0 ] ; then
-        note "neither 'README' nor 'README.md' named file was found, skipped."
+        note "none of 'README' 'README.md' 'README.rst' named files was found, skipped."
+    fi
+
+    #########################################################################################
+
+    step "install CONTRIBUTING"
+
+    CONTRIBUTING_FOUND=0
+
+    for item in CONTRIBUTING CONTRIBUTING.md CONTRIBUTING.rst
+    do
+        if [ -f "$PACKAGE_INSTALLING_SRC_DIR/$item" ] ; then
+            CONTRIBUTING_FOUND=1
+            install -v -m 644 "$PACKAGE_INSTALLING_SRC_DIR/$item" "$PACKAGE_METAINF_DIR/"
+        fi
+    done
+
+    if [ "$CONTRIBUTING_FOUND" = 0 ] ; then
+        note "none of 'CONTRIBUTING' 'CONTRIBUTING.md' 'CONTRIBUTING.rst' named files was found, skipped."
+    fi
+
+    #########################################################################################
+
+    step "install CHANGELOG"
+
+    CHANGELOG_FOUND=0
+
+    for item in CHANGELOG CHANGELOG.md CHANGES
+    do
+        if [ -f "$PACKAGE_INSTALLING_SRC_DIR/$item" ] ; then
+            install -v -m 644 "$PACKAGE_INSTALLING_SRC_DIR/$item" "$PACKAGE_METAINF_DIR/"
+            CHANGELOG_FOUND=1
+            break;
+        fi
+    done
+
+    if [ "$CHANGELOG_FOUND" = 0 ] ; then
+        note "none of 'CHANGELOG' 'CHANGELOG.md' 'CHANGES' named files was found, skipped."
+    fi
+
+    #########################################################################################
+
+    step "install NEWS"
+
+    if [ -f "$PACKAGE_INSTALLING_SRC_DIR/NEWS" ] ; then
+        install -v -m 644 "$PACKAGE_INSTALLING_SRC_DIR/NEWS" "$PACKAGE_METAINF_DIR/"
+    else
+        note "'NEWS' named file was not found, skipped."
+    fi
+
+    #########################################################################################
+
+    step "install TODO"
+
+    if [ -f "$PACKAGE_INSTALLING_SRC_DIR/TODO" ] ; then
+        install -v -m 644 "$PACKAGE_INSTALLING_SRC_DIR/TODO" "$PACKAGE_METAINF_DIR/"
+    else
+        note "'TODO' named file was not found, skipped."
+    fi
+
+    #########################################################################################
+
+    step "install FAQ"
+
+    if [ -f "$PACKAGE_INSTALLING_SRC_DIR/FAQ" ] ; then
+        install -v -m 644 "$PACKAGE_INSTALLING_SRC_DIR/FAQ" "$PACKAGE_METAINF_DIR/"
+    else
+        note "'FAQ' named file was not found, skipped."
+    fi
+
+    #########################################################################################
+
+    step "install THANKS"
+
+    if [ -f "$PACKAGE_INSTALLING_SRC_DIR/THANKS" ] ; then
+        install -v -m 644 "$PACKAGE_INSTALLING_SRC_DIR/THANKS" "$PACKAGE_METAINF_DIR/"
+    else
+        note "'THANKS' named file was not found, skipped."
     fi
 
     #########################################################################################
