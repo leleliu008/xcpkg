@@ -2410,9 +2410,9 @@ __gen_dependency_graph_recursively_depended_by_the_given_package() {
                     else
                         TARGET_PLATFORM_NAME_IS_SUPPORTED=no
 
-                        for XCODE_SUPPORT_PLATFORM_NAME in $(printf '%s\n' "$XCODE_SUPPORT_PLATFORM_NAMES")
+                        for XCODE_SUPPORT_PLATFORM_NAME in $XCODE_SUPPORT_PLATFORM_NAMES
                         do
-                            if [ "$XCODE_SUPPORT_PLATFORM_NAMES" = "$TARGET_PLATFORM_NAME" ] ; then
+                            if [ "$XCODE_SUPPORT_PLATFORM_NAME" = "$TARGET_PLATFORM_NAME" ] ; then
                                 TARGET_PLATFORM_NAME_IS_SUPPORTED=yes
                                 break;
                             fi
@@ -2498,9 +2498,9 @@ __gen_dependency_graph_recursively_depended_by_the_given_package() {
                 else
                     TARGET_PLATFORM_NAME_IS_SUPPORTED=no
 
-                    for XCODE_SUPPORT_PLATFORM_NAME in $(printf '%s\n' "$XCODE_SUPPORT_PLATFORM_NAMES")
+                    for XCODE_SUPPORT_PLATFORM_NAME in $XCODE_SUPPORT_PLATFORM_NAMES
                     do
-                        if [ "$XCODE_SUPPORT_PLATFORM_NAMES" = "$TARGET_PLATFORM_NAME" ] ; then
+                        if [ "$XCODE_SUPPORT_PLATFORM_NAME" = "$TARGET_PLATFORM_NAME" ] ; then
                             TARGET_PLATFORM_NAME_IS_SUPPORTED=yes
                             break;
                         fi
@@ -5053,7 +5053,7 @@ __list_supported_target_platform_names() {
             32bit|64bit|all)
                 LIST_SUPPORTED_ARCHS_ARG_BIT=$1
                 ;;
-            iPhoneOS|WatchOS|AppleTVOS|MacOSX|*Simulator|table|list)
+            iPhoneOS|WatchOS|AppleTVOS|MacOSX|*Simulator|DriverKit|table|list)
                 LIST_SUPPORTED_ARCHS_ARG_PLATFORM=$1
                 ;;
             *) die "unrecognized argument : $1."
