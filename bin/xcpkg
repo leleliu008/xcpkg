@@ -2410,7 +2410,7 @@ __gen_dependency_graph_recursively_depended_by_the_given_package() {
                     else
                         TARGET_PLATFORM_NAME_IS_SUPPORTED=no
 
-                        for XCODE_SUPPORT_PLATFORM_NAME in $XCODE_SUPPORT_PLATFORM_NAMES
+                        for XCODE_SUPPORT_PLATFORM_NAME in $(printf '%s\n' "$XCODE_SUPPORT_PLATFORM_NAMES")
                         do
                             if [ "$XCODE_SUPPORT_PLATFORM_NAMES" = "$TARGET_PLATFORM_NAME" ] ; then
                                 TARGET_PLATFORM_NAME_IS_SUPPORTED=yes
@@ -2498,7 +2498,7 @@ __gen_dependency_graph_recursively_depended_by_the_given_package() {
                 else
                     TARGET_PLATFORM_NAME_IS_SUPPORTED=no
 
-                    for XCODE_SUPPORT_PLATFORM_NAME in $XCODE_SUPPORT_PLATFORM_NAMES
+                    for XCODE_SUPPORT_PLATFORM_NAME in $(printf '%s\n' "$XCODE_SUPPORT_PLATFORM_NAMES")
                     do
                         if [ "$XCODE_SUPPORT_PLATFORM_NAMES" = "$TARGET_PLATFORM_NAME" ] ; then
                             TARGET_PLATFORM_NAME_IS_SUPPORTED=yes
