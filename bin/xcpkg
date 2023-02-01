@@ -3350,7 +3350,7 @@ EOF
     done
 
     if [ "$CONTRIBUTORS_FOUND" = 0 ] ; then
-        note "neither of 'CONTRIBUTORS' 'CONTRIBUTORS.md' 'CONTRIBUTORS.rst' named files was found, skipped."
+        note "none of 'CONTRIBUTORS' 'CONTRIBUTORS.md' 'CONTRIBUTORS.rst' named files was found, skipped."
     fi
 
     #########################################################################################
