@@ -5020,7 +5020,8 @@ inspect_xcode_information() {
                     if [ -z "$XCODE_SUPPORT_PLATFORM_NAMES" ] ; then
                         XCODE_SUPPORT_PLATFORM_NAMES="${item%.platform}"
                     else
-                        XCODE_SUPPORT_PLATFORM_NAMES="$XCODE_SUPPORT_PLATFORM_NAMES ${item%.platform}"
+                        XCODE_SUPPORT_PLATFORM_NAMES="$XCODE_SUPPORT_PLATFORM_NAMES
+${item%.platform}"
                     fi
             esac
         done
