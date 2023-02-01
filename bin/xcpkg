@@ -3206,6 +3206,7 @@ EOF
     for item in $(find "$PACKAGE_INSTALLING_SRC_DIR" -mindepth 1 -maxdepth 1 -name "COPYING*")
     do
         if [ -f "$item" ] ; then
+            COPYING_FOUND=1
             install -v -m 644 "$item" "$PACKAGE_METAINF_DIR/"
         fi
     done
