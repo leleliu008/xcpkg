@@ -5077,6 +5077,7 @@ __list_supported_target_platform_names() {
                 AppleTVOS)  printf '%s\n' "arm64"       ;;
                 MacOSX)     printf '%s\n' "arm64 x86_64 i386" ;;
                 *Simulator) printf '%s\n' "arm64 x86_64 i386" ;;
+                DriverKit)  ;;
                 list)       printf '%s\n' "arm64 arm64e arm64_32 armv7 armv7s armv7k x86_64" ;;
                 table) __show_supported_target_platform_names_and_its_supported_arch_table ;;
                 *)  die "unsupported platform : $LIST_SUPPORTED_ARCHS_ARG_PLATFORM."
@@ -5089,6 +5090,7 @@ __list_supported_target_platform_names() {
                 AppleTVOS)  printf '%s\n' "arm64"  ;;
                 MacOSX)     printf '%s\n' "arm64 x86_64" ;;
                 *Simulator) printf '%s\n' "arm64 x86_64" ;;
+                DriverKit)  ;;
                 list)       printf '%s\n' "arm64 arm64e arm64_32 x86_64" ;;
                 table) __show_supported_target_platform_names_and_its_supported_64bit_arch_table ;;
                 *)  die "unsupported platform : $LIST_SUPPORTED_ARCHS_ARG_PLATFORM."
@@ -5101,6 +5103,7 @@ __list_supported_target_platform_names() {
                 AppleTVOS)  ;;
                 MacOSX)     printf '%s\n' "i386" ;;
                 *Simulator) printf '%s\n' "i386" ;;
+                DriverKit)  ;;
                 list)       printf '%s\n' "armv7 armv7s armv7k i386" ;;
                 table) __show_supported_target_platform_names_and_its_supported_32bit_arch_table ;;
                 *)  die "unsupported platform : $LIST_SUPPORTED_ARCHS_ARG_PLATFORM."
@@ -5159,11 +5162,20 @@ __list_supported_target_platform_versions() {
         done
     else
         case $1 in
-            iPhoneOS|iPhoneSimulator)   printf '%s\n' "8.0 8.1 8.2 8.3 8.4 9.0 9.1 9.2 9.3 10.0 10.1 10.2 10.3 11.0 11.1 11.2 11.3 11.4 12.0 12.1 12.2 12.3 12.4 13.0 13.1 13.2 13.3 13.4 13.5";;
-            WatchOS|WatchSimulator)     printf '%s\n' "2.0 2.1 2.2 3.0 3.1 3.2 4.0 4.1 4.2 4.3 5.0 5.1 5.2 5.3 6.0 6.1 6.2";;
-            AppleTVOS|AppleTVSimulator) printf '%s\n' "9.0 9.1 9.2 10.0 10.1 10.2 11.0 11.1 11.2 11.3 11.4 12.0 12.1 12.3 12.4 13.0 13.1 13.2 13.3";;
-            MacOSX)                     printf '%s\n' "10.6 10.7 10.8 10.9 10.10 10.11 10.12 10.13 10.14 10.15";;
-            *)                          die "unsupported platform : $1."
+            iPhoneOS|iPhoneSimulator)
+                printf '%s\n' "8.0 8.1 8.2 8.3 8.4 9.0 9.1 9.2 9.3 10.0 10.1 10.2 10.3 11.0 11.1 11.2 11.3 11.4 12.0 12.1 12.2 12.3 12.4 13.0 13.1 13.2 13.3 13.4 13.5";;
+            WatchOS|WatchSimulator)
+                printf '%s\n' "2.0 2.1 2.2 3.0 3.1 3.2 4.0 4.1 4.2 4.3 5.0 5.1 5.2 5.3 6.0 6.1 6.2"
+                ;;
+            AppleTVOS|AppleTVSimulator)
+                printf '%s\n' "9.0 9.1 9.2 10.0 10.1 10.2 11.0 11.1 11.2 11.3 11.4 12.0 12.1 12.3 12.4 13.0 13.1 13.2 13.3"
+                ;;
+            MacOSX)
+                printf '%s\n' "10.6 10.7 10.8 10.9 10.10 10.11 10.12 10.13 10.14 10.15"
+                ;;
+            DriverKit)
+                ;;
+            *)  die "unsupported platform : $1."
         esac
     fi
 }
