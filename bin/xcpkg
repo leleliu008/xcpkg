@@ -2043,6 +2043,8 @@ __fetch_resources_of_the_given_package() {
 __uninstall_the_given_packages() {
     [ -z "$1" ] && die "package name or spec is unspecified."
 
+    XCODE_SUPPORT_PLATFORM_NAMES='MacOSX DriverKit WatchOS WatchSimulator iPhoneOS iPhoneSimulator AppleTVOS AppleTVSimulator'
+
     unset PACKAGE_SPECS
 
     for item in "$@"
@@ -5242,6 +5244,8 @@ __list_supported_target_platform_versions() {
 # __pack_the_given_installed_package <PACKAGE-NAME|PACKAGE-SPEC> [-t <zip|tar.gz|tar.xz|tar.lz|tar.bz2>] [-o <OUTPUT-PATH>] [--keep-packing-dir]
 # __pack_the_given_installed_package    autoconf     -t tar.xz
   __pack_the_given_installed_package() {
+    XCODE_SUPPORT_PLATFORM_NAMES='MacOSX DriverKit WatchOS WatchSimulator iPhoneOS iPhoneSimulator AppleTVOS AppleTVSimulator'
+
     unset PACKAGE_SPEC
 
     PACKAGE_SPEC=$(inspect_package_spec "$1")
