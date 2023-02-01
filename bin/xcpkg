@@ -28,6 +28,10 @@ CURRENT_SCRIPT_FILENAME=$(basename "$0")
 CURRENT_SCRIPT_FILEPATH="$CURRENT_SCRIPT_DIR/$CURRENT_SCRIPT_FILENAME"
 
 
+# }}}
+##############################################################################
+# {{{ utils
+
 COLOR_RED='\033[0;31m'          # Red
 COLOR_GREEN='\033[0;32m'        # Green
 COLOR_YELLOW='\033[0;33m'       # Yellow
@@ -68,59 +72,6 @@ die() {
     exit 1
 }
 
-bppend_to_PATH() {
-    case ":${PATH}:" in
-        *:"$1":*) ;;
-        *) export PATH="$1:$PATH" ;;
-    esac
-}
-
-bppend_to_ACLOCAL_PATH() {
-    case ":${ACLOCAL_PATH}:" in
-        *:"$1":*) ;;
-        *) export ACLOCAL_PATH="$1:$ACLOCAL_PATH" ;;
-    esac
-}
-
-# check if file exists
-# $1 FILEPATH
-file_exists() {
-    [ -n "$1" ] && [ -e "$1" ]
-}
-
-# check if command exists in filesystem
-# $1 command name or path
-command_exists_in_filesystem() {
-    case $1 in
-        '') return 1 ;;
-        */*)
-            case $(uname | tr A-Z a-z) in
-                cygwin*)
-                    case $1 in
-                        /cygdrive/*/choco) executable "$1" ;;
-                        /cygdrive/*) return 1 ;;
-                        *) executable "$1" ;;
-                    esac
-                    ;;
-                *) executable "$1" ;;
-            esac
-            ;;
-        *)  command_exists_in_filesystem $(command -v "$1" || true)
-    esac
-}
-
-executable() {
-    file_exists "$1" && [ -x "$1" ]
-}
-
-die_if_file_is_not_exist() {
-    file_exists "$1" || die "$1 is not exist."
-}
-
-die_if_not_executable() {
-    executable "$1" || die "$1 is not executable."
-}
-
 step() {
     STEP_NUM=$(expr ${STEP_NUM-0} + 1)
     STEP_MESSAGE="$@"
@@ -133,19 +84,8 @@ run() {
     eval "$*"
 }
 
-list() {
-    for item in $@
-    do
-        echo "$item"
-    done
-}
-
 list_length() {
-    echo $#
-}
-
-shiftn() {
-    shift "$1" && shift && echo "$@"
+    printf '%s' "$#"
 }
 
 sed_in_place() {
@@ -184,14 +124,6 @@ sed_in_place() {
     fi
 }
 
-getvalue() {
-    if [ $# -eq 0 ] ; then
-        cut -d= -f2
-    else
-        printf '%s\n' "$1" | cut -d= -f2
-    fi
-}
-
 is_integer() {
     case "${1#[+-]}" in
         (*[!0123456789]*) return 1 ;;
@@ -206,8 +138,31 @@ is_integer() {
    date $3 -d      "@$1" "$2"
 }
 
+bppend_to_PATH() {
+    case ":${PATH}:" in
+        *:"$1":*) ;;
+        *) export PATH="$1:$PATH" ;;
+    esac
+}
+
+bppend_to_ACLOCAL_PATH() {
+    case ":${ACLOCAL_PATH}:" in
+        *:"$1":*) ;;
+        *) export ACLOCAL_PATH="$1:$ACLOCAL_PATH" ;;
+    esac
+}
+
+prompt_user_to_install_bat() {
+    echo
+    note "${COLOR_YELLOW}if you want to have a better experience, I strongly recommend you to install${COLOR_OFF} ${COLOR_GREEN}bat${COLOR_OFF} ${COLOR_YELLOW}on this machine. For more details, please visit website${COLOR_OFF} ${COLOR_GREEN}https://github.com/sharkdp/bat${COLOR_OFF}"
+}
+
+# }}}
+##############################################################################
+# {{{ lolcat_implemented_in_awk
+
 # https://equa.space/sh/lolcat/
-lolcat_awk() {
+lolcat_implemented_in_awk() {
     awk -v angle=45 -v angle_phase=40 -v reverse=0 -v offset=195 -v offset_phase=0 -v width=100 -v width_phase=8 "$@" '
     function put_rgb(color) {
         printf "\033[%s38;2;%d;%d;%dm", reverse ? "7;" : "", int(color[1] * 255), int(color[2] * 255), int(color[3] * 255);
@@ -304,10 +259,10 @@ wfetch() {
                 RUN_SILENT=yes
                 ;;
             --sha256=*)
-                FETCH_SHA256=$(getvalue "$1")
+                FETCH_SHA256="${1#*=}"
                 ;;
             --uri=*)
-                FETCH_URI=$(getvalue "$1")
+                FETCH_URI="${1#*=}"
                 if [ -z "$FETCH_URI" ] ; then
                     error "wfetch <URL> --uri=<URL-MIRROR> , <URL-MIRROR> must be non-empty."
                     return 1
@@ -317,21 +272,21 @@ wfetch() {
                 fi
                 ;;
             --output-dir=*)
-                FETCH_OUTPUT_DIR=$(getvalue "$1")
+                FETCH_OUTPUT_DIR="${1#*=}"
                 if [ -z "$FETCH_OUTPUT_DIR" ] ; then
                     error "wfetch <URL> --output-dir=<DIR> , <DIR> must be non-empty."
                     return 1
                 fi
                 ;;
             --output-name=*)
-                FETCH_OUTPUT_NAME=$(getvalue "$1")
+                FETCH_OUTPUT_NAME="${1#*=}"
                 if [ -z "$FETCH_OUTPUT_NAME" ] ; then
                     error "wfetch <URL> --output-name=<NAME> , <NAME> must be non-empty."
                     return 1
                 fi
                 ;;
             --output-path=*)
-                FETCH_OUTPUT_PATH=$(getvalue "$1")
+                FETCH_OUTPUT_PATH="${1#*=}"
                 if [ -z "$FETCH_OUTPUT_PATH" ] ; then
                     error "wfetch <URL> --output-path=<FILEPATH> , <FILEPATH> must be non-empty."
                     return 1
@@ -416,7 +371,7 @@ wfetch() {
 
             for FETCH_TOOL in curl wget http lynx aria2c axel
             do
-                if command_exists_in_filesystem "$FETCH_TOOL" ; then
+                if command -v "$FETCH_TOOL" > /dev/null ; then
                     break
                 else
                     unset FETCH_TOOL
@@ -479,267 +434,9 @@ wfetch() {
     esac
 }
 
-
-# }}}
-##############################################################################
-# {{{ __upgrade_self
-
-# __upgrade_self <URL>
-  __upgrade_self() {
-    if [ -z "$1" ] ; then
-        error "__upgrade_self <URL> , <URL> must be non-empty."
-        return 1
-    fi
-
-    unset CURRENT_SCRIPT_REALPATH
-
-    # if file exists and is a symbolic link
-    if [ -L "$CURRENT_SCRIPT_FILEPATH" ] ; then
-        # https://unix.stackexchange.com/questions/136494/whats-the-difference-between-realpath-and-readlink-f#:~:text=GNU%20coreutils%20introduced%20a%20realpath,in%20common%20with%20GNU%20readlink%20.
-        if command -v realpath > /dev/null ; then
-            CURRENT_SCRIPT_REALPATH=$(realpath $CURRENT_SCRIPT_FILEPATH)
-        elif command -v readlink > /dev/null && readlink -f xx > /dev/null 2>&1 ; then
-            CURRENT_SCRIPT_REALPATH=$(readlink -f $CURRENT_SCRIPT_FILEPATH)
-        else
-            CURRENT_SCRIPT_REALPATH=$(realpath $CURRENT_SCRIPT_FILEPATH)
-        fi
-    else
-        CURRENT_SCRIPT_REALPATH="$CURRENT_SCRIPT_FILEPATH"
-    fi
-
-    printf '%b\n' "$COLOR_PURPLE==>$COLOR_OFF ${COLOR_GREEN}mktemp -d$COLOR_OFF"
-    WORKING_DIR=$(mktemp -d)
-
-    run cd $WORKING_DIR
-
-    wfetch "$1" --output-path="$WORKING_DIR/self"
-
-    __upgrade_self_exit() {
-        if [ -w "$CURRENT_SCRIPT_REALPATH" ] ; then
-            run      install -m 755 self "$CURRENT_SCRIPT_REALPATH"
-        else
-            run sudo install -m 755 self "$CURRENT_SCRIPT_REALPATH"
-        fi
-
-        run rm -rf $WORKING_DIR
-    }
-
-    trap __upgrade_self_exit EXIT
-}
-
-# }}}
-##############################################################################
-# {{{ __integrate_zsh_completions
-
-# __integrate_zsh_completions <URL> [--output-dir=<DIR>]
-  __integrate_zsh_completions() {
-    if [ -z "$1" ] ; then
-        error "__integrate_zsh_completions <URL> [--output-dir=<DIR>] , <URL> must be non-empty."
-        return 1
-    else
-        ZSH_COMPLETIONS_SCRIPT_URL="$1"
-    fi
-
-    shift
-
-    unset OUTPUT_DIR
-
-    for arg in $@
-    do
-        case $arg in
-            --output-dir=*)
-                OUTPUT_DIR=$(getvalue "$1")
-                case $OUTPUT_DIR in
-                    '')     die "__integrate_zsh_completions <URL> [--output-dir=<DIR>] , <DIR> must be non-empty." ;;
-                    \~|\~/) OUTPUT_DIR="${HOME}" ;;
-                    \~/*)   OUTPUT_DIR="$HOME/$(printf '%s\n' "$OUTPUT_DIR" | cut -c3-)" ;;
-                esac
-                ;;
-            *)  die "__integrate_zsh_completions <URL> [--output-dir=<DIR>] , unrecognized argument: $arg"
-        esac
-    done
-
-    ZSH_COMPLETIONS_SCRIPT_FILENAME="_$CURRENT_SCRIPT_FILENAME"
-
-    if [ -n "$OUTPUT_DIR" ] ; then
-        ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH="$OUTPUT_DIR/$ZSH_COMPLETIONS_SCRIPT_FILENAME"
-    elif [ "$(uname)" = Linux ] && command -v termux-info > /dev/null && [ "$HOME" = '/data/data/com.termux/files/home' ] ; then
-        ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH="/data/data/com.termux/files/usr/share/zsh/site-functions/$ZSH_COMPLETIONS_SCRIPT_FILENAME"
-    else
-        ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH="/usr/local/share/zsh/site-functions/$ZSH_COMPLETIONS_SCRIPT_FILENAME"
-    fi
-
-    # if file exists and is a symbolic link
-    if [ -L "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH" ] ; then
-        # https://unix.stackexchange.com/questions/136494/whats-the-difference-between-realpath-and-readlink-f#:~:text=GNU%20coreutils%20introduced%20a%20realpath,in%20common%20with%20GNU%20readlink%20.
-        if command -v realpath > /dev/null ; then
-            ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH=$(realpath $ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH)
-        elif command -v readlink > /dev/null && readlink -f xx > /dev/null 2>&1 ; then
-            ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH=$(readlink -f $ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH)
-        else
-            ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH=$(realpath $ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH)
-        fi
-    fi
-
-    printf '%b\n' "$COLOR_PURPLE==>$COLOR_OFF ${COLOR_GREEN}mktemp -d$COLOR_OFF"
-    WORKING_DIR=$(mktemp -d)
-
-    run cd $WORKING_DIR
-
-    wfetch "$ZSH_COMPLETIONS_SCRIPT_URL" --output-path="$WORKING_DIR/$ZSH_COMPLETIONS_SCRIPT_FILENAME"
-
-    if [ -f "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH" ] ; then
-        if [ -w "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH" ] ; then
-            run      install -m 644 "$ZSH_COMPLETIONS_SCRIPT_FILENAME" "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH"
-        else
-            run sudo install -m 644 "$ZSH_COMPLETIONS_SCRIPT_FILENAME" "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH"
-        fi
-    else
-        ZSH_COMPLETIONS_SCRIPT_OUT_DIR="$(dirname "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH")"
-        if [ ! -d "$ZSH_COMPLETIONS_SCRIPT_OUT_DIR" ] ; then
-            run install -d "$ZSH_COMPLETIONS_SCRIPT_OUT_DIR" || run sudo install -d "$ZSH_COMPLETIONS_SCRIPT_OUT_DIR"
-        fi
-        if [ -w "$ZSH_COMPLETIONS_SCRIPT_OUT_DIR" ] ; then
-            run      install -m 644 "$ZSH_COMPLETIONS_SCRIPT_FILENAME" "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH"
-        else
-            run sudo install -m 644 "$ZSH_COMPLETIONS_SCRIPT_FILENAME" "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH"
-        fi
-    fi
-
-    run rm -rf $WORKING_DIR
-
-    printf '\n'
-    note "${COLOR_YELLOW}you need to run command${COLOR_RED} ${COLOR_GREEN}autoload -U compinit && compinit${COLOR_OFF} ${COLOR_YELLOW}in zsh to make it work.${COLOR_OFF}"
-}
-
 # }}}
 ##############################################################################
 # {{{ version
-
-version_of_python_module() {
-    unset PIP_COMMAND
-    PIP_COMMAND=$(command -v pip3 || command -v pip)
-    if [ -z "$PIP_COMMAND" ] ; then
-        die "can't found pip command."
-    else
-        "$PIP_COMMAND" show $1 | grep 'Version:' | cut -d ' ' -f2
-    fi
-}
-
-# retrive the version of a command from it's name or path
-version_of_command() {
-    case $(basename "$1") in
-       ccache) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f3 ;;
-        xmake) "$1" --version 2> /dev/null | head -n 1 | cut -d '+' -f1 | cut -d 'v' -f2 ;;
-        cmake) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f3 ;;
-         rake) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f3 ;;
-         make) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f3 ;;
-        gmake) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f3 ;;
-       rustup) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f2 ;;
-       rustc)  "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f2 ;;
-        cargo) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f2 ;;
-           go) "$1"   version | cut -d ' ' -f3 | cut -c3- ;;
-         tree) "$1" --version | cut -d ' ' -f2 | cut -c2- ;;
-   pkg-config) "$1" --version 2> /dev/null | head -n 1 ;;
-     patchelf) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f2 ;;
-       m4|gm4) "$1" --version 2> /dev/null | head -n 1 | awk '{print($NF)}';;
-    autopoint) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f4 ;;
-     xgettext) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f4 ;;
-     automake|aclocal)
-               "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f4 ;;
-     autoconf|autoheader|autom4te|autoreconf|autoscan|autoupdate|ifnames)
-               "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f4 ;;
-     realpath) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f4 ;;
-      libtool) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f4 ;;
-   libtoolize|glibtoolize)
-               "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f4 ;;
-  intltoolize) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f4 ;;
-      objcopy) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f5 ;;
-         flex) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f2 ;;
-        bison) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f4 ;;
-         yacc) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f4 ;;
-         nasm) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f3 ;;
-         yasm) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f2 ;;
-        patch) "$1" --version 2> /dev/null | head -n 1 | awk '{print($NF)}' ;;
-        gperf) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f3 ;;
-        groff) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f4 ;;
-     makeinfo) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f4 ;;
-     help2man) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f3 ;;
-    gtkdocize) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f3 ;;
- sphinx-build) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f2 ;;
- glib-mkenums) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f3 ;;
- glib-compile-resources)
-               "$1" --version ;;
-         file) "$1" --version 2> /dev/null | head -n 1 | cut -d '-' -f2 ;;
-      itstool) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f2 ;;
-       protoc) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f2 ;;
-        xmlto) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f3 ;;
-      xmllint) ;;
-     xsltproc) ;;
-     rst2man|rst2man.py|rst2man-3|rst2man-3.6|rst2man-3.7|rst2man-3.8|rst2man-3.9)
-               "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f3 ;;
-         java) "$1"  -version 2>&1 | head -n 1 | cut -d ' ' -f3 | sed 's/"//g' ;;
-         gzip) "$1" --version 2>&1 | head -n 1 | awk '{print($NF)}' ;;
-         lzip) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f2 ;;
-           xz) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f4 ;;
-          zip) "$1" --version 2> /dev/null | sed -n '2p' | cut -d ' ' -f4 ;;
-        unzip) "$1" -v        2> /dev/null | head -n 1 | cut -d ' ' -f2 ;;
-        bzip2) "$1" --help 2>&1 | head -n 1 | cut -d ' ' -f8 | cut -d ',' -f1 ;;
-          tar)
-            VERSION_MSG=$("$1" --version 2> /dev/null | head -n 1)
-            case $VERSION_MSG in
-                  tar*) echo "$VERSION_MSG" | cut -d ' ' -f4 ;;
-               bsdtar*) echo "$VERSION_MSG" | cut -d ' ' -f2 ;;
-            esac
-            ;;
-          git) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f3 ;;
-         curl) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f2 ;;
-     awk|gawk) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f3 | tr , ' ' ;;
-     sed|gsed) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f4 ;;
-         cpan) ;;
-         find) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f4 ;;
-         diff) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f4 ;;
-         grep) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f4 | cut -d '-' -f1 ;;
-         ruby) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f2 ;;
-         perl) "$1" -v | sed -n '2p' | sed 's/.*v\([0-9]\.[0-9][0-9]\.[0-9]\).*/\1/' ;;
-          lua) "$1" -v 2>/dev/null | head -n 1 | cut -d ' ' -f2 ;;
-    python|python2|python3)
-               "$1" --version 2>&1 | head -n 1 | cut -d ' ' -f2 ;;
-         pip)  "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f2 ;;
-         pip3) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f2 ;;
-         node) "$1" --version 2> /dev/null | head -n 1 | cut -d 'v' -f2 ;;
-          zsh) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f2 ;;
-         bash) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f4 | cut -d '(' -f1 ;;
-       base64) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f4 ;;
-      hexdump) "$1" --version 2> /dev/null | head -n 1 | cut -d ' ' -f4 ;;
-      sqlite3) "$1"  -version 2> /dev/null | head -n 1 | cut -d ' ' -f1 ;;
-            *) "$1" --version 2> /dev/null | head -n 1
-    esac
-}
-
-# retrive the major part of the version of the given command
-# Note: the version of the given command must have form: major.minor.patch
-version_major_of_command() {
-    version_of_command "$1" | cut -d. -f1
-}
-
-# retrive the minor part of the version of the given command
-# Note: the version of the given command must have form: major.minor.patch
-version_minor_of_command() {
-    version_of_command "$1" | cut -d. -f2
-}
-
-# retrive the major part of the given version
-# Note: the given version must have form: major.minor.patch
-version_major_of_version() {
-    echo "$1" | cut -d. -f1
-}
-
-# retrive the minor part of the given version
-# Note: the given version must have form: major.minor.patch
-version_minor_of_version() {
-    echo "$1" | cut -d. -f2
-}
 
 version_sort() {
     # https://pubs.opengroup.org/onlinepubs/9699919799/utilities/sort.html
@@ -803,32 +500,9 @@ version_match() {
     esac
 }
 
-# check if the version of give installed command match the condition
-#
-# condition:
-# eq  equal
-# ne  not equal
-# gt  greater than
-# lt  less than
-# ge  greater than or equal
-# le  less than or equal
-#
-# examples:
-# command_exists_in_filesystem_and_version_matched automake eq 1.16.0
-# command_exists_in_filesystem_and_version_matched automake lt 1.16.0
-# command_exists_in_filesystem_and_version_matched automake gt 1.16.0
-# command_exists_in_filesystem_and_version_matched automake le 1.16.0
-# command_exists_in_filesystem_and_version_matched automake ge 1.16.0
-# command_exists_in_filesystem_and_version_matched automake
-command_exists_in_filesystem_and_version_matched() {
-    if command_exists_in_filesystem "$1" ; then
-        if [ $# -eq 3 ] ; then
-            version_match "$(version_of_command "$1")" "$2" "$3"
-        fi
-    else
-        return 1
-    fi
-}
+# }}}
+##############################################################################
+# {{{ operations of formula
 
 get_file_extension_from_url() {
     unset URL
@@ -845,10 +519,6 @@ get_file_extension_from_url() {
         *)    printf '%s\n' "$EXT" ;;
     esac
 }
-
-# }}}
-##############################################################################
-# {{{ operations of formula
 
 __load_formula_of_the_given_package() {
     unset PACKAGE_FORMULA_LOADED
@@ -1211,7 +881,7 @@ __load_formula_of_the_given_package() {
     do
         case $1 in
             --paging=*)
-                VIEW_FORMULA_PAGING=$(getvalue "$1")
+                VIEW_FORMULA_PAGING="${1#*=}"
                 case $VIEW_FORMULA_PAGING in
                     auto|always|never) ;;
                     *) die "--paging=<VALUE>, <VALUE> must be one of auto|always|never"
@@ -1343,6 +1013,10 @@ __rename_formula_of_the_given_package() {
         die "rename formula $1 -> $2 failed."
     fi
 }
+
+# }}}
+##############################################################################
+# {{{ operations of formula repository
 
 # __add_a_formula_repo <REPO-NAME> <REPO-URL> <GIT-BRANCH-NAME>
 __add_a_formula_repo() {
@@ -1547,14 +1221,724 @@ __list_formula_filepath() {
     } | sort | uniq
 }
 
+# }}}
+##############################################################################
+# {{{ operations of receipt
+
+# __generate_receipt_of_the_given_package <PACKAGE-NAME>
+  __generate_receipt_of_the_given_package() {
+    [ -z "$1" ] && {
+        error "__generate_receipt_of_the_given_package <PACKAGE-NAME>, <PACKAGE-NAME> is unspecified."
+        return 1
+    }
+
+    run cp "$PACKAGE_FORMULA_FILEPATH" "$PACKAGE_RECEIPT_FILEPATH"
+
+    sed_in_place '/^#src-url: dir:/d' "$PACKAGE_RECEIPT_FILEPATH"
+
+    sed_in_place "1i pkgname: $PACKAGE_NAME" "$PACKAGE_RECEIPT_FILEPATH"
+
+    grep -q '^version: ' "$PACKAGE_RECEIPT_FILEPATH" || {
+        sed_in_place "2i version: $PACKAGE_VERSION" "$PACKAGE_RECEIPT_FILEPATH"
+    }
+
+    grep -q '^web-url: ' "$PACKAGE_RECEIPT_FILEPATH" || {
+        sed_in_place "/^git-url:/i web-url: $PACKAGE_GIT_URL" "$PACKAGE_RECEIPT_FILEPATH"
+    }
+
+    grep -q '^bsystem: ' "$PACKAGE_RECEIPT_FILEPATH" || {
+        sed_in_place "/^install:/i bsystem: $PACKAGE_BSYSTEM" "$PACKAGE_RECEIPT_FILEPATH"
+    }
+
+    if [ -n "$PACKAGE_GIT_SHA" ] ; then
+        grep -q '^git-sha: ' "$PACKAGE_RECEIPT_FILEPATH" || {
+            sed_in_place "/^git-url:/a git-sha: $PACKAGE_GIT_SHA" "$PACKAGE_RECEIPT_FILEPATH"
+        }
+
+        grep -q '^git-sha: ' "$PACKAGE_RECEIPT_FILEPATH" || {
+            sed_in_place "3i git-sha: $PACKAGE_GIT_SHA" "$PACKAGE_RECEIPT_FILEPATH"
+        }
+    fi
+
+    if [ -n "$PACKAGE_DEP_UPP" ] ; then
+        if grep -q '^dep-upp: ' "$PACKAGE_RECEIPT_FILEPATH" ; then
+            sed_in_place "/^dep-upp: /c dep-upp: $PACKAGE_DEP_UPP" "$PACKAGE_RECEIPT_FILEPATH"
+        else
+            sed_in_place "/^bsystem: /i dep-upp: $PACKAGE_DEP_UPP" "$PACKAGE_RECEIPT_FILEPATH"
+        fi
+    fi
+
+    grep -q '^parallel: ' "$PACKAGE_RECEIPT_FILEPATH" || {
+        sed_in_place "\$a parallel: $PACKAGE_PARALLEL" "$PACKAGE_RECEIPT_FILEPATH"
+    }
+
+    cat >> "$PACKAGE_RECEIPT_FILEPATH" <<EOF
+
+built-for: $TARGET_PLATFORM_NAME/$TARGET_PLATFORM_VERS/$TARGET_PLATFORM_ARCH
+
+signature: $XCPKG_VERSION
+timestamp: $TIMESTAMP_UNIX
+EOF
+}
+
+# __load_receipt_of_the_given_package <PACKAGE-SPEC>
+  __load_receipt_of_the_given_package() {
+    [ -z "$1" ] && {
+        error "__load_receipt_of_the_given_package <PACKAGE-SPEC>, <PACKAGE-SPEC> is unspecified."
+        return 1
+    }
+
+    is_package_installed "$1" || {
+        error "package [$1] is not installed."
+        return 1
+    }
+
+    unset RECEIPT_PACKAGE_SUMMARY
+    unset RECEIPT_PACKAGE_VERSION
+    unset RECEIPT_PACKAGE_LICENSE
+
+    unset RECEIPT_PACKAGE_WEB_URL
+
+    unset RECEIPT_PACKAGE_GIT_URL
+    unset RECEIPT_PACKAGE_GIT_SHA
+    unset RECEIPT_PACKAGE_GIT_REF
+
+    unset RECEIPT_PACKAGE_SVN_URL
+
+    unset RECEIPT_PACKAGE_SRC_URL
+    unset RECEIPT_PACKAGE_SRC_URI
+    unset RECEIPT_PACKAGE_SRC_SHA
+
+    unset RECEIPT_PACKAGE_FIX_URL
+    unset RECEIPT_PACKAGE_FIX_SHA
+
+    unset RECEIPT_PACKAGE_RES_URL
+    unset RECEIPT_PACKAGE_RES_SHA
+
+    unset RECEIPT_PACKAGE_DEP_PKG
+    unset RECEIPT_PACKAGE_DEP_UPP
+    unset RECEIPT_PACKAGE_DEP_PYM
+    unset RECEIPT_PACKAGE_DEP_PLM
+
+    unset RECEIPT_PACKAGE_BSYSTEM
+    unset RECEIPT_PACKAGE_BSCRIPT
+    unset RECEIPT_PACKAGE_PREPARE
+    unset RECEIPT_PACKAGE_INSTALL
+    unset RECEIPT_PACKAGE_SYMLINK
+
+    unset RECEIPT_PACKAGE_PARALLEL
+
+    #######################################################################################################
+
+    PACKAGE_INSTALLED_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$1"
+    PACKAGE_RECEIPT_FILEPATH="$PACKAGE_INSTALLED_DIR/.xcpkg/receipt.yml"
+
+    unset PACKAGE_RECEIPT_SIGNATURE
+    unset PACKAGE_RECEIPT_TIMESTAMP
+
+    PACKAGE_RECEIPT_SIGNATURE="$(yq .signature "$PACKAGE_RECEIPT_FILEPATH")"
+    PACKAGE_RECEIPT_TIMESTAMP="$(yq .timestamp "$PACKAGE_RECEIPT_FILEPATH")"
+
+    if [ -z "$PACKAGE_RECEIPT_SIGNATURE" ] ; then
+        error "$PACKAGE_RECEIPT_FILEPATH is broken. value of PACKAGE_RECEIPT_SIGNATURE must be non-empty."
+        return 1
+    fi
+
+    if [ -z "$PACKAGE_RECEIPT_TIMESTAMP" ] ; then
+        error "$PACKAGE_RECEIPT_FILEPATH is broken. value of PACKAGE_RECEIPT_TIMESTAMP must be non-empty."
+        return 1
+    fi
+
+    #######################################################################################################
+
+    for key in summary web-url git-url git-sha git-ref shallow src-url src-uri src-sha fix-url fix-sha res-url res-sha dep-pkg dep-upp dep-pym dep-plm license version bsystem bscript binbstd cdefine ccflags xxflags ldflags parallel exetype symlink
+    do
+        unset __KEY_UPPERCASE_UNDERSCORE__
+        unset __VALUE__
+
+        __KEY_UPPERCASE_UNDERSCORE__="$(printf '%s\n' "$key" | tr '-' '_' | tr a-z A-Z)"
+        __VALUE__="$(yq ".$key" "$PACKAGE_RECEIPT_FILEPATH")"
+
+        if [ "$__VALUE__" = null ] ; then
+                __VALUE__=
+        fi
+
+        eval "RECEIPT_PACKAGE_$__KEY_UPPERCASE_UNDERSCORE__='$__VALUE__'"
+    done
+
+    if [ -z "$RECEIPT_PACKAGE_VERSION" ] ; then
+        error "$PACKAGE_RECEIPT_FILEPATH is broken. value of RECEIPT_PACKAGE_VERSION must be non-empty."
+        return 1
+    fi
+
+    if [ -z "$RECEIPT_PACKAGE_SUMMARY" ] ; then
+        error "$PACKAGE_RECEIPT_FILEPATH is broken. value of RECEIPT_PACKAGE_SUMMARY must be non-empty."
+        return 1
+    fi
+
+    if [ -z "$RECEIPT_PACKAGE_WEB_URL" ] ; then
+        error "$PACKAGE_RECEIPT_FILEPATH is broken. value of RECEIPT_PACKAGE_WEB_URL must be non-empty."
+        return 1
+    fi
+
+    if [ "${#PACKAGE_RECEIPT_TIMESTAMP}" -ne 10 ] ; then
+        error "$PACKAGE_RECEIPT_FILEPATH is broken. length of \$PACKAGE_RECEIPT_TIMESTAMP must be 10."
+        return 1
+    fi
+}
 
 # }}}
 ##############################################################################
+# {{{ operations of manifest
 
-prompt_user_to_install_bat() {
-    echo
-    note "${COLOR_YELLOW}if you want to have a better experience, I strongly recommend you to install${COLOR_OFF} ${COLOR_GREEN}bat${COLOR_OFF} ${COLOR_YELLOW}on this machine. For more details, please visit website${COLOR_OFF} ${COLOR_GREEN}https://github.com/sharkdp/bat${COLOR_OFF}"
+# __generate_manifest_of_the_given_package <PACKAGE-NAME>
+  __generate_manifest_of_the_given_package() {
+    # fuck, some package's filename has space
+    IFS_SAVED="$IFS"
+    IFS='
+'
+
+    exec 7> "$PACKAGE_MANIFEST_FILEPATH"
+
+    for dirname in $(find -mindepth 1 -maxdepth 1 -type d -not -name .xcpkg -printf '%P\n')
+    do
+        for item in $(find "$dirname" -printf '%y:%p\n')
+        do
+            X=$(printf '%s\n' "$item" | cut -c1)
+            Y=${item#$X:}
+
+            case $X in
+                l)  if [ -d "$Y" ] ; then
+                        printf 'D|0000000000000000000000000000000000000000000000000000000000000000|%s/\n' "$Y" >&7
+                    else
+                        printf 'l|%s|%s\n' "$(sha256sum "$Y" | cut -d ' ' -f1)"                           "$Y" >&7
+                    fi
+                    ;;
+                d)  printf 'd|0000000000000000000000000000000000000000000000000000000000000000|%s/\n' "$Y" >&7 ;;
+                *)  printf '%s|%s|%s\n' "$X" "$(sha256sum "$Y" | cut -d ' ' -f1)"                     "$Y" >&7 ;;
+            esac
+        done
+    done
+
+    exec 7>&-
+
+    IFS="$IFS_SAVED"
 }
+
+# }}}
+##############################################################################
+# {{{ error handling
+
+die_if_package_is_not_specified() {
+    [ -n "$1" ] || die "no package is specified."
+}
+
+die_if_package_is_not_available() {
+    is_package_available "$1" || die "$1 is not available."
+}
+
+die_if_package_is_not_installed() {
+    is_package_installed "$1" || die "$1 is not installed."
+}
+
+# }}}
+##############################################################################
+# {{{ xcpkg is-available
+
+# check if the given package is available
+# if the version condition is given, check if the condition is matched
+#
+# condition operator:
+# eq  equal
+# ne  not equal
+# gt  greater than
+# lt  less than
+# ge  greater than or equal
+# le  less than or equal
+#
+# examples:
+# is_package_available automake eq 1.16.0
+# is_package_available automake lt 1.16.0
+# is_package_available automake gt 1.16.0
+# is_package_available automake le 1.16.0
+# is_package_available automake ge 1.16.0
+# is_package_available automake
+is_package_available() {
+    case $# in
+        0)  die_if_package_is_not_specified ;;
+        1)  [ -n "$(__path_of_formula_of_the_given_package $1)" ] ;;
+        3)  __load_formula_of_the_given_package "$1"
+            shift
+            version_match $PACKAGE_VERSION $@
+            ;;
+        *)  die "is available command only accept 1 or 3 argument."
+    esac
+}
+
+# }}}
+##############################################################################
+# {{{ xcpkg is-installed
+
+# is_package_installed <PACKAGE-SPEC>
+  is_package_installed() {
+    [ -z "$1" ] && {
+        error "is_package_installed <PACKAGE-SPEC>, <PACKAGE-SPEC> is unspecified."
+        return 1
+    }
+
+    [ -f "$XCPKG_PACKAGE_INSTALLED_ROOT/$1/.xcpkg/buildon.yml" ]  || return 12
+    [ -f "$XCPKG_PACKAGE_INSTALLED_ROOT/$1/.xcpkg/manifest.txt" ] || return 13
+    [ -f "$XCPKG_PACKAGE_INSTALLED_ROOT/$1/.xcpkg/receipt.yml" ]  || return 14
+}
+
+# }}}
+##############################################################################
+# {{{ xcpkg is-outdated
+
+# is_package__outdated <PACKAGE-SPEC>
+  is_package__outdated() {
+    __load_formula_of_the_given_package "$(basename "$1")"
+    __load_receipt_of_the_given_package "$1"
+
+    version_match "$PACKAGE_VERSION" gt "$INSTALLED_PACKAGE_VERSION"
+}
+
+# }}}
+##############################################################################
+# {{{ xcpkg ls-available
+
+__list_available_packages() {
+    {
+        for FORMULA_SEARCH_DIR in $(__list_available_formula_search_dirs)
+        do
+            find "$FORMULA_SEARCH_DIR" -maxdepth 1 -type f -name '*.yml' -exec basename {} .yml \; || return 1
+        done
+    } | sort | uniq
+}
+
+# }}}
+##############################################################################
+# {{{ xcpkg ls-installed
+
+__list_installed_packages() {
+    if [ -d "$XCPKG_PACKAGE_INSTALLED_ROOT" ] ; then
+         cd "$XCPKG_PACKAGE_INSTALLED_ROOT" 2>/dev/null || return 1
+    else
+        return 0
+    fi
+
+    for packageName in *
+    do
+        if is_package_installed "$packageName" ; then
+            echo "$packageName"
+        fi
+    done
+}
+
+# }}}
+##############################################################################
+# {{{ xcpkg ls-outdated
+
+__list__outdated_packages() {
+    if [ -d "$XCPKG_PACKAGE_INSTALLED_ROOT" ] ; then
+         cd "$XCPKG_PACKAGE_INSTALLED_ROOT" 2>/dev/null || return 1
+    else
+        return 0
+    fi
+
+    for packageName in *
+    do
+        is_package_available "$packageName" || continue
+        is_package_installed "$packageName" || continue
+        is_package__outdated "$packageName" || continue
+        echo "$packageName"
+    done
+}
+
+# }}}
+##############################################################################
+# {{{ xcpkg search
+
+__search_packages() {
+    [ -z "$1" ] && {
+        error "please specify a regular express pattern."
+        return 1
+    }
+
+    __list_available_packages | grep "$*"
+}
+
+# }}}
+##############################################################################
+# {{{ xcpkg info
+
+# __show_information_of_all_available_packages [--json|--yaml|--shell]
+  __show_information_of_all_available_packages() {
+    case $1 in
+        --json) __show_information_as_json__of_all_available_packages ;;
+        --yaml) __show_information_as_yaml__of_all_available_packages ;;
+        --shell)__show_information_as_shell_of_all_available_packages ;;
+        '')     __show_information_as_mixed_of_all_available_packages ;;
+        *)    die "__show_information_of_all_available_packages [--json|--yaml|--shell], unrecognized option: $1"
+    esac
+}
+
+__show_information_as_mixed_of_all_available_packages() {
+    FIRST=yes
+
+    for PACKAGE in $(__list_available_packages)
+    do
+        if [ "$FIRST" = yes ] ; then
+            FIRST=no
+        else
+            printf '%s\n' '========'
+        fi
+        __show_information_of_the_given_package "$PACKAGE"
+    done
+}
+
+__show_information_as_json__of_all_available_packages() {
+    printf '%s\n' '['
+
+    FIRST=yes
+
+    for PACKAGE in $(__list_available_packages)
+    do
+        if [ "$FIRST" = yes ] ; then
+            FIRST=no
+        else
+            printf '%s\n' ','
+        fi
+        __show_information_as_json__of_the_given_package "$PACKAGE"
+    done
+
+    printf '%s\n' ']'
+}
+
+__show_information_as_yaml__of_all_available_packages() {
+    FIRST=yes
+
+    for PACKAGE in $(__list_available_packages)
+    do
+        if [ "$FIRST" = yes ] ; then
+            FIRST=no
+        else
+            printf '%s\n' '---'
+        fi
+        __show_information_as_yaml__of_the_given_package "$PACKAGE"
+    done
+}
+
+__show_information_as_shell_of_all_available_packages() {
+    FIRST=yes
+
+    for PACKAGE in $(__list_available_packages)
+    do
+        if [ "$FIRST" = yes ] ; then
+            FIRST=no
+        else
+            printf '%s\n' '#---'
+        fi
+        __show_information_as_shell_of_the_given_package "$PACKAGE"
+    done
+}
+
+# __show_information_as_json__of_the_given_package <PACKAGE-NAME>
+  __show_information_as_json__of_the_given_package() {
+    __load_formula_of_the_given_package "$1"
+
+    if [ -z "$PACKAGE_WEB_URL" ] ; then
+        PACKAGE_WEB_URL="$PACKAGE_GIT_URL"
+    fi
+
+    jq  --null-input \
+        --arg pkgname "$PACKAGE_NAME" \
+        --arg version "$PACKAGE_VERSION" \
+        --arg summary "$PACKAGE_SUMMARY" \
+        --arg license "$PACKAGE_LICENSE" \
+        --arg web_url "$PACKAGE_WEB_URL" \
+        --arg git_url "$PACKAGE_GIT_URL" \
+        --arg git_sha "$PACKAGE_GIT_SHA" \
+        --arg git_ref "$PACKAGE_GIT_REF" \
+        --arg src_url "$PACKAGE_SRC_URL" \
+        --arg src_sha "$PACKAGE_SRC_SHA" \
+        --arg fix_url "$PACKAGE_FIX_URL" \
+        --arg fix_sha "$PACKAGE_FIX_SHA" \
+        --arg res_url "$PACKAGE_RES_URL" \
+        --arg res_sha "$PACKAGE_RES_SHA" \
+        --arg dep_pkg "$PACKAGE_DEP_PKG" \
+        --arg dep_upp "$PACKAGE_DEP_UPP" \
+        --arg dep_pym "$PACKAGE_DEP_PYM" \
+        --arg dep_plm "$PACKAGE_DEP_PLM" \
+        --arg prepare "$PACKAGE_PREPARE_ACTIONS" \
+        --arg install "$PACKAGE_INSTALL_ACTIONS" \
+        --arg bsystem "$PACKAGE_BSYSTEM" \
+        --arg binbstd "$PACKAGE_BINBSTD" \
+        --arg cdefine "$PACKAGE_CDEFINE" \
+        --arg ccflags "$PACKAGE_CCFLAGS" \
+        --arg xxflags "$PACKAGE_XXFLAGS" \
+        --arg ldflags "$PACKAGE_LDFLAGS" \
+        --arg parallel $PACKAGE_BUILD_IN_PARALLEL \
+'{
+    "pkgname":$pkgname,
+    "version":$version,
+    "license":$license,
+    "summary":$summary,
+    "web-url":$web_url,
+    "git-url":$git_url,
+    "git-sha":$git_sha,
+    "git-ref":$git_ref,
+    "src-url":$src_url,
+    "src-sha":$src_sha,
+    "fix-url":$fix_url,
+    "fix-sha":$fix_sha,
+    "res-url":$res_url,
+    "res-sha":$res_sha,
+    "dep-pkg":$dep_pkg,
+    "dep-upp":$dep_upp,
+    "dep-pym":$dep_pym,
+    "dep-plm":$dep_plm,
+    "bsystem":$bsystem,
+    "binbstd":$binbstd,
+    "cdefine":$cdefine,
+    "ccflags":$ccflags,
+    "xxflags":$xxflags,
+    "ldflags":$ldflags,
+    "parallel":$parallel,
+    "prepare":$prepare,
+    "install":$install
+}' | jq 'with_entries(select(.value != ""))'
+}
+
+# __show_information_as_yaml__of_the_given_package <PACKAGE-NAME>
+  __show_information_as_yaml__of_the_given_package() {
+    __view_formula_of_the_given_package "$1" --paging=never
+}
+
+# __show_information_as_shell_of_the_given_package <PACKAGE-NAME>
+  __show_information_as_shell_of_the_given_package() {
+    __load_formula_of_the_given_package "$1"
+
+    while read KEY
+    do
+        printf "%s='%s'\n" "${PACKAGE_NAME_UPPERCASE_UNDERSCORE}_${KEY}" "$(eval echo \$$KEY)"
+    done <<EOF
+PACKAGE_NAME
+PACKAGE_SUMMARY
+PACKAGE_WEB_URL
+PACKAGE_GIT_URL
+PACKAGE_GIT_SHA
+PACKAGE_GIT_REF
+PACKAGE_SVN_URL
+PACKAGE_SRC_URL
+PACKAGE_SRC_SHA
+PACKAGE_SRC_FILETYPE
+PACKAGE_SRC_FILENAME
+PACKAGE_SRC_FILEPATH
+PACKAGE_FIX_URL
+PACKAGE_FIX_SHA
+PACKAGE_FIX_FILETYPE
+PACKAGE_FIX_FILENAME
+PACKAGE_FIX_FILEPATH
+PACKAGE_VERSION
+PACKAGE_VERSION_MAJOR
+PACKAGE_VERSION_MINOR
+PACKAGE_VERSION_PATCH
+PACKAGE_VERSION_TWEAK
+PACKAGE_DEVELOPER
+PACKAGE_LICENSE
+PACKAGE_BSCRIPT
+PACKAGE_BSYSTEM
+PACKAGE_BINBSTD
+PACKAGE_BUILD_SYSTEM
+PACKAGE_BUILD_SYSTEM_GO
+PACKAGE_BUILD_SYSTEM_RAKE
+PACKAGE_BUILD_SYSTEM_NINJA
+PACKAGE_BUILD_SYSTEM_GMAKE
+PACKAGE_BUILD_SYSTEM_CMAKE
+PACKAGE_BUILD_SYSTEM_XMAKE
+PACKAGE_BUILD_SYSTEM_MESON
+PACKAGE_BUILD_SYSTEM_CARGO
+PACKAGE_BUILD_SYSTEM_AUTOGENSH
+PACKAGE_BUILD_SYSTEM_AUTOTOOLS
+PACKAGE_BUILD_SYSTEM_CONFIGURE
+PACKAGE_BUILD_IN_BSCRIPT_DIR
+PACKAGE_BUILD_IN_PARALLEL
+PACKAGE_DEP_PKG
+PACKAGE_CDEFINE
+PACKAGE_CCFLAGS
+PACKAGE_XXFLAGS
+PACKAGE_LDFLAGS
+PACKAGE_FORMULA_FILEPATH
+EOF
+}
+
+# __show_information_of_the_given_package <PACKAGE-NAME> [OPTIONS]
+#
+# __show_information_of_the_given_package curl
+#
+# __show_information_of_the_given_package curl version
+# __show_information_of_the_given_package curl web-url
+  __show_information_of_the_given_package() {
+    [ -z "$1" ] && {
+        error "__show_information_of_the_given_package <PACKAGE-NAME> [ARGUMENTS], <PACKAGE-NAME> is unspecified."
+        return 1
+    }
+
+    case $1 in
+        @all) shift ; __show_information_of_all_available_packages $@ ; return $?
+    esac
+
+    case $2 in
+        formula-yaml|'')
+            __show_information_as_yaml__of_the_given_package "$1"
+            ;;
+        formula-json)
+            __show_information_as_json__of_the_given_package "$1"
+            ;;
+        formula-path)
+            __path_of_formula_of_the_given_package "$1"
+            ;;
+        receipt-yaml)
+            if is_package_installed "$1" ; then
+                cat "$XCPKG_PACKAGE_INSTALLED_ROOT/$1/.xcpkg/receipt.yml"
+            else
+                error "package [$1] is not installed."
+                return 1
+            fi
+            ;;
+        receipt-json)
+            __load_receipt_of_the_given_package "$1"
+
+            jq  --null-input \
+                --arg pkgname "$1" \
+                --arg version "$RECEIPT_PACKAGE_VERSION" \
+                --arg summary "$RECEIPT_PACKAGE_SUMMARY" \
+                --arg license "$RECEIPT_PACKAGE_LICENSE" \
+                --arg web_url "$RECEIPT_PACKAGE_WEB_URL" \
+                --arg git_url "$RECEIPT_PACKAGE_GIT_URL" \
+                --arg git_sha "$RECEIPT_PACKAGE_GIT_SHA" \
+                --arg git_ref "$RECEIPT_PACKAGE_GIT_REF" \
+                --arg src_url "$RECEIPT_PACKAGE_SRC_URL" \
+                --arg src_sha "$RECEIPT_PACKAGE_SRC_SHA" \
+                --arg fix_url "$RECEIPT_PACKAGE_FIX_URL" \
+                --arg fix_sha "$RECEIPT_PACKAGE_FIX_SHA" \
+                --arg res_url "$RECEIPT_PACKAGE_RES_URL" \
+                --arg res_sha "$RECEIPT_PACKAGE_RES_SHA" \
+                --arg dep_pkg "$RECEIPT_PACKAGE_DEP_PKG" \
+                --arg dep_upp "$RECEIPT_PACKAGE_DEP_UPP" \
+                --arg dep_pym "$RECEIPT_PACKAGE_DEP_PYM" \
+                --arg dep_plm "$RECEIPT_PACKAGE_DEP_PLM" \
+                --arg cdefine "$RECEIPT_PACKAGE_CDEFINE" \
+                --arg ccflags "$RECEIPT_PACKAGE_CCFLAGS" \
+                --arg xxflags "$RECEIPT_PACKAGE_XXFLAGS" \
+                --arg ldflags "$RECEIPT_PACKAGE_LDFLAGS" \
+                --arg bsystem "$RECEIPT_PACKAGE_BSYSTEM" \
+                --arg binbstd "$RECEIPT_PACKAGE_BINBSTD" \
+                --arg parallel "$RECEIPT_PACKAGE_PARALLEL" \
+                --arg signature "$PACKAGE_RECEIPT_SIGNATURE" \
+                --arg timestamp "$PACKAGE_RECEIPT_TIMESTAMP" \
+'{
+    "pkgname":$pkgname,
+    "version":$version,
+    "license":$license,
+    "summary":$summary,
+    "web-url":$web_url,
+    "git-url":$git_url,
+    "git-sha":$git_sha,
+    "git-ref":$git_ref,
+    "src-url":$src_url,
+    "src-sha":$src_sha,
+    "fix-url":$fix_url,
+    "fix-sha":$fix_sha,
+    "res-url":$res_url,
+    "res-sha":$res_sha,
+    "dep-pkg":$dep_pkg,
+    "dep-upp":$dep_upp,
+    "dep-pym":$dep_pym,
+    "dep-plm":$dep_plm,
+    "bsystem":$bsystem,
+    "binbstd":$binbstd,
+    "cdefine":$cdefine,
+    "ccflags":$ccflags,
+    "xxflags":$xxflags,
+    "ldflags":$ldflags,
+    "parallel":$parallel,
+    "signature":$signature,
+    "timestamp":$timestamp,
+}' | jq 'with_entries(select(.value != ""))'
+
+            ;;
+        receipt-path)
+            if is_package_installed "$1" ; then
+                printf '%s\n' "$XCPKG_PACKAGE_INSTALLED_ROOT/$1/.xcpkg/receipt.yml"
+            else
+                error "package [$1] is not installed."
+                return 1
+            fi
+            ;;
+        symlinked-files)
+            if [ -f "$XCPKG_PACKAGE_SYMLINKED_ROOT/.registry/$1" ] ; then
+                cat "$XCPKG_PACKAGE_SYMLINKED_ROOT/.registry/$1"
+            fi
+            ;;
+        installed-dir)
+            if is_package_installed "$1" ; then
+                printf '%s\n' "$XCPKG_PACKAGE_INSTALLED_ROOT/$1"
+            else
+                error "package [$1] is not installed."
+                return 1
+            fi
+            ;;
+        installed-files)
+            if is_package_installed "$1" ; then
+                cut -d '|' -f3 "$XCPKG_PACKAGE_INSTALLED_ROOT/$1/.xcpkg/manifest.txt"
+            else
+                error "package [$1] is not installed."
+                return 1
+            fi
+            ;;
+        installed-timestamp-unix)
+            __load_receipt_of_the_given_package "$1"
+            printf '%s\n' "$PACKAGE_RECEIPT_TIMESTAMP"
+            ;;
+        installed-timestamp-rfc-3339)
+            __load_receipt_of_the_given_package "$1"
+            format_unix_timestamp "$PACKAGE_RECEIPT_TIMESTAMP" '+%Y-%m-%d %H:%M:%S%:z'
+            ;;
+        installed-timestamp-iso-8601)
+            __load_receipt_of_the_given_package "$1"
+            format_unix_timestamp "$PACKAGE_RECEIPT_TIMESTAMP" '+%Y-%m-%dT%H:%M:%S%:z'
+            ;;
+        installed-timestamp-rfc-3339-utc)
+            __load_receipt_of_the_given_package "$1"
+            format_unix_timestamp "$PACKAGE_RECEIPT_TIMESTAMP" '+%Y-%m-%d %H:%M:%S%:z' -u
+            ;;
+        installed-timestamp-iso-8601-utc)
+            __load_receipt_of_the_given_package "$1"
+            format_unix_timestamp "$PACKAGE_RECEIPT_TIMESTAMP" '+%Y-%m-%dT%H:%M:%SZ' -u
+            ;;
+        installed-version)
+            __load_receipt_of_the_given_package "$1"
+            printf '%s\n' "$RECEIPT_PACKAGE_VERSION"
+            ;;
+        *)  __load_formula_of_the_given_package "$1"
+            __PACKAGE_GET__KEY__="$(printf '%s\n' "$2" | tr '+-.' '_' | tr a-z A-Z)"
+            eval echo \$PACKAGE_$__PACKAGE_GET__KEY__
+    esac
+}
+
+mark_is_package_installed_or_not() {
+    if is_package_installed "$1" ; then
+        echo "${COLOR_GREEN}$1${COLOR_OFF}"
+    else
+        echo "${COLOR_RED}$1${COLOR_OFF}"
+    fi
+}
+
+# }}}
+##############################################################################
+# {{{ xcpkg fetch
 
 # fetch source code if needed
 __fetch_sources_of_the_given_package() {
@@ -1656,227 +2040,9 @@ __fetch_resources_of_the_given_package() {
     esac
 }
 
-
-die_if_package_is_not_specified() {
-    [ -n "$1" ] || die "no package is specified."
-}
-
-die_if_package_is_not_available() {
-    is_package_available "$1" || die "$1 is not available."
-}
-
-die_if_package_is_not_installed() {
-    is_package_installed "$1" || die "$1 is not installed."
-}
-
-# check if the given package is available
-# if the version condition is given, check if the condition is matched
-#
-# condition operator:
-# eq  equal
-# ne  not equal
-# gt  greater than
-# lt  less than
-# ge  greater than or equal
-# le  less than or equal
-#
-# examples:
-# is_package_available automake eq 1.16.0
-# is_package_available automake lt 1.16.0
-# is_package_available automake gt 1.16.0
-# is_package_available automake le 1.16.0
-# is_package_available automake ge 1.16.0
-# is_package_available automake
-is_package_available() {
-    case $# in
-        0)  die_if_package_is_not_specified ;;
-        1)  [ -n "$(__path_of_formula_of_the_given_package $1)" ] ;;
-        3)  __load_formula_of_the_given_package "$1"
-            shift
-            version_match $PACKAGE_VERSION $@
-            ;;
-        *)  die "is available command only accept 1 or 3 argument."
-    esac
-}
-
-# is_package_installed <PACKAGE-SPEC>
-  is_package_installed() {
-    [ -z "$1" ] && {
-        error "is_package_installed <PACKAGE-SPEC>, <PACKAGE-SPEC> is unspecified."
-        return 1
-    }
-
-    [ -f "$XCPKG_PACKAGE_INSTALLED_ROOT/$1/.xcpkg/buildon.yml" ]  || return 12
-    [ -f "$XCPKG_PACKAGE_INSTALLED_ROOT/$1/.xcpkg/manifest.txt" ] || return 13
-    [ -f "$XCPKG_PACKAGE_INSTALLED_ROOT/$1/.xcpkg/receipt.yml" ]  || return 14
-}
-
-# is_package__outdated <PACKAGE-SPEC>
-  is_package__outdated() {
-    __load_formula_of_the_given_package "$(basename "$1")"
-    __load_receipt_of_the_given_package "$1"
-
-    version_match "$PACKAGE_VERSION" gt "$INSTALLED_PACKAGE_VERSION"
-}
-
-__gen_github_workflows() {
-    set -e
-
-    unset BREAK
-    unset NDEPENDED_PACKAGES
-    unset AVAILABLE_PACKAGES
-    unset GROUP_SIZE
-    unset OUTPUT_DIR
-    unset I
-
-    while [ -n "$1" ]
-    do
-        case $1 in
-            --group-size=*)
-                GROUP_SIZE=$(getvalue "$1")
-                is_integer "$GROUP_SIZE" || die "--group-size=INTEGER"
-                ;;
-            --output-dir=*)
-                OUTPUT_DIR=$(getvalue "$1")
-                case "$OUTPUT_DIR" in
-                    '') die "--output-dir=<DIR>, DIR must be non-empty." ;;
-                    /*) ;;
-                    \~|\~/) OUTPUT_DIR="${HOME}" ;;
-                    \~/*)   OUTPUT_DIR="${HOME}$(printf "$OUTPUT_DIR" | cut -c3-)" ;;
-                    .|./)   OUTPUT_DIR="${PWD}" ;;
-                    *)      OUTPUT_DIR="${PWD}/$OUTPUT_DIR" ;;
-                esac
-                [ -d "$OUTPUT_DIR" ] || run install -d "$OUTPUT_DIR"
-        esac
-        shift
-    done
-
-    if [ -z "$GROUP_SIZE" ] ; then
-        die "please sepecify --group-size=INTEGER argument."
-    fi
-
-    if [ -z "$OUTPUT_DIR" ] ; then
-        OUTPUT_DIR="$XCPKG_HOME/repos.d/offical-core/.github/workflows"
-    fi
-
-    GITHUB_ACTIONS_WORKFLOW_TEMPLATE_FILEPATH="$XCPKG_HOME/repos.d/offical-core/.github/workflows/template"
-
-    if [ ! -f "$GITHUB_ACTIONS_WORKFLOW_TEMPLATE_FILEPATH" ] ; then
-        __update_formula_repositories
-    fi
-
-    AVAILABLE_PACKAGES=$(__list_available_packages)
-
-    for x in $AVAILABLE_PACKAGES
-    do
-        if [ "$x" = 'test' ] ; then
-            continue
-        fi
-        for y in $AVAILABLE_PACKAGES
-        do
-            if [ "$x" = "$y" ] || [ 'test' = "$y" ] ; then
-                continue
-            else
-                for z in $(get_direct_dependency_package_list_of_the_given_package "$y")
-                do
-                    if [ "$x" = "$z" ] ; then
-                        BREAK=yes
-                        break 2
-                    fi
-                done
-            fi
-        done
-        if [ "$BREAK" = yes ] ; then
-            unset BREAK
-        else
-            if [ -z "$NDEPENDED_PACKAGES" ] ; then
-                NDEPENDED_PACKAGES="$x"
-            else
-                NDEPENDED_PACKAGES="$NDEPENDED_PACKAGES $x"
-            fi
-            if [ "$(list_length $NDEPENDED_PACKAGES)" -eq "$GROUP_SIZE" ] ; then
-                unset OUTPUT_FILEPATH
-
-                I=$(expr ${I-0} + 1)
-                OUTPUT_FILEPATH="$OUTPUT_DIR/ci$I.yml"
-                NDEPENDED_PACKAGES=$(echo "$NDEPENDED_PACKAGES" | tr ' ' ,)
-
-                echo
-                run cp "$GITHUB_ACTIONS_WORKFLOW_TEMPLATE_FILEPATH" "$OUTPUT_FILEPATH"
-                sed_in_place "s/INDEX/$I/"                     "$OUTPUT_FILEPATH"
-                sed_in_place "s/PKGLIST/$NDEPENDED_PACKAGES/"  "$OUTPUT_FILEPATH"
-
-                unset NDEPENDED_PACKAGES
-            fi
-        fi
-    done
-    if [ -n "$NDEPENDED_PACKAGES" ] ; then
-        unset OUTPUT_FILEPATH
-
-        I=$(expr ${I-0} + 1)
-        OUTPUT_FILEPATH="$OUTPUT_DIR/ci$I.yml"
-        NDEPENDED_PACKAGES=$(echo "$NDEPENDED_PACKAGES" | tr ' ' ,)
-
-        run cp "$GITHUB_ACTIONS_WORKFLOW_TEMPLATE_FILEPATH" "$OUTPUT_FILEPATH"
-        sed_in_place "s/INDEX/$I/"                     "$OUTPUT_FILEPATH"
-        sed_in_place "s/PKGLIST/$NDEPENDED_PACKAGES/"  "$OUTPUT_FILEPATH"
-    fi
-}
-
-__search_packages() {
-    [ -z "$1" ] && {
-        error "please specify a regular express pattern."
-        return 1
-    }
-
-    __list_available_packages | grep "$*"
-}
-
-__list_available_packages() {
-    {
-        for FORMULA_SEARCH_DIR in $(__list_available_formula_search_dirs)
-        do
-            find "$FORMULA_SEARCH_DIR" -maxdepth 1 -type f -name '*.yml' -exec basename {} .yml \; || return 1
-        done
-    } | sort | uniq
-}
-
-__list_installed_packages() {
-    if [ -d "$XCPKG_PACKAGE_INSTALLED_ROOT" ] ; then
-         cd "$XCPKG_PACKAGE_INSTALLED_ROOT" 2>/dev/null || return 1
-    else
-        return 0
-    fi
-
-    for packageName in *
-    do
-        if is_package_installed "$packageName" ; then
-            echo "$packageName"
-        fi
-    done
-}
-
-__list__outdated_packages() {
-    if [ -d "$XCPKG_PACKAGE_INSTALLED_ROOT" ] ; then
-         cd "$XCPKG_PACKAGE_INSTALLED_ROOT" 2>/dev/null || return 1
-    else
-        return 0
-    fi
-
-    for packageName in *
-    do
-        is_package_available "$packageName" || continue
-        is_package_installed "$packageName" || continue
-        is_package__outdated "$packageName" || continue
-        echo "$packageName"
-    done
-}
-
-# __tree_the_given_installed_package <PACKAGE-SPEC>
-  __tree_the_given_installed_package() {
-    die_if_package_is_not_installed "$1"
-    run tree $(shiftn 1 $@) "$XCPKG_PACKAGE_INSTALLED_ROOT/$1"
-}
+# }}}
+##############################################################################
+# {{{ xcpkg uninstall
 
 __uninstall_the_given_packages() {
     die_if_package_is_not_specified "$1"
@@ -1893,6 +2059,10 @@ __uninstall_the_given_packages() {
 
     run rm -rf "$XCPKG_PACKAGE_INSTALLED_ROOT/$1"
 }
+
+# }}}
+##############################################################################
+# {{{ xcpkg reinstall
 
 __reinstall_the_given_packages() {
     inspect_install_arguments $@
@@ -1918,6 +2088,10 @@ __reinstall_the_given_packages() {
         rm -rf "$XCPKG_BACKUP_DIR/$PACKAGE_NAME" || return 1
     done
 }
+
+# }}}
+##############################################################################
+# {{{ xcpkg upgrade
 
 __upgrade_packages() {
     inspect_install_arguments $@
@@ -1946,115 +2120,9 @@ __upgrade_packages() {
     done
 }
 
-__cleanup() {
-    success "Done."
-}
-
-package_name_transform_from_uppm_to_brew() {
-    case $1 in
-        file)     printf '%s\n' 'file-formula' ;;
-        delta)    printf '%s\n' 'git-delta' ;;
-        gmake)    printf '%s\n' 'make'      ;;
-        gtar)     printf '%s\n' 'gnu-tar'   ;;
-        gm4)      printf '%s\n' 'm4'        ;;
-        libjxl)   printf '%s\n' 'jpeg-xl'   ;;
-        blake3)   printf '%s\n' 'b3sum'     ;;
-        libwebp)  printf '%s\n' 'webp'      ;;
-        proj7)    printf '%s\n' 'proj@7'    ;;
-        openssl)  printf '%s\n' 'openssl@1.1';;
-        freetype2)printf '%s\n' 'freetype'  ;;
-        freetype2-with-harfbuzz)
-                  printf '%s\n' 'freetype'  ;;
-        gnu-coreutils)
-                  printf '%s\n' 'coreutils' ;;
-        libmediainfo|mediainfo)
-                  printf '%s\n' 'media-info';;
-        tcl-core) printf '%s\n' 'tcl-tk'    ;;
-        *)        printf '%s\n' "$1"
-    esac
-}
-
-
-__compare_versions_with_brew() {
-    set -e
-
-    cd "$XCPKG_HOME/repos.d/offical-core/formula"
-
-    for item in $(ls -1 *.yml | sed 's/\.yml$//')
-    do
-        __load_formula_of_the_given_package "$item"
-
-        BREW_PKG_NMAE="$(package_name_transform_from_uppm_to_brew $PACKAGE_NAME)"
-
-        if brew info "$BREW_PKG_NMAE" > /dev/null 2>&1 ; then
-            BREW_PKG_VERS=$(__pmw_get_available_package_version_by_package_name brew "$BREW_PKG_NMAE")
-
-            if version_match "$BREW_PKG_VERS" gt "$PACKAGE_VERSION" ; then
-                printf "${COLOR_RED}%-10s %-10s  |  %-10s %-10s${COLOR_OFF}\n" "$PACKAGE_NAME" "$PACKAGE_VERSION" "$BREW_PKG_NMAE" "$BREW_PKG_VERS"
-            else
-                :
-                #printf "${COLOR_GREEN}%-10s %-10s  |  %-10s %-10s${COLOR_OFF}\n" "$PACKAGE_NAME" "$PACKAGE_VERSION" "$BREW_PKG_NMAE" "$BREW_PKG_VERS"
-            fi
-        else
-            printf "${COLOR_BLUE}%-10s %-10s  |${COLOR_OFF}\n" "$PACKAGE_NAME" "$PACKAGE_VERSION"
-        fi
-    done
-}
-
-__show_or_open_homepage_of_the_given_package() {
-    unset ACTION
-    unset PACKAGE
-
-    while [ -n "$1" ]
-    do
-        case $1 in
-            --open)
-                ACTION=open
-                ;;
-            -*|--*)
-                die "unrecognized argument: 41"
-                ;;
-            *)  if [ -z "$PACKAGE" ] ; then
-                    PACKAGE=$1
-                else
-                    die "too many packages given."
-                fi
-        esac
-        shift
-    done
-
-    if [ "$ACTION" = open ] ; then
-        __open_homepage_of_the_given_package $PACKAGE
-    else
-        __show_homepage_of_the_given_package $PACKAGE
-    fi
-}
-
-__show_homepage_of_the_given_package() {
-    if [ -z "$1" ] ; then
-        PACKAGE_WEB_URL="$XCPKG_WEB_URL"
-    else
-        __load_formula_of_the_given_package "$1"
-    fi
-
-    echo "$PACKAGE_WEB_URL"
-}
-
-__open_homepage_of_the_given_package() {
-    if [ -z "$1" ] ; then
-        PACKAGE_WEB_URL="$XCPKG_WEB_URL"
-    else
-        __load_formula_of_the_given_package "$1"
-    fi
-    
-    if command -v open > /dev/null ; then
-        run "open '$PACKAGE_WEB_URL'"
-    elif command -v termux-open-url > /dev/null ; then
-        run "termux-open-url '$PACKAGE_WEB_URL'"
-    else
-        warn "I don't konw how to open"
-    fi
-}
+# }}}
+##############################################################################
+# {{{ xcpkg depends
 
 # __show_packages_depended_by_the_given_package <PACKAGE-NAME> [-t <dot|box|svg|png>] [-o <OUTPUT-PATH>]
 __show_packages_depended_by_the_given_package() {
@@ -2158,204 +2226,6 @@ __show_packages_depended_by_the_given_package() {
     ###########################################################################################
 
     __gen_dependency_graph_recursively_depended_by_the_given_package "$PACKAGE_NAME" "$OUTPUT_FILETYPE" "$OUTPUT_FILEPATH"
-}
-
-# __logs_the_given_installed_package <PACKAGE-SPEC>
-  __logs_the_given_installed_package() {
-    [ -z "$1" ] && {
-        error "$_0 logs <PACKAGE-SPEC>, <PACKAGE-SPEC> is unspecified."
-        return 1
-    }
-
-    if command -v bat > /dev/null ; then
-        VIEWER=bat
-    else
-        VIEWER=less
-    fi
-
-    for item in $(ls "$XCPKG_PACKAGE_INSTALLED_ROOT/$1/.xcpkg")
-    do
-        item="$XCPKG_PACKAGE_INSTALLED_ROOT/$1/.xcpkg/$item"
-
-        if [ -d "$item" ] ; then
-            continue
-        fi
-
-        if [ "$VIEWER" = 'bat' ] ; then
-            case $item in
-                *.png) ;;
-                */receipt.yml)
-                    bat -l yaml "$item" ;;
-                *)  bat "$item"
-            esac
-        else
-            "$VIEWER" "$item"
-        fi
-    done
-
-    if [ "$VIEWER" != 'bat' ] ; then
-        prompt_user_to_install_bat
-    fi
-}
-
-# examples:
-# __pack_the_given_installed_package <PACKAGE-NAME> [-t <zip|tar.gz|tar.xz|tar.lz|tar.bz2>] [-o <OUTPUT-PATH>] [--keep-packing-dir]
-# __pack_the_given_installed_package    autoconf     -t tar.xz
-  __pack_the_given_installed_package() {
-    __load_receipt_of_the_given_package "$1"
-
-    TARGET_PLATFORM_ARCH="$(printf '%s\n' "$1" | cut -d/ -f3)"
-    RECEIPT_PACKAGE_NAME="$(printf '%s\n' "$1" | cut -d/ -f4)"
-
-    shift
-
-    ###########################################################################################
-
-    unset OUTPUT_DIR
-    unset OUTPUT_FILETYPE
-    unset OUTPUT_FILEPATH
-
-    while [ -n "$1" ]
-    do
-        case $1 in
-            --keep-packing-dir)
-                KEEP_PACKING_DIR=yes
-                ;;
-            -t) shift
-
-                if [ -z "$1" ] ; then
-                    die "$_0 pack <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>], -t option is given but <OUTPUT-TYPE> is unspecified."
-                else
-                    OUTPUT_FILETYPE="$1"
-                fi
-
-                case $OUTPUT_FILETYPE in
-                    zip|tar.gz|tar.xz|tar.lz|tar.bz2) ;;
-                    *) die "$_0 pack <PACKAGE-NAME> [-t <OUTPUT-TYPE>], unsupported <OUTPU-TYPE>: $OUTPUT_FILETYPE, <OUTPU-TYPE> should be one of zip|tar.gz|tar.xz|tar.lz|tar.bz2"
-                esac
-                ;;
-            -o) shift
-                if [ -z "$1" ] ; then
-                    die "$_0 pack <PACKAGE-NAME> [-t <OUTPU-TYPE>] [-o <OUTPUT-PATH>], -o option is given but <OUTPUT-PATH> is unspecified."
-                else
-                    OUTPUT_FILEPATH="$1"
-                fi
-                ;;
-            *)  die "$_0 pack <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>] [--keep-packing-dir], unrecognized option: $1"
-        esac
-        shift
-    done
-
-    PACKED_DIR_NAME="$RECEIPT_PACKAGE_NAME-$RECEIPT_PACKAGE_VERSION-macos-$TARGET_PLATFORM_ARCH"
-
-    ###########################################################################################
-
-    if [ -z "$OUTPUT_FILEPATH" ] ; then
-        if [ -z "$OUTPUT_FILETYPE" ] ; then
-            OUTPUT_FILETYPE='tar.xz'
-        fi
-
-        OUTPUT_DIR="$XCPKG_HOME/packed"
-        OUTPUT_FILENAME="$PACKED_DIR_NAME.$OUTPUT_FILETYPE"
-    else
-        if [ -d "$OUTPUT_FILEPATH" ] ; then
-            if [ -z "$OUTPUT_FILETYPE" ] ; then
-                OUTPUT_FILETYPE='tar.xz'
-            fi
-
-            OUTPUT_DIR="$(realpath -s "$OUTPUT_FILEPATH")"
-            OUTPUT_FILENAME="$PACKED_DIR_NAME.$OUTPUT_FILETYPE"
-        else
-            case $OUTPUT_FILEPATH in
-                */)
-                    if [ -z "$OUTPUT_FILETYPE" ] ; then
-                        OUTPUT_FILETYPE='tar.xz'
-                    fi
-
-                    OUTPUT_DIR="$(realpath -s "$OUTPUT_FILEPATH")"
-                    OUTPUT_FILENAME="$PACKED_DIR_NAME.$OUTPUT_FILETYPE"
-                    ;;
-                *)
-                    OUTPUT_FILEPATH="$(realpath -s "$OUTPUT_FILEPATH")"
-
-                    if [ -z "$OUTPUT_FILETYPE" ] ; then
-                        case $OUTPUT_FILEPATH in
-                            *.tar.gz|*.tgz)
-                                OUTPUT_FILETYPE=tar.gz
-                                ;;
-                            *.tar.xz|*.txz)
-                                OUTPUT_FILETYPE=tar.xz
-                                ;;
-                            *.tar.lz|*.tlz)
-                                OUTPUT_FILETYPE=tar.lz
-                                ;;
-                            *.tar.bz2|*.tbz2)
-                                OUTPUT_FILETYPE=tar.bz2
-                                ;;
-                            *.zip)
-                                OUTPUT_FILETYPE=zip
-                                ;;
-                            *.7z)
-                                OUTPUT_FILETYPE=7z
-                                ;;
-                            *)  die "when -t <OUTPUT-TYPE> option is not given, -o <OUTPUT-PATH> option specified filename must ends with one of .tar.gz|.tar.xz|.tar.lz|.tar.bz2|.tgz|.txz|.tlz|.tbz2|.zip|.7z"
-                        esac
-                    fi
-
-                    OUTPUT_DIR="$(dirname "$OUTPUT_FILEPATH")"
-                    OUTPUT_FILENAME="$(basename "$OUTPUT_FILEPATH")"
-            esac
-        fi
-    fi
-
-    ###########################################################################################
-
-    step "create packing directory"
-    printf '%b\n' "$COLOR_PURPLE==>$COLOR_OFF ${COLOR_GREEN}mktemp -d$COLOR_OFF"
-    PACKING_DIR=$(mktemp -d)
-
-    step "change to packing directory"
-    run cd $PACKING_DIR
-
-    step "make link refer to installed package root dir"
-    run ln -s "$PACKAGE_INSTALLED_DIR" "$PACKED_DIR_NAME"
-
-    step "packing"
-    case $OUTPUT_FILETYPE in
-        zip) run zip -9 -r     "$OUTPUT_FILENAME" "$PACKED_DIR_NAME" ;;
-        7z)  run 7za a -t7z -r "$OUTPUT_FILENAME" "$PACKED_DIR_NAME/*" "$PACKED_DIR_NAME/.xcpkg" ;;
-        tar.xz)  run tar cv --xz    -f "$OUTPUT_FILENAME" "$PACKED_DIR_NAME/*" "$PACKED_DIR_NAME/.xcpkg" ;;
-        tar.gz)  run tar cv --gzip  -f "$OUTPUT_FILENAME" "$PACKED_DIR_NAME/*" "$PACKED_DIR_NAME/.xcpkg" ;;
-        tar.lz)  run tar cv --lzip  -f "$OUTPUT_FILENAME" "$PACKED_DIR_NAME/*" "$PACKED_DIR_NAME/.xcpkg" ;;
-        tar.bz2) run tar cv --bzip2 -f "$OUTPUT_FILENAME" "$PACKED_DIR_NAME/*" "$PACKED_DIR_NAME/.xcpkg" ;;
-    esac
-
-    step "check integrity of packed file"
-    case $OUTPUT_FILETYPE in
-        7z)    run 7za t -t7z "$OUTPUT_FILENAME" ;;
-        zip)   run unzip -t   "$OUTPUT_FILENAME" ;;
-        tar.*) run tar   -tf  "$OUTPUT_FILENAME" ;;
-    esac
-
-    step "show size of packed file"
-    run "du -sh $OUTPUT_FILENAME | cut -f1"
-
-    if [ ! -d "$OUTPUT_DIR" ] ; then
-        step "create output dir"
-        run install -d "$OUTPUT_DIR"
-    fi
-
-    step "copy packed file to output dir"
-    run cp "$OUTPUT_FILENAME" "$OUTPUT_DIR/"
-
-    if [ "$KEEP_PACKING_DIR" = yes ] ; then
-        echo
-        note "the work dir [$PACKING_DIR] is not deleted as --keep-packing-dir option is given."
-    else
-        step "delete packing directory"
-        run rm -rf $PACKING_DIR
-    fi
-
 }
 
 # this fuction should be run in subshell
@@ -2505,6 +2375,200 @@ __gen_dependency_graph_recursively_depended_by_the_given_package() {
             fi
             ;;
     esac
+}
+
+# }}}
+##############################################################################
+# {{{ xcpkg install
+
+inspect_install_arguments() {
+    inspect_xcode_information
+
+    # https://stackoverflow.com/questions/18476490/what-is-purpose-of-target-arch-variable-in-makefiles
+    unset TARGET_ARCH
+
+    unset USER_SPECIFIED_PACKAGE_SPEC_LIST
+
+    unset DRYRUN
+
+    CCACHE_ENABLED=no
+
+    LOG_LEVEL_QUIET=0
+    LOG_LEVEL_NORMAL=1
+    LOG_LEVEL_VERBOSE=2
+    LOG_LEVEL_DEBUG=3
+
+    LOG_LEVEL=$LOG_LEVEL_NORMAL
+
+    BUILD_NJOBS=$NATIVE_OS_NCPU
+
+    BUILD_TYPE=release
+
+    LINK_TYPE=static-prefered
+
+    INSTALL_EXE=yes
+    INSTALL_MAN=yes
+    INSTALL_DOC=yes
+    INSTALL_LIB=yes
+
+    KEEP_WORKING_DIR=no
+
+    while [ -n "$1" ]
+    do
+        case $1 in
+            --debug|-d)
+                LOG_LEVEL=$LOG_LEVEL_DEBUG
+                ;;
+            --verbose|-v)
+                LOG_LEVEL=$LOG_LEVEL_VERBOSE
+                ;;
+            --quiet|-q)
+                LOG_LEVEL=$LOG_LEVEL_QUIET
+                ;;
+            --disable-ccache)
+                CCACHE_ENABLED=no
+                ;;
+            --dry-run)
+                DRYRUN=yes
+                ;;
+            --keep-working-dir)
+                KEEP_WORKING_DIR=yes
+                ;;
+            --install-doc)
+                INSTALL_DOC=yes
+                ;;
+            --install-man)
+                INSTALL_MAN=yes
+                ;;
+            --install-exe)
+                INSTALL_EXE=yes
+                ;;
+            --install-lib=*)
+                INSTALL_LIB="${1#*=}"
+                case $INSTALL_LIB in
+                    static|shared|both|yes|no) ;;
+                    '') die "--install-lib=<VALUE>, VALUE must be non-empty." ;;
+                    *)  die "--install-lib=<VALUE>, VALUE must be one of static|shared|both|yes|no"
+                esac
+                ;;
+            --build-type=*)
+                BUILD_TYPE="${1#*=}"
+                case $BUILD_TYPE in
+                    debug|release) ;;
+                    '') die "--build-type=<VALUE>, VALUE must be non-empty." ;;
+                    *)  die "--build-type=<VALUE>, VALUE must be one of debug|release"
+                esac
+                ;;
+            --link-type=*)
+                LINK_TYPE="${1#*=}"
+                case $LINK_TYPE in
+                    static-only|shared-only|static-prefered|shared-prefered) ;;
+                    '') die "--link-type=<VALUE>, VALUE must be non-empty." ;;
+                    *)  die "--link-type=<VALUE>, VALUE must be one of static-only|shared-only|static-prefered|shared-prefered"
+                esac
+                ;;
+            --jobs=*)
+                BUILD_NJOBS="${1#*=}"
+                is_integer "$BUILD_NJOBS" || die "--jobs=INTEGER argument's value must be an integer."
+                ;;
+            -*) die "unrecognized option: $1"
+                ;;
+            *)  if printf '%s\n' "$1" | grep -q -E '^[A-Za-z0-9+-._]{1,50}$' ; then
+                    PACKAGE_NAME="$1"
+                    PACKAGE_SPEC="MacOSX/$NATIVE_OS_VERS/$NATIVE_OS_ARCH/$PACKAGE_NAME"
+
+                    warn "$1 will be treated as a package name, and it will be expanded to $PACKECK_SPEC"
+
+                    if [ -z "$USER_SPECIFIED_PACKAGE_SPEC_LIST" ] ; then
+                        USER_SPECIFIED_PACKAGE_SPEC_LIST="$PACKAGE_SPEC"
+                    else
+                        USER_SPECIFIED_PACKAGE_SPEC_LIST="$USER_SPECIFIED_PACKAGE_SPEC_LIST $PACKAGE_SPEC"
+                    fi
+                else
+                    case $1 in
+                        */*/*/*)
+                            unset PACKAGE_NAME
+
+                            unset TARGET_PLATFORM_NAME
+                            unset TARGET_PLATFORM_VERS
+                            unset TARGET_PLATFORM_ARCH
+
+                            TARGET_PLATFORM_NAME=$(printf '%s\n' "$1" | cut -d/ -f1)
+                            TARGET_PLATFORM_VERS=$(printf '%s\n' "$1" | cut -d/ -f2)
+                            TARGET_PLATFORM_ARCH=$(printf '%s\n' "$1" | cut -d/ -f3)
+                                    PACKAGE_NAME=$(printf '%s\n' "$1" | cut -d/ -f4)
+
+                            if [ -z "$PACKAGE_NAME" ] ; then
+                                die "invalid package spec: $1\npackage name is unspecified."
+                            fi
+
+                            case $TARGET_PLATFORM_NAME in
+                                MacOSX|AppleTVOS|iPhoneOS|WatchOS|AppleTVSimulator|iPhoneSimulator|WatchSimulator)
+                                    ;;
+                                '') TARGET_PLATFORM_NAME=MacOSX ;;
+                                *)  die "invalid package spec: $1\nunrecognized platform name: $TARGET_PLATFORM_NAME"
+                            esac
+
+                            if [ -z "$TARGET_PLATFORM_VERS" ] ; then
+                                case $TARGET_PLATFORM_NAME in
+                                    iPhoneOS|iPhoneSimulator)
+                                        TARGET_PLATFORM_VERS=9.0
+                                        ;;
+                                    WatchOS|WatchSimulator)
+                                        TARGET_PLATFORM_VERS=5.0
+                                        ;;
+                                    AppleTVOS|AppleTVSimulator)
+                                        TARGET_PLATFORM_VERS=9.0
+                                        ;;
+                                    MacOSX)
+                                        TARGET_PLATFORM_VERS=$NATIVE_OS_VERS
+                                        ;;
+                                esac
+                            fi
+
+                            if [ -z "$TARGET_PLATFORM_ARCH" ] ; then
+                                case $TARGET_PLATFORM_NAME in
+                                    WatchOS)
+                                        TARGET_PLATFORM_ARCH=arm64_32
+                                        ;;
+                                    WatchSimulator)
+                                        TARGET_PLATFORM_ARCH=arm64
+                                        ;;
+                                    iPhoneOS|iPhoneSimulator)
+                                        TARGET_PLATFORM_ARCH=arm64
+                                        ;;
+                                    AppleTVOS|AppleTVSimulator)
+                                        TARGET_PLATFORM_ARCH=arm64
+                                        ;;
+                                    MacOSX)
+                                        TARGET_PLATFORM_ARCH=$NATIVE_OS_ARCH
+                                        ;;
+                                esac
+                            fi
+
+                            PACKAGE_SPEC="$TARGET_PLATFORM_NAME/$TARGET_PLATFORM_VERS/$TARGET_PLATFORM_ARCH/$PACKAGE_NAME"
+                            ;;
+                        *)  die "invalid package spec: $1"
+                    esac
+                fi
+
+                if [ -z "$USER_SPECIFIED_PACKAGE_SPEC_LIST" ] ; then
+                    USER_SPECIFIED_PACKAGE_SPEC_LIST="$PACKAGE_SPEC"
+                else
+                    USER_SPECIFIED_PACKAGE_SPEC_LIST="$USER_SPECIFIED_PACKAGE_SPEC_LIST $PACKAGE_SPEC"
+                fi
+        esac
+        shift
+    done
+
+    if [ "$LOG_LEVEL" -eq "$LOG_LEVEL_QUIET" ] ; then
+        exec 1>/dev/null
+        exec 2>&1
+    fi
+
+    if [ "$LOG_LEVEL" -gt "$LOG_LEVEL_DEBUG" ] ; then
+        export PKG_CONFIG_DEBUG_SPEW=set
+    fi
 }
 
 __install_the_given_packages() {
@@ -3446,370 +3510,6 @@ install_pc_file() {
     cat >         "$PACKAGE_INSTALL_DIR/lib/pkgconfig/$1.pc"
 }
 
-# __show_information_of_all_available_packages [--json|--yaml|--shell]
-  __show_information_of_all_available_packages() {
-    case $1 in
-        --json) __show_information_as_json__of_all_available_packages ;;
-        --yaml) __show_information_as_yaml__of_all_available_packages ;;
-        --shell)__show_information_as_shell_of_all_available_packages ;;
-        '')     __show_information_as_mixed_of_all_available_packages ;;
-        *)    die "__show_information_of_all_available_packages [--json|--yaml|--shell], unrecognized option: $1"
-    esac
-}
-
-__show_information_as_mixed_of_all_available_packages() {
-    FIRST=yes
-
-    for PACKAGE in $(__list_available_packages)
-    do
-        if [ "$FIRST" = yes ] ; then
-            FIRST=no
-        else
-            printf '%s\n' '========'
-        fi
-        __show_information_of_the_given_package "$PACKAGE"
-    done
-}
-
-__show_information_as_json__of_all_available_packages() {
-    printf '%s\n' '['
-
-    FIRST=yes
-
-    for PACKAGE in $(__list_available_packages)
-    do
-        if [ "$FIRST" = yes ] ; then
-            FIRST=no
-        else
-            printf '%s\n' ','
-        fi
-        __show_information_as_json__of_the_given_package "$PACKAGE"
-    done
-
-    printf '%s\n' ']'
-}
-
-__show_information_as_yaml__of_all_available_packages() {
-    FIRST=yes
-
-    for PACKAGE in $(__list_available_packages)
-    do
-        if [ "$FIRST" = yes ] ; then
-            FIRST=no
-        else
-            printf '%s\n' '---'
-        fi
-        __show_information_as_yaml__of_the_given_package "$PACKAGE"
-    done
-}
-
-__show_information_as_shell_of_all_available_packages() {
-    FIRST=yes
-
-    for PACKAGE in $(__list_available_packages)
-    do
-        if [ "$FIRST" = yes ] ; then
-            FIRST=no
-        else
-            printf '%s\n' '#---'
-        fi
-        __show_information_as_shell_of_the_given_package "$PACKAGE"
-    done
-}
-
-# __show_information_as_json__of_the_given_package <PACKAGE-NAME>
-  __show_information_as_json__of_the_given_package() {
-    __load_formula_of_the_given_package "$1"
-
-    if [ -z "$PACKAGE_WEB_URL" ] ; then
-        PACKAGE_WEB_URL="$PACKAGE_GIT_URL"
-    fi
-
-    jq  --null-input \
-        --arg pkgname "$PACKAGE_NAME" \
-        --arg version "$PACKAGE_VERSION" \
-        --arg summary "$PACKAGE_SUMMARY" \
-        --arg license "$PACKAGE_LICENSE" \
-        --arg web_url "$PACKAGE_WEB_URL" \
-        --arg git_url "$PACKAGE_GIT_URL" \
-        --arg git_sha "$PACKAGE_GIT_SHA" \
-        --arg git_ref "$PACKAGE_GIT_REF" \
-        --arg src_url "$PACKAGE_SRC_URL" \
-        --arg src_sha "$PACKAGE_SRC_SHA" \
-        --arg fix_url "$PACKAGE_FIX_URL" \
-        --arg fix_sha "$PACKAGE_FIX_SHA" \
-        --arg res_url "$PACKAGE_RES_URL" \
-        --arg res_sha "$PACKAGE_RES_SHA" \
-        --arg dep_pkg "$PACKAGE_DEP_PKG" \
-        --arg dep_upp "$PACKAGE_DEP_UPP" \
-        --arg dep_pym "$PACKAGE_DEP_PYM" \
-        --arg dep_plm "$PACKAGE_DEP_PLM" \
-        --arg prepare "$PACKAGE_PREPARE_ACTIONS" \
-        --arg install "$PACKAGE_INSTALL_ACTIONS" \
-        --arg bsystem "$PACKAGE_BSYSTEM" \
-        --arg binbstd "$PACKAGE_BINBSTD" \
-        --arg cdefine "$PACKAGE_CDEFINE" \
-        --arg ccflags "$PACKAGE_CCFLAGS" \
-        --arg xxflags "$PACKAGE_XXFLAGS" \
-        --arg ldflags "$PACKAGE_LDFLAGS" \
-        --arg parallel $PACKAGE_BUILD_IN_PARALLEL \
-'{
-    "pkgname":$pkgname,
-    "version":$version,
-    "license":$license,
-    "summary":$summary,
-    "web-url":$web_url,
-    "git-url":$git_url,
-    "git-sha":$git_sha,
-    "git-ref":$git_ref,
-    "src-url":$src_url,
-    "src-sha":$src_sha,
-    "fix-url":$fix_url,
-    "fix-sha":$fix_sha,
-    "res-url":$res_url,
-    "res-sha":$res_sha,
-    "dep-pkg":$dep_pkg,
-    "dep-upp":$dep_upp,
-    "dep-pym":$dep_pym,
-    "dep-plm":$dep_plm,
-    "bsystem":$bsystem,
-    "binbstd":$binbstd,
-    "cdefine":$cdefine,
-    "ccflags":$ccflags,
-    "xxflags":$xxflags,
-    "ldflags":$ldflags,
-    "parallel":$parallel,
-    "prepare":$prepare,
-    "install":$install
-}' | jq 'with_entries(select(.value != ""))'
-}
-
-# __show_information_as_yaml__of_the_given_package <PACKAGE-NAME>
-  __show_information_as_yaml__of_the_given_package() {
-    __view_formula_of_the_given_package "$1" --paging=never
-}
-
-# __show_information_as_shell_of_the_given_package <PACKAGE-NAME>
-  __show_information_as_shell_of_the_given_package() {
-    __load_formula_of_the_given_package "$1"
-
-    while read KEY
-    do
-        printf "%s='%s'\n" "${PACKAGE_NAME_UPPERCASE_UNDERSCORE}_${KEY}" "$(eval echo \$$KEY)"
-    done <<EOF
-PACKAGE_NAME
-PACKAGE_SUMMARY
-PACKAGE_WEB_URL
-PACKAGE_GIT_URL
-PACKAGE_GIT_SHA
-PACKAGE_GIT_REF
-PACKAGE_SVN_URL
-PACKAGE_SRC_URL
-PACKAGE_SRC_SHA
-PACKAGE_SRC_FILETYPE
-PACKAGE_SRC_FILENAME
-PACKAGE_SRC_FILEPATH
-PACKAGE_FIX_URL
-PACKAGE_FIX_SHA
-PACKAGE_FIX_FILETYPE
-PACKAGE_FIX_FILENAME
-PACKAGE_FIX_FILEPATH
-PACKAGE_VERSION
-PACKAGE_VERSION_MAJOR
-PACKAGE_VERSION_MINOR
-PACKAGE_VERSION_PATCH
-PACKAGE_VERSION_TWEAK
-PACKAGE_DEVELOPER
-PACKAGE_LICENSE
-PACKAGE_BSCRIPT
-PACKAGE_BSYSTEM
-PACKAGE_BINBSTD
-PACKAGE_BUILD_SYSTEM
-PACKAGE_BUILD_SYSTEM_GO
-PACKAGE_BUILD_SYSTEM_RAKE
-PACKAGE_BUILD_SYSTEM_NINJA
-PACKAGE_BUILD_SYSTEM_GMAKE
-PACKAGE_BUILD_SYSTEM_CMAKE
-PACKAGE_BUILD_SYSTEM_XMAKE
-PACKAGE_BUILD_SYSTEM_MESON
-PACKAGE_BUILD_SYSTEM_CARGO
-PACKAGE_BUILD_SYSTEM_AUTOGENSH
-PACKAGE_BUILD_SYSTEM_AUTOTOOLS
-PACKAGE_BUILD_SYSTEM_CONFIGURE
-PACKAGE_BUILD_IN_BSCRIPT_DIR
-PACKAGE_BUILD_IN_PARALLEL
-PACKAGE_DEP_PKG
-PACKAGE_CDEFINE
-PACKAGE_CCFLAGS
-PACKAGE_XXFLAGS
-PACKAGE_LDFLAGS
-PACKAGE_FORMULA_FILEPATH
-EOF
-}
-
-# __show_information_of_the_given_package <PACKAGE-NAME> [OPTIONS]
-#
-# __show_information_of_the_given_package curl
-#
-# __show_information_of_the_given_package curl version
-# __show_information_of_the_given_package curl web-url
-  __show_information_of_the_given_package() {
-    [ -z "$1" ] && {
-        error "__show_information_of_the_given_package <PACKAGE-NAME> [ARGUMENTS], <PACKAGE-NAME> is unspecified."
-        return 1
-    }
-
-    case $1 in
-        @all) shift ; __show_information_of_all_available_packages $@ ; return $?
-    esac
-
-    case $2 in
-        formula-yaml|'')
-            __show_information_as_yaml__of_the_given_package "$1"
-            ;;
-        formula-json)
-            __show_information_as_json__of_the_given_package "$1"
-            ;;
-        formula-path)
-            __path_of_formula_of_the_given_package "$1"
-            ;;
-        receipt-yaml)
-            if is_package_installed "$1" ; then
-                cat "$XCPKG_PACKAGE_INSTALLED_ROOT/$1/.xcpkg/receipt.yml"
-            else
-                error "package [$1] is not installed."
-                return 1
-            fi
-            ;;
-        receipt-json)
-            __load_receipt_of_the_given_package "$1"
-
-            jq  --null-input \
-                --arg pkgname "$1" \
-                --arg version "$RECEIPT_PACKAGE_VERSION" \
-                --arg summary "$RECEIPT_PACKAGE_SUMMARY" \
-                --arg license "$RECEIPT_PACKAGE_LICENSE" \
-                --arg web_url "$RECEIPT_PACKAGE_WEB_URL" \
-                --arg git_url "$RECEIPT_PACKAGE_GIT_URL" \
-                --arg git_sha "$RECEIPT_PACKAGE_GIT_SHA" \
-                --arg git_ref "$RECEIPT_PACKAGE_GIT_REF" \
-                --arg src_url "$RECEIPT_PACKAGE_SRC_URL" \
-                --arg src_sha "$RECEIPT_PACKAGE_SRC_SHA" \
-                --arg fix_url "$RECEIPT_PACKAGE_FIX_URL" \
-                --arg fix_sha "$RECEIPT_PACKAGE_FIX_SHA" \
-                --arg res_url "$RECEIPT_PACKAGE_RES_URL" \
-                --arg res_sha "$RECEIPT_PACKAGE_RES_SHA" \
-                --arg dep_pkg "$RECEIPT_PACKAGE_DEP_PKG" \
-                --arg dep_upp "$RECEIPT_PACKAGE_DEP_UPP" \
-                --arg dep_pym "$RECEIPT_PACKAGE_DEP_PYM" \
-                --arg dep_plm "$RECEIPT_PACKAGE_DEP_PLM" \
-                --arg cdefine "$RECEIPT_PACKAGE_CDEFINE" \
-                --arg ccflags "$RECEIPT_PACKAGE_CCFLAGS" \
-                --arg xxflags "$RECEIPT_PACKAGE_XXFLAGS" \
-                --arg ldflags "$RECEIPT_PACKAGE_LDFLAGS" \
-                --arg bsystem "$RECEIPT_PACKAGE_BSYSTEM" \
-                --arg binbstd "$RECEIPT_PACKAGE_BINBSTD" \
-                --arg parallel "$RECEIPT_PACKAGE_PARALLEL" \
-                --arg signature "$PACKAGE_RECEIPT_SIGNATURE" \
-                --arg timestamp "$PACKAGE_RECEIPT_TIMESTAMP" \
-'{
-    "pkgname":$pkgname,
-    "version":$version,
-    "license":$license,
-    "summary":$summary,
-    "web-url":$web_url,
-    "git-url":$git_url,
-    "git-sha":$git_sha,
-    "git-ref":$git_ref,
-    "src-url":$src_url,
-    "src-sha":$src_sha,
-    "fix-url":$fix_url,
-    "fix-sha":$fix_sha,
-    "res-url":$res_url,
-    "res-sha":$res_sha,
-    "dep-pkg":$dep_pkg,
-    "dep-upp":$dep_upp,
-    "dep-pym":$dep_pym,
-    "dep-plm":$dep_plm,
-    "bsystem":$bsystem,
-    "binbstd":$binbstd,
-    "cdefine":$cdefine,
-    "ccflags":$ccflags,
-    "xxflags":$xxflags,
-    "ldflags":$ldflags,
-    "parallel":$parallel,
-    "signature":$signature,
-    "timestamp":$timestamp,
-}' | jq 'with_entries(select(.value != ""))'
-
-            ;;
-        receipt-path)
-            if is_package_installed "$1" ; then
-                printf '%s\n' "$XCPKG_PACKAGE_INSTALLED_ROOT/$1/.xcpkg/receipt.yml"
-            else
-                error "package [$1] is not installed."
-                return 1
-            fi
-            ;;
-        symlinked-files)
-            if [ -f "$XCPKG_PACKAGE_SYMLINKED_ROOT/.registry/$1" ] ; then
-                cat "$XCPKG_PACKAGE_SYMLINKED_ROOT/.registry/$1"
-            fi
-            ;;
-        installed-dir)
-            if is_package_installed "$1" ; then
-                printf '%s\n' "$XCPKG_PACKAGE_INSTALLED_ROOT/$1"
-            else
-                error "package [$1] is not installed."
-                return 1
-            fi
-            ;;
-        installed-files)
-            if is_package_installed "$1" ; then
-                cut -d '|' -f3 "$XCPKG_PACKAGE_INSTALLED_ROOT/$1/.xcpkg/manifest.txt"
-            else
-                error "package [$1] is not installed."
-                return 1
-            fi
-            ;;
-        installed-timestamp-unix)
-            __load_receipt_of_the_given_package "$1"
-            printf '%s\n' "$PACKAGE_RECEIPT_TIMESTAMP"
-            ;;
-        installed-timestamp-rfc-3339)
-            __load_receipt_of_the_given_package "$1"
-            format_unix_timestamp "$PACKAGE_RECEIPT_TIMESTAMP" '+%Y-%m-%d %H:%M:%S%:z'
-            ;;
-        installed-timestamp-iso-8601)
-            __load_receipt_of_the_given_package "$1"
-            format_unix_timestamp "$PACKAGE_RECEIPT_TIMESTAMP" '+%Y-%m-%dT%H:%M:%S%:z'
-            ;;
-        installed-timestamp-rfc-3339-utc)
-            __load_receipt_of_the_given_package "$1"
-            format_unix_timestamp "$PACKAGE_RECEIPT_TIMESTAMP" '+%Y-%m-%d %H:%M:%S%:z' -u
-            ;;
-        installed-timestamp-iso-8601-utc)
-            __load_receipt_of_the_given_package "$1"
-            format_unix_timestamp "$PACKAGE_RECEIPT_TIMESTAMP" '+%Y-%m-%dT%H:%M:%SZ' -u
-            ;;
-        installed-version)
-            __load_receipt_of_the_given_package "$1"
-            printf '%s\n' "$RECEIPT_PACKAGE_VERSION"
-            ;;
-        *)  __load_formula_of_the_given_package "$1"
-            __PACKAGE_GET__KEY__="$(printf '%s\n' "$2" | tr '+-.' '_' | tr a-z A-Z)"
-            eval echo \$PACKAGE_$__PACKAGE_GET__KEY__
-    esac
-}
-
-mark_is_package_installed_or_not() {
-    if is_package_installed "$1" ; then
-        echo "${COLOR_GREEN}$1${COLOR_OFF}"
-    else
-        echo "${COLOR_RED}$1${COLOR_OFF}"
-    fi
-}
-
 # __symlink_installed_files_of_the_given_package <PACKAGE-NAME>
   __symlink_installed_files_of_the_given_package() {
       return 0
@@ -3860,202 +3560,6 @@ mark_is_package_installed_or_not() {
     done < "$PACKAGE_MANIFEST_FILEPATH"
 
     exec 7>&-
-}
-
-# __generate_manifest_of_the_given_package <PACKAGE-NAME>
-  __generate_manifest_of_the_given_package() {
-    # fuck, some package's filename has space
-    IFS_SAVED="$IFS"
-    IFS='
-'
-
-    exec 7> "$PACKAGE_MANIFEST_FILEPATH"
-
-    for dirname in $(find -mindepth 1 -maxdepth 1 -type d -not -name .xcpkg -printf '%P\n')
-    do
-        for item in $(find "$dirname" -printf '%y:%p\n')
-        do
-            X=$(printf '%s\n' "$item" | cut -c1)
-            Y=${item#$X:}
-
-            case $X in
-                l)  if [ -d "$Y" ] ; then
-                        printf 'D|0000000000000000000000000000000000000000000000000000000000000000|%s/\n' "$Y" >&7
-                    else
-                        printf 'l|%s|%s\n' "$(sha256sum "$Y" | cut -d ' ' -f1)"                           "$Y" >&7
-                    fi
-                    ;;
-                d)  printf 'd|0000000000000000000000000000000000000000000000000000000000000000|%s/\n' "$Y" >&7 ;;
-                *)  printf '%s|%s|%s\n' "$X" "$(sha256sum "$Y" | cut -d ' ' -f1)"                     "$Y" >&7 ;;
-            esac
-        done
-    done
-
-    exec 7>&-
-
-    IFS="$IFS_SAVED"
-}
-
-# __generate_receipt_of_the_given_package <PACKAGE-NAME>
-  __generate_receipt_of_the_given_package() {
-    [ -z "$1" ] && {
-        error "__generate_receipt_of_the_given_package <PACKAGE-NAME>, <PACKAGE-NAME> is unspecified."
-        return 1
-    }
-
-    run cp "$PACKAGE_FORMULA_FILEPATH" "$PACKAGE_RECEIPT_FILEPATH"
-
-    sed_in_place '/^#src-url: dir:/d' "$PACKAGE_RECEIPT_FILEPATH"
-
-    sed_in_place "1i pkgname: $PACKAGE_NAME" "$PACKAGE_RECEIPT_FILEPATH"
-
-    grep -q '^version: ' "$PACKAGE_RECEIPT_FILEPATH" || {
-        sed_in_place "2i version: $PACKAGE_VERSION" "$PACKAGE_RECEIPT_FILEPATH"
-    }
-
-    grep -q '^web-url: ' "$PACKAGE_RECEIPT_FILEPATH" || {
-        sed_in_place "/^git-url:/i web-url: $PACKAGE_GIT_URL" "$PACKAGE_RECEIPT_FILEPATH"
-    }
-
-    grep -q '^bsystem: ' "$PACKAGE_RECEIPT_FILEPATH" || {
-        sed_in_place "/^install:/i bsystem: $PACKAGE_BSYSTEM" "$PACKAGE_RECEIPT_FILEPATH"
-    }
-
-    if [ -n "$PACKAGE_GIT_SHA" ] ; then
-        grep -q '^git-sha: ' "$PACKAGE_RECEIPT_FILEPATH" || {
-            sed_in_place "/^git-url:/a git-sha: $PACKAGE_GIT_SHA" "$PACKAGE_RECEIPT_FILEPATH"
-        }
-
-        grep -q '^git-sha: ' "$PACKAGE_RECEIPT_FILEPATH" || {
-            sed_in_place "3i git-sha: $PACKAGE_GIT_SHA" "$PACKAGE_RECEIPT_FILEPATH"
-        }
-    fi
-
-    if [ -n "$PACKAGE_DEP_UPP" ] ; then
-        if grep -q '^dep-upp: ' "$PACKAGE_RECEIPT_FILEPATH" ; then
-            sed_in_place "/^dep-upp: /c dep-upp: $PACKAGE_DEP_UPP" "$PACKAGE_RECEIPT_FILEPATH"
-        else
-            sed_in_place "/^bsystem: /i dep-upp: $PACKAGE_DEP_UPP" "$PACKAGE_RECEIPT_FILEPATH"
-        fi
-    fi
-
-    grep -q '^parallel: ' "$PACKAGE_RECEIPT_FILEPATH" || {
-        sed_in_place "\$a parallel: $PACKAGE_PARALLEL" "$PACKAGE_RECEIPT_FILEPATH"
-    }
-
-    cat >> "$PACKAGE_RECEIPT_FILEPATH" <<EOF
-
-built-for: $TARGET_PLATFORM_NAME/$TARGET_PLATFORM_VERS/$TARGET_PLATFORM_ARCH
-
-signature: $XCPKG_VERSION
-timestamp: $TIMESTAMP_UNIX
-EOF
-}
-
-# __load_receipt_of_the_given_package <PACKAGE-SPEC>
-  __load_receipt_of_the_given_package() {
-    [ -z "$1" ] && {
-        error "__load_receipt_of_the_given_package <PACKAGE-SPEC>, <PACKAGE-SPEC> is unspecified."
-        return 1
-    }
-
-    is_package_installed "$1" || {
-        error "package [$1] is not installed."
-        return 1
-    }
-
-    unset RECEIPT_PACKAGE_SUMMARY
-    unset RECEIPT_PACKAGE_VERSION
-    unset RECEIPT_PACKAGE_LICENSE
-
-    unset RECEIPT_PACKAGE_WEB_URL
-
-    unset RECEIPT_PACKAGE_GIT_URL
-    unset RECEIPT_PACKAGE_GIT_SHA
-    unset RECEIPT_PACKAGE_GIT_REF
-
-    unset RECEIPT_PACKAGE_SVN_URL
-
-    unset RECEIPT_PACKAGE_SRC_URL
-    unset RECEIPT_PACKAGE_SRC_URI
-    unset RECEIPT_PACKAGE_SRC_SHA
-
-    unset RECEIPT_PACKAGE_FIX_URL
-    unset RECEIPT_PACKAGE_FIX_SHA
-
-    unset RECEIPT_PACKAGE_RES_URL
-    unset RECEIPT_PACKAGE_RES_SHA
-
-    unset RECEIPT_PACKAGE_DEP_PKG
-    unset RECEIPT_PACKAGE_DEP_UPP
-    unset RECEIPT_PACKAGE_DEP_PYM
-    unset RECEIPT_PACKAGE_DEP_PLM
-
-    unset RECEIPT_PACKAGE_BSYSTEM
-    unset RECEIPT_PACKAGE_BSCRIPT
-    unset RECEIPT_PACKAGE_PREPARE
-    unset RECEIPT_PACKAGE_INSTALL
-    unset RECEIPT_PACKAGE_SYMLINK
-
-    unset RECEIPT_PACKAGE_PARALLEL
-
-    #######################################################################################################
-
-    PACKAGE_INSTALLED_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$1"
-    PACKAGE_RECEIPT_FILEPATH="$PACKAGE_INSTALLED_DIR/.xcpkg/receipt.yml"
-
-    unset PACKAGE_RECEIPT_SIGNATURE
-    unset PACKAGE_RECEIPT_TIMESTAMP
-
-    PACKAGE_RECEIPT_SIGNATURE="$(yq .signature "$PACKAGE_RECEIPT_FILEPATH")"
-    PACKAGE_RECEIPT_TIMESTAMP="$(yq .timestamp "$PACKAGE_RECEIPT_FILEPATH")"
-
-    if [ -z "$PACKAGE_RECEIPT_SIGNATURE" ] ; then
-        error "$PACKAGE_RECEIPT_FILEPATH is broken. value of PACKAGE_RECEIPT_SIGNATURE must be non-empty."
-        return 1
-    fi
-
-    if [ -z "$PACKAGE_RECEIPT_TIMESTAMP" ] ; then
-        error "$PACKAGE_RECEIPT_FILEPATH is broken. value of PACKAGE_RECEIPT_TIMESTAMP must be non-empty."
-        return 1
-    fi
-
-    #######################################################################################################
-
-    for key in summary web-url git-url git-sha git-ref shallow src-url src-uri src-sha fix-url fix-sha res-url res-sha dep-pkg dep-upp dep-pym dep-plm license version bsystem bscript binbstd cdefine ccflags xxflags ldflags parallel exetype symlink
-    do
-        unset __KEY_UPPERCASE_UNDERSCORE__
-        unset __VALUE__
-
-        __KEY_UPPERCASE_UNDERSCORE__="$(printf '%s\n' "$key" | tr '-' '_' | tr a-z A-Z)"
-        __VALUE__="$(yq ".$key" "$PACKAGE_RECEIPT_FILEPATH")"
-
-        if [ "$__VALUE__" = null ] ; then
-                __VALUE__=
-        fi
-
-        eval "RECEIPT_PACKAGE_$__KEY_UPPERCASE_UNDERSCORE__='$__VALUE__'"
-    done
-
-    if [ -z "$RECEIPT_PACKAGE_VERSION" ] ; then
-        error "$PACKAGE_RECEIPT_FILEPATH is broken. value of RECEIPT_PACKAGE_VERSION must be non-empty."
-        return 1
-    fi
-
-    if [ -z "$RECEIPT_PACKAGE_SUMMARY" ] ; then
-        error "$PACKAGE_RECEIPT_FILEPATH is broken. value of RECEIPT_PACKAGE_SUMMARY must be non-empty."
-        return 1
-    fi
-
-    if [ -z "$RECEIPT_PACKAGE_WEB_URL" ] ; then
-        error "$PACKAGE_RECEIPT_FILEPATH is broken. value of RECEIPT_PACKAGE_WEB_URL must be non-empty."
-        return 1
-    fi
-
-    if [ "${#PACKAGE_RECEIPT_TIMESTAMP}" -ne 10 ] ; then
-        error "$PACKAGE_RECEIPT_FILEPATH is broken. length of \$PACKAGE_RECEIPT_TIMESTAMP must be 10."
-        return 1
-    fi
 }
 
 # __config_variables_for_the_given_target <PACKAGE-NAME>
@@ -4628,90 +4132,313 @@ EOF
     fi
 }
 
-gow() {
-    # https://pkg.go.dev/cmd/go
-    # https://pkg.go.dev/cmd/link
+# }}}
+##############################################################################
+# {{{ configure
 
-    unset GO_BUILD_ARGS
-    unset GO_BUILD_ARGV_V
-    unset GO_BUILD_ARGV_X
-    unset GO_BUILD_ARGV_O
-    unset GO_BUILD_ARGV_MOD
-    unset GO_BUILD_ARGV_TAGS
-    unset GO_BUILD_ARGV_LDFLAGS
-
-    unset GO_BUILD_ARGS_EXTRA
-
-    while [ -n "$1" ]
-    do
-        case $1 in
-            -v) shift ; GO_BUILD_ARGV_V='-v' ;;
-            -x) shift ; GO_BUILD_ARGV_X='-x' ;;
-            -o) shift ; GO_BUILD_ARGV_O="$1" ; shift ;;
-            -X) shift
-                if [ -z "$GO_BUILD_ARGV_LDFLAGS" ] ; then
-                    GO_BUILD_ARGV_LDFLAGS="-X $1"
-                else
-                    GO_BUILD_ARGV_LDFLAGS="$GO_BUILD_ARGV_LDFLAGS -X $1"
+# must run in a subshell
+configure() {
+    if [ -z "$CONFIG_XX_UPDATED" ] ; then
+        CONFIG_XX_UPDATED=yes
+        # https://www.gnu.org/software/gettext/manual/html_node/config_002eguess.html
+        # https://git.savannah.gnu.org/cgit/config.git/tree/
+        for item in config.sub config.guess
+        do
+            for file in $(find "$PACKAGE_BSCRIPT_DIR" -name "$item")
+            do
+                CONFIG_XX="$XCPKG_DOWNLOADS_DIR/config/$item"
+                if [ ! -f "$CONFIG_XX" ] ; then
+                    wfetch "http://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=$item;hb=HEAD" --output-path="$CONFIG_XX" || return 1
+                    run chmod a+x "$CONFIG_XX" || return 1
+                    if [ "$item" = 'config.sub' ] ; then
+                        sed_in_place 's/arm64-*/arm64-*|arm64e-*/g' "$CONFIG_XX" || return 1
+                    fi
                 fi
-                shift
-                ;;
-            -ldflags)
-                shift
-                if [ -z "$GO_BUILD_ARGV_LDFLAGS" ] ; then
-                    GO_BUILD_ARGV_LDFLAGS="$1"
-                else
-                    GO_BUILD_ARGV_LDFLAGS="$1 $GO_BUILD_ARGV_LDFLAGS"
-                fi
-                shift
-                ;;
-            *)  GO_BUILD_ARGS_EXTRA="$GO_BUILD_ARGS_EXTRA $1" ; shift
-        esac
-    done
+                run cp -f "$CONFIG_XX" "$file" || return 1
+            done
+        done
+    fi
 
-    GO_BUILD_ARGS='-trimpath'
-
-    if [ -z "$GO_BUILD_ARGV_V" ] ; then
-        if [ "$LOG_LEVEL" -gt "$LOG_LEVEL_QUIET" ] ; then
-            GO_BUILD_ARGS="$GO_BUILD_ARGS -v"
+    if [ "$STEP_MESSAGE" = 'build for native' ] ; then
+        if run "$PACKAGE_BSCRIPT_DIR"/configure \
+            --prefix="$NATIVE_INSTALL_DIR" \
+            $@ ; then
+            echo
+        else
+            if [ -f "$PACKAGE_BCACHED_DIR/config.log" ] ; then
+                run cat "$PACKAGE_BCACHED_DIR/config.log"
+            elif [ -f "$PACKAGE_BSCRIPT_DIR/config.log" ] ; then
+                run cat "$PACKAGE_BSCRIPT_DIR/config.log"
+            fi
+            return 1
         fi
     else
-        GO_BUILD_ARGS="$GO_BUILD_ARGS -v"
-    fi
+        unset TARGET_TRIPLE
+        TARGET_TRIPLE=$(print_target_triple_by_arch "$TARGET_PLATFORM_ARCH")
 
-    if [ -z "$GO_BUILD_ARGV_X" ] ; then
-        if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
-            GO_BUILD_ARGS="$GO_BUILD_ARGS -x"
+        if run "$PACKAGE_BSCRIPT_DIR"/configure \
+            --host="\"$TARGET_TRIPLE\"" \
+            --prefix="\"$PACKAGE_INSTALL_DIR\"" \
+            --disable-option-checking \
+            --disable-rpath \
+            --disable-debug \
+            --disable-nls\
+            --enable-largefile \
+            --enable-static \
+            --disable-shared \
+            CC="\"$CC\"" \
+            CFLAGS="\"$CFLAGS\"" \
+            CXX="\"$CXX\"" \
+            CXXFLAGS="\"$CXXFLAGS\"" \
+            CPP="\"$CPP\"" \
+            CPPFLAGS="\"$CPPFLAGS\"" \
+            LDFLAGS="\"$LDFLAGS\"" \
+            AR="\"$AR\"" \
+            RANLIB="\"$RANLIB\"" \
+            PKG_CONFIG="\"$PKG_CONFIG\"" \
+            PKG_CONFIG_PATH="\"$PKG_CONFIG_PATH\"" \
+            PKG_CONFIG_LIBDIR="\"\"" \
+            CC_FOR_BUILD="\"$CC_FOR_BUILD\"" \
+            $@ ; then
+            echo
+        else
+            if [ -f "$PACKAGE_BCACHED_DIR/config.log" ] ; then
+                run cat "$PACKAGE_BCACHED_DIR/config.log"
+            elif [ -f "$PACKAGE_BSCRIPT_DIR/config.log" ] ; then
+                run cat "$PACKAGE_BSCRIPT_DIR/config.log"
+            fi
+            return 1
         fi
-    else
-        GO_BUILD_ARGS="$GO_BUILD_ARGS -x"
     fi
 
-    if [ -z "$GO_BUILD_ARGV_LDFLAGS" ] ; then
-        GO_BUILD_ARGS="$GO_BUILD_ARGS -ldflags '-s -w'"
-    else
-        GO_BUILD_ARGS="$GO_BUILD_ARGS -ldflags '-s -w $GO_BUILD_ARGV_LDFLAGS'"
+    if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
+        for Makefile in $(find "$PACKAGE_BSCRIPT_DIR" -name Makefile)
+        do
+            sed_in_place 's|\t@|\t|g'     "$Makefile" || return 1
+            sed_in_place 's|@echo|echo|g' "$Makefile" || return 1
+        done
+        unset Makefile
     fi
 
-    if [ -z "$GO_BUILD_ARGV_O" ] ; then
-        GO_BUILD_ARGS="$GO_BUILD_ARGS -o $PACKAGE_BCACHED_DIR/"
-    else
-        GO_BUILD_ARGS="$GO_BUILD_ARGS -o $PACKAGE_BCACHED_DIR/$GO_BUILD_ARGV_O"
-    fi
-
-    GO_BUILD_ARGS="$GO_BUILD_ARGS $GO_BUILD_ARGS_EXTRA"
-
-    run go build $GO_BUILD_ARGS || return 1
-
-    for item in $(ls "$PACKAGE_BCACHED_DIR")
-    do
-        case $item in
-            *.a)  run install_libs "$PACKAGE_BCACHED_DIR/$item" ;;
-            *.so) run install_libs "$PACKAGE_BCACHED_DIR/$item" ;;
-            *)    run install_bins "$PACKAGE_BCACHED_DIR/$item" ;;
-        esac
-    done
+    gmakew clean &&
+    gmakew       &&
+    gmakew install
 }
+
+# }}}
+##############################################################################
+# {{{ gmakew
+
+gmakew() {
+    GMAKE=$(command -v gmake || command -v make) || die "command not found: make"
+
+    run "$GMAKE" --version
+
+    if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_DEBUG" ] ; then
+        run "$GMAKE -w -j$BUILD_NJOBS --debug V=1 $*"
+    else
+        run "$GMAKE -w -j$BUILD_NJOBS $*"
+    fi
+}
+
+# https://cmake.org/cmake/help/latest/manual/cmake-toolchains.7.html#cross-compiling
+# https://cmake.org/cmake/help/latest/variable/CMAKE_EXPORT_COMPILE_COMMANDS.html
+# https://cmake.org/cmake/help/latest/variable/CMAKE_FIND_ROOT_PATH.html
+# https://cmake.org/cmake/help/latest/variable/CMAKE_PREFIX_PATH.html
+# https://cmake.org/cmake/help/latest/variable/CMAKE_INSTALL_PREFIX.html
+# https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html
+# https://cmake.org/cmake/help/latest/variable/BUILD_SHARED_LIBS.html
+# https://cmake.org/cmake/help/latest/command/enable_testing.html?highlight=build_testing
+# run in a subshell
+cmakew() {
+    CMAKE=$(command -v cmake) || die "command not found: cmake"
+
+    if [ "$STEP_MESSAGE" = 'build for native' ] ; then
+        # https://cmake.org/cmake/help/latest/variable/CMAKE_FIND_DEBUG_MODE.html
+        if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_DEBUG" ] ; then
+            CMAKE_CONFIG_OPTIONS="$@ -DCMAKE_FIND_DEBUG_MODE=TRUE"
+        else
+            CMAKE_CONFIG_OPTIONS="$@"
+        fi
+
+        run $CMAKE \
+            -Wno-dev \
+            -S $PACKAGE_BSCRIPT_DIR \
+            -B $NATIVE_BCACHED_DIR \
+            -DCMAKE_INSTALL_PREFIX=$NATIVE_INSTALL_DIR \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+            -DBUILD_TESTING=OFF \
+            $CMAKE_CONFIG_OPTIONS &&
+        run $CMAKE --build   "$NATIVE_BCACHED_DIR" -- -j$BUILD_NJOBS &&
+        run $CMAKE --install "$NATIVE_BCACHED_DIR"
+    else
+        run $CMAKE \
+            -Wno-dev \
+            -S $PACKAGE_BSCRIPT_DIR \
+            -B $PACKAGE_BCACHED_DIR \
+            -DCMAKE_INSTALL_PREFIX=$PACKAGE_INSTALL_DIR \
+            -DCMAKE_TOOLCHAIN_FILE=$TARGET_CMAKE_TOOLCHAIN_FILE \
+            -DCMAKE_VERBOSE_MAKEFILE=$CMAKE_VERBOSE_MAKEFILE \
+            -DCMAKE_COLOR_MAKEFILE=$CMAKE_COLOR_MAKEFILE $@ &&
+        run $CMAKE --build   "$PACKAGE_BCACHED_DIR" -- -j$BUILD_NJOBS &&
+        run $CMAKE --install "$PACKAGE_BCACHED_DIR"
+    fi
+}
+
+# }}}
+##############################################################################
+# {{{ xmakew
+
+# run in a subshell
+xmakew() {
+    XMAKE=$(command -v xmake) || die "command not found: xmake"
+
+    run "$XMAKE" --version
+
+    XMAKE_CONFIG_OPTIONS="$@"
+
+    XMAKE_CONFIG_OPTION_CLEAN=
+    XMAKE_CONFIG_OPTION_MODE=
+    XMAKE_CONFIG_OPTION_vD=
+
+    for arg in $@
+    do
+        case $arg in
+            -c|--clean)  XMAKE_CONFIG_OPTION_CLEAN=set ;;
+            -m|--mode=*) XMAKE_CONFIG_OPTION_MODE=set  ;;
+            -vD)         XMAKE_CONFIG_OPTION_vD=set ;;
+        esac
+    done
+
+    if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_DEBUG" ] && [ -z "$XMAKE_CONFIG_OPTION_vD" ]; then
+        XMAKE_CONFIG_OPTIONS="$XMAKE_CONFIG_OPTION_vD -vD"
+    fi
+
+    if [ -z "$XMAKE_CONFIG_OPTION_CLEAN" ] ; then
+        XMAKE_CONFIG_OPTIONS="$XMAKE_CONFIG_OPTIONS --clean"
+    fi
+
+    if [ -z "$XMAKE_CONFIG_OPTION_MODE" ] ; then
+        XMAKE_CONFIG_OPTIONS="$XMAKE_CONFIG_OPTIONS --mode=$BUILD_TYPE"
+    fi
+
+    if [ "$STEP_MESSAGE" = 'build for native' ] ; then
+        run $XMAKE config $XMAKE_CONFIG_OPTIONS --project=$PACKAGE_BSCRIPT_DIR --buildir=$NATIVE_BCACHED_DIR &&
+        run $XMAKE --jobs=$BUILD_NJOBS &&
+        run $XMAKE install -o "$NATIVE_INSTALL_DIR"
+    else
+        unset XMAKE_PLATFORM
+        XMAKE_PLATFORM="$(printf '%s\n' "$TARGET_PLATFORM_NAME_LOWER_CASE" | sed 's|simulator|os|')"
+        XMAKE_CONFIG_OPTIONS="$XMAKE_CONFIG_OPTIONS --plat=$XMAKE_PLATFORM"
+
+        case $TARGET_PLATFORM_NAME in
+            *Simulator) XMAKE_CONFIG_OPTIONS="$XMAKE_CONFIG_OPTIONS --appledev=simulator"
+        esac
+
+        XMAKE_CONFIG_OPTIONS="$XMAKE_CONFIG_OPTIONS --arch=$TARGET_PLATFORM_ARCH --buildir=$PACKAGE_BCACHED_DIR"
+
+        run $XMAKE config $XMAKE_CONFIG_OPTIONS &&
+        run $XMAKE --jobs=$BUILD_NJOBS &&
+        run $XMAKE install -o "$PACKAGE_INSTALL_DIR"
+    fi
+}
+
+# }}}
+##############################################################################
+# {{{ mesonw
+
+# https://mesonbuild.com/Cross-compilation.html
+# run in a subshell
+mesonw() {
+    case $TARGET_PLATFORM_ARCH in
+        armv7*)
+            HOST_MACHINE_CPU_FAMILY='arm'
+            HOST_MACHINE_CPU_NAME="$TARGET_PLATFORM_ARCH"
+            ;;
+        arm64*|aarch64)
+            HOST_MACHINE_CPU_FAMILY='aarch64'
+            HOST_MACHINE_CPU_NAME='armv8a'
+            ;;
+        i386|i686)
+            HOST_MACHINE_CPU_FAMILY='x86'
+            HOST_MACHINE_CPU_NAME="$TARGET_PLATFORM_ARCH"
+            ;;
+        x86_64)
+            HOST_MACHINE_CPU_FAMILY='x86_64'
+            HOST_MACHINE_CPU_NAME="$TARGET_PLATFORM_ARCH"
+            ;;
+    esac
+
+    MESON_CROSS_FILE="$PACKAGE_BCACHED_DIR/cross-file"
+
+    cat > "$MESON_CROSS_FILE" <<EOF
+[host_machine]
+system = 'darwin'
+endian = 'little'
+cpu_family = '$HOST_MACHINE_CPU_FAMILY'
+cpu = '$HOST_MACHINE_CPU_NAME'
+
+[binaries]
+c = '$CC'
+cpp = '$CXX'
+ar = '$AR'
+strip = '$STRIP'
+cmake = '$CMAKE'
+pkgconfig = '$PKG_CONFIG'
+
+# https://mesonbuild.com/Machine-files.html#meson-builtin-options
+[built-in options]
+c_args = $(to_meson_array $CFLAGS $CPPFLAGS)
+c_link_args = $(to_meson_array $LDFLAGS)
+cpp_args = $(to_meson_array $CXXFLAGS $CPPFLAGS)
+cpp_link_args = $(to_meson_array $LDFLAGS)
+EOF
+    if [ "$PACKAGE_BUILD_SYSTEM_CMAKE" = yes ] ; then
+        cat >> "$MESON_CROSS_FILE" <<EOF
+
+[properties]
+cmake_toolchain_file='$TARGET_CMAKE_TOOLCHAIN_FILE'
+EOF
+    fi
+
+    unset MESON_ARGUMENT_DEFAULT_LIBRARY
+
+    case $INSTALL_LIB in
+        static|shared|both) MESON_ARGUMENT_DEFAULT_LIBRARY="-Ddefault_library=$INSTALL_LIB"
+    esac
+
+    run "$MESON" setup \
+        --prefix="$PACKAGE_INSTALL_DIR" \
+        --buildtype=$BUILD_TYPE \
+        --backend=ninja \
+        --pkg-config-path="$PKG_CONFIG_PATH" \
+        --build.pkg-config-path="$PKG_CONFIG_PATH_FOR_BUILD" \
+        --cross-file="$MESON_CROSS_FILE" \
+        $MESON_ARGUMENT_DEFAULT_LIBRARY \
+        $@ "$PACKAGE_BCACHED_DIR" "$PACKAGE_BSCRIPT_DIR" &&
+    {
+        if command -v build_configed > /dev/null ; then
+            build_configed
+        fi
+    } &&
+    run ninja -C "$PACKAGE_BCACHED_DIR" &&
+    run ninja -C "$PACKAGE_BCACHED_DIR" install
+}
+
+to_meson_array() {
+    RESULT="[''"
+    for item in $@
+    do
+        RESULT="$RESULT, '$item'"
+    done
+    RESULT="$RESULT]"
+    echo "$RESULT"
+}
+
+# }}}
+##############################################################################
+# {{{ cargow
 
 cargow() {
     case $1 in
@@ -4836,311 +4563,98 @@ cargow() {
     esac
 }
 
-config_url() {
-    echo "http://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=$1;hb=HEAD"
-}
+# }}}
+##############################################################################
+# {{{ gow
 
-# run in a subshell
-configure() {
-    if [ -z "$CONFIG_XX_UPDATED" ] ; then
-        CONFIG_XX_UPDATED=yes
-        # https://www.gnu.org/software/gettext/manual/html_node/config_002eguess.html
-        # https://git.savannah.gnu.org/cgit/config.git/tree/
-        for item in config.sub config.guess
-        do
-            for file in $(find "$PACKAGE_BSCRIPT_DIR" -name "$item")
-            do
-                CONFIG_XX="$XCPKG_DOWNLOADS_DIR/config/$item"
-                if [ ! -f "$CONFIG_XX" ] ; then
-                    wfetch "$(config_url "$item")" --output-path="$CONFIG_XX" || return 1
-                    run chmod a+x "$CONFIG_XX" || return 1
-                    if [ "$item" = 'config.sub' ] ; then
-                        sed_in_place 's/arm64-*/arm64-*|arm64e-*/g' "$CONFIG_XX" || return 1
-                    fi
+gow() {
+    # https://pkg.go.dev/cmd/go
+    # https://pkg.go.dev/cmd/link
+
+    unset GO_BUILD_ARGS
+    unset GO_BUILD_ARGV_V
+    unset GO_BUILD_ARGV_X
+    unset GO_BUILD_ARGV_O
+    unset GO_BUILD_ARGV_MOD
+    unset GO_BUILD_ARGV_TAGS
+    unset GO_BUILD_ARGV_LDFLAGS
+
+    unset GO_BUILD_ARGS_EXTRA
+
+    while [ -n "$1" ]
+    do
+        case $1 in
+            -v) shift ; GO_BUILD_ARGV_V='-v' ;;
+            -x) shift ; GO_BUILD_ARGV_X='-x' ;;
+            -o) shift ; GO_BUILD_ARGV_O="$1" ; shift ;;
+            -X) shift
+                if [ -z "$GO_BUILD_ARGV_LDFLAGS" ] ; then
+                    GO_BUILD_ARGV_LDFLAGS="-X $1"
+                else
+                    GO_BUILD_ARGV_LDFLAGS="$GO_BUILD_ARGV_LDFLAGS -X $1"
                 fi
-                run cp -f "$CONFIG_XX" "$file" || return 1
-            done
-        done
-    fi
-
-    if [ "$STEP_MESSAGE" = 'build for native' ] ; then
-        if run "$PACKAGE_BSCRIPT_DIR"/configure \
-            --prefix="$NATIVE_INSTALL_DIR" \
-            $@ ; then
-            echo
-        else
-            if [ -f "$PACKAGE_BCACHED_DIR/config.log" ] ; then
-                run cat "$PACKAGE_BCACHED_DIR/config.log"
-            elif [ -f "$PACKAGE_BSCRIPT_DIR/config.log" ] ; then
-                run cat "$PACKAGE_BSCRIPT_DIR/config.log"
-            fi
-            return 1
-        fi
-    else
-        unset TARGET_TRIPLE
-        TARGET_TRIPLE=$(print_target_triple_by_arch "$TARGET_PLATFORM_ARCH")
-
-        if run "$PACKAGE_BSCRIPT_DIR"/configure \
-            --host="\"$TARGET_TRIPLE\"" \
-            --prefix="\"$PACKAGE_INSTALL_DIR\"" \
-            --disable-option-checking \
-            --disable-rpath \
-            --disable-debug \
-            --disable-nls\
-            --enable-largefile \
-            --enable-static \
-            --disable-shared \
-            CC="\"$CC\"" \
-            CFLAGS="\"$CFLAGS\"" \
-            CXX="\"$CXX\"" \
-            CXXFLAGS="\"$CXXFLAGS\"" \
-            CPP="\"$CPP\"" \
-            CPPFLAGS="\"$CPPFLAGS\"" \
-            LDFLAGS="\"$LDFLAGS\"" \
-            AR="\"$AR\"" \
-            RANLIB="\"$RANLIB\"" \
-            PKG_CONFIG="\"$PKG_CONFIG\"" \
-            PKG_CONFIG_PATH="\"$PKG_CONFIG_PATH\"" \
-            PKG_CONFIG_LIBDIR="\"\"" \
-            CC_FOR_BUILD="\"$CC_FOR_BUILD\"" \
-            $@ ; then
-            echo
-        else
-            if [ -f "$PACKAGE_BCACHED_DIR/config.log" ] ; then
-                run cat "$PACKAGE_BCACHED_DIR/config.log"
-            elif [ -f "$PACKAGE_BSCRIPT_DIR/config.log" ] ; then
-                run cat "$PACKAGE_BSCRIPT_DIR/config.log"
-            fi
-            return 1
-        fi
-    fi
-
-    if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
-        for Makefile in $(find "$PACKAGE_BSCRIPT_DIR" -name Makefile)
-        do
-            sed_in_place 's|\t@|\t|g'     "$Makefile" || return 1
-            sed_in_place 's|@echo|echo|g' "$Makefile" || return 1
-        done
-        unset Makefile
-    fi
-
-    gmakew clean &&
-    gmakew       &&
-    gmakew install
-}
-
-# make wrapper
-gmakew() {
-    GMAKE=$(command -v gmake || command -v make) || die "command not found: make"
-
-    run "$GMAKE" --version
-
-    if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_DEBUG" ] ; then
-        run "$GMAKE -w -j$BUILD_NJOBS --debug V=1 $*"
-    else
-        run "$GMAKE -w -j$BUILD_NJOBS $*"
-    fi
-}
-
-# https://cmake.org/cmake/help/latest/manual/cmake-toolchains.7.html#cross-compiling
-# https://cmake.org/cmake/help/latest/variable/CMAKE_EXPORT_COMPILE_COMMANDS.html
-# https://cmake.org/cmake/help/latest/variable/CMAKE_FIND_ROOT_PATH.html
-# https://cmake.org/cmake/help/latest/variable/CMAKE_PREFIX_PATH.html
-# https://cmake.org/cmake/help/latest/variable/CMAKE_INSTALL_PREFIX.html
-# https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html
-# https://cmake.org/cmake/help/latest/variable/BUILD_SHARED_LIBS.html
-# https://cmake.org/cmake/help/latest/command/enable_testing.html?highlight=build_testing
-# run in a subshell
-cmakew() {
-    CMAKE=$(command -v cmake) || die "command not found: cmake"
-
-    if [ "$STEP_MESSAGE" = 'build for native' ] ; then
-        # https://cmake.org/cmake/help/latest/variable/CMAKE_FIND_DEBUG_MODE.html
-        if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_DEBUG" ] ; then
-            CMAKE_CONFIG_OPTIONS="$@ -DCMAKE_FIND_DEBUG_MODE=TRUE"
-        else
-            CMAKE_CONFIG_OPTIONS="$@"
-        fi
-
-        run $CMAKE \
-            -Wno-dev \
-            -S $PACKAGE_BSCRIPT_DIR \
-            -B $NATIVE_BCACHED_DIR \
-            -DCMAKE_INSTALL_PREFIX=$NATIVE_INSTALL_DIR \
-            -DBUILD_SHARED_LIBS=OFF \
-            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-            -DBUILD_TESTING=OFF \
-            $CMAKE_CONFIG_OPTIONS &&
-        run $CMAKE --build   "$NATIVE_BCACHED_DIR" -- -j$BUILD_NJOBS &&
-        run $CMAKE --install "$NATIVE_BCACHED_DIR"
-    else
-        run $CMAKE \
-            -Wno-dev \
-            -S $PACKAGE_BSCRIPT_DIR \
-            -B $PACKAGE_BCACHED_DIR \
-            -DCMAKE_INSTALL_PREFIX=$PACKAGE_INSTALL_DIR \
-            -DCMAKE_TOOLCHAIN_FILE=$TARGET_CMAKE_TOOLCHAIN_FILE \
-            -DCMAKE_VERBOSE_MAKEFILE=$CMAKE_VERBOSE_MAKEFILE \
-            -DCMAKE_COLOR_MAKEFILE=$CMAKE_COLOR_MAKEFILE $@ &&
-        run $CMAKE --build   "$PACKAGE_BCACHED_DIR" -- -j$BUILD_NJOBS &&
-        run $CMAKE --install "$PACKAGE_BCACHED_DIR"
-    fi
-}
-
-# run in a subshell
-xmakew() {
-    XMAKE=$(command -v xmake) || die "command not found: xmake"
-
-    run "$XMAKE" --version
-
-    XMAKE_CONFIG_OPTIONS="$@"
-
-    XMAKE_CONFIG_OPTION_CLEAN=
-    XMAKE_CONFIG_OPTION_MODE=
-    XMAKE_CONFIG_OPTION_vD=
-
-    for arg in $@
-    do
-        case $arg in
-            -c|--clean)  XMAKE_CONFIG_OPTION_CLEAN=set ;;
-            -m|--mode=*) XMAKE_CONFIG_OPTION_MODE=set  ;;
-            -vD)         XMAKE_CONFIG_OPTION_vD=set ;;
+                shift
+                ;;
+            -ldflags)
+                shift
+                if [ -z "$GO_BUILD_ARGV_LDFLAGS" ] ; then
+                    GO_BUILD_ARGV_LDFLAGS="$1"
+                else
+                    GO_BUILD_ARGV_LDFLAGS="$1 $GO_BUILD_ARGV_LDFLAGS"
+                fi
+                shift
+                ;;
+            *)  GO_BUILD_ARGS_EXTRA="$GO_BUILD_ARGS_EXTRA $1" ; shift
         esac
     done
 
-    if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_DEBUG" ] && [ -z "$XMAKE_CONFIG_OPTION_vD" ]; then
-        XMAKE_CONFIG_OPTIONS="$XMAKE_CONFIG_OPTION_vD -vD"
-    fi
+    GO_BUILD_ARGS='-trimpath'
 
-    if [ -z "$XMAKE_CONFIG_OPTION_CLEAN" ] ; then
-        XMAKE_CONFIG_OPTIONS="$XMAKE_CONFIG_OPTIONS --clean"
-    fi
-
-    if [ -z "$XMAKE_CONFIG_OPTION_MODE" ] ; then
-        XMAKE_CONFIG_OPTIONS="$XMAKE_CONFIG_OPTIONS --mode=$BUILD_TYPE"
-    fi
-
-    if [ "$STEP_MESSAGE" = 'build for native' ] ; then
-        run $XMAKE config $XMAKE_CONFIG_OPTIONS --project=$PACKAGE_BSCRIPT_DIR --buildir=$NATIVE_BCACHED_DIR &&
-        run $XMAKE --jobs=$BUILD_NJOBS &&
-        run $XMAKE install -o "$NATIVE_INSTALL_DIR"
-    else
-        unset XMAKE_PLATFORM
-        XMAKE_PLATFORM="$(printf '%s\n' "$TARGET_PLATFORM_NAME_LOWER_CASE" | sed 's|simulator|os|')"
-        XMAKE_CONFIG_OPTIONS="$XMAKE_CONFIG_OPTIONS --plat=$XMAKE_PLATFORM"
-
-        case $TARGET_PLATFORM_NAME in
-            *Simulator) XMAKE_CONFIG_OPTIONS="$XMAKE_CONFIG_OPTIONS --appledev=simulator"
-        esac
-
-        XMAKE_CONFIG_OPTIONS="$XMAKE_CONFIG_OPTIONS --arch=$TARGET_PLATFORM_ARCH --buildir=$PACKAGE_BCACHED_DIR"
-
-        run $XMAKE config $XMAKE_CONFIG_OPTIONS &&
-        run $XMAKE --jobs=$BUILD_NJOBS &&
-        run $XMAKE install -o "$PACKAGE_INSTALL_DIR"
-    fi
-}
-
-# https://mesonbuild.com/Cross-compilation.html
-# run in a subshell
-mesonw() {
-    case $TARGET_PLATFORM_ARCH in
-        armv7*)
-            HOST_MACHINE_CPU_FAMILY='arm'
-            HOST_MACHINE_CPU_NAME="$TARGET_PLATFORM_ARCH"
-            ;;
-        arm64*|aarch64)
-            HOST_MACHINE_CPU_FAMILY='aarch64'
-            HOST_MACHINE_CPU_NAME='armv8a'
-            ;;
-        i386|i686)
-            HOST_MACHINE_CPU_FAMILY='x86'
-            HOST_MACHINE_CPU_NAME="$TARGET_PLATFORM_ARCH"
-            ;;
-        x86_64)
-            HOST_MACHINE_CPU_FAMILY='x86_64'
-            HOST_MACHINE_CPU_NAME="$TARGET_PLATFORM_ARCH"
-            ;;
-    esac
-
-    MESON_CROSS_FILE="$PACKAGE_BCACHED_DIR/cross-file"
-
-    cat > "$MESON_CROSS_FILE" <<EOF
-[host_machine]
-system = 'darwin'
-endian = 'little'
-cpu_family = '$HOST_MACHINE_CPU_FAMILY'
-cpu = '$HOST_MACHINE_CPU_NAME'
-
-[binaries]
-c = '$CC'
-cpp = '$CXX'
-ar = '$AR'
-strip = '$STRIP'
-cmake = '$CMAKE'
-pkgconfig = '$PKG_CONFIG'
-
-EOF
-
-    # https://mesonbuild.com/Machine-files.html#meson-builtin-options
-    if command_exists_in_filesystem_and_version_matched meson lt 0.56.0 ; then
-        cat >> "$MESON_CROSS_FILE" <<EOF
-[properties]
-c_args = $(to_meson_array $CFLAGS $CPPFLAGS)
-c_link_args = $(to_meson_array $LDFLAGS)
-cpp_args = $(to_meson_array $CXXFLAGS $CPPFLAGS)
-cpp_link_args = $(to_meson_array $LDFLAGS)
-EOF
-    else
-        cat >> "$MESON_CROSS_FILE" <<EOF
-[built-in options]
-c_args = $(to_meson_array $CFLAGS $CPPFLAGS)
-c_link_args = $(to_meson_array $LDFLAGS)
-cpp_args = $(to_meson_array $CXXFLAGS $CPPFLAGS)
-cpp_link_args = $(to_meson_array $LDFLAGS)
-EOF
-        if [ "$PACKAGE_BUILD_SYSTEM_CMAKE" = yes ] ; then
-            cat >> "$MESON_CROSS_FILE" <<EOF
-
-[properties]
-cmake_toolchain_file='$TARGET_CMAKE_TOOLCHAIN_FILE'
-EOF
+    if [ -z "$GO_BUILD_ARGV_V" ] ; then
+        if [ "$LOG_LEVEL" -gt "$LOG_LEVEL_QUIET" ] ; then
+            GO_BUILD_ARGS="$GO_BUILD_ARGS -v"
         fi
+    else
+        GO_BUILD_ARGS="$GO_BUILD_ARGS -v"
     fi
 
-    unset MESON_ARGUMENT_DEFAULT_LIBRARY
-
-    case $INSTALL_LIB in
-        static|shared|both) MESON_ARGUMENT_DEFAULT_LIBRARY="-Ddefault_library=$INSTALL_LIB"
-    esac
-
-    run "$MESON" setup \
-        --prefix="$PACKAGE_INSTALL_DIR" \
-        --buildtype=$BUILD_TYPE \
-        --backend=ninja \
-        --pkg-config-path="$PKG_CONFIG_PATH" \
-        --build.pkg-config-path="$PKG_CONFIG_PATH_FOR_BUILD" \
-        --cross-file="$MESON_CROSS_FILE" \
-        $MESON_ARGUMENT_DEFAULT_LIBRARY \
-        $@ "$PACKAGE_BCACHED_DIR" "$PACKAGE_BSCRIPT_DIR" &&
-    {
-        if command -v build_configed > /dev/null ; then
-            build_configed
+    if [ -z "$GO_BUILD_ARGV_X" ] ; then
+        if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
+            GO_BUILD_ARGS="$GO_BUILD_ARGS -x"
         fi
-    } &&
-    run ninja -C "$PACKAGE_BCACHED_DIR" &&
-    run ninja -C "$PACKAGE_BCACHED_DIR" install
-}
+    else
+        GO_BUILD_ARGS="$GO_BUILD_ARGS -x"
+    fi
 
-to_meson_array() {
-    RESULT="[''"
-    for item in $@
+    if [ -z "$GO_BUILD_ARGV_LDFLAGS" ] ; then
+        GO_BUILD_ARGS="$GO_BUILD_ARGS -ldflags '-s -w'"
+    else
+        GO_BUILD_ARGS="$GO_BUILD_ARGS -ldflags '-s -w $GO_BUILD_ARGV_LDFLAGS'"
+    fi
+
+    if [ -z "$GO_BUILD_ARGV_O" ] ; then
+        GO_BUILD_ARGS="$GO_BUILD_ARGS -o $PACKAGE_BCACHED_DIR/"
+    else
+        GO_BUILD_ARGS="$GO_BUILD_ARGS -o $PACKAGE_BCACHED_DIR/$GO_BUILD_ARGV_O"
+    fi
+
+    GO_BUILD_ARGS="$GO_BUILD_ARGS $GO_BUILD_ARGS_EXTRA"
+
+    run go build $GO_BUILD_ARGS || return 1
+
+    for item in $(ls "$PACKAGE_BCACHED_DIR")
     do
-        RESULT="$RESULT, '$item'"
+        case $item in
+            *.a)  run install_libs "$PACKAGE_BCACHED_DIR/$item" ;;
+            *.so) run install_libs "$PACKAGE_BCACHED_DIR/$item" ;;
+            *)    run install_bins "$PACKAGE_BCACHED_DIR/$item" ;;
+        esac
     done
-    RESULT="$RESULT]"
-    echo "$RESULT"
 }
+
+# }}}
+##############################################################################
+# {{{ system(3) stub
 
 inject_stub_system() {
     cat > "$PACKAGE_BSCRIPT_DIR/stub-system.c" <<EOF
@@ -5187,6 +4701,10 @@ EOF
         mv "$item.bak" "$item" || return 1
     done
 }
+
+# }}}
+##############################################################################
+# {{{ xcpkg xcinfo
 
 inspect_xcode_information() {
     if [ -z "$DEVELOPER_DIR" ] ; then
@@ -5333,17 +4851,6 @@ __print_platform_arch_table_all() {
 EOF
 }
 
-# __list_supported_target_abis 32bit|64bit|all
-__list_supported_target_abis() {
-    for PLATFORM in $(__list_supported_target_platforms)
-    do
-        for ARCH in $(__list_supported_target_archs $PLATFORM ${1-all} 2>/dev/null)
-        do
-            echo "$PLATFORM/$ARCH"
-        done
-    done
-}
-
 # __list_supported_target_triples 32bit|64bit|all
 __list_supported_target_triples() {
     for ARCH in $(__list_supported_target_archs list ${1-all} 2>/dev/null)
@@ -5385,229 +4892,529 @@ __list_supported_target_platform_versions() {
     fi
 }
 
-get_supported_min_version() {
-    if [ -z "$1" ] ; then
-        for PLATFORM in $(__list_supported_target_platforms)
-        do
-            printf "%-16s : %s\n" "$PLATFORM" $(get_supported_min_version "$PLATFORM")
-        done
-    else
-        __list_supported_target_platform_versions "$1" | awk '{print $1}'
-    fi
+# }}}
+##############################################################################
+# {{{ xcpkg tree
+
+# __tree_the_given_installed_package <PACKAGE-SPEC>
+  __tree_the_given_installed_package() {
+    PACKAGE_SPEC="$1"
+    die_if_package_is_not_installed "$PACKAGE_SPEC"
+    shift
+    run tree $@ "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_SPEC"
 }
 
-__create_framework_for_the_given_packages() {
-    die_if_package_list_is_not_specified "$1"
+# }}}
+##############################################################################
+# {{{ xcpkg logs
 
-    for PACKAGE in $@
+# __logs_the_given_installed_package <PACKAGE-SPEC>
+  __logs_the_given_installed_package() {
+    [ -z "$1" ] && {
+        error "$_0 logs <PACKAGE-SPEC>, <PACKAGE-SPEC> is unspecified."
+        return 1
+    }
+
+    if command -v bat > /dev/null ; then
+        VIEWER=bat
+    else
+        VIEWER=less
+    fi
+
+    for item in $(ls "$XCPKG_PACKAGE_INSTALLED_ROOT/$1/.xcpkg")
     do
-        __create_framework_for_the_given_package "$PACKAGE"
+        item="$XCPKG_PACKAGE_INSTALLED_ROOT/$1/.xcpkg/$item"
+
+        if [ -d "$item" ] ; then
+            continue
+        fi
+
+        if [ "$VIEWER" = 'bat' ] ; then
+            case $item in
+                *.png) ;;
+                */receipt.yml)
+                    bat -l yaml "$item" ;;
+                *)  bat "$item"
+            esac
+        else
+            "$VIEWER" "$item"
+        fi
     done
-}
 
-__create_framework_for_the_given_package() {
-    die_if_package_is_not_installed "$1"
-
-    unset -f create_framework
-
-    __load_formula_of_the_given_package "$1"
-    
-    if command -v create_framework > /dev/null ; then
-        create_framework
-    else
-        die "create_framework mapping not found in formula $MY_FORMULA_DIR/$1.yml"
+    if [ "$VIEWER" != 'bat' ] ; then
+        prompt_user_to_install_bat
     fi
 }
 
-inspect_install_arguments() {
-    inspect_xcode_information
+# }}}
+##############################################################################
+# {{{ xcpkg pack
 
-    # https://stackoverflow.com/questions/18476490/what-is-purpose-of-target-arch-variable-in-makefiles
-    unset TARGET_ARCH
+# examples:
+# __pack_the_given_installed_package <PACKAGE-NAME> [-t <zip|tar.gz|tar.xz|tar.lz|tar.bz2>] [-o <OUTPUT-PATH>] [--keep-packing-dir]
+# __pack_the_given_installed_package    autoconf     -t tar.xz
+  __pack_the_given_installed_package() {
+    __load_receipt_of_the_given_package "$1"
 
-    unset USER_SPECIFIED_PACKAGE_SPEC_LIST
+    TARGET_PLATFORM_ARCH="$(printf '%s\n' "$1" | cut -d/ -f3)"
+    RECEIPT_PACKAGE_NAME="$(printf '%s\n' "$1" | cut -d/ -f4)"
 
-    unset DRYRUN
+    shift
 
-    CCACHE_ENABLED=no
+    ###########################################################################################
 
-    LOG_LEVEL_QUIET=0
-    LOG_LEVEL_NORMAL=1
-    LOG_LEVEL_VERBOSE=2
-    LOG_LEVEL_DEBUG=3
-
-    LOG_LEVEL=$LOG_LEVEL_NORMAL
-
-    BUILD_NJOBS=$NATIVE_OS_NCPU
-
-    BUILD_TYPE=release
-
-    LINK_TYPE=static-prefered
-
-    INSTALL_EXE=yes
-    INSTALL_MAN=yes
-    INSTALL_DOC=yes
-    INSTALL_LIB=yes
-
-    KEEP_WORKING_DIR=no
+    unset OUTPUT_DIR
+    unset OUTPUT_FILETYPE
+    unset OUTPUT_FILEPATH
 
     while [ -n "$1" ]
     do
         case $1 in
-            --debug|-d)
-                LOG_LEVEL=$LOG_LEVEL_DEBUG
+            --keep-packing-dir)
+                KEEP_PACKING_DIR=yes
                 ;;
-            --verbose|-v)
-                LOG_LEVEL=$LOG_LEVEL_VERBOSE
-                ;;
-            --quiet|-q)
-                LOG_LEVEL=$LOG_LEVEL_QUIET
-                ;;
-            --disable-ccache)
-                CCACHE_ENABLED=no
-                ;;
-            --dry-run)
-                DRYRUN=yes
-                ;;
-            --keep-working-dir)
-                KEEP_WORKING_DIR=yes
-                ;;
-            --install-doc)
-                INSTALL_DOC=yes
-                ;;
-            --install-man)
-                INSTALL_MAN=yes
-                ;;
-            --install-exe)
-                INSTALL_EXE=yes
-                ;;
-            --install-lib=*)
-                INSTALL_LIB=$(getvalue "$1")
-                case $INSTALL_LIB in
-                    static|shared|both|yes|no) ;;
-                    '') die "--install-lib=<VALUE>, VALUE must be non-empty." ;;
-                    *)  die "--install-lib=<VALUE>, VALUE must be one of static|shared|both|yes|no"
-                esac
-                ;;
-            --build-type=*)
-                BUILD_TYPE=$(getvalue "$1")
-                case $BUILD_TYPE in
-                    debug|release) ;;
-                    '') die "--build-type=<VALUE>, VALUE must be non-empty." ;;
-                    *)  die "--build-type=<VALUE>, VALUE must be one of debug|release"
-                esac
-                ;;
-            --link-type=*)
-                LINK_TYPE=$(getvalue "$1")
-                case $LINK_TYPE in
-                    static-only|shared-only|static-prefered|shared-prefered) ;;
-                    '') die "--link-type=<VALUE>, VALUE must be non-empty." ;;
-                    *)  die "--link-type=<VALUE>, VALUE must be one of static-only|shared-only|static-prefered|shared-prefered"
-                esac
-                ;;
-            --jobs=*)
-                BUILD_NJOBS=$(getvalue "$1")
-                is_integer "$BUILD_NJOBS" || die "--jobs=INTEGER argument's value must be an integer."
-                ;;
-            -*) die "unrecognized option: $1"
-                ;;
-            *)  if printf '%s\n' "$1" | grep -q -E '^[A-Za-z0-9+-._]{1,50}$' ; then
-                    PACKAGE_NAME="$1"
-                    PACKAGE_SPEC="MacOSX/$NATIVE_OS_VERS/$NATIVE_OS_ARCH/$PACKAGE_NAME"
+            -t) shift
 
-                    warn "$1 will be treated as a package name, and it will be expanded to $PACKECK_SPEC"
-
-                    if [ -z "$USER_SPECIFIED_PACKAGE_SPEC_LIST" ] ; then
-                        USER_SPECIFIED_PACKAGE_SPEC_LIST="$PACKAGE_SPEC"
-                    else
-                        USER_SPECIFIED_PACKAGE_SPEC_LIST="$USER_SPECIFIED_PACKAGE_SPEC_LIST $PACKAGE_SPEC"
-                    fi
+                if [ -z "$1" ] ; then
+                    die "$_0 pack <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>], -t option is given but <OUTPUT-TYPE> is unspecified."
                 else
-                    case $1 in
-                        */*/*/*)
-                            unset PACKAGE_NAME
-
-                            unset TARGET_PLATFORM_NAME
-                            unset TARGET_PLATFORM_VERS
-                            unset TARGET_PLATFORM_ARCH
-
-                            TARGET_PLATFORM_NAME=$(printf '%s\n' "$1" | cut -d/ -f1)
-                            TARGET_PLATFORM_VERS=$(printf '%s\n' "$1" | cut -d/ -f2)
-                            TARGET_PLATFORM_ARCH=$(printf '%s\n' "$1" | cut -d/ -f3)
-                                    PACKAGE_NAME=$(printf '%s\n' "$1" | cut -d/ -f4)
-
-                            if [ -z "$PACKAGE_NAME" ] ; then
-                                die "invalid package spec: $1\npackage name is unspecified."
-                            fi
-
-                            case $TARGET_PLATFORM_NAME in
-                                MacOSX|AppleTVOS|iPhoneOS|WatchOS|AppleTVSimulator|iPhoneSimulator|WatchSimulator)
-                                    ;;
-                                '') TARGET_PLATFORM_NAME=MacOSX ;;
-                                *)  die "invalid package spec: $1\nunrecognized platform name: $TARGET_PLATFORM_NAME"
-                            esac
-
-                            if [ -z "$TARGET_PLATFORM_VERS" ] ; then
-                                case $TARGET_PLATFORM_NAME in
-                                    iPhoneOS|iPhoneSimulator)
-                                        TARGET_PLATFORM_VERS=9.0
-                                        ;;
-                                    WatchOS|WatchSimulator)
-                                        TARGET_PLATFORM_VERS=5.0
-                                        ;;
-                                    AppleTVOS|AppleTVSimulator)
-                                        TARGET_PLATFORM_VERS=9.0
-                                        ;;
-                                    MacOSX)
-                                        TARGET_PLATFORM_VERS=$NATIVE_OS_VERS
-                                        ;;
-                                esac
-                            fi
-
-                            if [ -z "$TARGET_PLATFORM_ARCH" ] ; then
-                                case $TARGET_PLATFORM_NAME in
-                                    WatchOS)
-                                        TARGET_PLATFORM_ARCH=arm64_32
-                                        ;;
-                                    WatchSimulator)
-                                        TARGET_PLATFORM_ARCH=arm64
-                                        ;;
-                                    iPhoneOS|iPhoneSimulator)
-                                        TARGET_PLATFORM_ARCH=arm64
-                                        ;;
-                                    AppleTVOS|AppleTVSimulator)
-                                        TARGET_PLATFORM_ARCH=arm64
-                                        ;;
-                                    MacOSX)
-                                        TARGET_PLATFORM_ARCH=$NATIVE_OS_ARCH
-                                        ;;
-                                esac
-                            fi
-
-                            PACKAGE_SPEC="$TARGET_PLATFORM_NAME/$TARGET_PLATFORM_VERS/$TARGET_PLATFORM_ARCH/$PACKAGE_NAME"
-                            ;;
-                        *)  die "invalid package spec: $1"
-                    esac
+                    OUTPUT_FILETYPE="$1"
                 fi
 
-                if [ -z "$USER_SPECIFIED_PACKAGE_SPEC_LIST" ] ; then
-                    USER_SPECIFIED_PACKAGE_SPEC_LIST="$PACKAGE_SPEC"
+                case $OUTPUT_FILETYPE in
+                    zip|tar.gz|tar.xz|tar.lz|tar.bz2) ;;
+                    *) die "$_0 pack <PACKAGE-NAME> [-t <OUTPUT-TYPE>], unsupported <OUTPU-TYPE>: $OUTPUT_FILETYPE, <OUTPU-TYPE> should be one of zip|tar.gz|tar.xz|tar.lz|tar.bz2"
+                esac
+                ;;
+            -o) shift
+                if [ -z "$1" ] ; then
+                    die "$_0 pack <PACKAGE-NAME> [-t <OUTPU-TYPE>] [-o <OUTPUT-PATH>], -o option is given but <OUTPUT-PATH> is unspecified."
                 else
-                    USER_SPECIFIED_PACKAGE_SPEC_LIST="$USER_SPECIFIED_PACKAGE_SPEC_LIST $PACKAGE_SPEC"
+                    OUTPUT_FILEPATH="$1"
                 fi
+                ;;
+            *)  die "$_0 pack <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>] [--keep-packing-dir], unrecognized option: $1"
         esac
         shift
     done
 
-    if [ "$LOG_LEVEL" -eq "$LOG_LEVEL_QUIET" ] ; then
-        exec 1>/dev/null
-        exec 2>&1
+    PACKED_DIR_NAME="$RECEIPT_PACKAGE_NAME-$RECEIPT_PACKAGE_VERSION-macos-$TARGET_PLATFORM_ARCH"
+
+    ###########################################################################################
+
+    if [ -z "$OUTPUT_FILEPATH" ] ; then
+        if [ -z "$OUTPUT_FILETYPE" ] ; then
+            OUTPUT_FILETYPE='tar.xz'
+        fi
+
+        OUTPUT_DIR="$XCPKG_HOME/packed"
+        OUTPUT_FILENAME="$PACKED_DIR_NAME.$OUTPUT_FILETYPE"
+    else
+        if [ -d "$OUTPUT_FILEPATH" ] ; then
+            if [ -z "$OUTPUT_FILETYPE" ] ; then
+                OUTPUT_FILETYPE='tar.xz'
+            fi
+
+            OUTPUT_DIR="$(realpath -s "$OUTPUT_FILEPATH")"
+            OUTPUT_FILENAME="$PACKED_DIR_NAME.$OUTPUT_FILETYPE"
+        else
+            case $OUTPUT_FILEPATH in
+                */)
+                    if [ -z "$OUTPUT_FILETYPE" ] ; then
+                        OUTPUT_FILETYPE='tar.xz'
+                    fi
+
+                    OUTPUT_DIR="$(realpath -s "$OUTPUT_FILEPATH")"
+                    OUTPUT_FILENAME="$PACKED_DIR_NAME.$OUTPUT_FILETYPE"
+                    ;;
+                *)
+                    OUTPUT_FILEPATH="$(realpath -s "$OUTPUT_FILEPATH")"
+
+                    if [ -z "$OUTPUT_FILETYPE" ] ; then
+                        case $OUTPUT_FILEPATH in
+                            *.tar.gz|*.tgz)
+                                OUTPUT_FILETYPE=tar.gz
+                                ;;
+                            *.tar.xz|*.txz)
+                                OUTPUT_FILETYPE=tar.xz
+                                ;;
+                            *.tar.lz|*.tlz)
+                                OUTPUT_FILETYPE=tar.lz
+                                ;;
+                            *.tar.bz2|*.tbz2)
+                                OUTPUT_FILETYPE=tar.bz2
+                                ;;
+                            *.zip)
+                                OUTPUT_FILETYPE=zip
+                                ;;
+                            *.7z)
+                                OUTPUT_FILETYPE=7z
+                                ;;
+                            *)  die "when -t <OUTPUT-TYPE> option is not given, -o <OUTPUT-PATH> option specified filename must ends with one of .tar.gz|.tar.xz|.tar.lz|.tar.bz2|.tgz|.txz|.tlz|.tbz2|.zip|.7z"
+                        esac
+                    fi
+
+                    OUTPUT_DIR="$(dirname "$OUTPUT_FILEPATH")"
+                    OUTPUT_FILENAME="$(basename "$OUTPUT_FILEPATH")"
+            esac
+        fi
     fi
 
-    if [ "$LOG_LEVEL" -gt "$LOG_LEVEL_DEBUG" ] ; then
-        export PKG_CONFIG_DEBUG_SPEW=set
+    ###########################################################################################
+
+    step "create packing directory"
+    printf '%b\n' "$COLOR_PURPLE==>$COLOR_OFF ${COLOR_GREEN}mktemp -d$COLOR_OFF"
+    PACKING_DIR=$(mktemp -d)
+
+    step "change to packing directory"
+    run cd $PACKING_DIR
+
+    step "make link refer to installed package root dir"
+    run ln -s "$PACKAGE_INSTALLED_DIR" "$PACKED_DIR_NAME"
+
+    step "packing"
+    case $OUTPUT_FILETYPE in
+        zip) run zip -9 -r     "$OUTPUT_FILENAME" "$PACKED_DIR_NAME" ;;
+        7z)  run 7za a -t7z -r "$OUTPUT_FILENAME" "$PACKED_DIR_NAME/*" "$PACKED_DIR_NAME/.xcpkg" ;;
+        tar.xz)  run tar cv --xz    -f "$OUTPUT_FILENAME" "$PACKED_DIR_NAME/*" "$PACKED_DIR_NAME/.xcpkg" ;;
+        tar.gz)  run tar cv --gzip  -f "$OUTPUT_FILENAME" "$PACKED_DIR_NAME/*" "$PACKED_DIR_NAME/.xcpkg" ;;
+        tar.lz)  run tar cv --lzip  -f "$OUTPUT_FILENAME" "$PACKED_DIR_NAME/*" "$PACKED_DIR_NAME/.xcpkg" ;;
+        tar.bz2) run tar cv --bzip2 -f "$OUTPUT_FILENAME" "$PACKED_DIR_NAME/*" "$PACKED_DIR_NAME/.xcpkg" ;;
+    esac
+
+    step "check integrity of packed file"
+    case $OUTPUT_FILETYPE in
+        7z)    run 7za t -t7z "$OUTPUT_FILENAME" ;;
+        zip)   run unzip -t   "$OUTPUT_FILENAME" ;;
+        tar.*) run tar   -tf  "$OUTPUT_FILENAME" ;;
+    esac
+
+    step "show size of packed file"
+    run "du -sh $OUTPUT_FILENAME | cut -f1"
+
+    if [ ! -d "$OUTPUT_DIR" ] ; then
+        step "create output dir"
+        run install -d "$OUTPUT_DIR"
+    fi
+
+    step "copy packed file to output dir"
+    run cp "$OUTPUT_FILENAME" "$OUTPUT_DIR/"
+
+    if [ "$KEEP_PACKING_DIR" = yes ] ; then
+        echo
+        note "the work dir [$PACKING_DIR] is not deleted as --keep-packing-dir option is given."
+    else
+        step "delete packing directory"
+        run rm -rf $PACKING_DIR
+    fi
+
+}
+
+# }}}
+##############################################################################
+# {{{ xcpkg upgrade-self
+
+# __upgrade_self <URL>
+  __upgrade_self() {
+    if [ -z "$1" ] ; then
+        error "__upgrade_self <URL> , <URL> must be non-empty."
+        return 1
+    fi
+
+    unset CURRENT_SCRIPT_REALPATH
+
+    # if file exists and is a symbolic link
+    if [ -L "$CURRENT_SCRIPT_FILEPATH" ] ; then
+        # https://unix.stackexchange.com/questions/136494/whats-the-difference-between-realpath-and-readlink-f#:~:text=GNU%20coreutils%20introduced%20a%20realpath,in%20common%20with%20GNU%20readlink%20.
+        if command -v realpath > /dev/null ; then
+            CURRENT_SCRIPT_REALPATH=$(realpath $CURRENT_SCRIPT_FILEPATH)
+        elif command -v readlink > /dev/null && readlink -f xx > /dev/null 2>&1 ; then
+            CURRENT_SCRIPT_REALPATH=$(readlink -f $CURRENT_SCRIPT_FILEPATH)
+        else
+            CURRENT_SCRIPT_REALPATH=$(realpath $CURRENT_SCRIPT_FILEPATH)
+        fi
+    else
+        CURRENT_SCRIPT_REALPATH="$CURRENT_SCRIPT_FILEPATH"
+    fi
+
+    printf '%b\n' "$COLOR_PURPLE==>$COLOR_OFF ${COLOR_GREEN}mktemp -d$COLOR_OFF"
+    WORKING_DIR=$(mktemp -d)
+
+    run cd $WORKING_DIR
+
+    wfetch "$1" --output-path="$WORKING_DIR/self"
+
+    __upgrade_self_exit() {
+        if [ -w "$CURRENT_SCRIPT_REALPATH" ] ; then
+            run      install -m 755 self "$CURRENT_SCRIPT_REALPATH"
+        else
+            run sudo install -m 755 self "$CURRENT_SCRIPT_REALPATH"
+        fi
+
+        run rm -rf $WORKING_DIR
+    }
+
+    trap __upgrade_self_exit EXIT
+}
+
+# }}}
+##############################################################################
+# {{{ xcpkg integrate zsh
+
+# __integrate_zsh_completions <URL> [--output-dir=<DIR>]
+  __integrate_zsh_completions() {
+    if [ -z "$1" ] ; then
+        error "__integrate_zsh_completions <URL> [--output-dir=<DIR>] , <URL> must be non-empty."
+        return 1
+    else
+        ZSH_COMPLETIONS_SCRIPT_URL="$1"
+    fi
+
+    shift
+
+    unset OUTPUT_DIR
+
+    for arg in $@
+    do
+        case $arg in
+            --output-dir=*)
+                OUTPUT_DIR="${arg#*=}"
+                case $OUTPUT_DIR in
+                    '')     die "__integrate_zsh_completions <URL> [--output-dir=<DIR>] , <DIR> must be non-empty." ;;
+                    \~|\~/) OUTPUT_DIR="${HOME}" ;;
+                    \~/*)   OUTPUT_DIR="$HOME/$(printf '%s\n' "$OUTPUT_DIR" | cut -c3-)" ;;
+                esac
+                ;;
+            *)  die "__integrate_zsh_completions <URL> [--output-dir=<DIR>] , unrecognized argument: $arg"
+        esac
+    done
+
+    ZSH_COMPLETIONS_SCRIPT_FILENAME="_$CURRENT_SCRIPT_FILENAME"
+
+    if [ -n "$OUTPUT_DIR" ] ; then
+        ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH="$OUTPUT_DIR/$ZSH_COMPLETIONS_SCRIPT_FILENAME"
+    elif [ "$(uname)" = Linux ] && command -v termux-info > /dev/null && [ "$HOME" = '/data/data/com.termux/files/home' ] ; then
+        ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH="/data/data/com.termux/files/usr/share/zsh/site-functions/$ZSH_COMPLETIONS_SCRIPT_FILENAME"
+    else
+        ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH="/usr/local/share/zsh/site-functions/$ZSH_COMPLETIONS_SCRIPT_FILENAME"
+    fi
+
+    # if file exists and is a symbolic link
+    if [ -L "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH" ] ; then
+        # https://unix.stackexchange.com/questions/136494/whats-the-difference-between-realpath-and-readlink-f#:~:text=GNU%20coreutils%20introduced%20a%20realpath,in%20common%20with%20GNU%20readlink%20.
+        if command -v realpath > /dev/null ; then
+            ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH=$(realpath $ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH)
+        elif command -v readlink > /dev/null && readlink -f xx > /dev/null 2>&1 ; then
+            ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH=$(readlink -f $ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH)
+        else
+            ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH=$(realpath $ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH)
+        fi
+    fi
+
+    printf '%b\n' "$COLOR_PURPLE==>$COLOR_OFF ${COLOR_GREEN}mktemp -d$COLOR_OFF"
+    WORKING_DIR=$(mktemp -d)
+
+    run cd $WORKING_DIR
+
+    wfetch "$ZSH_COMPLETIONS_SCRIPT_URL" --output-path="$WORKING_DIR/$ZSH_COMPLETIONS_SCRIPT_FILENAME"
+
+    if [ -f "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH" ] ; then
+        if [ -w "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH" ] ; then
+            run      install -m 644 "$ZSH_COMPLETIONS_SCRIPT_FILENAME" "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH"
+        else
+            run sudo install -m 644 "$ZSH_COMPLETIONS_SCRIPT_FILENAME" "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH"
+        fi
+    else
+        ZSH_COMPLETIONS_SCRIPT_OUT_DIR="$(dirname "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH")"
+        if [ ! -d "$ZSH_COMPLETIONS_SCRIPT_OUT_DIR" ] ; then
+            run install -d "$ZSH_COMPLETIONS_SCRIPT_OUT_DIR" || run sudo install -d "$ZSH_COMPLETIONS_SCRIPT_OUT_DIR"
+        fi
+        if [ -w "$ZSH_COMPLETIONS_SCRIPT_OUT_DIR" ] ; then
+            run      install -m 644 "$ZSH_COMPLETIONS_SCRIPT_FILENAME" "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH"
+        else
+            run sudo install -m 644 "$ZSH_COMPLETIONS_SCRIPT_FILENAME" "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH"
+        fi
+    fi
+
+    run rm -rf $WORKING_DIR
+
+    printf '\n'
+    note "${COLOR_YELLOW}you need to run command${COLOR_RED} ${COLOR_GREEN}autoload -U compinit && compinit${COLOR_OFF} ${COLOR_YELLOW}in zsh to make it work.${COLOR_OFF}"
+}
+
+# }}}
+##############################################################################
+# {{{ xcpkg compare-versions
+
+package_name_transform_from_uppm_to_brew() {
+    case $1 in
+        file)     printf '%s\n' 'file-formula' ;;
+        delta)    printf '%s\n' 'git-delta' ;;
+        gmake)    printf '%s\n' 'make'      ;;
+        gtar)     printf '%s\n' 'gnu-tar'   ;;
+        gm4)      printf '%s\n' 'm4'        ;;
+        libjxl)   printf '%s\n' 'jpeg-xl'   ;;
+        blake3)   printf '%s\n' 'b3sum'     ;;
+        libwebp)  printf '%s\n' 'webp'      ;;
+        proj7)    printf '%s\n' 'proj@7'    ;;
+        openssl)  printf '%s\n' 'openssl@1.1';;
+        freetype2)printf '%s\n' 'freetype'  ;;
+        freetype2-with-harfbuzz)
+                  printf '%s\n' 'freetype'  ;;
+        gnu-coreutils)
+                  printf '%s\n' 'coreutils' ;;
+        libmediainfo|mediainfo)
+                  printf '%s\n' 'media-info';;
+        tcl-core) printf '%s\n' 'tcl-tk'    ;;
+        *)        printf '%s\n' "$1"
+    esac
+}
+
+__compare_versions_with_brew() {
+    set -e
+
+    cd "$XCPKG_HOME/repos.d/offical-core/formula"
+
+    for item in $(ls -1 *.yml | sed 's/\.yml$//')
+    do
+        __load_formula_of_the_given_package "$item"
+
+        BREW_PKG_NMAE="$(package_name_transform_from_uppm_to_brew $PACKAGE_NAME)"
+
+        if brew info "$BREW_PKG_NMAE" > /dev/null 2>&1 ; then
+            BREW_PKG_VERS=$(__pmw_get_available_package_version_by_package_name brew "$BREW_PKG_NMAE")
+
+            if version_match "$BREW_PKG_VERS" gt "$PACKAGE_VERSION" ; then
+                printf "${COLOR_RED}%-10s %-10s  |  %-10s %-10s${COLOR_OFF}\n" "$PACKAGE_NAME" "$PACKAGE_VERSION" "$BREW_PKG_NMAE" "$BREW_PKG_VERS"
+            else
+                :
+                #printf "${COLOR_GREEN}%-10s %-10s  |  %-10s %-10s${COLOR_OFF}\n" "$PACKAGE_NAME" "$PACKAGE_VERSION" "$BREW_PKG_NMAE" "$BREW_PKG_VERS"
+            fi
+        else
+            printf "${COLOR_BLUE}%-10s %-10s  |${COLOR_OFF}\n" "$PACKAGE_NAME" "$PACKAGE_VERSION"
+        fi
+    done
+}
+
+# }}}
+##############################################################################
+# {{{ xcpkg gen-github-workflows
+
+__gen_github_workflows() {
+    set -e
+
+    unset BREAK
+    unset NDEPENDED_PACKAGES
+    unset AVAILABLE_PACKAGES
+    unset GROUP_SIZE
+    unset OUTPUT_DIR
+    unset I
+
+    while [ -n "$1" ]
+    do
+        case $1 in
+            --group-size=*)
+                GROUP_SIZE="${1#*=}"
+                is_integer "$GROUP_SIZE" || die "--group-size=INTEGER"
+                ;;
+            --output-dir=*)
+                OUTPUT_DIR="${1#*=}"
+                case "$OUTPUT_DIR" in
+                    '') die "--output-dir=<DIR>, DIR must be non-empty." ;;
+                    /*) ;;
+                    \~|\~/) OUTPUT_DIR="${HOME}" ;;
+                    \~/*)   OUTPUT_DIR="${HOME}$(printf "$OUTPUT_DIR" | cut -c3-)" ;;
+                    .|./)   OUTPUT_DIR="${PWD}" ;;
+                    *)      OUTPUT_DIR="${PWD}/$OUTPUT_DIR" ;;
+                esac
+                [ -d "$OUTPUT_DIR" ] || run install -d "$OUTPUT_DIR"
+        esac
+        shift
+    done
+
+    if [ -z "$GROUP_SIZE" ] ; then
+        die "please sepecify --group-size=INTEGER argument."
+    fi
+
+    if [ -z "$OUTPUT_DIR" ] ; then
+        OUTPUT_DIR="$XCPKG_HOME/repos.d/offical-core/.github/workflows"
+    fi
+
+    GITHUB_ACTIONS_WORKFLOW_TEMPLATE_FILEPATH="$XCPKG_HOME/repos.d/offical-core/.github/workflows/template"
+
+    if [ ! -f "$GITHUB_ACTIONS_WORKFLOW_TEMPLATE_FILEPATH" ] ; then
+        __update_formula_repositories
+    fi
+
+    AVAILABLE_PACKAGES=$(__list_available_packages)
+
+    for x in $AVAILABLE_PACKAGES
+    do
+        if [ "$x" = 'test' ] ; then
+            continue
+        fi
+        for y in $AVAILABLE_PACKAGES
+        do
+            if [ "$x" = "$y" ] || [ 'test' = "$y" ] ; then
+                continue
+            else
+                for z in $(get_direct_dependency_package_list_of_the_given_package "$y")
+                do
+                    if [ "$x" = "$z" ] ; then
+                        BREAK=yes
+                        break 2
+                    fi
+                done
+            fi
+        done
+        if [ "$BREAK" = yes ] ; then
+            unset BREAK
+        else
+            if [ -z "$NDEPENDED_PACKAGES" ] ; then
+                NDEPENDED_PACKAGES="$x"
+            else
+                NDEPENDED_PACKAGES="$NDEPENDED_PACKAGES $x"
+            fi
+            if [ "$(list_length $NDEPENDED_PACKAGES)" -eq "$GROUP_SIZE" ] ; then
+                unset OUTPUT_FILEPATH
+
+                I=$(expr ${I-0} + 1)
+                OUTPUT_FILEPATH="$OUTPUT_DIR/ci$I.yml"
+                NDEPENDED_PACKAGES=$(echo "$NDEPENDED_PACKAGES" | tr ' ' ,)
+
+                echo
+                run cp "$GITHUB_ACTIONS_WORKFLOW_TEMPLATE_FILEPATH" "$OUTPUT_FILEPATH"
+                sed_in_place "s/INDEX/$I/"                     "$OUTPUT_FILEPATH"
+                sed_in_place "s/PKGLIST/$NDEPENDED_PACKAGES/"  "$OUTPUT_FILEPATH"
+
+                unset NDEPENDED_PACKAGES
+            fi
+        fi
+    done
+    if [ -n "$NDEPENDED_PACKAGES" ] ; then
+        unset OUTPUT_FILEPATH
+
+        I=$(expr ${I-0} + 1)
+        OUTPUT_FILEPATH="$OUTPUT_DIR/ci$I.yml"
+        NDEPENDED_PACKAGES=$(echo "$NDEPENDED_PACKAGES" | tr ' ' ,)
+
+        run cp "$GITHUB_ACTIONS_WORKFLOW_TEMPLATE_FILEPATH" "$OUTPUT_FILEPATH"
+        sed_in_place "s/INDEX/$I/"                     "$OUTPUT_FILEPATH"
+        sed_in_place "s/PKGLIST/$NDEPENDED_PACKAGES/"  "$OUTPUT_FILEPATH"
     fi
 }
+
+# }}}
+##############################################################################
+# {{{ xcpkg cleanup
+
+__cleanup() {
+    success "Done."
+}
+
+# }}}
+##############################################################################
+# {{{ xcpkg setup
 
 __setup() {
     if [ -d    "$XCPKG_CORE_DIR" ] ; then
@@ -5723,7 +5530,7 @@ __setup_uppm() {
 
     for FETCH_TOOL in curl wget http lynx aria2c axel
     do
-        if command_exists_in_filesystem "$FETCH_TOOL" ; then
+        if command -v "$FETCH_TOOL" > /dev/null ; then
             break
         else
             unset FETCH_TOOL
@@ -5820,6 +5627,10 @@ fi
 EOF
 }
 
+# }}}
+##############################################################################
+# {{{ xcpkg help
+
 __help() {
     if command -v base64 > /dev/null ; then
         LOGO_BASE64_ENCODED='ICAgICAgICAgICAgICAgIF8gICAgICAgICAKX18gIF9fX19fIF8gX18gfCB8IF9fX18gXyAKXCBc
@@ -5829,7 +5640,7 @@ X19ffCAuX18vfF98XF9cX18sIHwKICAgICAgICAgfF98ICAgICAgICB8X19fLyAK'
         if command -v lolcat > /dev/null ; then
             printf '%s\n' "$LOGO_BASE64_ENCODED" | base64 -d | lolcat -S 350
         elif command -v awk > /dev/null ; then
-            printf '%s\n' "$LOGO_BASE64_ENCODED" | base64 -d | lolcat_awk
+            printf '%s\n' "$LOGO_BASE64_ENCODED" | base64 -d | lolcat_implemented_in_awk
         else
             printf '%b\n' "${COLOR_BLUE}$(printf '%s\n' "$LOGO_BASE64_ENCODED" | base64 -d)${COLOR_OFF}"
         fi
@@ -5998,6 +5809,10 @@ ${COLOR_GREEN}PACKAGE-NAME:${COLOR_OFF}
         exit "$1"
     fi
 }
+
+# }}}
+##############################################################################
+# {{{ xcpkg main
 
 main() {
     set -e
@@ -6249,8 +6064,6 @@ EOF
         update)  __update_formula_repositories ;;
         cleanup) __cleanup ;;
 
-        min-version) shift; get_supported_min_version $1 ;;
-
         search)  shift; __search_packages "$*" ;;
 
           install) shift;   __install_the_given_packages $@ ;;
@@ -6285,10 +6098,6 @@ EOF
             shift
             __show_information_of_the_given_package $@
             ;;
-        create-framework)
-            shift
-            __create_framework_for_the_given_packages $@
-            ;;
         gen-github-workflows)
             shift
             __gen_github_workflows $@
@@ -6301,3 +6110,10 @@ EOF
 }
 
 main $@
+
+# }}}
+##############################################################################
+# {{{ vim operation
+# last line mode :set foldmethod=marker
+# command mode zM  fold close all
+# command mode zR  fold open all
