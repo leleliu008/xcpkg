@@ -82,11 +82,6 @@ jobs:
       - run: bin/xcpkg ls-target-archs WatchOS
       - run: bin/xcpkg ls-target-archs WatchSimulator
 
-      - run: bin/xcpkg ls-target-triples
-      - run: bin/xcpkg ls-target-triples all
-      - run: bin/xcpkg ls-target-triples 32bit
-      - run: bin/xcpkg ls-target-triples 64bit
-
       - run: bin/xcpkg ls-target-versions
       - run: bin/xcpkg ls-target-versions MacOSX
       - run: bin/xcpkg ls-target-versions AppleTVOS
@@ -157,7 +152,6 @@ jobs:
       - run: xcpkg info uctags installed-dir
       - run: xcpkg info uctags installed-metadata
       - run: xcpkg info uctags installed-files
-      - run: xcpkg info uctags installed-abis
       - run: xcpkg info uctags installed-datetime-unix
       - run: xcpkg info uctags installed-datetime-formatted
       - run: xcpkg info uctags installed-pkg-version
@@ -168,11 +162,6 @@ jobs:
       - run: xcpkg formula-repo list
       - run: xcpkg formula view curl
 
-      - run: xcpkg ls-target-abis
-      - run: xcpkg ls-target-abis all
-      - run: xcpkg ls-target-abis 32bit
-      - run: xcpkg ls-target-abis 64bit
-
       - run: xcpkg ls-target-archs
       - run: xcpkg ls-target-archs MacOSX
       - run: xcpkg ls-target-archs AppleTVOS
@@ -181,11 +170,6 @@ jobs:
       - run: xcpkg ls-target-archs iPhoneSimulator
       - run: xcpkg ls-target-archs WatchOS
       - run: xcpkg ls-target-archs WatchSimulator
-
-      - run: xcpkg ls-target-triples
-      - run: xcpkg ls-target-triples all
-      - run: xcpkg ls-target-triples 32bit
-      - run: xcpkg ls-target-triples 64bit
 
       - run: xcpkg ls-target-versions
       - run: xcpkg ls-target-versions MacOSX

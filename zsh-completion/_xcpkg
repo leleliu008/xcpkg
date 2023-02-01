@@ -8,7 +8,6 @@ _commands=(
     'search:search packages can be installed.'
     'ls-target-platforms:list the supportted platforms of target platforms.'
     'ls-target-versions:list the supportted versions of target platforms.'
-    'ls-target-triples:list the supportted target triples.'
     'ls-target-archs:list the supportted archs of target platforms.'
     'ls-available:list the available packages.'
     'ls-installed:list the installed packages.'
@@ -79,9 +78,6 @@ function _xcpkg() {
                     _arguments \
                         ':platform:($(xcpkg ls-target-platforms))' \
                         ':bit:(64bit 32bit all)'
-                    ;;
-                ls-target-triples)
-                    _arguments '1:bit:(64bit 32bit all)'
                     ;;
                 formula-repo-del)
                     _arguments '1:repo-name:($(xcpkg formula-repo-list | sed -n "/name: /p" | cut -c7-))'

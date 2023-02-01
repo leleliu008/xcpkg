@@ -95,9 +95,9 @@ sed_in_place() {
         shift
         # contains ' but not contains \'
         if printf "$SED_IN_PLACE_ACTION" | hexdump -v -e '1/1 "%02X" " "' | grep -q 27 && ! printf "$SED_IN_PLACE_ACTION" | hexdump -v -e '1/1 "%02X" ""' | grep -q '5C 27' ; then
-            run gsed -i "\"$SED_IN_PLACE_ACTION\"" $@
+            run gsed -i "\"$SED_IN_PLACE_ACTION\"" "$@"
         else
-            run gsed -i "'$SED_IN_PLACE_ACTION'" $@
+            run gsed -i "'$SED_IN_PLACE_ACTION'" "$@"
         fi
     elif command -v sed  > /dev/null ; then
         if sed -i 's/a/b/g' $(mktemp) 2> /dev/null ; then
@@ -105,18 +105,18 @@ sed_in_place() {
             SED_IN_PLACE_ACTION="$1"
             shift
             if printf "$SED_IN_PLACE_ACTION" | hexdump -v -e '1/1 "%02X" " "' | grep -q 27 && ! printf "$SED_IN_PLACE_ACTION" | hexdump -v -e '1/1 "%02X" ""' | grep -q '5C 27' ; then
-                run sed -i "\"$SED_IN_PLACE_ACTION\"" $@
+                run sed -i "\"$SED_IN_PLACE_ACTION\"" "$@"
             else
-                run sed -i "'$SED_IN_PLACE_ACTION'" $@
+                run sed -i "'$SED_IN_PLACE_ACTION'" "$@"
             fi
         else
             unset SED_IN_PLACE_ACTION
             SED_IN_PLACE_ACTION="$1"
             shift
             if printf "$SED_IN_PLACE_ACTION" | hexdump -v -e '1/1 "%02X" " "' | grep -q 27 && ! printf "$SED_IN_PLACE_ACTION" | hexdump -v -e '1/1 "%02X" ""' | grep -q '5C 27' ; then
-                run sed -i '""' "\"$SED_IN_PLACE_ACTION\"" $@
+                run sed -i '""' "\"$SED_IN_PLACE_ACTION\"" "$@"
             else
-                run sed -i '""' "'$SED_IN_PLACE_ACTION'" $@
+                run sed -i '""' "'$SED_IN_PLACE_ACTION'" "$@"
             fi
         fi
     else
@@ -331,8 +331,8 @@ wfetch() {
         unset FETCH_OUTPUT_DIR
         unset FETCH_OUTPUT_NAME
     else
-        FETCH_OUTPUT_DIR="$(dirname $FETCH_OUTPUT_PATH)"
-        FETCH_OUTPUT_NAME="$(basename $FETCH_OUTPUT_PATH)"
+        FETCH_OUTPUT_DIR="$(dirname "$FETCH_OUTPUT_PATH")"
+        FETCH_OUTPUT_NAME="$(basename "$FETCH_OUTPUT_PATH")"
         if [ !          -d "$FETCH_OUTPUT_DIR" ] ; then
             run install -d "$FETCH_OUTPUT_DIR" || return 1
         fi
@@ -427,7 +427,7 @@ wfetch() {
 
             if [ "$FETCH_OUTPUT_PATH" != '-' ] && [ -n "$FETCH_SHA256" ] ; then
                 [ "$(sha256sum "$FETCH_OUTPUT_PATH" | cut -d ' ' -f1)" = "$FETCH_SHA256" ] || {
-                    error "sha256sum mismatch.\n    expect : $FETCH_SHA256\n    actual : $(sha256sum $FETCH_OUTPUT_PATH | cut -d ' ' -f1)"
+                    error "sha256sum mismatch.\n    expect : $FETCH_SHA256\n    actual : $(sha256sum "$FETCH_OUTPUT_PATH" | cut -d ' ' -f1)"
                     return 1
                 }
             fi
@@ -617,7 +617,7 @@ __load_formula_of_the_given_package() {
     unset -f build
     unset -f build_configed
 
-    PACKAGE_FORMULA_FILEPATH="$(__path_of_formula_of_the_given_package $1)" || return 1
+    PACKAGE_FORMULA_FILEPATH="$(__path_of_formula_of_the_given_package "$1")" || return 1
 
     for key in summary web-url git-url git-sha git-ref shallow src-url src-uri src-sha fix-url fix-sha res-url res-sha dep-pkg dep-upp dep-pym dep-plm license version bsystem bscript binbstd cdefine ccflags xxflags ldflags parallel toolset cstdlib exetype symlink
     do
@@ -871,7 +871,7 @@ __load_formula_of_the_given_package() {
     }
 
     unset PACKAGE_FORMULA_FILEPATH
-    PACKAGE_FORMULA_FILEPATH="$(__path_of_formula_of_the_given_package $1)" || return 1
+    PACKAGE_FORMULA_FILEPATH="$(__path_of_formula_of_the_given_package "$1")" || return 1
 
     shift
 
@@ -931,7 +931,7 @@ __load_formula_of_the_given_package() {
     }
 
     unset PACKAGE_FORMULA_FILEPATH
-    PACKAGE_FORMULA_FILEPATH="$(__path_of_formula_of_the_given_package $1)" || return 1
+    PACKAGE_FORMULA_FILEPATH="$(__path_of_formula_of_the_given_package "$1")" || return 1
 
     [ -z "$2" ] || warn "edit action accept only one argument."
 
@@ -977,7 +977,7 @@ EOF
     }
 
     unset PACKAGE_FORMULA_FILEPATH
-    PACKAGE_FORMULA_FILEPATH="$(__path_of_formula_of_the_given_package $1)" || return 1
+    PACKAGE_FORMULA_FILEPATH="$(__path_of_formula_of_the_given_package "$1")" || return 1
 
     run rm "$PACKAGE_FORMULA_FILEPATH"
 }
@@ -995,7 +995,7 @@ __rename_formula_of_the_given_package() {
     }
 
     unset PACKAGE_FORMULA_REPO
-    PACKAGE_FORMULA_REPO="$(__repo_of_formula_of_the_given_package $1)" || return 1
+    PACKAGE_FORMULA_REPO="$(__repo_of_formula_of_the_given_package "$1")" || return 1
 
     unset PACKAGE_FORMULA_FILEPATH_OLD
     unset PACKAGE_FORMULA_FILEPATH_NEW
@@ -1429,10 +1429,6 @@ EOF
 ##############################################################################
 # {{{ error handling
 
-die_if_package_is_not_specified() {
-    [ -n "$1" ] || die "no package is specified."
-}
-
 die_if_package_is_not_available() {
     is_package_available "$1" || die "$1 is not available."
 }
@@ -1465,11 +1461,11 @@ die_if_package_is_not_installed() {
 # is_package_available automake
 is_package_available() {
     case $# in
-        0)  die_if_package_is_not_specified ;;
-        1)  [ -n "$(__path_of_formula_of_the_given_package $1)" ] ;;
+        0)  die "package name is unspecified." ;;
+        1)  [ -n "$(__path_of_formula_of_the_given_package "$1")" ] ;;
         3)  __load_formula_of_the_given_package "$1"
             shift
-            version_match $PACKAGE_VERSION $@
+            version_match "$PACKAGE_VERSION" "$@"
             ;;
         *)  die "is available command only accept 1 or 3 argument."
     esac
@@ -1786,7 +1782,7 @@ EOF
     }
 
     case $1 in
-        @all) shift ; __show_information_of_all_available_packages $@ ; return $?
+        @all) shift ; __show_information_of_all_available_packages "$@" ; return $?
     esac
 
     case $2 in
@@ -2028,15 +2024,15 @@ __fetch_resources_of_the_given_package() {
             for PKG in $(__list_available_packages)
             do
                 step "$PKG"
-                 __load_formula_of_the_given_package "$PKG" $@
-                __fetch_sources_of_the_given_package "$PKG" $@
-                __fetch_patches_of_the_given_package "$PKG" $@
+                 __load_formula_of_the_given_package "$PKG" "$@"
+                __fetch_sources_of_the_given_package "$PKG" "$@"
+                __fetch_patches_of_the_given_package "$PKG" "$@"
             done
             ;;
         *)
-             __load_formula_of_the_given_package $@
-            __fetch_sources_of_the_given_package $@
-            __fetch_patches_of_the_given_package $@
+             __load_formula_of_the_given_package "$@"
+            __fetch_sources_of_the_given_package "$@"
+            __fetch_patches_of_the_given_package "$@"
     esac
 }
 
@@ -2045,11 +2041,18 @@ __fetch_resources_of_the_given_package() {
 # {{{ xcpkg uninstall
 
 __uninstall_the_given_packages() {
-    die_if_package_is_not_specified "$1"
+    [ -z "$1" ] && die "package name or spec is unspecified."
 
-    for packageName in $@
+    unset PACKAGE_SPECS
+
+    for item in "$@"
     do
-        __uninstall_the_given_package "$packageName" || return 1
+        PACKAGE_SPECS="$PACKAGE_SPECS $(inspect_package_spec "$item")"
+    done
+
+    for PACKAGE_SPEC in $PACKAGE_SPECS
+    do
+        __uninstall_the_given_package "$PACKAGE_SPEC" || return 1
     done
 }
 
@@ -2065,9 +2068,9 @@ __uninstall_the_given_packages() {
 # {{{ xcpkg reinstall
 
 __reinstall_the_given_packages() {
-    inspect_install_arguments $@
+    inspect_install_arguments "$@"
 
-    die_if_package_is_not_specified $USER_SPECIFIED_PACKAGE_SPEC_LIST
+    [ -z "$USER_SPECIFIED_PACKAGE_SPEC_LIST" ] && die "package name or spec is unspecified."
 
     for packageName in $USER_SPECIFIED_PACKAGE_SPEC_LIST
     do
@@ -2094,7 +2097,7 @@ __reinstall_the_given_packages() {
 # {{{ xcpkg upgrade
 
 __upgrade_packages() {
-    inspect_install_arguments $@
+    inspect_install_arguments "$@"
 
     if [ -z "$USER_SPECIFIED_PACKAGE_SPEC_LIST" ] ; then
         USER_SPECIFIED_PACKAGE_SPEC_LIST=$(__list__outdated_packages)
@@ -2283,7 +2286,7 @@ $RESULT"
 }
 
 __get_dot_file_contents() {
-    for PKG in $@
+    for PKG in "$@"
     do
         unset DIRECT_DEPENDENT_PACKAGES
         DIRECT_DEPENDENT_PACKAGES="$(__get_packages_that_are_directly_depended_by_the_given_package "$PKG")"
@@ -2339,7 +2342,7 @@ __gen_dependency_graph_recursively_depended_by_the_given_package() {
                 -s \
                 -G \
                 --data-urlencode "boxart=1" \
-                --data-urlencode "src=$(cat $GEN_DEPENDENCY_GRAPH_DOT_FILEPATH)" \
+                --data-urlencode "src=$(cat "$GEN_DEPENDENCY_GRAPH_DOT_FILEPATH")" \
                 "https://dot-to-ascii.ggerganov.com/dot-to-ascii.php"
             ;;
         svg)
@@ -2380,6 +2383,178 @@ __gen_dependency_graph_recursively_depended_by_the_given_package() {
 # }}}
 ##############################################################################
 # {{{ xcpkg install
+
+# inspect_package_spec <PACKAGE-NAME|PACKAGE-SPEC>
+  inspect_package_spec() {
+    [ -z "$1" ] && die "package name or package spec is unspecified."
+
+    if printf '%s\n' "$1" | grep -q -E '^[A-Za-z0-9+-._]{1,50}$' ; then
+        if [ -z "$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC" ] ; then
+            PACKAGE_SPEC="$NATIVE_OS_NAME/$NATIVE_OS_VERS/$NATIVE_OS_ARCH/$1"
+        else
+            case $XCPKG_DEFAULT_TARGET_PLATFORM_SPEC in
+                */*/*/*)
+                    die "you have set XCPKG_DEFAULT_TARGET_PLATFORM_SPEC=$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC , but it is an invalid package spec."
+                    ;;
+                */*/*)
+                    unset TARGET_PLATFORM_NAME
+                    unset TARGET_PLATFORM_VERS
+                    unset TARGET_PLATFORM_ARCH
+
+                    TARGET_PLATFORM_NAME=$(printf '%s\n' "$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC" | cut -d/ -f1)
+                    TARGET_PLATFORM_VERS=$(printf '%s\n' "$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC" | cut -d/ -f2)
+                    TARGET_PLATFORM_ARCH=$(printf '%s\n' "$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC" | cut -d/ -f3)
+
+                    if [ -z "$TARGET_PLATFORM_NAME" ] ; then
+                        TARGET_PLATFORM_NAME=$NATIVE_OS_NAME
+                    else
+                        TARGET_PLATFORM_NAME_IS_SUPPORTED=no
+
+                        for XCODE_SUPPORT_PLATFORM_NAME in $XCODE_SUPPORT_PLATFORM_NAMES
+                        do
+                            if [ "$XCODE_SUPPORT_PLATFORM_NAMES" = "$TARGET_PLATFORM_NAME" ] ; then
+                                TARGET_PLATFORM_NAME_IS_SUPPORTED=yes
+                                break;
+                            fi
+                        done
+
+                        if [ "$TARGET_PLATFORM_NAME_IS_SUPPORTED" = no ] ; then
+                            die "you have set XCPKG_DEFAULT_TARGET_PLATFORM_SPEC=$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC , but it is an invalid package spec. unrecognized platform: $TARGET_PLATFORM_NAME"
+                        fi
+                    fi
+
+                    if [ -z "$TARGET_PLATFORM_VERS" ] ; then
+                        case $TARGET_PLATFORM_NAME in
+                            iPhoneOS|iPhoneSimulator)
+                                TARGET_PLATFORM_VERS=9.0
+                                ;;
+                            WatchOS|WatchSimulator)
+                                TARGET_PLATFORM_VERS=5.0
+                                ;;
+                            AppleTVOS|AppleTVSimulator)
+                                TARGET_PLATFORM_VERS=9.0
+                                ;;
+                            MacOSX)
+                                TARGET_PLATFORM_VERS=$NATIVE_OS_VERS
+                                ;;
+                        esac
+                    fi
+
+                    if [ -z "$TARGET_PLATFORM_ARCH" ] ; then
+                        case $TARGET_PLATFORM_NAME in
+                            WatchOS)
+                                TARGET_PLATFORM_ARCH=arm64_32
+                                ;;
+                            WatchSimulator)
+                                TARGET_PLATFORM_ARCH=arm64
+                                ;;
+                            iPhoneOS|iPhoneSimulator)
+                                TARGET_PLATFORM_ARCH=arm64
+                                ;;
+                            AppleTVOS|AppleTVSimulator)
+                                TARGET_PLATFORM_ARCH=arm64
+                                ;;
+                            MacOSX)
+                                TARGET_PLATFORM_ARCH=$NATIVE_OS_ARCH
+                                ;;
+                        esac
+                    fi
+
+                    PACKAGE_SPEC="$TARGET_PLATFORM_NAME/$TARGET_PLATFORM_VERS/$TARGET_PLATFORM_ARCH/$1"
+                    ;;
+                *) die "you have set XCPKG_DEFAULT_TARGET_PLATFORM_SPEC=$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC , but it is an invalid package spec."
+            esac
+        fi
+
+        warn "$1 will be treated as a package name, and it will be expanded to $PACKECK_SPEC"
+        printf '%s\n' "$PACKAGE_SPEC"
+    else
+        case $1 in
+            */*/*/*/*)
+                die "invalid package spec: $1"
+                ;;
+            */*/*/*)
+                unset PACKAGE_NAME
+
+                unset TARGET_PLATFORM_NAME
+                unset TARGET_PLATFORM_VERS
+                unset TARGET_PLATFORM_ARCH
+
+                TARGET_PLATFORM_NAME=$(printf '%s\n' "$1" | cut -d/ -f1)
+                TARGET_PLATFORM_VERS=$(printf '%s\n' "$1" | cut -d/ -f2)
+                TARGET_PLATFORM_ARCH=$(printf '%s\n' "$1" | cut -d/ -f3)
+                        PACKAGE_NAME=$(printf '%s\n' "$1" | cut -d/ -f4)
+
+                if [ -z "$PACKAGE_NAME" ] ; then
+                    die "invalid package spec: $1\npackage name is unspecified."
+                elif printf '%s\n' "$PACKAGE_NAME" | grep -q -E '^[A-Za-z0-9+-._]{1,50}$' ; then
+                    :
+                else
+                    die "invalid package spec: $1\npackage name does not match pattern ^[A-Za-z0-9+-._]{1,50}$"
+                fi
+
+                if [ -z "$TARGET_PLATFORM_NAME" ] ; then
+                    TARGET_PLATFORM_NAME=$NATIVE_OS_NAME
+                else
+                    TARGET_PLATFORM_NAME_IS_SUPPORTED=no
+
+                    for XCODE_SUPPORT_PLATFORM_NAME in $XCODE_SUPPORT_PLATFORM_NAMES
+                    do
+                        if [ "$XCODE_SUPPORT_PLATFORM_NAMES" = "$TARGET_PLATFORM_NAME" ] ; then
+                            TARGET_PLATFORM_NAME_IS_SUPPORTED=yes
+                            break;
+                        fi
+                    done
+
+                    if [ "$TARGET_PLATFORM_NAME_IS_SUPPORTED" = no ] ; then
+                        die "invalid package spec: $1\nunsupported platform: $TARGET_PLATFORM_NAME"
+                    fi
+                fi
+
+                if [ -z "$TARGET_PLATFORM_VERS" ] ; then
+                    case $TARGET_PLATFORM_NAME in
+                        iPhoneOS|iPhoneSimulator)
+                            TARGET_PLATFORM_VERS=9.0
+                            ;;
+                        WatchOS|WatchSimulator)
+                            TARGET_PLATFORM_VERS=5.0
+                            ;;
+                        AppleTVOS|AppleTVSimulator)
+                            TARGET_PLATFORM_VERS=9.0
+                            ;;
+                        MacOSX)
+                            TARGET_PLATFORM_VERS=$NATIVE_OS_VERS
+                            ;;
+                    esac
+                fi
+
+                if [ -z "$TARGET_PLATFORM_ARCH" ] ; then
+                    case $TARGET_PLATFORM_NAME in
+                        WatchOS)
+                            TARGET_PLATFORM_ARCH=arm64_32
+                            ;;
+                        WatchSimulator)
+                            TARGET_PLATFORM_ARCH=arm64
+                            ;;
+                        iPhoneOS|iPhoneSimulator)
+                            TARGET_PLATFORM_ARCH=arm64
+                            ;;
+                        AppleTVOS|AppleTVSimulator)
+                            TARGET_PLATFORM_ARCH=arm64
+                            ;;
+                        MacOSX)
+                            TARGET_PLATFORM_ARCH=$NATIVE_OS_ARCH
+                            ;;
+                    esac
+                fi
+
+                PACKAGE_SPEC="$TARGET_PLATFORM_NAME/$TARGET_PLATFORM_VERS/$TARGET_PLATFORM_ARCH/$PACKAGE_NAME"
+                printf '%s\n' "$PACKAGE_SPEC"
+                ;;
+            *)  die "invalid package spec: $1"
+        esac
+    fi
+}
 
 inspect_install_arguments() {
     inspect_xcode_information
@@ -2473,84 +2648,7 @@ inspect_install_arguments() {
                 ;;
             -*) die "unrecognized option: $1"
                 ;;
-            *)  if printf '%s\n' "$1" | grep -q -E '^[A-Za-z0-9+-._]{1,50}$' ; then
-                    PACKAGE_NAME="$1"
-                    PACKAGE_SPEC="MacOSX/$NATIVE_OS_VERS/$NATIVE_OS_ARCH/$PACKAGE_NAME"
-
-                    warn "$1 will be treated as a package name, and it will be expanded to $PACKECK_SPEC"
-
-                    if [ -z "$USER_SPECIFIED_PACKAGE_SPEC_LIST" ] ; then
-                        USER_SPECIFIED_PACKAGE_SPEC_LIST="$PACKAGE_SPEC"
-                    else
-                        USER_SPECIFIED_PACKAGE_SPEC_LIST="$USER_SPECIFIED_PACKAGE_SPEC_LIST $PACKAGE_SPEC"
-                    fi
-                else
-                    case $1 in
-                        */*/*/*)
-                            unset PACKAGE_NAME
-
-                            unset TARGET_PLATFORM_NAME
-                            unset TARGET_PLATFORM_VERS
-                            unset TARGET_PLATFORM_ARCH
-
-                            TARGET_PLATFORM_NAME=$(printf '%s\n' "$1" | cut -d/ -f1)
-                            TARGET_PLATFORM_VERS=$(printf '%s\n' "$1" | cut -d/ -f2)
-                            TARGET_PLATFORM_ARCH=$(printf '%s\n' "$1" | cut -d/ -f3)
-                                    PACKAGE_NAME=$(printf '%s\n' "$1" | cut -d/ -f4)
-
-                            if [ -z "$PACKAGE_NAME" ] ; then
-                                die "invalid package spec: $1\npackage name is unspecified."
-                            fi
-
-                            case $TARGET_PLATFORM_NAME in
-                                MacOSX|AppleTVOS|iPhoneOS|WatchOS|AppleTVSimulator|iPhoneSimulator|WatchSimulator)
-                                    ;;
-                                '') TARGET_PLATFORM_NAME=MacOSX ;;
-                                *)  die "invalid package spec: $1\nunrecognized platform name: $TARGET_PLATFORM_NAME"
-                            esac
-
-                            if [ -z "$TARGET_PLATFORM_VERS" ] ; then
-                                case $TARGET_PLATFORM_NAME in
-                                    iPhoneOS|iPhoneSimulator)
-                                        TARGET_PLATFORM_VERS=9.0
-                                        ;;
-                                    WatchOS|WatchSimulator)
-                                        TARGET_PLATFORM_VERS=5.0
-                                        ;;
-                                    AppleTVOS|AppleTVSimulator)
-                                        TARGET_PLATFORM_VERS=9.0
-                                        ;;
-                                    MacOSX)
-                                        TARGET_PLATFORM_VERS=$NATIVE_OS_VERS
-                                        ;;
-                                esac
-                            fi
-
-                            if [ -z "$TARGET_PLATFORM_ARCH" ] ; then
-                                case $TARGET_PLATFORM_NAME in
-                                    WatchOS)
-                                        TARGET_PLATFORM_ARCH=arm64_32
-                                        ;;
-                                    WatchSimulator)
-                                        TARGET_PLATFORM_ARCH=arm64
-                                        ;;
-                                    iPhoneOS|iPhoneSimulator)
-                                        TARGET_PLATFORM_ARCH=arm64
-                                        ;;
-                                    AppleTVOS|AppleTVSimulator)
-                                        TARGET_PLATFORM_ARCH=arm64
-                                        ;;
-                                    MacOSX)
-                                        TARGET_PLATFORM_ARCH=$NATIVE_OS_ARCH
-                                        ;;
-                                esac
-                            fi
-
-                            PACKAGE_SPEC="$TARGET_PLATFORM_NAME/$TARGET_PLATFORM_VERS/$TARGET_PLATFORM_ARCH/$PACKAGE_NAME"
-                            ;;
-                        *)  die "invalid package spec: $1"
-                    esac
-                fi
+            *)  unset PACKAGE_SPEC; PACKAGE_SPEC="$(inspect_package_spec "$1")"
 
                 if [ -z "$USER_SPECIFIED_PACKAGE_SPEC_LIST" ] ; then
                     USER_SPECIFIED_PACKAGE_SPEC_LIST="$PACKAGE_SPEC"
@@ -2567,12 +2665,12 @@ inspect_install_arguments() {
     fi
 
     if [ "$LOG_LEVEL" -gt "$LOG_LEVEL_DEBUG" ] ; then
-        export PKG_CONFIG_DEBUG_SPEW=set
+        export PKG_CONFIG_DEBUG_SPEW='set'
     fi
 }
 
 __install_the_given_packages() {
-    inspect_install_arguments $@
+    inspect_install_arguments "$@"
 
     [ -z "$USER_SPECIFIED_PACKAGE_SPEC_LIST" ] && {
         error "$_0 install <PACKAGE-SPEC|PACKAGE-NAME>..., <|PACKAGE-SPEC|PACKAGE-NAME> is unspecified."
@@ -3024,10 +3122,10 @@ EOF
     #########################################################################################
 
     step "config variables for ${COLOR_GREEN}$@${COLOR_OFF}"
-    __config_variables_for_the_given_target $@
+    __config_variables_for_the_given_target "$@"
 
     step "printf variables for ${COLOR_GREEN}$@${COLOR_OFF}"
-    __printf_variables_for_the_given_target $@
+    __printf_variables_for_the_given_target "$@"
 
     #########################################################################################
 
@@ -3113,7 +3211,7 @@ EOF
 
     [ "$PACKAGE_BUILD_SYSTEM_CMAKE" = yes ] && {
         step "create cmake toolchain file for ${COLOR_GREEN}$@${COLOR_OFF}"
-        __create_cmake_toolchain_file_for_the_given_target $@ || return 1
+        __create_cmake_toolchain_file_for_the_given_target "$@" || return 1
     }
 
     #########################################################################################
@@ -3384,14 +3482,14 @@ EOF
     #########################################################################################
 
     step "adjust Mach-O files for ${COLOR_GREEN}$@${COLOR_OFF}"
-    __adjust_mach_o_files_for_the_given_target $@
+    __adjust_mach_o_files_for_the_given_target "$@"
 
     if [ -d "$PACKAGE_INSTALL_DIR/lib" ] ; then
         step "adjust .la files for ${COLOR_GREEN}$@${COLOR_OFF}"
-        __adjust_la_files_for_the_given_target $@
+        __adjust_la_files_for_the_given_target "$@"
 
         step "adjust .pc files for ${COLOR_GREEN}$@${COLOR_OFF}"
-        __adjust_pc_files_for_the_given_target $@
+        __adjust_pc_files_for_the_given_target "$@"
     fi
 
     #########################################################################################
@@ -3611,32 +3709,32 @@ install_incs() {
 
 install_libs() {
     install -v -d "$PACKAGE_INSTALL_DIR/lib" || return 1
-    for item in $@
+    for item in "$@"
     do
         case $item in
-            *.a) install -v -m 644 $item "$PACKAGE_INSTALL_DIR/lib" || return 1 ;;
-            *)   install -v -m 755 $item "$PACKAGE_INSTALL_DIR/lib" || return 1 ;;
+            *.a) install -v -m 644 "$item" "$PACKAGE_INSTALL_DIR/lib" || return 1 ;;
+            *)   install -v -m 755 "$item" "$PACKAGE_INSTALL_DIR/lib" || return 1 ;;
         esac
     done
 }
 
 install_pcfs() {
-    install -v -d        "$PACKAGE_INSTALL_DIR/lib/pkgconfig" &&
-    install -v -m 644 $@ "$PACKAGE_INSTALL_DIR/lib/pkgconfig"
+    install -v -d          "$PACKAGE_INSTALL_DIR/lib/pkgconfig" &&
+    install -v -m 644 "$@" "$PACKAGE_INSTALL_DIR/lib/pkgconfig"
 }
 
 install_bins() {
-    install -v -d        "$PACKAGE_INSTALL_DIR/bin" &&
-    install -v -m 755 $@ "$PACKAGE_INSTALL_DIR/bin"
+    install -v -d          "$PACKAGE_INSTALL_DIR/bin" &&
+    install -v -m 755 "$@" "$PACKAGE_INSTALL_DIR/bin"
 }
 
 install_etcs() {
-    install -v -d        "$PACKAGE_INSTALL_DIR/etc" &&
-    install -v -m 644 $@ "$PACKAGE_INSTALL_DIR/etc"
+    install -v -d          "$PACKAGE_INSTALL_DIR/etc" &&
+    install -v -m 644 "$@" "$PACKAGE_INSTALL_DIR/etc"
 }
 
 install_mans() {
-    for item in $@
+    for item in "$@"
     do
         unset NUMBER
         NUMBER=$(echo "$item" | cut -c ${#item}-${#item})
@@ -3737,31 +3835,31 @@ install_pc_file() {
 # https://commandlinefanatic.com/cgi-bin/showarticle.cgi?article=art024
 #
 __config_variables_for_the_given_target() {
-    export       CC_FOR_BUILD="$TOOLCHAIN_BIND/clang"
-    export      CXX_FOR_BUILD="$TOOLCHAIN_BIND/clang++"
-    export      CPP_FOR_BUILD="$TOOLCHAIN_BIND/clang -E"
+    export       CC_FOR_BUILD="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/clang"
+    export      CXX_FOR_BUILD="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/clang++"
+    export      CPP_FOR_BUILD="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/clang -E"
 
     ##################################################################################
 
-    export   CFLAGS_FOR_BUILD="-isysroot $TOOLCHAIN_ROOT/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -mmacosx-version-min=$NATIVE_OS_VERS -arch $NATIVE_OS_ARCH -Qunused-arguments"
-    export CXXFLAGS_FOR_BUILD="-isysroot $TOOLCHAIN_ROOT/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -mmacosx-version-min=$NATIVE_OS_VERS -arch $NATIVE_OS_ARCH -Qunused-arguments"
-    export CPPFLAGS_FOR_BUILD="-isysroot $TOOLCHAIN_ROOT/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -Qunused-arguments"
-    export  LDFLAGS_FOR_BUILD="-isysroot $TOOLCHAIN_ROOT/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -mmacosx-version-min=$NATIVE_OS_VERS -arch $NATIVE_OS_ARCH"
+    export   CFLAGS_FOR_BUILD="-isysroot $DEVELOPER_DIR/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -mmacosx-version-min=$NATIVE_OS_VERS -arch $NATIVE_OS_ARCH -Qunused-arguments"
+    export CXXFLAGS_FOR_BUILD="-isysroot $DEVELOPER_DIR/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -mmacosx-version-min=$NATIVE_OS_VERS -arch $NATIVE_OS_ARCH -Qunused-arguments"
+    export CPPFLAGS_FOR_BUILD="-isysroot $DEVELOPER_DIR/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -Qunused-arguments"
+    export  LDFLAGS_FOR_BUILD="-isysroot $DEVELOPER_DIR/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk -mmacosx-version-min=$NATIVE_OS_VERS -arch $NATIVE_OS_ARCH"
 
     ##################################################################################
 
-    export       CC="$TOOLCHAIN_BIND/clang"
-    export      CXX="$TOOLCHAIN_BIND/clang++"
-    export      CPP="$TOOLCHAIN_BIND/clang -E"
-    export       AS="$TOOLCHAIN_BIND/as"
-    export       AR="$TOOLCHAIN_BIND/ar"
-    export   RANLIB="$TOOLCHAIN_BIND/ranlib"
-    export       LD="$TOOLCHAIN_BIND/ld"
-    export       NM="$TOOLCHAIN_BIND/nm"
-    export    STRIP="$TOOLCHAIN_BIND/strip"
-    export     SIZE="$TOOLCHAIN_BIND/size"
-    export  STRINGS="$TOOLCHAIN_BIND/strings"
-    export  OBJDUMP="$TOOLCHAIN_BIND/objdump"
+    export       CC="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/clang"
+    export      CXX="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/clang++"
+    export      CPP="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/clang -E"
+    export       AS="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/as"
+    export       AR="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/ar"
+    export   RANLIB="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/ranlib"
+    export       LD="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/ld"
+    export       NM="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/nm"
+    export    STRIP="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/strip"
+    export     SIZE="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/size"
+    export  STRINGS="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/strings"
+    export  OBJDUMP="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/objdump"
 
     ##################################################################################
 
@@ -3787,7 +3885,7 @@ __config_variables_for_the_given_target() {
 
     ##################################################################################
 
-    SYSROOT="$TOOLCHAIN_ROOT/Platforms/${TARGET_PLATFORM_NAME}.platform/Developer/SDKs/${TARGET_PLATFORM_NAME}.sdk"
+    SYSROOT="$DEVELOPER_DIR/Platforms/${TARGET_PLATFORM_NAME}.platform/Developer/SDKs/${TARGET_PLATFORM_NAME}.sdk"
 
     TARGET_PLATFORM_NAME_LOWER_CASE="$(printf "$TARGET_PLATFORM_NAME" | tr A-Z a-z)"
 
@@ -4116,9 +4214,8 @@ TARGET_PLATFORM_NAME = $TARGET_PLATFORM_NAME
 TARGET_PLATFORM_VERS = $TARGET_PLATFORM_VERS
 TARGET_PLATFORM_ARCH = $TARGET_PLATFORM_ARCH
 
-     TOOLCHAIN_VERS = $TOOLCHAIN_VERS
-     TOOLCHAIN_ROOT = $TOOLCHAIN_ROOT
-     TOOLCHAIN_BIND = $TOOLCHAIN_BIND
+      XCODE_VERSION = $XCODE_VERSION
+      DEVELOPER_DIR = $DEVELOPER_DIR
 
             SYSROOT = $SYSROOT
     "
@@ -4325,7 +4422,7 @@ configure() {
     if [ "$STEP_MESSAGE" = 'build for native' ] ; then
         if run "$PACKAGE_BSCRIPT_DIR"/configure \
             --prefix="$NATIVE_INSTALL_DIR" \
-            $@ ; then
+            "$@" ; then
             echo
         else
             if [ -f "$PACKAGE_BCACHED_DIR/config.log" ] ; then
@@ -4337,7 +4434,20 @@ configure() {
         fi
     else
         unset TARGET_TRIPLE
-        TARGET_TRIPLE=$(print_target_triple_by_arch "$TARGET_PLATFORM_ARCH")
+
+        if [ 'arm64' = "$TARGET_PLATFORM_ARCH" ] ; then
+            if [ "$PACKAGE_IOS_IOS" = yes ] ; then
+                TARGET_TRIPLE='aarch64-apple-ios'
+            else
+                TARGET_TRIPLE='aarch64-apple-darwin'
+            fi
+        else
+            if [ "$PACKAGE_IOS_IOS" = yes ] ; then
+                TARGET_TRIPLE="$TARGET_PLATFORM_ARCH-apple-ios"
+            else
+                TARGET_TRIPLE="$TARGET_PLATFORM_ARCH-apple-darwin"
+            fi
+        fi
 
         if run "$PACKAGE_BSCRIPT_DIR"/configure \
             --host="\"$TARGET_TRIPLE\"" \
@@ -4362,7 +4472,7 @@ configure() {
             PKG_CONFIG_PATH="\"$PKG_CONFIG_PATH\"" \
             PKG_CONFIG_LIBDIR="\"\"" \
             CC_FOR_BUILD="\"$CC_FOR_BUILD\"" \
-            $@ ; then
+            "$@" ; then
             echo
         else
             if [ -f "$PACKAGE_BCACHED_DIR/config.log" ] ; then
@@ -4424,28 +4534,28 @@ cmakew() {
             CMAKE_CONFIG_OPTIONS="$@"
         fi
 
-        run $CMAKE \
+        run "$CMAKE" \
             -Wno-dev \
-            -S $PACKAGE_BSCRIPT_DIR \
-            -B $NATIVE_BCACHED_DIR \
-            -DCMAKE_INSTALL_PREFIX=$NATIVE_INSTALL_DIR \
+            -S "$PACKAGE_BSCRIPT_DIR" \
+            -B "$NATIVE_BCACHED_DIR" \
+            -DCMAKE_INSTALL_PREFIX="$NATIVE_INSTALL_DIR" \
             -DBUILD_SHARED_LIBS=OFF \
             -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
             -DBUILD_TESTING=OFF \
-            $CMAKE_CONFIG_OPTIONS &&
-        run $CMAKE --build   "$NATIVE_BCACHED_DIR" -- -j$BUILD_NJOBS &&
-        run $CMAKE --install "$NATIVE_BCACHED_DIR"
+            "$CMAKE_CONFIG_OPTIONS" &&
+        run "$CMAKE" --build   "$NATIVE_BCACHED_DIR" -- "-j$BUILD_NJOBS" &&
+        run "$CMAKE" --install "$NATIVE_BCACHED_DIR"
     else
-        run $CMAKE \
+        run "$CMAKE" \
             -Wno-dev \
-            -S $PACKAGE_BSCRIPT_DIR \
-            -B $PACKAGE_BCACHED_DIR \
-            -DCMAKE_INSTALL_PREFIX=$PACKAGE_INSTALL_DIR \
-            -DCMAKE_TOOLCHAIN_FILE=$TARGET_CMAKE_TOOLCHAIN_FILE \
-            -DCMAKE_VERBOSE_MAKEFILE=$CMAKE_VERBOSE_MAKEFILE \
-            -DCMAKE_COLOR_MAKEFILE=$CMAKE_COLOR_MAKEFILE $@ &&
-        run $CMAKE --build   "$PACKAGE_BCACHED_DIR" -- -j$BUILD_NJOBS &&
-        run $CMAKE --install "$PACKAGE_BCACHED_DIR"
+            -S "$PACKAGE_BSCRIPT_DIR" \
+            -B "$PACKAGE_BCACHED_DIR" \
+            -DCMAKE_INSTALL_PREFIX="$PACKAGE_INSTALL_DIR" \
+            -DCMAKE_TOOLCHAIN_FILE="$TARGET_CMAKE_TOOLCHAIN_FILE" \
+            -DCMAKE_VERBOSE_MAKEFILE="$CMAKE_VERBOSE_MAKEFILE" \
+            -DCMAKE_COLOR_MAKEFILE="$CMAKE_COLOR_MAKEFILE" "$@" &&
+        run "$CMAKE" --build   "$PACKAGE_BCACHED_DIR" -- "-j$BUILD_NJOBS" &&
+        run "$CMAKE" --install "$PACKAGE_BCACHED_DIR"
     fi
 }
 
@@ -4465,12 +4575,12 @@ xmakew() {
     XMAKE_CONFIG_OPTION_MODE=
     XMAKE_CONFIG_OPTION_vD=
 
-    for arg in $@
+    for arg in "$@"
     do
         case $arg in
-            -c|--clean)  XMAKE_CONFIG_OPTION_CLEAN=set ;;
-            -m|--mode=*) XMAKE_CONFIG_OPTION_MODE=set  ;;
-            -vD)         XMAKE_CONFIG_OPTION_vD=set ;;
+            -c|--clean)  XMAKE_CONFIG_OPTION_CLEAN='set' ;;
+            -m|--mode=*) XMAKE_CONFIG_OPTION_MODE='set'  ;;
+            -vD)         XMAKE_CONFIG_OPTION_vD='set' ;;
         esac
     done
 
@@ -4579,7 +4689,7 @@ EOF
         --build.pkg-config-path="$PKG_CONFIG_PATH_FOR_BUILD" \
         --cross-file="$MESON_CROSS_FILE" \
         $MESON_ARGUMENT_DEFAULT_LIBRARY \
-        $@ "$PACKAGE_BCACHED_DIR" "$PACKAGE_BSCRIPT_DIR" &&
+        "$@" "$PACKAGE_BCACHED_DIR" "$PACKAGE_BSCRIPT_DIR" &&
     {
         if command -v build_configed > /dev/null ; then
             build_configed
@@ -4591,7 +4701,7 @@ EOF
 
 to_meson_array() {
     RESULT="[''"
-    for item in $@
+    for item in "$@"
     do
         RESULT="$RESULT, '$item'"
     done
@@ -4614,12 +4724,12 @@ cargow() {
             unset CARGO_BUILD_ARG_TARGET
             unset CARGO_BUILD_ARG_RELEASE
 
-            for arg in $@
+            for arg in "$@"
             do
                 case $arg in
-                    --vv)      CARGO_BUILD_ARG_VV=set      ;;
-                    --target)  CARGO_BUILD_ARG_TARGET=set  ;;
-                    --release) CARGO_BUILD_ARG_RELEASE=set ;;
+                    --vv)      CARGO_BUILD_ARG_VV='set'      ;;
+                    --target)  CARGO_BUILD_ARG_TARGET='set'  ;;
+                    --release) CARGO_BUILD_ARG_RELEASE='set' ;;
                 esac
             done
 
@@ -4649,13 +4759,13 @@ cargow() {
             unset CARGO_INSTALL_ARG_ROOT
             unset CARGO_INSTALL_ARG_VV
 
-            for arg in $@
+            for arg in "$@"
             do
                 case $arg in
-                    --target) CARGO_INSTALL_ARG_TARGET=set ;;
-                    --path)   CARGO_INSTALL_ARG_PATH=set   ;;
-                    --root)   CARGO_INSTALL_ARG_ROOT=set   ;;
-                    --vv)     CARGO_INSTALL_ARG_VV=set     ;;
+                    --target) CARGO_INSTALL_ARG_TARGET='set' ;;
+                    --path)   CARGO_INSTALL_ARG_PATH='set'   ;;
+                    --root)   CARGO_INSTALL_ARG_ROOT='set'   ;;
+                    --vv)     CARGO_INSTALL_ARG_VV='set'     ;;
                 esac
             done
 
@@ -4689,16 +4799,16 @@ cargow() {
             unset CARGO_CINSTALL_ARG_TARGET
             unset CARGO_CINSTALL_ARG_PREFIX
 
-            for arg in $@
+            for arg in "$@"
             do
                 case $arg in
-                    -q|--quiet)   CARGO_CINSTALL_ARG_Q=set       ;;
-                    -v|--verbose) CARGO_CINSTALL_ARG_V=set       ;;
-                    -vv)          CARGO_CINSTALL_ARG_VV=set      ;;
-                    --debug)      CARGO_CINSTALL_ARG_DEBUG=set   ;;
-                    --release)    CARGO_CINSTALL_ARG_RELEASE=set ;;
-                    --target)     CARGO_CINSTALL_ARG_TARGET=set  ;;
-                    --prefix)     CARGO_CINSTALL_ARG_PREFIX=set  ;;
+                    -q|--quiet)   CARGO_CINSTALL_ARG_Q='set'       ;;
+                    -v|--verbose) CARGO_CINSTALL_ARG_V='set'       ;;
+                    -vv)          CARGO_CINSTALL_ARG_VV='set'      ;;
+                    --debug)      CARGO_CINSTALL_ARG_DEBUG='set'   ;;
+                    --release)    CARGO_CINSTALL_ARG_RELEASE='set' ;;
+                    --target)     CARGO_CINSTALL_ARG_TARGET='set'  ;;
+                    --prefix)     CARGO_CINSTALL_ARG_PREFIX='set'  ;;
                 esac
             done
 
@@ -4722,7 +4832,7 @@ cargow() {
 
             run cargo $CARGO_CINSTALL_ARGS
             ;;
-        *) cargo $@
+        *) cargo "$@"
     esac
 }
 
@@ -4857,7 +4967,7 @@ static int stub_system(char* cmd) {
 
 #endif
 EOF
-    for item in $@
+    for item in "$@"
     do
         echo "inject $PACKAGE_BSCRIPT_DIR/stub-system.c -> $item"
         cat "$PACKAGE_BSCRIPT_DIR/stub-system.c" "$item" > "$item.bak" || return 1
@@ -4871,42 +4981,68 @@ EOF
 
 inspect_xcode_information() {
     if [ -z "$DEVELOPER_DIR" ] ; then
-        export DEVELOPER_DIR="$(xcode-select -p)"
+        DEVELOPER_DIR="$(xcode-select -p)"
+        [ -z "$DEVELOPER_DIR" ] && die "Xcode developer dir can't be located.\nThere're 3 ways to resolve this problem:\n1. run command 'xcode-select --switch DEVELOPER_DIR', then try again.\n2. set system-wide environment variable DEVELOPER_DIR\3. set process-wide environment variable DEVELOPER_DIR, you can run xcpkg command as 'DEVELOPER_DIR=/some/path xcpkg'"
+    else
+        note "you have set DEVELOPER_DIR=$DEVELOPER_DIR, it will be used as the xcode developer directory."
     fi
 
-    TOOLCHAIN_ROOT="$DEVELOPER_DIR"
+    [ -e "$DEVELOPER_DIR" ] || die "$DEVELOPER_DIR was expected to be exist, but it was not."
+    [ -d "$DEVELOPER_DIR" ] || die "$DEVELOPER_DIR was expected to be a directory, but it was not."
 
-    [ -z "$TOOLCHAIN_ROOT" ] && die "please run command 'xcode-select --switch DIR', then try again."
-    [ -d "$TOOLCHAIN_ROOT" ] || die "TOOLCHAIN_ROOT=$TOOLCHAIN_ROOT directory is not exist."
+    XCODE_DEFAULT_TOOLCHAIN_BIN_DIR="$DEVELOPER_DIR/Toolchains/XcodeDefault.xctoolchain/usr/bin"
 
-    TOOLCHAIN_VERS=$(system_profiler SPDeveloperToolsDataType | grep Version | head -n 1 | cut -d: -f2 | sed 's/^ //g')
-    TOOLCHAIN_BIND="$TOOLCHAIN_ROOT/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+    [ -e "$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR" ] || die "$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR was expected to be exist, but it was not."
+    [ -d "$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR" ] || die "$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR was expected to be a directory, but it was not."
 
-    export       CC="$TOOLCHAIN_BIND/clang"
-    export      CXX="$TOOLCHAIN_BIND/clang++"
-    export      CPP="$TOOLCHAIN_BIND/cpp"
-    export       AS="$TOOLCHAIN_BIND/as"
-    export       AR="$TOOLCHAIN_BIND/ar"
-    export   RANLIB="$TOOLCHAIN_BIND/ranlib"
-    export       LD="$TOOLCHAIN_BIND/ld"
-    export       NM="$TOOLCHAIN_BIND/nm"
-    export    STRIP="$TOOLCHAIN_BIND/strip"
-    export     SIZE="$TOOLCHAIN_BIND/size"
-    export  STRINGS="$TOOLCHAIN_BIND/strings"
-    export  OBJDUMP="$TOOLCHAIN_BIND/objdump"
+    export       CC="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/clang"
+    export      CXX="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/clang++"
+    export      CPP="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/cpp"
+    export       AS="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/as"
+    export       AR="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/ar"
+    export   RANLIB="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/ranlib"
+    export       LD="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/ld"
+    export       NM="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/nm"
+    export    STRIP="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/strip"
+    export     SIZE="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/size"
+    export  STRINGS="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/strings"
+    export  OBJDUMP="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/objdump"
 
+    unset XCODE_SUPPORT_PLATFORM_NAMES
 
-    #export PATH="$TOOLCHAIN_BIND:$PATH"
+    XCODE_PLATFORMS_DIR="$DEVELOPER_DIR/Platforms"
+
+    if [ -d "$XCODE_PLATFORMS_DIR" ] ; then
+        for item in $(cd "$XCODE_PLATFORMS_DIR" && ls)
+        do
+            case $item in
+                *.platform)
+                    if [ -z "$XCODE_SUPPORT_PLATFORM_NAMES" ] ; then
+                        XCODE_SUPPORT_PLATFORM_NAMES="${item%.platform}"
+                    else
+                        XCODE_SUPPORT_PLATFORM_NAMES="$XCODE_SUPPORT_PLATFORM_NAMES ${item%.platform}"
+                    fi
+            esac
+        done
+
+        if [ -z "$XCODE_SUPPORT_PLATFORM_NAMES" ] ; then
+            die "no any platforms found in $XCODE_PLATFORMS_DIR"
+        fi
+    else
+        [ -e "$XCODE_PLATFORMS_DIR" ] || die "$XCODE_PLATFORMS_DIR was expected to be exist, but it was not."
+        [ -d "$XCODE_PLATFORMS_DIR" ] || die "$XCODE_PLATFORMS_DIR was expected to be a directory, but it was not."
+    fi
+
+    unset XCODE_VERSION; XCODE_VERSION=$(system_profiler SPDeveloperToolsDataType | grep Version | head -n 1 | cut -d: -f2 | sed 's/^ //g')
 }
 
-__list_supported_target_platforms() {
-    [ -z "$TOOLCHAIN_ROOT" ] && inspect_xcode_information
-    ls "$TOOLCHAIN_ROOT/Platforms" | sed 's/.platform//g'
-    #print_list AppleTVOS AppleTVSimulator MacOSX iPhoneOS iPhoneSimulator WatchOS WatchSimulator
+__list_supported_target_platform_names() {
+    [ -z "$XCODE_SUPPORT_PLATFORM_NAMES" ] && inspect_xcode_information
+    printf '%s\n' "$XCODE_SUPPORT_PLATFORM_NAMES"
 }
 
-# __list_supported_target_archs [32bit|64bit|all] [iPhoneOS|WatchOS|AppleTVOS|MacOSX|*Simulator|table|list]
-__list_supported_target_archs() {
+# __list_supported_target_platform_archs [32bit|64bit|all] [iPhoneOS|WatchOS|AppleTVOS|MacOSX|*Simulator|table|list]
+  __list_supported_target_platform_archs() {
     unset LIST_SUPPORTED_ARCHS_ARG_BIT
     unset LIST_SUPPORTED_ARCHS_ARG_PLATFORM
 
@@ -4935,47 +5071,47 @@ __list_supported_target_archs() {
     case $LIST_SUPPORTED_ARCHS_ARG_BIT in
         all)
             case $LIST_SUPPORTED_ARCHS_ARG_PLATFORM in
-                iPhoneOS)   echo "arm64 arm64e armv7 armv7s" ;;
-                WatchOS)    echo "arm64_32 armv7k" ;;
-                AppleTVOS)  echo "arm64"       ;;
-                MacOSX)     echo "arm64 x86_64 i386" ;;
-                *Simulator) echo "arm64 x86_64 i386" ;;
-                list)       echo "arm64 arm64e arm64_32 armv7 armv7s armv7k x86_64" ;;
-                table) __print_platform_arch_table_all ;;
+                iPhoneOS)   printf '%s\n' "arm64 arm64e armv7 armv7s" ;;
+                WatchOS)    printf '%s\n' "arm64_32 armv7k" ;;
+                AppleTVOS)  printf '%s\n' "arm64"       ;;
+                MacOSX)     printf '%s\n' "arm64 x86_64 i386" ;;
+                *Simulator) printf '%s\n' "arm64 x86_64 i386" ;;
+                list)       printf '%s\n' "arm64 arm64e arm64_32 armv7 armv7s armv7k x86_64" ;;
+                table) __show_supported_target_platform_names_and_its_supported_arch_table ;;
                 *)  die "unsupported platform : $LIST_SUPPORTED_ARCHS_ARG_PLATFORM."
             esac
             ;;
         64bit)
             case $LIST_SUPPORTED_ARCHS_ARG_PLATFORM in
-                iPhoneOS)   echo "arm64 arm64e" ;;
-                WatchOS)    echo "arm64_32" ;;
-                AppleTVOS)  echo "arm64"  ;;
-                MacOSX)     echo "arm64 x86_64" ;;
-                *Simulator) echo "arm64 x86_64" ;;
-                list)       echo "arm64 arm64e arm64_32 x86_64" ;;
-                table) __print_platform_arch_table_64bit ;;
+                iPhoneOS)   printf '%s\n' "arm64 arm64e" ;;
+                WatchOS)    printf '%s\n' "arm64_32" ;;
+                AppleTVOS)  printf '%s\n' "arm64"  ;;
+                MacOSX)     printf '%s\n' "arm64 x86_64" ;;
+                *Simulator) printf '%s\n' "arm64 x86_64" ;;
+                list)       printf '%s\n' "arm64 arm64e arm64_32 x86_64" ;;
+                table) __show_supported_target_platform_names_and_its_supported_64bit_arch_table ;;
                 *)  die "unsupported platform : $LIST_SUPPORTED_ARCHS_ARG_PLATFORM."
             esac
             ;;
         32bit)
             case $LIST_SUPPORTED_ARCHS_ARG_PLATFORM in
-                iPhoneOS)   echo "armv7 armv7s" ;;
-                WatchOS)    echo "armv7k" ;;
-                AppleTVOS)  die "AppleTVOS is not support 32bit."  ;;
-                MacOSX)     echo "i386" ;;
-                *Simulator) echo "i386" ;;
-                list)       echo "armv7 armv7s armv7k i386" ;;
-                table) __print_platform_arch_table_32bit ;;
+                iPhoneOS)   printf '%s\n' "armv7 armv7s" ;;
+                WatchOS)    printf '%s\n' "armv7k" ;;
+                AppleTVOS)  ;;
+                MacOSX)     printf '%s\n' "i386" ;;
+                *Simulator) printf '%s\n' "i386" ;;
+                list)       printf '%s\n' "armv7 armv7s armv7k i386" ;;
+                table) __show_supported_target_platform_names_and_its_supported_32bit_arch_table ;;
                 *)  die "unsupported platform : $LIST_SUPPORTED_ARCHS_ARG_PLATFORM."
             esac
             ;;
     esac
 }
 
-__print_platform_arch_table_64bit() {
+__show_supported_target_platform_names_and_its_supported_64bit_arch_table() {
     cat <<EOF
 ┌────────────┬───────────────────────────┐
-│ platform   │ arch                      │
+│ platform   │ supported 64bit archs     │
 │            │                           │
 │ AppleTVOS  │ arm64                     │
 │ WatchOS    │ arm64_32                  │
@@ -4986,10 +5122,10 @@ __print_platform_arch_table_64bit() {
 EOF
 }
 
-__print_platform_arch_table_32bit() {
+__show_supported_target_platform_names_and_its_supported_32bit_arch_table() {
     cat <<EOF
 ┌────────────┬───────────────────────────┐
-│ platform   │ arch                      │
+│ platform   │ supported 32bit archs     │
 │            │                           │
 │ AppleTVOS  │                           │
 │ WatchOS    │ armv7k                    │
@@ -5000,7 +5136,7 @@ __print_platform_arch_table_32bit() {
 EOF
 }
 
-__print_platform_arch_table_all() {
+__show_supported_target_platform_names_and_its_supported_arch_table() {
     cat <<EOF
 ┌────────────┬───────────────────────────┐
 │ platform   │ arch                      │
@@ -5014,42 +5150,18 @@ __print_platform_arch_table_all() {
 EOF
 }
 
-# __list_supported_target_triples 32bit|64bit|all
-__list_supported_target_triples() {
-    for ARCH in $(__list_supported_target_archs list ${1-all} 2>/dev/null)
-    do
-        print_target_triple_by_arch "$ARCH"
-    done
-}
-
-print_target_triple_by_arch() {
-    if [ 'arm64' = "$1" ] ; then
-        if [ "$PACKAGE_IOS_IOS" = yes ] ; then
-            echo 'aarch64-apple-ios'
-        else
-            echo 'aarch64-apple-darwin'
-        fi
-    else
-        if [ "$PACKAGE_IOS_IOS" = yes ] ; then
-            echo "$1-apple-ios"
-        else
-            echo "$1-apple-darwin"
-        fi
-    fi
-}
-
 __list_supported_target_platform_versions() {
     if [ -z "$1" ] ; then
-        for PLATFORM in $(__list_supported_target_platforms)
+        for PLATFORM_NAME in $(__list_supported_target_platform_names)
         do
-            printf "%-16s : $(__list_supported_target_platform_versions "$PLATFORM")\n" "$PLATFORM"
+            printf "%-16s : $(__list_supported_target_platform_versions "$PLATFORM_NAME")\n" "$PLATFORM_NAME"
         done
     else
         case $1 in
-            iPhoneOS|iPhoneSimulator)   echo "8.0 8.1 8.2 8.3 8.4 9.0 9.1 9.2 9.3 10.0 10.1 10.2 10.3 11.0 11.1 11.2 11.3 11.4 12.0 12.1 12.2 12.3 12.4 13.0 13.1 13.2 13.3 13.4 13.5";;
-            WatchOS|WatchSimulator)     echo "2.0 2.1 2.2 3.0 3.1 3.2 4.0 4.1 4.2 4.3 5.0 5.1 5.2 5.3 6.0 6.1 6.2";;
-            AppleTVOS|AppleTVSimulator) echo "9.0 9.1 9.2 10.0 10.1 10.2 11.0 11.1 11.2 11.3 11.4 12.0 12.1 12.3 12.4 13.0 13.1 13.2 13.3";;
-            MacOSX)                     echo "10.6 10.7 10.8 10.9 10.10 10.11 10.12 10.13 10.14 10.15";;
+            iPhoneOS|iPhoneSimulator)   printf '%s\n' "8.0 8.1 8.2 8.3 8.4 9.0 9.1 9.2 9.3 10.0 10.1 10.2 10.3 11.0 11.1 11.2 11.3 11.4 12.0 12.1 12.2 12.3 12.4 13.0 13.1 13.2 13.3 13.4 13.5";;
+            WatchOS|WatchSimulator)     printf '%s\n' "2.0 2.1 2.2 3.0 3.1 3.2 4.0 4.1 4.2 4.3 5.0 5.1 5.2 5.3 6.0 6.1 6.2";;
+            AppleTVOS|AppleTVSimulator) printf '%s\n' "9.0 9.1 9.2 10.0 10.1 10.2 11.0 11.1 11.2 11.3 11.4 12.0 12.1 12.3 12.4 13.0 13.1 13.2 13.3";;
+            MacOSX)                     printf '%s\n' "10.6 10.7 10.8 10.9 10.10 10.11 10.12 10.13 10.14 10.15";;
             *)                          die "unsupported platform : $1."
         esac
     fi
@@ -5064,7 +5176,7 @@ __list_supported_target_platform_versions() {
     PACKAGE_SPEC="$1"
     die_if_package_is_not_installed "$PACKAGE_SPEC"
     shift
-    run tree $@ "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_SPEC"
+    run tree "$@" "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_SPEC"
 }
 
 # }}}
@@ -5114,13 +5226,25 @@ __list_supported_target_platform_versions() {
 # {{{ xcpkg pack
 
 # examples:
-# __pack_the_given_installed_package <PACKAGE-NAME> [-t <zip|tar.gz|tar.xz|tar.lz|tar.bz2>] [-o <OUTPUT-PATH>] [--keep-packing-dir]
+# __pack_the_given_installed_package <PACKAGE-NAME|PACKAGE-SPEC> [-t <zip|tar.gz|tar.xz|tar.lz|tar.bz2>] [-o <OUTPUT-PATH>] [--keep-packing-dir]
 # __pack_the_given_installed_package    autoconf     -t tar.xz
   __pack_the_given_installed_package() {
-    __load_receipt_of_the_given_package "$1"
+    unset PACKAGE_SPEC
 
-    TARGET_PLATFORM_ARCH="$(printf '%s\n' "$1" | cut -d/ -f3)"
-    RECEIPT_PACKAGE_NAME="$(printf '%s\n' "$1" | cut -d/ -f4)"
+    PACKAGE_SPEC=$(inspect_package_spec "$1")
+
+    __load_receipt_of_the_given_package "$PACKAGE_SPEC"
+
+    unset TARGET_PLATFORM_NAME
+    unset TARGET_PLATFORM_VERS
+    unset TARGET_PLATFORM_ARCH
+
+    unset RECEIPT_PACKAGE_NAME
+
+    TARGET_PLATFORM_NAME="$(printf '%s\n' "$PACKAGE_SPEC" | cut -d/ -f2)"
+    TARGET_PLATFORM_VERS="$(printf '%s\n' "$PACKAGE_SPEC" | cut -d/ -f2)"
+    TARGET_PLATFORM_ARCH="$(printf '%s\n' "$PACKAGE_SPEC" | cut -d/ -f3)"
+    RECEIPT_PACKAGE_NAME="$(printf '%s\n' "$PACKAGE_SPEC" | cut -d/ -f4)"
 
     shift
 
@@ -5161,7 +5285,7 @@ __list_supported_target_platform_versions() {
         shift
     done
 
-    PACKED_DIR_NAME="$RECEIPT_PACKAGE_NAME-$RECEIPT_PACKAGE_VERSION-macos-$TARGET_PLATFORM_ARCH"
+    PACKED_DIR_NAME="$RECEIPT_PACKAGE_NAME-$RECEIPT_PACKAGE_VERSION-$TARGET_PLATFORM_NAME$TARGET_PLATFORM_VERS-$TARGET_PLATFORM_ARCH"
 
     ###########################################################################################
 
@@ -5230,7 +5354,7 @@ __list_supported_target_platform_versions() {
     PACKING_DIR=$(mktemp -d)
 
     step "change to packing directory"
-    run cd $PACKING_DIR
+    run cd "$PACKING_DIR"
 
     step "make link refer to installed package root dir"
     run ln -s "$PACKAGE_INSTALLED_DIR" "$PACKED_DIR_NAME"
@@ -5268,7 +5392,7 @@ __list_supported_target_platform_versions() {
         note "the work dir [$PACKING_DIR] is not deleted as --keep-packing-dir option is given."
     else
         step "delete packing directory"
-        run rm -rf $PACKING_DIR
+        run rm -rf "$PACKING_DIR"
     fi
 
 }
@@ -5290,11 +5414,11 @@ __list_supported_target_platform_versions() {
     if [ -L "$CURRENT_SCRIPT_FILEPATH" ] ; then
         # https://unix.stackexchange.com/questions/136494/whats-the-difference-between-realpath-and-readlink-f#:~:text=GNU%20coreutils%20introduced%20a%20realpath,in%20common%20with%20GNU%20readlink%20.
         if command -v realpath > /dev/null ; then
-            CURRENT_SCRIPT_REALPATH=$(realpath $CURRENT_SCRIPT_FILEPATH)
+            CURRENT_SCRIPT_REALPATH=$(realpath "$CURRENT_SCRIPT_FILEPATH")
         elif command -v readlink > /dev/null && readlink -f xx > /dev/null 2>&1 ; then
-            CURRENT_SCRIPT_REALPATH=$(readlink -f $CURRENT_SCRIPT_FILEPATH)
+            CURRENT_SCRIPT_REALPATH=$(readlink -f "$CURRENT_SCRIPT_FILEPATH")
         else
-            CURRENT_SCRIPT_REALPATH=$(realpath $CURRENT_SCRIPT_FILEPATH)
+            CURRENT_SCRIPT_REALPATH=$(realpath "$CURRENT_SCRIPT_FILEPATH")
         fi
     else
         CURRENT_SCRIPT_REALPATH="$CURRENT_SCRIPT_FILEPATH"
@@ -5303,7 +5427,7 @@ __list_supported_target_platform_versions() {
     printf '%b\n' "$COLOR_PURPLE==>$COLOR_OFF ${COLOR_GREEN}mktemp -d$COLOR_OFF"
     WORKING_DIR=$(mktemp -d)
 
-    run cd $WORKING_DIR
+    run cd "$WORKING_DIR"
 
     wfetch "$1" --output-path="$WORKING_DIR/self"
 
@@ -5314,7 +5438,7 @@ __list_supported_target_platform_versions() {
             run sudo install -m 755 self "$CURRENT_SCRIPT_REALPATH"
         fi
 
-        run rm -rf $WORKING_DIR
+        run rm -rf "$WORKING_DIR"
     }
 
     trap __upgrade_self_exit EXIT
@@ -5337,7 +5461,7 @@ __list_supported_target_platform_versions() {
 
     unset OUTPUT_DIR
 
-    for arg in $@
+    for arg in "$@"
     do
         case $arg in
             --output-dir=*)
@@ -5366,18 +5490,18 @@ __list_supported_target_platform_versions() {
     if [ -L "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH" ] ; then
         # https://unix.stackexchange.com/questions/136494/whats-the-difference-between-realpath-and-readlink-f#:~:text=GNU%20coreutils%20introduced%20a%20realpath,in%20common%20with%20GNU%20readlink%20.
         if command -v realpath > /dev/null ; then
-            ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH=$(realpath $ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH)
+            ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH=$(realpath "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH")
         elif command -v readlink > /dev/null && readlink -f xx > /dev/null 2>&1 ; then
-            ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH=$(readlink -f $ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH)
+            ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH=$(readlink -f "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH")
         else
-            ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH=$(realpath $ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH)
+            ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH=$(realpath "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH")
         fi
     fi
 
     printf '%b\n' "$COLOR_PURPLE==>$COLOR_OFF ${COLOR_GREEN}mktemp -d$COLOR_OFF"
     WORKING_DIR=$(mktemp -d)
 
-    run cd $WORKING_DIR
+    run cd "$WORKING_DIR"
 
     wfetch "$ZSH_COMPLETIONS_SCRIPT_URL" --output-path="$WORKING_DIR/$ZSH_COMPLETIONS_SCRIPT_FILENAME"
 
@@ -5399,7 +5523,7 @@ __list_supported_target_platform_versions() {
         fi
     fi
 
-    run rm -rf $WORKING_DIR
+    run rm -rf "$WORKING_DIR"
 
     printf '\n'
     note "${COLOR_YELLOW}you need to run command${COLOR_RED} ${COLOR_GREEN}autoload -U compinit && compinit${COLOR_OFF} ${COLOR_YELLOW}in zsh to make it work.${COLOR_OFF}"
@@ -5438,11 +5562,13 @@ __compare_versions_with_brew() {
 
     cd "$XCPKG_HOME/repos.d/offical-core/formula"
 
-    for item in $(ls -1 *.yml | sed 's/\.yml$//')
+    AVAILABLE_PACKAGES="$(find . -mindepth 1 -maxdepth 1 -name "*.yml" -exec basename {} .yml \;)"
+
+    for item in $AVAILABLE_PACKAGES
     do
         __load_formula_of_the_given_package "$item"
 
-        BREW_PKG_NMAE="$(package_name_transform_from_uppm_to_brew $PACKAGE_NAME)"
+        BREW_PKG_NMAE="$(package_name_transform_from_uppm_to_brew "$item")"
 
         if brew info "$BREW_PKG_NMAE" > /dev/null 2>&1 ; then
             BREW_PKG_VERS=$(__pmw_get_available_package_version_by_package_name brew "$BREW_PKG_NMAE")
@@ -5486,7 +5612,7 @@ __gen_github_workflows() {
                     '') die "--output-dir=<DIR>, DIR must be non-empty." ;;
                     /*) ;;
                     \~|\~/) OUTPUT_DIR="${HOME}" ;;
-                    \~/*)   OUTPUT_DIR="${HOME}$(printf "$OUTPUT_DIR" | cut -c3-)" ;;
+                    \~/*)   OUTPUT_DIR="${HOME}$(printf '%s\n' "$OUTPUT_DIR" | cut -c3-)" ;;
                     .|./)   OUTPUT_DIR="${PWD}" ;;
                     *)      OUTPUT_DIR="${PWD}/$OUTPUT_DIR" ;;
                 esac
@@ -5538,10 +5664,10 @@ __gen_github_workflows() {
             else
                 NDEPENDED_PACKAGES="$NDEPENDED_PACKAGES $x"
             fi
-            if [ "$(list_length $NDEPENDED_PACKAGES)" -eq "$GROUP_SIZE" ] ; then
+            if [ "$(list_length "$NDEPENDED_PACKAGES")" -eq "$GROUP_SIZE" ] ; then
                 unset OUTPUT_FILEPATH
 
-                I=$(expr ${I-0} + 1)
+                I=$(expr "${I-0}" + 1)
                 OUTPUT_FILEPATH="$OUTPUT_DIR/ci$I.yml"
                 NDEPENDED_PACKAGES=$(echo "$NDEPENDED_PACKAGES" | tr ' ' ,)
 
@@ -5557,7 +5683,7 @@ __gen_github_workflows() {
     if [ -n "$NDEPENDED_PACKAGES" ] ; then
         unset OUTPUT_FILEPATH
 
-        I=$(expr ${I-0} + 1)
+        I=$(expr "${I-0}" + 1)
         OUTPUT_FILEPATH="$OUTPUT_DIR/ci$I.yml"
         NDEPENDED_PACKAGES=$(echo "$NDEPENDED_PACKAGES" | tr ' ' ,)
 
@@ -5842,16 +5968,13 @@ ${COLOR_GREEN}xcpkg update${COLOR_OFF}
 ${COLOR_GREEN}xcpkg cleanup${COLOR_OFF}
     delete the unused cached files.
 
-${COLOR_GREEN}xcpkg ls-target-platforms${COLOR_OFF}
+${COLOR_GREEN}xcpkg ls-target-platform-names${COLOR_OFF}
     list the supported target platforms.
 
-${COLOR_GREEN}xcpkg ls-target-versions [PLATFORM]${COLOR_OFF}
+${COLOR_GREEN}xcpkg ls-target-platform-versions [PLATFORM]${COLOR_OFF}
     list the supported target platform's version.
 
-${COLOR_GREEN}xcpkg ls-target-triples [32bit|64bit|all]${COLOR_OFF}
-    list the supported target triples.
-
-${COLOR_GREEN}xcpkg ls-target-archs   [32bit|64bit|all] [PLATFORM]${COLOR_OFF}
+${COLOR_GREEN}xcpkg ls-target-platform-archs   [32bit|64bit|all] [PLATFORM]${COLOR_OFF}
     list the supported target archs.
 
 ${COLOR_GREEN}xcpkg ls-available${COLOR_OFF}
@@ -5960,17 +6083,11 @@ ${COLOR_GREEN}PLATFORM-VERSION:${COLOR_OFF}
     the minimum version supported by this package.
 
 ${COLOR_GREEN}PLATFORM-NAME:${COLOR_OFF}
-    xcpkg ls-target-platforms command will list the supported platform names.
+    xcpkg ls-target-platform-names command will list the supported platform names.
 
 ${COLOR_GREEN}PACKAGE-NAME:${COLOR_OFF}
     must match regular expression pattern ^[A-Za-z0-9+-._]{1,50}$
     "
-
-    if [ -z "$1" ] ; then
-        exit
-    else
-        exit "$1"
-    fi
 }
 
 # }}}
@@ -5992,6 +6109,7 @@ main() {
 
     NATIVE_OS_KIND=darwin
     NATIVE_OS_TYPE=macos
+    NATIVE_OS_NAME=MacOSX
     NATIVE_OS_VERS="$(sw_vers -productVersion)"
     NATIVE_OS_ARCH="$(uname -m)"
     NATIVE_OS_NCPU="$(sysctl -n machdep.cpu.thread_count)"
@@ -6001,8 +6119,6 @@ main() {
     XCPKG="$CURRENT_SCRIPT_FILEPATH"
 
     XCPKG_VERSION=0.10.0
-
-    XCPKG_WEB_URL='https://github.com/leleliu008/xcpkg'
 
     XCPKG_OFFICAL_FORMULA_REPO_URL='https://github.com/leleliu008/xcpkg-formula-repository-offical-core'
 
@@ -6041,7 +6157,7 @@ main() {
             ;;
         setup)
             shift
-            __setup $@
+            __setup "$@"
             return 0
             ;;
         sysinfo)
@@ -6060,64 +6176,65 @@ EOF
             inspect_xcode_information
 
             cat <<EOF
-xcode-root: $TOOLCHAIN_ROOT
-xcode-vers: $TOOLCHAIN_VERS
+DEVELOPER_DIR: $DEVELOPER_DIR
+XCODE_VERSION: $XCODE_VERSION
 
-tools:
-    CC:      $TOOLCHAIN_BIND/clang
-    CXX:     $TOOLCHAIN_BIND/clang++
-    CPP:     $TOOLCHAIN_BIND/cpp
-    AS:      $TOOLCHAIN_BIND/as
-    AR:      $TOOLCHAIN_BIND/ar
-    RANLIB:  $TOOLCHAIN_BIND/ranlib
-    LD:      $TOOLCHAIN_BIND/ld
-    NM:      $TOOLCHAIN_BIND/nm
-    STRIP:   $TOOLCHAIN_BIND/strip
-    SIZE:    $TOOLCHAIN_BIND/size
-    STRINGS: $TOOLCHAIN_BIND/strings
-    OBJDUMP: $TOOLCHAIN_BIND/objdump
+toolchains:
+    default:
+        CC:      $CC
+        CXX:     $CXX
+        CPP:     $CPP
+        AS:      $AS
+        AR:      $AR
+        RANLIB:  $RANLIB
+        LD:      $LD
+        NM:      $NM
+        SIZE:    $SIZE
+        STRIP:   $STRIP
+        STRINGS: $STRINGS
+        OBJDUMP: $OBJDUMP
 
 platforms:
     MacOSX:
         SDKROOT: $(xcrun --sdk macosx --show-sdk-path)
         supported:
-            archs: $(__list_supported_target_archs MacOSX)
+            archs: $(__list_supported_target_platform_archs MacOSX)
             versions: $(__list_supported_target_platform_versions MacOSX)
 
     WatchOS:
         SDKROOT: $(xcrun --sdk watchos --show-sdk-path)
         supported:
-            archs: $(__list_supported_target_archs WatchOS)
+            archs: $(__list_supported_target_platform_archs WatchOS)
             versions: $(__list_supported_target_platform_versions WatchOS)
 
     WatchSimulator:
         SDKROOT: $(xcrun --sdk watchsimulator --show-sdk-path)
         supported:
-            archs: $(__list_supported_target_archs WatchSimulator)
+            archs: $(__list_supported_target_platform_archs WatchSimulator)
             versions: $(__list_supported_target_platform_versions WatchSimulator)
 
     iPhoneOS:
         SDKROOT: $(xcrun --sdk iphoneos --show-sdk-path)
         supported:
-            archs: $(__list_supported_target_archs iPhoneOS)
+            archs: $(__list_supported_target_platform_archs iPhoneOS)
             versions: $(__list_supported_target_platform_versions iPhoneOS)
 
     iPhoneSimulator:
         SDKROOT: $(xcrun --sdk iphonesimulator --show-sdk-path)
         supported:
-            archs: $(__list_supported_target_archs iPhoneSimulator)
+            archs: $(__list_supported_target_platform_archs iPhoneSimulator)
             versions: $(__list_supported_target_platform_versions iPhoneSimulator)
 
     AppleTVOS:
         SDKROOT: $(xcrun --sdk appletvos --show-sdk-path)
         supported:
-            archs: $(__list_supported_target_archs AppleTVOS)
+            archs: $(__list_supported_target_platform_archs AppleTVOS)
             versions: $(__list_supported_target_platform_versions AppleTVOS)
 
     AppleTVSimulator:
         SDKROOT: $(xcrun --sdk appletvsimulator --show-sdk-path)
         supported:
-            archs: $(__list_supported_target_archs AppleTVSimulator)
+            archs: $(__list_supported_target_platform_archs AppleTVSimulator)
             versions: $(__list_supported_target_platform_versions AppleTVSimulator)
 EOF
             return 0;
@@ -6181,8 +6298,8 @@ EOF
 
             cat <<EOF
 
-xcode.root: $TOOLCHAIN_ROOT
-xcode.vers: $TOOLCHAIN_VERS
+DEVELOPER_DIR: $DEVELOPER_DIR
+XCODE_VERSION: $XCODE_VERSION
 EOF
             if [ "$2" = '-v' ] ; then
                 echo "${COLOR_PURPLE}==>${COLOR_OFF} ${COLOR_GREEN}PATH${COLOR_OFF}"
@@ -6190,36 +6307,35 @@ EOF
             fi
             ;;
 
-        ls-target-platforms) shift; __list_supported_target_platforms $@ ;;
-        ls-target-versions)  shift; __list_supported_target_platform_versions  $@ ;;
-        ls-target-triples)   shift; __list_supported_target_triples   $@ ;;
-        ls-target-archs)     shift; __list_supported_target_archs     $@ ;;
+        ls-target-platform-names)    shift; __list_supported_target_platform_names     "$@" ;;
+        ls-target-platform-versions) shift; __list_supported_target_platform_versions  "$@" ;;
+        ls-target-platform-archs)    shift; __list_supported_target_platform_archs     "$@" ;;
 
         ls-available) shift; __list_available_packages ;;
         ls-installed) shift; __list_installed_packages ;;
         ls-outdated)  shift; __list__outdated_packages ;;
 
-        is-available) shift; is_package_available $@ ;;
-        is-installed) shift; is_package_installed $@ ;;
-        is-outdated)  shift; is_package__outdated $@ ;;
+        is-available) shift; is_package_available "$@" ;;
+        is-installed) shift; is_package_installed "$@" ;;
+        is-outdated)  shift; is_package__outdated "$@" ;;
 
         formula-repo)
             shift
             case $1 in
                 list) shift; __list_available_formula_repository_items ;;
-                add)  shift; __add_a_formula_repo $@ ;;
-                del)  shift; __del_a_formula_repo $@ ;;
+                add)  shift; __add_a_formula_repo "$@" ;;
+                del)  shift; __del_a_formula_repo "$@" ;;
                 *) help 1
             esac
             ;;
         formula)
             shift
             case $1 in
-                create) shift; __create_formula_of_the_given_package $@ ;;
-                delete) shift; __delete_formula_of_the_given_package $@ ;;
-                rename) shift; __rename_formula_of_the_given_package $@ ;;
-                view)   shift;   __view_formula_of_the_given_package $@ ;;
-                edit)   shift;   __edit_formula_of_the_given_package $@ ;;
+                create) shift; __create_formula_of_the_given_package "$@" ;;
+                delete) shift; __delete_formula_of_the_given_package "$@" ;;
+                rename) shift; __rename_formula_of_the_given_package "$@" ;;
+                view)   shift;   __view_formula_of_the_given_package "$@" ;;
+                edit)   shift;   __edit_formula_of_the_given_package "$@" ;;
                 list)   shift; __list_formula_filepath ;;
                    *)   help 1
             esac
@@ -6229,41 +6345,41 @@ EOF
 
         search)  shift; __search_packages "$*" ;;
 
-          install) shift;   __install_the_given_packages $@ ;;
-        reinstall) shift; __reinstall_the_given_packages $@ ;;
-        uninstall) shift; __uninstall_the_given_packages $@ ;;
+          install) shift;   __install_the_given_packages "$@" ;;
+        reinstall) shift; __reinstall_the_given_packages "$@" ;;
+        uninstall) shift; __uninstall_the_given_packages "$@" ;;
 
-        upgrade)   shift; __upgrade_packages $@ ;;
+        upgrade)   shift; __upgrade_packages "$@" ;;
         upgrade-self)
             shift
-            __upgrade_self "$XCPKG_UPGRAGE_URL" $@
+            __upgrade_self "$XCPKG_UPGRAGE_URL" "$@"
             ;;
         integrate)
             shift
             case $1 in
-                zsh) shift; __integrate_zsh_completions 'https://raw.githubusercontent.com/leleliu008/xcpkg/master/zsh-completion/_xcpkg' $@ ;;
+                zsh) shift; __integrate_zsh_completions 'https://raw.githubusercontent.com/leleliu008/xcpkg/master/zsh-completion/_xcpkg' "$@" ;;
                 *)   die "xcpkg integrate $1: not support."
             esac
             ;;
         depends)
             shift
-            __show_packages_depended_by_the_given_package $@
+            __show_packages_depended_by_the_given_package "$@"
             ;;
         fetch)
             shift
-            __fetch_resources_of_the_given_package $@
+            __fetch_resources_of_the_given_package "$@"
             ;;
-        logs) shift; __logs_the_given_installed_package $@ ;;
-        pack) shift; __pack_the_given_installed_package $@ ;;
-        tree) shift; __tree_the_given_installed_package $@ ;;
+        logs) shift; __logs_the_given_installed_package "$@" ;;
+        pack) shift; __pack_the_given_installed_package "$@" ;;
+        tree) shift; __tree_the_given_installed_package "$@" ;;
 
         info)
             shift
-            __show_information_of_the_given_package $@
+            __show_information_of_the_given_package "$@"
             ;;
         gen-github-workflows)
             shift
-            __gen_github_workflows $@
+            __gen_github_workflows "$@"
             ;;
         compare-versions)
             __compare_versions_with_brew
@@ -6272,7 +6388,7 @@ EOF
     esac
 }
 
-main $@
+main "$@"
 
 # }}}
 ##############################################################################

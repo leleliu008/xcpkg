@@ -251,13 +251,6 @@ all relevant dirs and files are located in `~/.xcpkg` directory.
         xcpkg ls-target-archs iPhoneOS 32bit
         xcpkg ls-target-archs iPhoneOS all
         
-*   **list the supported target triples**
-
-        xcpkg ls-target-triples
-        xcpkg ls-target-triples 64bit
-        xcpkg ls-target-triples 32bit
-        xcpkg ls-target-triples all
-        
 
 ## environment variables
 
