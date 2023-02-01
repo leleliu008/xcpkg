@@ -71,10 +71,10 @@ function _xcpkg() {
     case $state in
         option)
             case $words[1] in
-                ls-target-versions)
+                ls-target-platform-versions)
                     _arguments ':platform:($(xcpkg ls-target-platform-names))'
                     ;;
-                ls-target-archs)
+                ls-target-platform-archs)
                     _arguments \
                         ':platform:($(xcpkg ls-target-platform-names))' \
                         ':bit:(64bit 32bit all)'
