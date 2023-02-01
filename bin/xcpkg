@@ -5258,7 +5258,7 @@ __list_supported_target_platform_versions() {
 
     unset RECEIPT_PACKAGE_NAME
 
-    TARGET_PLATFORM_NAME="$(printf '%s\n' "$PACKAGE_SPEC" | cut -d/ -f2)"
+    TARGET_PLATFORM_NAME="$(printf '%s\n' "$PACKAGE_SPEC" | cut -d/ -f1)"
     TARGET_PLATFORM_VERS="$(printf '%s\n' "$PACKAGE_SPEC" | cut -d/ -f2)"
     TARGET_PLATFORM_ARCH="$(printf '%s\n' "$PACKAGE_SPEC" | cut -d/ -f3)"
     RECEIPT_PACKAGE_NAME="$(printf '%s\n' "$PACKAGE_SPEC" | cut -d/ -f4)"
