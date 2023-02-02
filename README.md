@@ -236,20 +236,22 @@ all relevant dirs and files are located in `~/.xcpkg` directory.
 
 *   **list the supported target platforms**
         
-        xcpkg ls-target-platforms
+        xcpkg ls-target-platform-names
         
 *   **list the supported target platform's versions**
 
-        xcpkg ls-target-versions
-        xcpkg ls-target-versions iPhoneOS
+        xcpkg ls-target-platform-versions
+        xcpkg ls-target-platform-versions iPhoneOS
+        xcpkg ls-target-platform-versions iPhoneSimulator
+        xcpkg ls-target-platform-versions MacOSX
         
 *   **list the supported target archs**
 
-        xcpkg ls-target-archs
-        xcpkg ls-target-archs iPhoneOS
-        xcpkg ls-target-archs iPhoneOS 64bit
-        xcpkg ls-target-archs iPhoneOS 32bit
-        xcpkg ls-target-archs iPhoneOS all
+        xcpkg ls-target-platform-archs
+        xcpkg ls-target-platform-archs iPhoneOS
+        xcpkg ls-target-platform-archs iPhoneOS 64bit
+        xcpkg ls-target-platform-archs iPhoneOS 32bit
+        xcpkg ls-target-platform-archs iPhoneOS all
         
 
 ## environment variables
@@ -324,7 +326,7 @@ all relevant dirs and files are located in `~/.xcpkg` directory.
     example:
 
     ```bash
-    export XCPKG_DEFAULT_TARGET_PLATFORM_SPEC=MacOSX/10.15/arm64
+    export XCPKG_DEFAULT_TARGET_PLATFORM_SPEC=MacOSX/10.15/x86_64
     ```
 
 *   **other relevant environment variables**
