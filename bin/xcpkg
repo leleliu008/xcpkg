@@ -4423,7 +4423,7 @@ os-egid: $NATIVE_OS_EGID
 EOF
 
     step "generate manifest.txt"
-    __generate_installed_manifest_of_the_given_package "$1"
+    __generate_manifest_of_the_given_package "$1"
 
     step "generate receipt.yml"
     __generate_receipt_of_the_given_package "$1"
