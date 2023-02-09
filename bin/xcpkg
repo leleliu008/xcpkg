@@ -2897,7 +2897,7 @@ EOF
 
     for TOOL in CC CXX CPP AS AR RANLIB LD NM STRIP SIZE STRINGS OBJDUMP
     do
-        printf "%19s = %s\n" "${TOOL}_FOR_BUILD" "$(eval echo \$"${TOOL}_FOR_BUILD")"
+        printf "%17s = %s\n" "${TOOL}_FOR_BUILD" "$(eval echo \$"${TOOL}_FOR_BUILD")"
     done
 
     #########################################################################################
@@ -3475,17 +3475,17 @@ $DOT_CONTENT
 
     for TOOL in CC CXX CPP AS AR RANLIB LD NM STRIP SIZE STRINGS OBJDUMP
     do
-        printf "%9s = %s\n" "${TOOL}" "$(eval echo \$"${TOOL}")"
+        printf "%s = %s\n" "${TOOL}" "$(eval echo \$"${TOOL}")"
     done
 
     #########################################################################################
 
     step "config CFLAGS CXXFLAGS CPPFLAGS LDFLAGS"
 
-    CCFLAGS="$CCFLAGS $PACKAGE_CCFLAGS -fPIC -fno-common"
-    XXFLAGS="$XXFLAGS $PACKAGE_XXFLAGS -fPIC -fno-common"
-    PPFLAGS="$PPFLAGS $PACKAGE_PPFLAGS"
-    LDFLAGS="$LDFLAGS $PACKAGE_LDFLAGS"
+    CCFLAGS="$PACKAGE_CCFLAGS -fPIC -fno-common"
+    XXFLAGS="$PACKAGE_XXFLAGS -fPIC -fno-common"
+    PPFLAGS="$PACKAGE_PPFLAGS"
+    LDFLAGS="$PACKAGE_LDFLAGS"
 
     CCFLAGS="$(printf '%s\n' "$CCFLAGS" | sed -e 's|--static||g' -e 's|-static||g')"
     XXFLAGS="$(printf '%s\n' "$XXFLAGS" | sed -e 's|--static||g' -e 's|-static||g')"
