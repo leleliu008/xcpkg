@@ -2654,7 +2654,7 @@ inspect_install_arguments() {
 __install_the_given_packages() {
     inspect_install_arguments "$@"
 
-    [ -z "$USER_SPECIFIED_PACKAGE_SPEC_LIST" ] abort 1 "$_0 install <PACKAGE-SPEC|PACKAGE-NAME>..., <|PACKAGE-SPEC|PACKAGE-NAME> is unspecified."
+    [ -z "$USER_SPECIFIED_PACKAGE_SPEC_LIST" ] && abort 1 "$_0 install <PACKAGE-SPEC|PACKAGE-NAME>..., <|PACKAGE-SPEC|PACKAGE-NAME> is unspecified."
 
     #########################################################################################
 
