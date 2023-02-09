@@ -3475,7 +3475,7 @@ $DOT_CONTENT
 
     for TOOL in CC CXX CPP AS AR RANLIB LD NM STRIP SIZE STRINGS OBJDUMP
     do
-        printf "%s = %s\n" "${TOOL}" "$(eval echo \$"${TOOL}")"
+        printf "%7s = %s\n" "${TOOL}" "$(eval echo \$"${TOOL}")"
     done
 
     #########################################################################################
@@ -3513,7 +3513,7 @@ $DOT_CONTENT
 
     for DEPENDENT_PACKAGE_NAME in $RECURSIVE_DEPENDENT_PACKAGE_NAMES
     do
-        DEPENDENT_PACKAGE_NAME_UNDERSCORE=$(printf '%s\n' "$DEPENDENT_PACKAGE_NAME" | tr '@+-.' '_')
+        DEPENDENT_PACKAGE_NAME_UNDERSCORE="$(printf '%s\n' "$DEPENDENT_PACKAGE_NAME" | tr '@+-.' '_')"
 
         unset DEPENDENT_PACKAGE_INSTALL_DIR
         unset DEPENDENT_PACKAGE_BINARY__DIR
@@ -3606,7 +3606,7 @@ $DOT_CONTENT
     # https://www.gnu.org/software/automake/manual/html_node/Macro-Search-Path.html
     export ACLOCAL_PATH
 
-   for DEPENDENT_PACKAGE_INSTALL_DIR in $RECURSIVE_DEPENDENT_PACKAGE_INSTALL_DIRS
+    for DEPENDENT_PACKAGE_INSTALL_DIR in $RECURSIVE_DEPENDENT_PACKAGE_INSTALL_DIRS
     do
         DEPENDENT_PACKAGE_ACLOCAL_PATH="$DEPENDENT_PACKAGE_INSTALL_DIR/share/aclocal"
 
@@ -6621,11 +6621,35 @@ EOF
             ;;
     esac
 
+    #########################################################################################
+
+    if [ -z "$CARGO_HOME" ] ; then
+        bppend_to_PATH "$HOME/.cargo/bin"
+    else
+        bppend_to_PATH "$CARGO_HOME/bin"
+    fi
+
+    # pip install --user <PKG>
+    bppend_to_PATH "$HOME/.local/bin"
+
+    # cpan install to default local location
+    bppend_to_PATH "$HOME/perl5/bin"
+
+    #########################################################################################
+
+    unset PPKG_USE_EXTERNAL_PACKAGE_MANAGER
+
+    unset ACLOCAL_PATH
+
+    #########################################################################################
+
     if [ -f "$XCPKG_CORE_DIR/env" ] ; then
         .   "$XCPKG_CORE_DIR/env"
     else
         abort 1 "please run ${COLOR_GREEN}$_0 setup${COLOR_OFF} command first, then try again."
     fi
+
+    #########################################################################################
 
     # https://www.gnu.org/software/automake/manual/html_node/Macro-Search-Path.html
     if [ -z "$ACLOCAL_PATH" ] ; then
@@ -6639,17 +6663,9 @@ EOF
         export SSL_CERT_FILE="$XCPKG_CORE_DIR/etc/ssl/certs/cacert.pem"
     fi
 
-    # pip install --user <PKG>
-    bppend_to_PATH "$HOME/.local/bin"
-
-    # cpan install to default local location
-    bppend_to_PATH "$HOME/perl5/bin"
-
-    if [ -f "$HOME/.cargo/env" ] ; then
-        .   "$HOME/.cargo/env"
-    fi
-
     bppend_to_PATH "$XCPKG_CORE_BIN_DIR"
+
+    #########################################################################################
 
     case $1 in
         env)
