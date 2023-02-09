@@ -5951,12 +5951,12 @@ __compare_versions_with_brew() {
 
 # }}}
 ##############################################################################
-# {{{ ppkg gen-url-transform-sample
+# {{{ xcpkg gen-url-transform-sample
 
 __gen_url_transform_sample() {
-    install -d "$PPKG_HOME"
+    install -d "$XCPKG_HOME"
 
-    FILEPATH="$PPKG_HOME/url-transform.sample"
+    FILEPATH="$XCPKG_HOME/url-transform.sample"
 
     cat > "$FILEPATH" <<EOF
 #!/bin/sh
@@ -5976,8 +5976,8 @@ EOF
 
     chmod +x "$FILEPATH"
 
-    success "url-transform sample has been written into $PPKG_HOME/url-transform.sample"
-    note "You can rename url-transform.sample to url-transform then edit it to meet your needs. To apply this, you should run 'export PPKG_URL_TRANSFORM=$PPKG_HOME/url-transform' in your terminal."
+    success "url-transform sample has been written into $XCPKG_HOME/url-transform.sample"
+    note "You can rename url-transform.sample to url-transform then edit it to meet your needs. To apply this, you should run 'export XCPKG_URL_TRANSFORM=$XCPKG_HOME/url-transform' in your terminal."
 }
 
 # }}}
@@ -6185,7 +6185,7 @@ __setup_homebrew() {
     ##################################################################################
 
     cat > "$XCPKG_CORE_DIR/env" <<EOF
-PPKG_USE_EXTERNAL_PACKAGE_MANAGER=brew
+XCPKG_USE_EXTERNAL_PACKAGE_MANAGER=brew
 
 export ACLOCAL_PATH=/usr/local/share/aclocal
 export PATH="$BREW_PACKAGE_EXEFIND_PATH:\$PATH"
@@ -6282,7 +6282,7 @@ __setup_uppm() {
     done
 
     cat > "$XCPKG_CORE_DIR/env" <<EOF
-PPKG_USE_EXTERNAL_PACKAGE_MANAGER=uppm
+XCPKG_USE_EXTERNAL_PACKAGE_MANAGER=uppm
 
 export ACLOCAL_PATH="$UPPM_PACKAGE_ACLOCAL_PATH:\$ACLOCAL_PATH"
 export PATH="$UPPM_PACKAGE_EXEFIND_PATH:\$PATH"
@@ -6670,7 +6670,7 @@ xcpkg.home : $XCPKG_HOME
 xcpkg.path : $XCPKG
 xcpkg.link : https://github.com/leleliu008/xcpkg
 EOF
-            if [ "$XCPKG_USE_BREW" = yes ] ; then
+            if [ "$XCPKG_USE_EXTERNAL_PACKAGE_MANAGER" = brew ] ; then
                 run brew --version
                 run brew --env
             else
