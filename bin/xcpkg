@@ -4426,7 +4426,7 @@ EOF
     __generate_receipt_of_the_given_package "$1"
 
     [ "$PACKAGE_SYMLINK" = yes ] && {
-        step "symlink installed files to $XCPKG_PACKAGE_SYMLINKED_DIR"
+        step "symlink installed files to $XCPKG_PACKAGE_SYMLINKED_ROOT"
         __symlink_installed_files_of_the_given_package "$1"
     }
 
