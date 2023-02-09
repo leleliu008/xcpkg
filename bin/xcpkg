@@ -2558,12 +2558,12 @@ inspect_install_arguments() {
 
     CCACHE_ENABLED=no
 
-    LOG_LEVEL_QUIET=0
-    LOG_LEVEL_NORMAL=1
-    LOG_LEVEL_VERBOSE=2
-    LOG_LEVEL_DEBUG=3
+    VERBOSE_LEVEL_QUIET=0
+    VERBOSE_LEVEL_NORMAL=1
+    VERBOSE_LEVEL_VERBOSE=2
+    VERBOSE_LEVEL_DEBUG=3
 
-    LOG_LEVEL=$LOG_LEVEL_NORMAL
+    VERBOSE_LEVEL=$VERBOSE_LEVEL_NORMAL
 
     BUILD_NJOBS=$NATIVE_OS_NCPU
 
@@ -2582,13 +2582,13 @@ inspect_install_arguments() {
     do
         case $1 in
             --debug|-d)
-                LOG_LEVEL=$LOG_LEVEL_DEBUG
+                VERBOSE_LEVEL=$VERBOSE_LEVEL_DEBUG
                 ;;
             --verbose|-v)
-                LOG_LEVEL=$LOG_LEVEL_VERBOSE
+                VERBOSE_LEVEL=$VERBOSE_LEVEL_VERBOSE
                 ;;
             --quiet|-q)
-                LOG_LEVEL=$LOG_LEVEL_QUIET
+                VERBOSE_LEVEL=$VERBOSE_LEVEL_QUIET
                 ;;
             --disable-ccache)
                 CCACHE_ENABLED=no
@@ -2649,7 +2649,7 @@ inspect_install_arguments() {
         shift
     done
 
-    if [ "$LOG_LEVEL" -eq "$LOG_LEVEL_QUIET" ] ; then
+    if [ "$VERBOSE_LEVEL" -eq "$VERBOSE_LEVEL_QUIET" ] ; then
         exec 1>/dev/null
         exec 2>&1
     fi
@@ -2772,7 +2772,7 @@ __install_the_given_packages() {
             PACKAGE_SPEC="$TARGET_PLATFORM_SPEC/$PACKAGE_NAME"
 
             if is_package_installed "$PACKAGE_SPEC" ; then
-                if [ "$LOG_LEVEL" -gt 0 ] ; then
+                if [ "$VERBOSE_LEVEL" -gt 0 ] ; then
                     printf "$COLOR_GREEN%-10s$COLOR_OFF already have been installed.\n" "$PACKAGE_SPEC"
                 fi
             else
@@ -3841,7 +3841,7 @@ set(CMAKE_LIBRARY_PATH "$SYSROOT/usr/lib")
 
 set(CMAKE_IGNORE_PATH "$CMAKE_IGNORE_PATH")
 EOF
-        [ "$LOG_LEVEL" -gt "$LOG_LEVEL_QUIET" ] && {
+        [ "$VERBOSE_LEVEL" -gt "$VERBOSE_LEVEL_QUIET" ] && {
             if command -v bat > /dev/null ; then
                 run bat --language=yaml --paging=never "$CMAKE_TOOLCHAIN_FILE"
             else
@@ -4833,7 +4833,7 @@ configure() {
         fi
     fi
 
-    if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
+    if [ "$VERBOSE_LEVEL" -ge "$VERBOSE_LEVEL_VERBOSE" ] ; then
         for Makefile in $(find "$PACKAGE_BSCRIPT_DIR" -name Makefile)
         do
             sed_in_place 's|\t@|\t|g'     "$Makefile" || return 1
@@ -4856,7 +4856,7 @@ gmakew() {
 
     run "$GMAKE" --version
 
-    if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_DEBUG" ] ; then
+    if [ "$VERBOSE_LEVEL" -ge "$VERBOSE_LEVEL_DEBUG" ] ; then
         run "$GMAKE -w -j$BUILD_NJOBS --debug V=1 $*"
     else
         run "$GMAKE -w -j$BUILD_NJOBS $*"
@@ -4877,7 +4877,7 @@ cmakew() {
 
     if [ "$STEP_MESSAGE" = 'build for native' ] ; then
         # https://cmake.org/cmake/help/latest/variable/CMAKE_FIND_DEBUG_MODE.html
-        if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_DEBUG" ] ; then
+        if [ "$VERBOSE_LEVEL" -ge "$VERBOSE_LEVEL_DEBUG" ] ; then
             CMAKE_CONFIG_OPTIONS="$@ -DCMAKE_FIND_DEBUG_MODE=TRUE"
         else
             CMAKE_CONFIG_OPTIONS="$@"
@@ -4933,7 +4933,7 @@ xmakew() {
         esac
     done
 
-    if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_DEBUG" ] && [ -z "$XMAKE_CONFIG_OPTION_vD" ]; then
+    if [ "$VERBOSE_LEVEL" -ge "$VERBOSE_LEVEL_DEBUG" ] && [ -z "$XMAKE_CONFIG_OPTION_vD" ]; then
         XMAKE_CONFIG_OPTIONS="$XMAKE_CONFIG_OPTION_vD -vD"
     fi
 
@@ -5233,7 +5233,7 @@ gow() {
     GO_BUILD_ARGS='-trimpath'
 
     if [ -z "$GO_BUILD_ARGV_V" ] ; then
-        if [ "$LOG_LEVEL" -gt "$LOG_LEVEL_QUIET" ] ; then
+        if [ "$VERBOSE_LEVEL" -gt "$VERBOSE_LEVEL_QUIET" ] ; then
             GO_BUILD_ARGS="$GO_BUILD_ARGS -v"
         fi
     else
@@ -5241,7 +5241,7 @@ gow() {
     fi
 
     if [ -z "$GO_BUILD_ARGV_X" ] ; then
-        if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
+        if [ "$VERBOSE_LEVEL" -ge "$VERBOSE_LEVEL_VERBOSE" ] ; then
             GO_BUILD_ARGS="$GO_BUILD_ARGS -x"
         fi
     else
