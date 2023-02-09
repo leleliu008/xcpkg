@@ -2888,7 +2888,7 @@ EOF
 
     for TOOL in CC CXX CPP AS AR RANLIB LD NM STRIP SIZE STRINGS OBJDUMP OBJCOPY READELF ADDR2LINE
     do
-        printf "%9s = %s\n" "${TOOL}_FOR_BUILD" "$(eval echo \$"${TOOL}_FOR_BUILD")"
+        printf "%19s = %s\n" "${TOOL}_FOR_BUILD" "$(eval echo \$"${TOOL}_FOR_BUILD")"
     done
 
     export      CC_FOR_BUILD
@@ -2954,16 +2954,18 @@ EOF
 
     #########################################################################################
 
+    PACKAGE_FORMULA_FILEPATH="$SESSION_DIR/$PACKAGE_NAME.yml"
+
     step "view formula"
 
     if command -v bat > /dev/null ; then
-        run bat --language=yaml --paging=never "$SESSION_DIR/$1.yml"
+        run bat --language=yaml --paging=never "$PACKAGE_FORMULA_FILEPATH"
     else
-        run cat "$SESSION_DIR/$1.yml"
+        run cat "$PACKAGE_FORMULA_FILEPATH"
     fi
    
     step "load formula"
-    __load_formula_of_the_given_package "$1" "$SESSION_DIR/$1.yml"
+    __load_formula_of_the_given_package "$PACKAGE_NAME" "$PACKAGE_FORMULA_FILEPATH"
 
     #########################################################################################
 
