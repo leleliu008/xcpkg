@@ -2456,7 +2456,7 @@ $DOT_CONTENT
             esac
         fi
 
-        warn "$1 will be treated as a package name, and it will be expanded to $PACKECK_SPEC"
+        warn "$1 will be treated as a package name, and it will be expanded to $PACKAGE_SPEC"
         printf '%s\n' "$PACKAGE_SPEC"
     else
         case $1 in
@@ -3744,11 +3744,6 @@ $DOT_CONTENT
             release) CMAKE_BUILD_TYPE=Release ;;
         esac
 
-        case $INSTALL_LIB in
-            static)  BUILD_SHARED_LIBS=OFF ;;
-            *)       BUILD_SHARED_LIBS=ON
-        esac
-
         if [ "$VERBOSE_LEVEL" -eq 0 ] ; then
             CMAKE_VERBOSE_MAKEFILE=OFF
             CMAKE_COLOR_MAKEFILE=OFF
@@ -3800,11 +3795,6 @@ $DOT_CONTENT
         CMAKE_TOOLCHAIN_FILE="$PACKAGE_WORKING_DIR/toolchain.cmake"
 
         cat > "$CMAKE_TOOLCHAIN_FILE" <<EOF
-set(CMAKE_VERBOSE_MAKEFILE $CMAKE_VERBOSE_MAKEFILE)
-set(CMAKE_COLOR_MAKEFILE   $CMAKE_COLOR_MAKEFILE)
-
-set(BUILD_SHARED_LIBS $BUILD_SHARED_LIBS)
-
 set(CMAKE_BUILD_TYPE  $CMAKE_BUILD_TYPE)
 
 set(CMAKE_SYSTEM_NAME      Darwin)
@@ -4870,8 +4860,6 @@ gmakew() {
 # https://cmake.org/cmake/help/latest/command/enable_testing.html?highlight=build_testing
 # run in a subshell
 cmakew() {
-    CMAKE=$(command -v cmake) || abort 1 "command not found: cmake"
-
     if [ "$STEP_MESSAGE" = 'build for native' ] ; then
         # https://cmake.org/cmake/help/latest/variable/CMAKE_FIND_DEBUG_MODE.html
         if [ "$VERBOSE_LEVEL" -ge "$VERBOSE_LEVEL_DEBUG" ] ; then
@@ -4892,6 +4880,24 @@ cmakew() {
         run "$CMAKE" --build   "$NATIVE_BCACHED_DIR" -- "-j$BUILD_NJOBS" &&
         run "$CMAKE" --install "$NATIVE_BCACHED_DIR"
     else
+        BUILD_SHARED_LIBS_IS_SPECIFIED=no
+
+        for OPT in "$@"
+        do
+            case $OPT in
+                -DBUILD_SHARED_LIBS=*) BUILD_SHARED_LIBS_IS_SPECIFIED=yes; break
+            esac
+        done
+
+        CMAKE_CONFIG_OPTIONS_EXTRA=
+
+        [ "$BUILD_SHARED_LIBS_IS_SPECIFIED" = no ] && {
+            case $INSTALL_LIB in
+                static)  CMAKE_CONFIG_OPTIONS_EXTRA=-DBUILD_SHARED_LIBS=OFF ;;
+                *)       CMAKE_CONFIG_OPTIONS_EXTRA=-DBUILD_SHARED_LIBS=ON  ;;
+            esac
+        }
+
         run "$CMAKE" \
             -Wno-dev \
             -S "$PACKAGE_BSCRIPT_DIR" \
@@ -4899,7 +4905,8 @@ cmakew() {
             -DCMAKE_INSTALL_PREFIX="$PACKAGE_INSTALL_DIR" \
             -DCMAKE_TOOLCHAIN_FILE="$CMAKE_TOOLCHAIN_FILE" \
             -DCMAKE_VERBOSE_MAKEFILE="$CMAKE_VERBOSE_MAKEFILE" \
-            -DCMAKE_COLOR_MAKEFILE="$CMAKE_COLOR_MAKEFILE" "$@" &&
+            -DCMAKE_COLOR_MAKEFILE="$CMAKE_COLOR_MAKEFILE" \
+            "$CMAKE_CONFIG_OPTIONS_EXTRA" "$@" &&
         run "$CMAKE" --build   "$PACKAGE_BCACHED_DIR" -- "-j$BUILD_NJOBS" &&
         run "$CMAKE" --install "$PACKAGE_BCACHED_DIR"
     fi
