@@ -672,7 +672,7 @@ __load_formula_of_the_given_package() {
     fi
 
     PACKAGE_NAME="$1"
-    PACKAGE_NAME_UPPERCASE_UNDERSCORE=$(printf '%s\n' "$PACKAGE_NAME" | tr a-z A-Z | tr '@+-.' '_')
+    PACKAGE_NAME_UPPERCASE_UNDERSCORE="$(printf '%s\n' "$PACKAGE_NAME" | tr a-z A-Z | tr '@+-.' '_')"
 
     PACKAGE_BUILD_SYSTEM=$PACKAGE_BSYSTEM
 
@@ -2711,10 +2711,8 @@ __install_the_given_packages() {
 
     #########################################################################################
 
-    for PACKAGE_SPEC in $USER_SPECIFIED_PACKAGE_SPEC_LIST
+    for USER_SPECIFIED_PACKAGE_SPEC in $USER_SPECIFIED_PACKAGE_SPEC_LIST
     do
-        unset PACKAGE_NAME
-
         unset TARGET_PLATFORM_NAME
         unset TARGET_PLATFORM_VERS
         unset TARGET_PLATFORM_ARCH
@@ -2722,7 +2720,6 @@ __install_the_given_packages() {
         TARGET_PLATFORM_NAME=$(printf '%s\n' "$PACKAGE_SPEC" | cut -d/ -f1)
         TARGET_PLATFORM_VERS=$(printf '%s\n' "$PACKAGE_SPEC" | cut -d/ -f2)
         TARGET_PLATFORM_ARCH=$(printf '%s\n' "$PACKAGE_SPEC" | cut -d/ -f3)
-                PACKAGE_NAME=$(printf '%s\n' "$PACKAGE_SPEC" | cut -d/ -f4)
 
         TARGET_PLATFORM_SPEC="$TARGET_PLATFORM_NAME/$TARGET_PLATFORM_VERS/$TARGET_PLATFORM_ARCH"
 
@@ -2730,7 +2727,7 @@ __install_the_given_packages() {
 
         TO_BE_INSTALLED_PACKAGE_NAMES=
 
-        STACK="$PACKAGE_NAME"
+        STACK="${USER_SPECIFIED_PACKAGE_SPEC##*/}"
 
         while [ -n "$STACK" ]
         do
@@ -2753,7 +2750,7 @@ __install_the_given_packages() {
 
             ##################################################################
 
-            PACKAGE_NAME_UPPERCASE_UNDERSCORE="$(printf '%s\n' "$PACKAGE_NAME" | tr '@+-.' '_')"
+            PACKAGE_NAME_UPPERCASE_UNDERSCORE="$(printf '%s\n' "$PACKAGE_NAME" | tr a-z A-Z | tr '@+-.' '_')"
 
             for item in $(eval echo \$PACKAGE_DEP_PKG_"${PACKAGE_NAME_UPPERCASE_UNDERSCORE}")
             do
