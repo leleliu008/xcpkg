@@ -77,23 +77,27 @@ error() {
 }
 
 abort() {
+    EXIT_STATUS_CODE="$1"
+    shift
     printf '%b\n' "${COLOR_RED}💔  $*${COLOR_OFF}" >&2
-    exit 1
+    exit "$EXIT_STATUS_CODE"
 }
 
 step() {
     STEP_NUM=$(expr ${STEP_NUM-0} + 1)
-    STEP_MESSAGE="$@"
-    echo
-    echo "${COLOR_PURPLE}=>> STEP ${STEP_NUM} : ${STEP_MESSAGE} ${COLOR_OFF}"
+    STEP_MESSAGE="$*"
+    printf '\n%b\n' "${COLOR_PURPLE}=>> STEP ${STEP_NUM} : ${STEP_MESSAGE} ${COLOR_OFF}"
 }
 
 run() {
-    echo "${COLOR_PURPLE}==>${COLOR_OFF} ${COLOR_GREEN}$@${COLOR_OFF}"
-    eval "$*"
+    if [ "$RUN_SILENT" != yes ] ; then
+        echo "${COLOR_PURPLE}==>${COLOR_OFF} ${COLOR_GREEN}$@${COLOR_OFF}"
+    fi
+
+    eval "$@"
 }
 
-list_length() {
+list_size() {
     printf '%s' "$#"
 }
 
@@ -2806,8 +2810,6 @@ __install_the_given_package() {
      NATIVE_OS_VERS = $NATIVE_OS_VERS
      NATIVE_OS_ARCH = $NATIVE_OS_ARCH
      NATIVE_OS_NCPU = $NATIVE_OS_NCPU
-     NATIVE_OS_LIBC = $NATIVE_OS_LIBC
-     NATIVE_OS_SUBS = $NATIVE_OS_SUBS
      NATIVE_OS_EUID = $NATIVE_OS_EUID
      NATIVE_OS_EGID = $NATIVE_OS_EGID
 
@@ -2818,9 +2820,6 @@ XCPKG_URL_TRANSFORM  = $XCPKG_URL_TRANSFORM
 
         BUILD_NJOBS = $BUILD_NJOBS
         BUILD_TYPE  = $BUILD_TYPE
-
-STATIC_LIBRARY_SUFFIX  = $STATIC_LIBRARY_SUFFIX
-SHARED_LIBRARY_SUFFIX  = $SHARED_LIBRARY_SUFFIX
     "
 
     #########################################################################################
@@ -2872,24 +2871,19 @@ EOF
     unset STRINGS_FOR_BUILD
     unset OBJDUMP_FOR_BUILD
 
-             CC_FOR_BUILD="$(xcrun --sdk macosx --find clang)"
-            CXX_FOR_BUILD="$(xcrun --sdk macosx --find clang++)"
-             AS_FOR_BUILD="$(xcrun --sdk macosx --find as)"
-             AR_FOR_BUILD="$(xcrun --sdk macosx --find ar)"
-         RANLIB_FOR_BUILD="$(xcrun --sdk macosx --find ranlib)"
-             LD_FOR_BUILD="$(xcrun --sdk macosx --find ld)"
-             NM_FOR_BUILD="$(xcrun --sdk macosx --find nm)"
-           SIZE_FOR_BUILD="$(xcrun --sdk macosx --find size)"
-          STRIP_FOR_BUILD="$(xcrun --sdk macosx --find strip)"
-        STRINGS_FOR_BUILD="$(xcrun --sdk macosx --find strings)"
-        OBJDUMP_FOR_BUILD="$(xcrun --sdk macosx --find objdump)"
+         CC_FOR_BUILD="$(xcrun --sdk macosx --find clang)"
+        CXX_FOR_BUILD="$(xcrun --sdk macosx --find clang++)"
+         AS_FOR_BUILD="$(xcrun --sdk macosx --find as)"
+         AR_FOR_BUILD="$(xcrun --sdk macosx --find ar)"
+     RANLIB_FOR_BUILD="$(xcrun --sdk macosx --find ranlib)"
+         LD_FOR_BUILD="$(xcrun --sdk macosx --find ld)"
+         NM_FOR_BUILD="$(xcrun --sdk macosx --find nm)"
+       SIZE_FOR_BUILD="$(xcrun --sdk macosx --find size)"
+      STRIP_FOR_BUILD="$(xcrun --sdk macosx --find strip)"
+    STRINGS_FOR_BUILD="$(xcrun --sdk macosx --find strings)"
+    OBJDUMP_FOR_BUILD="$(xcrun --sdk macosx --find objdump)"
 
-            CPP_FOR_BUILD="$CC_FOR_BUILD -E"
-
-    for TOOL in CC CXX CPP AS AR RANLIB LD NM STRIP SIZE STRINGS OBJDUMP OBJCOPY READELF ADDR2LINE
-    do
-        printf "%19s = %s\n" "${TOOL}_FOR_BUILD" "$(eval echo \$"${TOOL}_FOR_BUILD")"
-    done
+        CPP_FOR_BUILD="$CC_FOR_BUILD -E"
 
     export      CC_FOR_BUILD
     export     CXX_FOR_BUILD
@@ -2903,6 +2897,11 @@ EOF
     export   STRIP_FOR_BUILD
     export STRINGS_FOR_BUILD
     export OBJDUMP_FOR_BUILD
+
+    for TOOL in CC CXX CPP AS AR RANLIB LD NM STRIP SIZE STRINGS OBJDUMP
+    do
+        printf "%19s = %s\n" "${TOOL}_FOR_BUILD" "$(eval echo \$"${TOOL}_FOR_BUILD")"
+    done
 
     #########################################################################################
 
@@ -2945,7 +2944,7 @@ EOF
     export    SIZE="$SIZE_FOR_BUILD"
     export   STRIP="$STRIP_FOR_BUILD"
     export STRINGS="$STRINGS_FOR_BUILD"
-    export OBJDUMP="$OBJCOPY_FOR_BUILD"
+    export OBJDUMP="$OBJDUMP_FOR_BUILD"
 
     export   CFLAGS="$CFLAGS_FOR_BUILD"
     export CXXFLAGS="$CXXFLAGS_FOR_BUILD"
@@ -3431,6 +3430,10 @@ $DOT_CONTENT
 
     #########################################################################################
 
+    TARGET_PLATFORM_NAME_LOWER_CASE="$(printf "$TARGET_PLATFORM_NAME" | tr A-Z a-z)"
+
+    #########################################################################################
+
     step "locate C/C++ toolchain for $TARGET_PLATFORM_NAME"
 
     unset      CC
@@ -3446,24 +3449,19 @@ $DOT_CONTENT
     unset STRINGS
     unset OBJDUMP
 
-             CC="$(xcrun --sdk macosx --find clang)"
-            CXX="$(xcrun --sdk macosx --find clang++)"
-             AS="$(xcrun --sdk macosx --find as)"
-             AR="$(xcrun --sdk macosx --find ar)"
-         RANLIB="$(xcrun --sdk macosx --find ranlib)"
-             LD="$(xcrun --sdk macosx --find ld)"
-             NM="$(xcrun --sdk macosx --find nm)"
-           SIZE="$(xcrun --sdk macosx --find size)"
-          STRIP="$(xcrun --sdk macosx --find strip)"
-        STRINGS="$(xcrun --sdk macosx --find strings)"
-        OBJDUMP="$(xcrun --sdk macosx --find objdump)"
+         CC="$(xcrun --sdk "$TARGET_PLATFORM_NAME_LOWER_CASE" --find clang)"
+        CXX="$(xcrun --sdk "$TARGET_PLATFORM_NAME_LOWER_CASE" --find clang++)"
+         AS="$(xcrun --sdk "$TARGET_PLATFORM_NAME_LOWER_CASE" --find as)"
+         AR="$(xcrun --sdk "$TARGET_PLATFORM_NAME_LOWER_CASE" --find ar)"
+     RANLIB="$(xcrun --sdk "$TARGET_PLATFORM_NAME_LOWER_CASE" --find ranlib)"
+         LD="$(xcrun --sdk "$TARGET_PLATFORM_NAME_LOWER_CASE" --find ld)"
+         NM="$(xcrun --sdk "$TARGET_PLATFORM_NAME_LOWER_CASE" --find nm)"
+       SIZE="$(xcrun --sdk "$TARGET_PLATFORM_NAME_LOWER_CASE" --find size)"
+      STRIP="$(xcrun --sdk "$TARGET_PLATFORM_NAME_LOWER_CASE" --find strip)"
+    STRINGS="$(xcrun --sdk "$TARGET_PLATFORM_NAME_LOWER_CASE" --find strings)"
+    OBJDUMP="$(xcrun --sdk "$TARGET_PLATFORM_NAME_LOWER_CASE" --find objdump)"
 
-            CPP="$CC -E"
-
-    for TOOL in CC CXX CPP AS AR RANLIB LD NM STRIP SIZE STRINGS OBJDUMP OBJCOPY READELF ADDR2LINE
-    do
-        printf "%9s = %s\n" "${TOOL}" "$(eval echo \$"${TOOL}")"
-    done
+        CPP="$CC -E"
 
     export      CC
     export     CXX
@@ -3478,9 +3476,10 @@ $DOT_CONTENT
     export STRINGS
     export OBJDUMP
 
-    #########################################################################################
-
-    TARGET_PLATFORM_NAME_LOWER_CASE="$(printf "$TARGET_PLATFORM_NAME" | tr A-Z a-z)"
+    for TOOL in CC CXX CPP AS AR RANLIB LD NM STRIP SIZE STRINGS OBJDUMP
+    do
+        printf "%9s = %s\n" "${TOOL}" "$(eval echo \$"${TOOL}")"
+    done
 
     #########################################################################################
 
@@ -4419,7 +4418,6 @@ os-name: $NATIVE_OS_NAME
 os-arch: $NATIVE_OS_ARCH
 os-vers: $NATIVE_OS_VERS
 os-ncpu: $NATIVE_OS_NCPU
-os-libc: $NATIVE_OS_LIBC
 os-euid: $NATIVE_OS_EUID
 os-egid: $NATIVE_OS_EGID
 EOF
@@ -5953,6 +5951,37 @@ __compare_versions_with_brew() {
 
 # }}}
 ##############################################################################
+# {{{ ppkg gen-url-transform-sample
+
+__gen_url_transform_sample() {
+    install -d "$PPKG_HOME"
+
+    FILEPATH="$PPKG_HOME/url-transform.sample"
+
+    cat > "$FILEPATH" <<EOF
+#!/bin/sh
+
+# https://ghproxy.com/
+case \$1 in
+    *githubusercontent.com/*)
+        printf 'https://ghproxy.com/%s\n' "\$1"
+        ;;
+    https://github.com/*)
+        printf 'https://ghproxy.com/%s\n' "\$1"
+        ;;
+    '') printf '%s\n' "\$0 <URL>, <URL> is unspecified." >&2 ;;
+    *)  printf '%s\n' "\$1"
+esac
+EOF
+
+    chmod +x "$FILEPATH"
+
+    success "url-transform sample has been written into $PPKG_HOME/url-transform.sample"
+    note "You can rename url-transform.sample to url-transform then edit it to meet your needs. To apply this, you should run 'export PPKG_URL_TRANSFORM=$PPKG_HOME/url-transform' in your terminal."
+}
+
+# }}}
+##############################################################################
 # {{{ xcpkg gen-github-workflows
 
 __gen_github_workflows() {
@@ -6030,7 +6059,7 @@ __gen_github_workflows() {
             else
                 NDEPENDED_PACKAGES="$NDEPENDED_PACKAGES $x"
             fi
-            if [ "$(list_length "$NDEPENDED_PACKAGES")" -eq "$GROUP_SIZE" ] ; then
+            if [ "$(list_size "$NDEPENDED_PACKAGES")" -eq "$GROUP_SIZE" ] ; then
                 unset OUTPUT_FILEPATH
 
                 I=$(expr "${I-0}" + 1)
@@ -6102,22 +6131,6 @@ EOF
 
     chmod +x "$XCPKG_CORE_BIN_DIR/base64-encode-string"
 
-    #################################################################################
-
-    cat > "$XCPKG_CORE_BIN_DIR/wfetch-url-transform.sample" <<EOF
-# https://ghproxy.com/
-case \$1 in
-    *githubusercontent.com/*)
-        printf 'https://ghproxy.com/%s\n' "\$1"
-        ;;
-    https://github.com/*)
-        printf 'https://ghproxy.com/%s\n' "\$1"
-        ;;
-    '') printf '%s\n' "\$0 <URL>, <URL> is unspecified." >&2 ;;
-    *)  printf '%s\n' "\$1"
-esac
-EOF
-
     success "xcpkg have been successfully setup."
 }
 
@@ -6172,10 +6185,10 @@ __setup_homebrew() {
     ##################################################################################
 
     cat > "$XCPKG_CORE_DIR/env" <<EOF
-XCPKG_USE_BREW=yes
+PPKG_USE_EXTERNAL_PACKAGE_MANAGER=brew
 
 export ACLOCAL_PATH=/usr/local/share/aclocal
-export PATH="$BREW_PACKAGE_EXEFIND_PATH:$PATH"
+export PATH="$BREW_PACKAGE_EXEFIND_PATH:\$PATH"
 EOF
 }
 
@@ -6269,10 +6282,10 @@ __setup_uppm() {
     done
 
     cat > "$XCPKG_CORE_DIR/env" <<EOF
-XCPKG_USE_BREW=no
+PPKG_USE_EXTERNAL_PACKAGE_MANAGER=uppm
 
-export ACLOCAL_PATH="$UPPM_PACKAGE_ACLOCAL_PATH:$ACLOCAL_PATH"
-export PATH="$UPPM_PACKAGE_EXEFIND_PATH:$PATH"
+export ACLOCAL_PATH="$UPPM_PACKAGE_ACLOCAL_PATH:\$ACLOCAL_PATH"
+export PATH="$UPPM_PACKAGE_EXEFIND_PATH:\$PATH"
 
 # https://git-scm.com/book/en/v2/Git-Internals-Environment-Variables
 if [ -d "\$HOME/.uppm/installed/git/libexec/git-core" ] ; then
@@ -6604,6 +6617,10 @@ platforms:
             versions: $(__list_supported_target_platform_versions AppleTVSimulator)
 EOF
             return 0;
+            ;;
+        gen-url-transform-sample)
+            __gen_url_transform_sample "$@"
+            return 0
             ;;
     esac
 
