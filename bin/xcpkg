@@ -1031,8 +1031,8 @@ __rename_formula_of_the_given_package() {
 ##############################################################################
 # {{{ operations of formula repository
 
-# __add_a_formula_repo <REPO-NAME> <REPO-URL> <GIT-BRANCH-NAME>
-__add_a_formula_repo() {
+# __add_a_formula_repository <REPO-NAME> <REPO-URL> <GIT-BRANCH-NAME>
+__add_a_formula_repository() {
     [ -z "$1" ] && abort 1 "please specify a repo name."
     [ -z "$2" ] && abort 1 "please specify a repo url."
 
@@ -1052,7 +1052,7 @@ __add_a_formula_repo() {
 
     if [ -d "$FORMULA_REPO_PATH" ] ; then
         if git -C "$FORMULA_REPO_PATH" rev-parse HEAD > /dev/null 2>&1; then
-            success "$1 formula repo already have been added."
+            success "$1 formula repository already have been added."
             return 0
         else
             run rm -rf     "$FORMULA_REPO_PATH" || return 1
@@ -1067,7 +1067,7 @@ __add_a_formula_repo() {
     run git -C "$FORMULA_REPO_PATH" -c protocol.version=2 fetch --progress origin "+refs/heads/$GIT_BRANCH_NAME:refs/remotes/origin/$GIT_BRANCH_NAME" || return 1
     run git -C "$FORMULA_REPO_PATH" checkout --progress --force -B "$GIT_BRANCH_NAME" "refs/remotes/origin/$GIT_BRANCH_NAME" || return 1
 
-    cat > "$FORMULA_REPO_PATH/.xcpkg-formula-repo.yml" <<EOF
+    cat > "$FORMULA_REPO_PATH/.xcpkg-formula repository.yml" <<EOF
 url: $2
 branch: $3
 pinned: 0
@@ -1076,8 +1076,31 @@ timestamp-added: $(date +%s)
 EOF
 }
 
-# __del_a_formula_repo <REPO-NAME>
-  __del_a_formula_repo() {
+# __new_a_formula_repository <REPO-NAME> <REPO-URL> <GIT-BRANCH-NAME>
+__new_a_formula_repository() {
+    [ -z "$1" ] && abort 1 "please specify a repo name."
+    [ -z "$2" ] && abort 1 "please specify a repo url."
+
+    FORMULA_REPO_PATH="$XCPKG_HOME/repos.d/$1"
+
+    if [ -d "$FORMULA_REPO_PATH" ] ; then
+        abort 1 "$1 formula repository already exists."
+    else
+        run install -d "$FORMULA_REPO_PATH/formula"
+    fi
+
+    cat > "$FORMULA_REPO_PATH/.xcpkg-formula repository.yml" <<EOF
+url: $2
+branch: ${3:-master}
+pinned: 1
+enabled: 0
+timestamp-added: $(date +%s)
+EOF
+}
+
+
+# __del_a_formula_repository <REPO-NAME>
+  __del_a_formula_repository() {
     [ -z "$1" ] && abort 1 "please specify a repo name."
 
     [ "$1" = 'offical-core' ] && abort 1 "offical-core formula repository is not allowed to delete."
@@ -1085,7 +1108,7 @@ EOF
     if [ -d    "$XCPKG_HOME/repos.d/$1" ] ; then
         rm -rf "$XCPKG_HOME/repos.d/$1"
     else
-        warn "$1 named formula repo is not exist."
+        warn "$1 named formula repository does not exist."
     fi
 }
 
@@ -1134,13 +1157,13 @@ __repo_of_formula_of_the_given_package() {
     return 1
 }
 
-__list_available_formula_repository_items() {
+__list_available_formula_repositories() {
     if [ -d "$XCPKG_FORMULA_REPO_DIR" ] ; then
         I=0
 
         for item in $(cd "$XCPKG_FORMULA_REPO_DIR" && ls)
         do
-            FORMULA_REPO_CONFIG_FILEPATH="$XCPKG_FORMULA_REPO_DIR/$item/.xcpkg-formula-repo.yml"
+            FORMULA_REPO_CONFIG_FILEPATH="$XCPKG_FORMULA_REPO_DIR/$item/.xcpkg-formula repository.yml"
 
             if [ -f "$FORMULA_REPO_CONFIG_FILEPATH" ] ; then
                 I=$(expr "$I" + 1)
@@ -1161,7 +1184,7 @@ __list_available_formula_repository_names() {
     if [ -d "$XCPKG_FORMULA_REPO_DIR" ] ; then
         for item in $(cd "$XCPKG_FORMULA_REPO_DIR" && ls)
         do
-            if [ -f "$XCPKG_FORMULA_REPO_DIR/$item/.xcpkg-formula-repo.yml" ] ; then
+            if [ -f "$XCPKG_FORMULA_REPO_DIR/$item/.xcpkg-formula repository.yml" ] ; then
                 printf '%s\n' "$item"
             fi
         done
@@ -1172,7 +1195,7 @@ __update_formula_repositories() {
     if [ -d "$XCPKG_FORMULA_REPO_DIR" ] ; then
         for item in $(cd "$XCPKG_FORMULA_REPO_DIR" && ls)
         do
-            FORMULA_REPO_CONFIG_FILEPATH="$XCPKG_FORMULA_REPO_DIR/$item/.xcpkg-formula-repo.yml"
+            FORMULA_REPO_CONFIG_FILEPATH="$XCPKG_FORMULA_REPO_DIR/$item/.xcpkg-formula repository.yml"
 
             if [ -f "$FORMULA_REPO_CONFIG_FILEPATH" ] ; then
                 unset GIT_FETCH_URL
@@ -1209,7 +1232,7 @@ __update_formula_repositories() {
 
     if [ ! -d "$XCPKG_FORMULA_REPO_DIR/offical-core" ] ; then
         printf '%b\n' "${COLOR_PURPLE}==> Adding formula repository${COLOR_OFF} ${COLOR_GREEN}offical-core${COLOR_OFF}"
-        __add_a_formula_repo offical-core "$XCPKG_OFFICAL_FORMULA_REPO_URL" master
+        __add_a_formula_repository offical-core "$XCPKG_OFFICAL_FORMULA_REPO_URL" master
     fi
 }
 
@@ -4017,7 +4040,7 @@ EOF
                 step "copy source files to the installing src directory"
                 run cp -r "$PACKAGE_SRC_FILEPATH/." "$PACKAGE_INSTALLING_SRC_DIR"
             else
-                abort 1 "src-url point to dir is not exist."
+                abort 1 "src-url point to dir does not exist."
             fi
             ;;
         .git)
@@ -6393,11 +6416,14 @@ ${COLOR_GREEN}xcpkg formula-list${COLOR_OFF}
 ${COLOR_GREEN}xcpkg formula-repo [list]${COLOR_OFF}
     list all available formula repositories.
 
-${COLOR_GREEN}xcpkg formula-repo-add <NAME> <URL>${COLOR_OFF}
-    add a new formula-repo.
+${COLOR_GREEN}xcpkg formula-repo-add <NAME> <URL> [BRANCH]${COLOR_OFF}
+    add a new formula repository.
+
+${COLOR_GREEN}xcpkg formula-repo-new <NAME> <URL> [BRANCH]${COLOR_OFF}
+    add a new formula repository.
 
 ${COLOR_GREEN}xcpkg formula-repo-del <NAME>${COLOR_OFF}
-    delete a exist formula-repo.
+    delete a exist formula repository.
 
 ${COLOR_GREEN}xcpkg tree <PACKAGE-SPEC> [--dirsfirst | -L N]${COLOR_OFF}
     list installed files of the given installed package in a tree-like format.
@@ -6722,29 +6748,19 @@ EOF
         is-installed) shift; is_package_installed "$@" ;;
         is-outdated)  shift; is_package__outdated "$@" ;;
 
-        formula-repo)
-            shift
-            case $1 in
-                list) shift; __list_available_formula_repository_items ;;
-                add)  shift; __add_a_formula_repo "$@" ;;
-                del)  shift; __del_a_formula_repo "$@" ;;
-                *) help 1
-            esac
-            ;;
-        formula)
-            shift
-            case $1 in
-                create) shift; __create_formula_of_the_given_package "$@" ;;
-                delete) shift; __delete_formula_of_the_given_package "$@" ;;
-                rename) shift; __rename_formula_of_the_given_package "$@" ;;
-                view)   shift;   __view_formula_of_the_given_package "$@" ;;
-                edit)   shift;   __edit_formula_of_the_given_package "$@" ;;
-                list)   shift; __list_formula_filepath ;;
-                   *)   help 1
-            esac
-            ;;
-        update)  __update_formula_repositories ;;
-        cleanup) __cleanup ;;
+        formula-view) shift; __view_formula_of_the_given_package "$@" ;;
+        formula-edit) shift; __edit_formula_of_the_given_package "$@" ;;
+
+        formula-repo-add)  shift; __add_a_formula_repository "$@" ;;
+        formula-repo-new)  shift; __new_a_formula_repository "$@" ;;
+        formula-repo-del)  shift; __del_a_formula_repository "$@" ;;
+
+        formula-repo-info) shift; __info_the_given_formula_repository "$@" ;;
+        formula-repo-sync) shift; __sync_the_given_formula_repository "$@" ;;
+        formula-repo-list) shift; __list_available_formula_repositories "$@" ;;
+        update) shift;  __update_formula_repositories "$@" ;;
+
+        cleanup) shift; __cleanup ;;
 
         search)  shift; __search_packages "$*" ;;
 
