@@ -73,8 +73,8 @@ jobs:
       - run: bin/xcpkg pack MacOSX/10.15/x86_64/uctags -o .
       - run: bin/xcpkg pack MacOSX/10.15/x86_64/uctags -o xx.tar.xz
 
-      - run: bin/xcpkg formula-repo list
-      - run: bin/xcpkg formula view curl
+      - run: bin/xcpkg formula-repo-list
+      - run: bin/xcpkg formula-view curl
 
       - run: bin/xcpkg ls-target-platform-names
 
@@ -165,8 +165,8 @@ jobs:
       - run: xcpkg tree uctags
       - run: xcpkg pack uctags
 
-      - run: xcpkg formula-repo list
-      - run: xcpkg formula view curl
+      - run: xcpkg formula-repo-list
+      - run: xcpkg formula-view curl
 
       - run: xcpkg ls-target-platform-names
 
