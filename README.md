@@ -374,15 +374,15 @@ a typical xcpkg formula repository's config as following:
 ```
 url: https://github.com/leleliu008/xcpkg-formula-repository-offical-core
 branch: master
-pinned: 0
-enabled: 1
-timestamp-added: 1673684639
-timestamp-last-updated: 1673684767
+pinned: no
+enabled: yes
+timestamp-created: 1673684639
+timestamp-updated: 1673684767
 ```
 
-If a xcpkg formula repository is pinned, which means it would not be updated.
+If a xcpkg formula repository is `pinned`, which means it would not be updated.
 
-If a xcpkg formula repository is disabled, which means xcpkg would not search formula in this formula repository.
+If a xcpkg formula repository is `disabled`, which means xcpkg would not search formulas in this formula repository.
 
 ## xcpkg offical formula repository
 
