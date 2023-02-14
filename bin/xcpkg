@@ -1486,6 +1486,94 @@ EOF
 
 # }}}
 ##############################################################################
+# {{{ xcpkg formula-view
+
+# examples:
+# __view_formula_of_the_given_package curl
+# __view_formula_of_the_given_package curl --paging=never
+  __view_formula_of_the_given_package() {
+    [ -z "$1" ] && abort 1 "__view_formula_of_the_given_package <PACKAGE-NAME>, <PACKAGE-NAME> is unspecified."
+
+    unset PACKAGE_FORMULA_FILEPATH
+    PACKAGE_FORMULA_FILEPATH="$(__path_of_formula_of_the_given_package "$1")" || abort 1 "package [$1] is not available."
+
+    shift
+
+    unset VIEW_FORMULA_PAGING
+
+    while [ -n "$1" ]
+    do
+        case $1 in
+            --paging=*)
+                VIEW_FORMULA_PAGING="${1#*=}"
+                case $VIEW_FORMULA_PAGING in
+                    auto|always|never) ;;
+                    *) abort 1 "--paging=<VALUE>, <VALUE> must be one of auto, always, never"
+                esac
+                ;;
+            *)  abort 1 "unrecognized argument: $1"
+        esac
+        shift
+    done
+
+    case $VIEW_FORMULA_PAGING in
+        ''|auto)
+            if command -v bat > /dev/null ; then
+                bat --language=yaml --paging=auto "$PACKAGE_FORMULA_FILEPATH"
+            else
+                cat "$PACKAGE_FORMULA_FILEPATH"
+                echo
+                prompt_user_to_install_bat
+            fi
+            ;;
+        always)
+            if command -v bat > /dev/null ; then
+                bat --language=yaml --paging=always "$PACKAGE_FORMULA_FILEPATH"
+            else
+                more "$PACKAGE_FORMULA_FILEPATH"
+                echo
+                prompt_user_to_install_bat
+            fi
+            ;;
+        never)
+            if command -v bat > /dev/null ; then
+                bat --language=yaml --paging=never "$PACKAGE_FORMULA_FILEPATH"
+            else
+                cat "$PACKAGE_FORMULA_FILEPATH"
+                echo
+                prompt_user_to_install_bat
+            fi
+            ;;
+    esac
+}
+
+prompt_user_to_install_bat() {
+    echo
+    note "${COLOR_YELLOW}if you want to have a better experience, I strongly recommend you to install${COLOR_OFF} ${COLOR_GREEN}bat${COLOR_OFF} ${COLOR_YELLOW}on this machine. For more details, please visit website${COLOR_OFF} ${COLOR_GREEN}https://github.com/sharkdp/bat${COLOR_OFF}"
+}
+
+# }}}
+##############################################################################
+# {{{ xcpkg formula-edit
+
+# __edit_formula_of_the_given_package <PACKAGE-NAME>
+  __edit_formula_of_the_given_package() {
+    [ -z "$1" ] && abort 1 "__edit_formula_of_the_given_package <PACKAGE-NAME>, <PACKAGE-NAME> is unspecified."
+    [ -z "$2" ] || warn "edit action accept only one argument."
+
+    unset PACKAGE_FORMULA_FILEPATH
+    PACKAGE_FORMULA_FILEPATH="$(__path_of_formula_of_the_given_package "$1")" || abort 1 "package [$1] is not available."
+
+    [ -z "$EDITOR" ] && {
+        EDITOR=$(command -v nvim || command -v vim || command -v vi || command -v open) || abort 1 "please set EDITOR environment variable."
+    }
+
+    "$EDITOR" "$PACKAGE_FORMULA_FILEPATH"
+}
+
+
+# }}}
+##############################################################################
 # {{{ operations of manifest
 
 # __generate_manifest_of_the_given_package <PACKAGE-NAME>
@@ -6511,25 +6599,25 @@ ${COLOR_GREEN}xcpkg formula-view <PACKAGE-NAME>${COLOR_OFF}
 ${COLOR_GREEN}xcpkg formula-edit <PACKAGE-NAME>${COLOR_OFF}
     edit the formula of the given package.
 
-${COLOR_GREEN}ppkg formula-repo-init <FORMULA-REPO-NAME> <FORMULA-REPO-URL> [--branch=VALUE --pin/--unpin --enable/--disable]${COLOR_OFF}
+${COLOR_GREEN}xcpkg formula-repo-init <FORMULA-REPO-NAME> <FORMULA-REPO-URL> [--branch=VALUE --pin/--unpin --enable/--disable]${COLOR_OFF}
     create a new empty formula repository.
 
-${COLOR_GREEN}ppkg formula-repo-add  <FORMULA-REPO-NAME> <FORMULA-REPO-URL> [--branch=VALUE --pin/--unpin --enable/--disable]${COLOR_OFF}
+${COLOR_GREEN}xcpkg formula-repo-add  <FORMULA-REPO-NAME> <FORMULA-REPO-URL> [--branch=VALUE --pin/--unpin --enable/--disable]${COLOR_OFF}
     create a new empty formula repository then sync with server.
 
-${COLOR_GREEN}ppkg formula-repo-del  <FORMULA-REPO-NAME>${COLOR_OFF}
+${COLOR_GREEN}xcpkg formula-repo-del  <FORMULA-REPO-NAME>${COLOR_OFF}
     delete the given formula repository.
 
-${COLOR_GREEN}ppkg formula-repo-sync <FORMULA-REPO-NAME>${COLOR_OFF}
+${COLOR_GREEN}xcpkg formula-repo-sync <FORMULA-REPO-NAME>${COLOR_OFF}
     update the given formula repository.
 
-${COLOR_GREEN}ppkg formula-repo-info <FORMULA-REPO-NAME>${COLOR_OFF}
+${COLOR_GREEN}xcpkg formula-repo-info <FORMULA-REPO-NAME>${COLOR_OFF}
     show information of the given formula repository.
 
-${COLOR_GREEN}ppkg formula-repo-conf <FORMULA-REPO-NAME> [--url=VALUE --branch=VALUE --pin/--unpin --enable/--disable]${COLOR_OFF}
+${COLOR_GREEN}xcpkg formula-repo-conf <FORMULA-REPO-NAME> [--url=VALUE --branch=VALUE --pin/--unpin --enable/--disable]${COLOR_OFF}
     change the config of the given formula repository.
 
-${COLOR_GREEN}ppkg formula-repo-list${COLOR_OFF}
+${COLOR_GREEN}xcpkg formula-repo-list${COLOR_OFF}
     list all available formula repositories.
 
 ${COLOR_GREEN}xcpkg tree <PACKAGE-SPEC> [--dirsfirst | -L N]${COLOR_OFF}
@@ -6867,7 +6955,7 @@ EOF
             shift
 
             case $1 in
-                offical-*) abort 1 "ppkg formula repository name that starts with 'offical-' is reserved for ppkg offical formula repository, please use other name."
+                offical-*) abort 1 "xcpkg formula repository name that starts with 'offical-' is reserved for xcpkg offical formula repository, please use other name."
             esac
 
             __create_a_formula_repository "$@"
@@ -6876,7 +6964,7 @@ EOF
             shift
 
             case $1 in
-                offical-*) abort 1 "ppkg formula repository name that starts with 'offical-' is reserved for ppkg offical formula repository, please use other name."
+                offical-*) abort 1 "xcpkg formula repository name that starts with 'offical-' is reserved for xcpkg offical formula repository, please use other name."
             esac
 
             __create_a_formula_repository_then_sync_it "$@"
