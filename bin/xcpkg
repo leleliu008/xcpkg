@@ -3069,6 +3069,10 @@ EOF
 
     step "locate C/C++ toolchain for native build"
 
+    # https://www.real-world-systems.com/docs/xcrun.1.html
+    # do not use this environment variable
+    unset SDKROOT
+
     unset      CC_FOR_BUILD
     unset     CXX_FOR_BUILD
     unset     CPP_FOR_BUILD
@@ -3081,7 +3085,9 @@ EOF
     unset   STRIP_FOR_BUILD
     unset STRINGS_FOR_BUILD
     unset OBJDUMP_FOR_BUILD
+    unset SYSROOT_FOR_BUILD
 
+    SYSROOT_FOR_BUILD="$(xcrun --sdk macosx --show-sdk-path)"
          CC_FOR_BUILD="$(xcrun --sdk macosx --find clang)"
         CXX_FOR_BUILD="$(xcrun --sdk macosx --find clang++)"
          AS_FOR_BUILD="$(xcrun --sdk macosx --find as)"
@@ -3095,6 +3101,8 @@ EOF
     OBJDUMP_FOR_BUILD="$(xcrun --sdk macosx --find objdump)"
 
         CPP_FOR_BUILD="$CC_FOR_BUILD -E"
+        CXX_FOR_BUILD="$CXX_FOR_BUILD -isysroot $SYSROOT_FOR_BUILD"
+         CC_FOR_BUILD="$CC_FOR_BUILD -isysroot $SYSROOT_FOR_BUILD"
 
     export      CC_FOR_BUILD
     export     CXX_FOR_BUILD
@@ -3117,8 +3125,6 @@ EOF
     #########################################################################################
 
     step "config CFLAGS_FOR_BUILD CXXFLAGS_FOR_BUILD CPPFLAGS_FOR_BUILD LDFLAGS_FOR_BUILD"
-
-    unset SYSROOT_FOR_BUILD; SYSROOT_FOR_BUILD="$(xcrun --sdk macosx --show-sdk-path)"
 
     export   CFLAGS_FOR_BUILD="-isysroot $SYSROOT_FOR_BUILD -mmacosx-version-min=$NATIVE_OS_VERS -arch $NATIVE_OS_ARCH -Qunused-arguments"
     export CXXFLAGS_FOR_BUILD="-isysroot $SYSROOT_FOR_BUILD -mmacosx-version-min=$NATIVE_OS_VERS -arch $NATIVE_OS_ARCH -Qunused-arguments"
