@@ -884,16 +884,16 @@ EOF
 # {{{ xcpkg update
 
 __sync_available_formula_repositories() {
-    [ -d "$XCPKG_FORMULA_REPO_ROOR" ] && {
-        for item in $(cd "$XCPKG_FORMULA_REPO_ROOR" && ls)
+    [ -d "$XCPKG_FORMULA_REPO_ROOT" ] && {
+        for item in $(cd "$XCPKG_FORMULA_REPO_ROOT" && ls)
         do
-            if [ -f "$XCPKG_FORMULA_REPO_ROOR/$item/.xcpkg-formula-repo.yml" ] ; then
+            if [ -f "$XCPKG_FORMULA_REPO_ROOT/$item/.xcpkg-formula-repo.yml" ] ; then
                 __sync_the_given_formula_repository "$item"
             fi
         done
     }
 
-    [ -d "$XCPKG_FORMULA_REPO_ROOR/offical-core" ] || {
+    [ -d "$XCPKG_FORMULA_REPO_ROOT/offical-core" ] || {
         __create_a_formula_repository_then_sync_it offical-core "$XCPKG_OFFICAL_FORMULA_REPO_URL"
     }
 }
@@ -903,11 +903,11 @@ __sync_available_formula_repositories() {
 # {{{ xcpkg formula-repo-list
 
 __list_available_formula_repositories() {
-    [ -d "$XCPKG_FORMULA_REPO_ROOR" ] || return 0
+    [ -d "$XCPKG_FORMULA_REPO_ROOT" ] || return 0
 
-    for item in $(cd "$XCPKG_FORMULA_REPO_ROOR" && ls)
+    for item in $(cd "$XCPKG_FORMULA_REPO_ROOT" && ls)
     do
-        if [ -f "$XCPKG_FORMULA_REPO_ROOR/$item/.xcpkg-formula-repo.yml" ] ; then
+        if [ -f "$XCPKG_FORMULA_REPO_ROOT/$item/.xcpkg-formula-repo.yml" ] ; then
             __info_the_given_formula_repository "$item"
         fi
     done
@@ -6741,7 +6741,7 @@ main() {
 
     XCPKG="$CURRENT_SCRIPT_FILEPATH"
 
-    XCPKG_VERSION=0.10.0
+    XCPKG_VERSION=0.10.1
 
     XCPKG_OFFICAL_FORMULA_REPO_URL='https://github.com/leleliu008/xcpkg-formula-repository-offical-core'
 
@@ -6755,7 +6755,7 @@ main() {
         fi
     }
 
-    XCPKG_FORMULA_REPO_ROOR="$XCPKG_HOME/repos.d"
+    XCPKG_FORMULA_REPO_ROOT="$XCPKG_HOME/repos.d"
 
     XCPKG_PACKAGE_INSTALLED_ROOT="$XCPKG_HOME/installed"
     XCPKG_PACKAGE_SYMLINKED_ROOT="$XCPKG_HOME/symlinked"
