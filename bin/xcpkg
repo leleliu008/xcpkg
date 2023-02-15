@@ -940,8 +940,6 @@ __list_available_formula_repositories() {
             return 0
         fi
     done
-
-    return 1
 }
 
 
@@ -1062,7 +1060,9 @@ __load_formula_of_the_given_package() {
     unset -f build
     unset -f build_configed
 
-    PACKAGE_FORMULA_FILEPATH="$(__path_of_formula_of_the_given_package "$1")" || return 1
+    PACKAGE_FORMULA_FILEPATH="$(__path_of_formula_of_the_given_package "$1")"
+
+    [ -z "$PACKAGE_FORMULA_FILEPATH" ] && abort 1 "package '$1' is not available."
 
     for key in summary web-url git-url git-sha git-ref shallow src-url src-uri src-sha fix-url fix-sha res-url res-sha dep-pkg dep-upp dep-pym dep-plm license version bsystem bscript binbstd cdefine ccflags xxflags ldflags parallel toolset cstdlib exetype symlink
     do
@@ -1483,7 +1483,10 @@ EOF
     [ -z "$1" ] && abort 1 "__view_formula_of_the_given_package <PACKAGE-NAME>, <PACKAGE-NAME> is unspecified."
 
     unset PACKAGE_FORMULA_FILEPATH
-    PACKAGE_FORMULA_FILEPATH="$(__path_of_formula_of_the_given_package "$1")" || abort 1 "package [$1] is not available."
+
+    PACKAGE_FORMULA_FILEPATH="$(__path_of_formula_of_the_given_package "$1")"
+
+    [ -z "$PACKAGE_FORMULA_FILEPATH" ] && abort 1 "package '$1' is not available."
 
     shift
 
@@ -1550,7 +1553,10 @@ prompt_user_to_install_bat() {
     [ -z "$2" ] || warn "edit action accept only one argument."
 
     unset PACKAGE_FORMULA_FILEPATH
-    PACKAGE_FORMULA_FILEPATH="$(__path_of_formula_of_the_given_package "$1")" || abort 1 "package [$1] is not available."
+
+    PACKAGE_FORMULA_FILEPATH="$(__path_of_formula_of_the_given_package "$1")"
+
+    [ -z "$PACKAGE_FORMULA_FILEPATH" ] && abort 1 "package '$1' is not available."
 
     [ -z "$EDITOR" ] && {
         EDITOR=$(command -v nvim || command -v vim || command -v vi || command -v open) || abort 1 "please set EDITOR environment variable."
@@ -2772,12 +2778,12 @@ inspect_install_arguments() {
 
     CCACHE_ENABLED=no
 
-    VERBOSE_LEVEL_QUIET=0
-    VERBOSE_LEVEL_NORMAL=1
-    VERBOSE_LEVEL_VERBOSE=2
-    VERBOSE_LEVEL_DEBUG=3
+    LOG_LEVEL_QUIET=0
+    LOG_LEVEL_NORMAL=1
+    LOG_LEVEL_VERBOSE=2
+    LOG_LEVEL_VERY_VERBOSE=3
 
-    VERBOSE_LEVEL=$VERBOSE_LEVEL_NORMAL
+    LOG_LEVEL=$LOG_LEVEL_NORMAL
 
     BUILD_NJOBS=$NATIVE_OS_NCPU
 
@@ -2785,24 +2791,23 @@ inspect_install_arguments() {
 
     LINK_TYPE=static-prefered
 
-    INSTALL_EXE=yes
-    INSTALL_MAN=yes
-    INSTALL_DOC=yes
-    INSTALL_LIB=yes
+    INSTALL_LIB=static
 
     KEEP_WORKING_DIR=no
+
+    EXPORT_COMPILE_COMMANDS_JSON=no
 
     while [ -n "$1" ]
     do
         case $1 in
-            --debug|-d)
-                VERBOSE_LEVEL=$VERBOSE_LEVEL_DEBUG
+            -vv)
+                LOG_LEVEL=$LOG_LEVEL_VERY_VERBOSE
                 ;;
-            --verbose|-v)
-                VERBOSE_LEVEL=$VERBOSE_LEVEL_VERBOSE
+            -v)
+                LOG_LEVEL=$LOG_LEVEL_VERBOSE
                 ;;
-            --quiet|-q)
-                VERBOSE_LEVEL=$VERBOSE_LEVEL_QUIET
+            -q)
+                LOG_LEVEL=$LOG_LEVEL_QUIET
                 ;;
             --disable-ccache)
                 CCACHE_ENABLED=no
@@ -2813,22 +2818,8 @@ inspect_install_arguments() {
             --keep-working-dir)
                 KEEP_WORKING_DIR=yes
                 ;;
-            --install-doc)
-                INSTALL_DOC=yes
-                ;;
-            --install-man)
-                INSTALL_MAN=yes
-                ;;
-            --install-exe)
-                INSTALL_EXE=yes
-                ;;
-            --install-lib=*)
-                INSTALL_LIB="${1#*=}"
-                case $INSTALL_LIB in
-                    static|shared|both|yes|no) ;;
-                    '') abort 1 "--install-lib=<VALUE>, VALUE must be non-empty." ;;
-                    *)  abort 1 "--install-lib=<VALUE>, VALUE must be one of static|shared|both|yes|no"
-                esac
+            --export-compile-commands-json)
+                EXPORT_COMPILE_COMMANDS_JSON=yes
                 ;;
             --build-type=*)
                 BUILD_TYPE="${1#*=}"
@@ -2863,7 +2854,7 @@ inspect_install_arguments() {
         shift
     done
 
-    if [ "$VERBOSE_LEVEL" -eq "$VERBOSE_LEVEL_QUIET" ] ; then
+    if [ "$LOG_LEVEL" -eq "$LOG_LEVEL_QUIET" ] ; then
         exec 1>/dev/null
         exec 2>&1
     fi
@@ -2983,7 +2974,7 @@ __install_the_given_packages() {
             PACKAGE_SPEC="$TARGET_PLATFORM_SPEC/$PACKAGE_NAME"
 
             if is_package_installed "$PACKAGE_SPEC" ; then
-                if [ "$VERBOSE_LEVEL" -gt 0 ] ; then
+                if [ "$LOG_LEVEL" -gt 0 ] ; then
                     printf "$COLOR_GREEN%-10s$COLOR_OFF already have been installed.\n" "$PACKAGE_SPEC"
                 fi
             else
@@ -3718,7 +3709,7 @@ $DOT_CONTENT
     XXFLAGS="-isysroot $SYSROOT -arch $TARGET_PLATFORM_ARCH -m${TARGET_PLATFORM_NAME_LOWER_CASE}-version-min=$TARGET_PLATFORM_VERS -Qunused-arguments $XXFLAGS"
     LDFLAGS="-isysroot $SYSROOT -arch $TARGET_PLATFORM_ARCH -m${TARGET_PLATFORM_NAME_LOWER_CASE}-version-min=$TARGET_PLATFORM_VERS -Wl,-search_paths_first $LDFLAGS"
 
-    if [ "$VERBOSE_LEVEL" -ge 3 ] ; then
+    if [ "$LOG_LEVEL" -ge 3 ] ; then
         CCFLAGS="$CCFLAGS -v"
         XXFLAGS="$XXFLAGS -v"
         LDFLAGS="$LDFLAGS -Wl,-v"
@@ -3856,7 +3847,7 @@ $DOT_CONTENT
     # https://www.freedesktop.org/wiki/Software/pkg-config/CrossCompileProposal
     unset PKG_CONFIG_SYSROOT_DIR
 
-    if [ "$VERBOSE_LEVEL" -ge 3 ] ; then
+    if [ "$LOG_LEVEL" -ge 3 ] ; then
         export PKG_CONFIG_DEBUG_SPEW='set'
     fi
 
@@ -3964,7 +3955,7 @@ $DOT_CONTENT
             release) CMAKE_BUILD_TYPE=Release ;;
         esac
 
-        if [ "$VERBOSE_LEVEL" -eq 0 ] ; then
+        if [ "$LOG_LEVEL" -eq 0 ] ; then
             CMAKE_VERBOSE_MAKEFILE=OFF
             CMAKE_COLOR_MAKEFILE=OFF
         else
@@ -3973,7 +3964,7 @@ $DOT_CONTENT
         fi
 
         # https://cmake.org/cmake/help/latest/variable/CMAKE_FIND_DEBUG_MODE.html
-        if [ "$VERBOSE_LEVEL" -ge 3 ] ; then
+        if [ "$LOG_LEVEL" -ge 3 ] ; then
             CMAKE_FIND_DEBUG_MODE=ON
         else
             CMAKE_FIND_DEBUG_MODE=OFF
@@ -4052,7 +4043,7 @@ set(CMAKE_LIBRARY_PATH "$SYSROOT/usr/lib")
 
 set(CMAKE_IGNORE_PATH "$CMAKE_IGNORE_PATH")
 EOF
-        [ "$VERBOSE_LEVEL" -gt "$VERBOSE_LEVEL_QUIET" ] && {
+        [ "$LOG_LEVEL" -gt "$LOG_LEVEL_QUIET" ] && {
             if command -v bat > /dev/null ; then
                 run bat --language=yaml --paging=never "$CMAKE_TOOLCHAIN_FILE"
             else
@@ -4216,7 +4207,7 @@ EOF
 
     #########################################################################################
 
-    [ "$VERBOSE_LEVEL" -ge 3 ] && {
+    [ "$LOG_LEVEL" -ge 3 ] && {
         step "show export variables"
         run export -p
         echo
@@ -5044,7 +5035,7 @@ configure() {
         fi
     fi
 
-    if [ "$VERBOSE_LEVEL" -ge "$VERBOSE_LEVEL_VERBOSE" ] ; then
+    if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
         for Makefile in $(find "$PACKAGE_BSCRIPT_DIR" -name Makefile)
         do
             sed_in_place 's|\t@|\t|g'     "$Makefile" || return 1
@@ -5067,7 +5058,7 @@ gmakew() {
 
     run "$GMAKE" --version
 
-    if [ "$VERBOSE_LEVEL" -ge "$VERBOSE_LEVEL_DEBUG" ] ; then
+    if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERY_VERBOSE" ] ; then
         run "$GMAKE -w -j$BUILD_NJOBS --debug V=1 $*"
     else
         run "$GMAKE -w -j$BUILD_NJOBS $*"
@@ -5086,7 +5077,7 @@ gmakew() {
 cmakew() {
     if [ "$STEP_MESSAGE" = 'build for native' ] ; then
         # https://cmake.org/cmake/help/latest/variable/CMAKE_FIND_DEBUG_MODE.html
-        if [ "$VERBOSE_LEVEL" -ge "$VERBOSE_LEVEL_DEBUG" ] ; then
+        if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERY_VERBOSE" ] ; then
             CMAKE_CONFIG_OPTIONS="$@ -DCMAKE_FIND_DEBUG_MODE=TRUE"
         else
             CMAKE_CONFIG_OPTIONS="$@"
@@ -5161,7 +5152,7 @@ xmakew() {
         esac
     done
 
-    if [ "$VERBOSE_LEVEL" -ge "$VERBOSE_LEVEL_DEBUG" ] && [ -z "$XMAKE_CONFIG_OPTION_vD" ]; then
+    if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERY_VERBOSE" ] && [ -z "$XMAKE_CONFIG_OPTION_vD" ]; then
         XMAKE_CONFIG_OPTIONS="$XMAKE_CONFIG_OPTION_vD -vD"
     fi
 
@@ -5461,7 +5452,7 @@ gow() {
     GO_BUILD_ARGS='-trimpath'
 
     if [ -z "$GO_BUILD_ARGV_V" ] ; then
-        if [ "$VERBOSE_LEVEL" -gt "$VERBOSE_LEVEL_QUIET" ] ; then
+        if [ "$LOG_LEVEL" -gt "$LOG_LEVEL_QUIET" ] ; then
             GO_BUILD_ARGS="$GO_BUILD_ARGS -v"
         fi
     else
@@ -5469,7 +5460,7 @@ gow() {
     fi
 
     if [ -z "$GO_BUILD_ARGV_X" ] ; then
-        if [ "$VERBOSE_LEVEL" -ge "$VERBOSE_LEVEL_VERBOSE" ] ; then
+        if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
             GO_BUILD_ARGS="$GO_BUILD_ARGS -x"
         fi
     else
@@ -6132,6 +6123,7 @@ package_name_transform_from_uppm_to_brew() {
         gmake)    printf '%s\n' 'make'      ;;
         gtar)     printf '%s\n' 'gnu-tar'   ;;
         gm4)      printf '%s\n' 'm4'        ;;
+        patch)    printf '%s\n' 'gpatch'    ;;
         libjxl)   printf '%s\n' 'jpeg-xl'   ;;
         blake3)   printf '%s\n' 'b3sum'     ;;
         libwebp)  printf '%s\n' 'webp'      ;;
@@ -6682,13 +6674,13 @@ ${COLOR_GREEN}xcpkg depends <PACKAGE-NAME> [-t <dot|box|svg|png>] [-o <OUTPUT-PA
 
     If -t <OUTPUT-TYPE> and -o <OUTPUT-PATH> options both are not given, <OUTPU-TYPE> will be box and output to stdout.
 
-${COLOR_GREEN}xcpkg install   <PACKAGE-SPEC>... [--jobs=N -v -d -q --dry-run --keep-working-dir]${COLOR_OFF}
+${COLOR_GREEN}xcpkg install   <PACKAGE-SPEC>... [--jobs=N -v -vv -q --dry-run --keep-working-dir]${COLOR_OFF}
     install the given packages.
 
-${COLOR_GREEN}xcpkg reinstall <PACKAGE-SPEC>... [--jobs=N -v -d -q --dry-run --keep-working-dir]${COLOR_OFF}
+${COLOR_GREEN}xcpkg reinstall <PACKAGE-SPEC>... [--jobs=N -v -vv -q --dry-run --keep-working-dir]${COLOR_OFF}
     reinstall the given packages.
 
-${COLOR_GREEN}xcpkg upgrade   [PACKAGE-SPEC]... [--jobs=N -v -d -q --dry-run --keep-working-dir]${COLOR_OFF}
+${COLOR_GREEN}xcpkg upgrade   [PACKAGE-SPEC]... [--jobs=N -v -vv -q --dry-run --keep-working-dir]${COLOR_OFF}
     upgrade the given outdated packages.
 
 ${COLOR_GREEN}xcpkg upgrade-self${COLOR_OFF}
@@ -6728,7 +6720,7 @@ main() {
 
     [ -n "$XCPKG_XTRACE" ] && set -x
 
-    [ "$(uname)" = 'Darwin' ] || abort 1 "this software can only be run on macOS."
+    #[ "$(uname)" = 'Darwin' ] || abort 1 "this software can only be run on macOS."
 
     unset NATIVE_OS_KIND
     unset NATIVE_OS_TYPE
@@ -6739,9 +6731,9 @@ main() {
     NATIVE_OS_KIND=darwin
     NATIVE_OS_TYPE=macos
     NATIVE_OS_NAME=MacOSX
-    NATIVE_OS_VERS="$(sw_vers -productVersion)"
+    #NATIVE_OS_VERS="$(sw_vers -productVersion)"
     NATIVE_OS_ARCH="$(uname -m)"
-    NATIVE_OS_NCPU="$(sysctl -n machdep.cpu.thread_count)"
+    #NATIVE_OS_NCPU="$(sysctl -n machdep.cpu.thread_count)"
     NATIVE_OS_EUID="$(id -u)"
     NATIVE_OS_EGID="$(id -g)"
 
