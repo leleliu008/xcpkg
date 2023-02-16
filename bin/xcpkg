@@ -3682,7 +3682,7 @@ $DOT_CONTENT
 build0() {
 $PACKAGE_BUILD0_ACTIONS
 }"
-        NATIVE_BCACHED_DIR="$PACKAGE_WORKING_DIR/-/native"
+        NATIVE_BCACHED_DIR="$PACKAGE_WORKING_DIR/src/-"
         NATIVE_INSTALL_DIR="$XCPKG_HOME/native/$1"
 
         printf '%s\n' "
