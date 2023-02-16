@@ -3700,6 +3700,8 @@ $PACKAGE_BUILD0_ACTIONS
         if [ -f "$NATIVE_INSTALL_DIR/version.txt" ] ; then
             note "build for native already have been done, skipped."
         else
+            run install -d "$NATIVE_BCACHED_DIR"
+
             if [ "$PACKAGE_BUILD_IN_BSCRIPT_DIR" = yes ] ; then
                 if [ "$PWD" != "$PACKAGE_BSCRIPT_DIR" ] ; then
                     run cd "$PACKAGE_BSCRIPT_DIR"
