@@ -165,11 +165,6 @@ sed_in_place() {
     fi
 }
 
-prompt_user_to_install_bat() {
-    echo
-    note "${COLOR_YELLOW}if you want to have a better experience, I strongly recommend you to install${COLOR_OFF} ${COLOR_GREEN}bat${COLOR_OFF} ${COLOR_YELLOW}on this machine. For more details, please visit website${COLOR_OFF} ${COLOR_GREEN}https://github.com/sharkdp/bat${COLOR_OFF}"
-}
-
 # }}}
 ##############################################################################
 # {{{ lolcat_implemented_in_awk
@@ -1476,94 +1471,69 @@ EOF
 ##############################################################################
 # {{{ xcpkg formula-view
 
-# examples:
-# __view_formula_of_the_given_package curl
-# __view_formula_of_the_given_package curl --paging=never
+# __view_formula_of_the_given_package curl <PACKAGE-NAME> [--no-color]
   __view_formula_of_the_given_package() {
     [ -z "$1" ] && abort 1 "__view_formula_of_the_given_package <PACKAGE-NAME>, <PACKAGE-NAME> is unspecified."
 
-    unset PACKAGE_FORMULA_FILEPATH
-
-    PACKAGE_FORMULA_FILEPATH="$(__path_of_formula_of_the_given_package "$1")"
+    unset  PACKAGE_FORMULA_FILEPATH; PACKAGE_FORMULA_FILEPATH="$(__path_of_formula_of_the_given_package "$1")"
 
     [ -z "$PACKAGE_FORMULA_FILEPATH" ] && abort 1 "package '$1' is not available."
 
     shift
 
-    unset VIEW_FORMULA_PAGING
+    NO_COLOR=no
 
     while [ -n "$1" ]
     do
         case $1 in
-            --paging=*)
-                VIEW_FORMULA_PAGING="${1#*=}"
-                case $VIEW_FORMULA_PAGING in
-                    auto|always|never) ;;
-                    *) abort 1 "--paging=<VALUE>, <VALUE> must be one of auto, always, never"
-                esac
+            --no-color)
+                NO_COLOR=yes
                 ;;
-            *)  abort 1 "unrecognized argument: $1"
+            *)  abort 1 "unrecognized option: $1"
         esac
         shift
     done
 
-    case $VIEW_FORMULA_PAGING in
-        ''|auto)
-            if command -v bat > /dev/null ; then
-                bat --language=yaml --paging=auto "$PACKAGE_FORMULA_FILEPATH"
-            else
-                cat "$PACKAGE_FORMULA_FILEPATH"
-                echo
-                prompt_user_to_install_bat
-            fi
-            ;;
-        always)
-            if command -v bat > /dev/null ; then
-                bat --language=yaml --paging=always "$PACKAGE_FORMULA_FILEPATH"
-            else
-                more "$PACKAGE_FORMULA_FILEPATH"
-                echo
-                prompt_user_to_install_bat
-            fi
-            ;;
-        never)
-            if command -v bat > /dev/null ; then
-                bat --language=yaml --paging=never "$PACKAGE_FORMULA_FILEPATH"
-            else
-                cat "$PACKAGE_FORMULA_FILEPATH"
-                echo
-                prompt_user_to_install_bat
-            fi
-            ;;
-    esac
-}
-
-prompt_user_to_install_bat() {
-    echo
-    note "${COLOR_YELLOW}if you want to have a better experience, I strongly recommend you to install${COLOR_OFF} ${COLOR_GREEN}bat${COLOR_OFF} ${COLOR_YELLOW}on this machine. For more details, please visit website${COLOR_OFF} ${COLOR_GREEN}https://github.com/sharkdp/bat${COLOR_OFF}"
+    if [ "$NO_COLOR" = yes ] ; then
+        cat "$PACKAGE_FORMULA_FILEPATH"
+    else
+        yq  "$PACKAGE_FORMULA_FILEPATH"
+    fi
 }
 
 # }}}
 ##############################################################################
 # {{{ xcpkg formula-edit
 
-# __edit_formula_of_the_given_package <PACKAGE-NAME>
+# __edit_formula_of_the_given_package <PACKAGE-NAME> [--editor=<EDITOR>]
   __edit_formula_of_the_given_package() {
     [ -z "$1" ] && abort 1 "__edit_formula_of_the_given_package <PACKAGE-NAME>, <PACKAGE-NAME> is unspecified."
 
-    unset PACKAGE_FORMULA_FILEPATH
-
-    PACKAGE_FORMULA_FILEPATH="$(__path_of_formula_of_the_given_package "$1")"
+    unset  PACKAGE_FORMULA_FILEPATH; PACKAGE_FORMULA_FILEPATH="$(__path_of_formula_of_the_given_package "$1")"
 
     [ -z "$PACKAGE_FORMULA_FILEPATH" ] && abort 1 "package '$1' is not available."
 
+    shift
+
+    EDITOR=
+
+    while [ -n "$1" ]
+    do
+        case $1 in
+            --editor=*)
+                EDITOR="${1#*=}"
+                ;;
+            *)  abort 1 "unrecognized option: $1"
+        esac
+        shift
+    done
+
     [ -z "$EDITOR" ] && {
-        EDITOR=$(command -v nvim || command -v vim || command -v vi || command -v open) || abort 1 "please set EDITOR environment variable."
+        EDITOR=$(command -v nvim || command -v vim || command -v vi || command -v open) || abort 1 "please sepecify editor via [--editor=<EDITOR> option."
     }
 
     "$EDITOR" "$PACKAGE_FORMULA_FILEPATH"
 }
-
 
 # }}}
 ##############################################################################
@@ -1891,7 +1861,7 @@ __show_information_as_shell_of_all_available_packages() {
 
 # __show_information_as_yaml__of_the_given_package <PACKAGE-NAME>
   __show_information_as_yaml__of_the_given_package() {
-    __view_formula_of_the_given_package "$1" --paging=never
+    __view_formula_of_the_given_package "$1"
 }
 
 # __show_information_as_shell_of_the_given_package <PACKAGE-NAME>
@@ -3171,12 +3141,7 @@ EOF
     PACKAGE_FORMULA_FILEPATH="$SESSION_DIR/$PACKAGE_NAME.yml"
 
     step "view formula"
-
-    if command -v bat > /dev/null ; then
-        run bat --language=yaml --paging=never "$PACKAGE_FORMULA_FILEPATH"
-    else
-        run cat "$PACKAGE_FORMULA_FILEPATH"
-    fi
+    run yq "$PACKAGE_FORMULA_FILEPATH"
    
     step "load formula"
     __load_formula_of_the_given_package "$PACKAGE_NAME" "$PACKAGE_FORMULA_FILEPATH"
@@ -4052,7 +4017,7 @@ set(CMAKE_IGNORE_PATH "$CMAKE_IGNORE_PATH")
 EOF
         [ "$LOG_LEVEL" -gt "$LOG_LEVEL_QUIET" ] && {
             if command -v bat > /dev/null ; then
-                run bat --language=yaml --paging=never "$CMAKE_TOOLCHAIN_FILE"
+                run bat --language=cmake --paging=never "$CMAKE_TOOLCHAIN_FILE"
             else
                 run cat "$CMAKE_TOOLCHAIN_FILE"
             fi
@@ -5761,7 +5726,7 @@ __list_supported_target_platform_versions() {
 
 # __tree_the_given_installed_package <PACKAGE-SPEC>
   __tree_the_given_installed_package() {
-    is_package_installed "$1" || abort 1 "$1 is not installed."
+    is_package_installed "$1" || abort 1 "package '$1' is not installed."
     PACKAGE_SPEC="$1"
     shift
     run tree "$@" "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_SPEC"
@@ -5769,45 +5734,33 @@ __list_supported_target_platform_versions() {
 
 # }}}
 ##############################################################################
-# {{{ xcpkg logs
+# {{{ ppkg logs
 
 # __logs_the_given_installed_package <PACKAGE-SPEC>
   __logs_the_given_installed_package() {
-    [ -z "$1" ] && {
-        error "$_0 logs <PACKAGE-SPEC>, <PACKAGE-SPEC> is unspecified."
-        return 1
-    }
+    [ -z "$1" ] && abort 1 "$_0 logs <PACKAGE-SPEC>, <PACKAGE-SPEC> is unspecified."
 
-    if command -v bat > /dev/null ; then
-        VIEWER=bat
-    else
-        VIEWER=less
-    fi
+    is_package_installed "$1" || abort 1 "package '$1' is not installed."
 
-    for item in $(ls "$XCPKG_PACKAGE_INSTALLED_ROOT/$1/.xcpkg")
+    unset FILEPATHS; FILEPATHS="$(find "$PPKG_PACKAGE_INSTALLED_ROOT/$1/.ppkg" -type f)"
+
+    for filepath in $FILEPATHS
     do
-        item="$XCPKG_PACKAGE_INSTALLED_ROOT/$1/.xcpkg/$item"
+        [ -d "$filepath" ] && continue
 
-        if [ -d "$item" ] ; then
-            continue
-        fi
-
-        if [ "$VIEWER" = 'bat' ] ; then
-            case $item in
-                *.png) ;;
-                */receipt.yml)
-                    bat -l yaml "$item" ;;
-                *)  bat "$item"
-            esac
-        else
-            "$VIEWER" "$item"
-        fi
+        case $filepath in
+            *.png)  ;;
+            *.yml)  run yq . "$filepath" ;;
+            *.json) run jq . "$filepath" ;;
+            *)  if command -v bat > /dev/null ; then
+                    bat  "$filepath"
+                else
+                    less "$filepath"
+                fi
+        esac
     done
-
-    if [ "$VIEWER" != 'bat' ] ; then
-        prompt_user_to_install_bat
-    fi
 }
+
 
 # }}}
 ##############################################################################
@@ -6617,10 +6570,10 @@ ${COLOR_GREEN}xcpkg is-outdated  <PACKAGE-SPEC>${COLOR_OFF}
 ${COLOR_GREEN}xcpkg search <REGULAR-EXPRESS-PATTERN>${COLOR_OFF}
     search all available packages whose name matches the given regular express pattern.
 
-${COLOR_GREEN}xcpkg formula-view <PACKAGE-NAME>${COLOR_OFF}
+${COLOR_GREEN}xcpkg formula-view <PACKAGE-NAME> --no-color${COLOR_OFF}
     view the formula of the given package.
 
-${COLOR_GREEN}xcpkg formula-edit <PACKAGE-NAME>${COLOR_OFF}
+${COLOR_GREEN}xcpkg formula-edit <PACKAGE-NAME> --editor=<EDITOR>${COLOR_OFF}
     edit the formula of the given package.
 
 ${COLOR_GREEN}xcpkg formula-repo-init <FORMULA-REPO-NAME> <FORMULA-REPO-URL> [--branch=VALUE --pin/--unpin --enable/--disable]${COLOR_OFF}

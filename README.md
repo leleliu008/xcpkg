@@ -65,7 +65,7 @@ all relevant dirs and files are located in `~/.xcpkg` directory.
         xcpkg search curl
         xcpkg search lib
         
-*   **show infomation of the given package**
+*   **show information of the given package**
         
         xcpkg info curl
         xcpkg info curl summary
@@ -157,6 +157,18 @@ all relevant dirs and files are located in `~/.xcpkg` directory.
         xcpkg upgrade-self
         xcpkg upgrade-self -v
         
+*   **view the formula of the given package**
+
+        xcpkg formula-view curl
+        xcpkg formula-view curl --no-color
+
+*   **edit the formula of the given package**
+
+        xcpkg formula-edit curl
+        xcpkg formula-edit curl --editor=/usr/local/bin/vim
+
+    **Note**: xcpkg do NOT save your changes, which means that your changes may be lost after the formula repository is updated!
+
 *   **list all avaliable formula repositories**
 
         xcpkg formula-repo-list
@@ -336,7 +348,7 @@ all relevant dirs and files are located in `~/.xcpkg` directory.
 
 ## xcpkg formula
 
-a xcpkg formula is a [YAML](https://yaml.org/spec/1.2.2/) format file which is used to config a xcpkg package's meta-infomation including one sentence description, package version, installation instructions, etc.
+a xcpkg formula is a [YAML](https://yaml.org/spec/1.2.2/) format file which is used to config a xcpkg package's meta-information including one sentence description, package version, installation instructions, etc.
 
 a xcpkg formula's filename suffix must be `.yml`
 

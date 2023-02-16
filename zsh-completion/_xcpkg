@@ -17,7 +17,8 @@ _commands=(
     'is-outdated:is the given package outdated.'
     'tree:list files of the given installed package in a tree-like format.'
     'info:show infomation of the given package or all available packages.'
-    'formula:create, delete, rename, view, edit the formula of the given package.'
+    'formula-view:view the formula of the given package.'
+    'formula-edit:edit the formula of the given package.'
     'formula-repo:add, delete, list the formula-repos.'
     'install:install packages.'
     'reinstall:reinstall packages.'
@@ -80,8 +81,60 @@ function _xcpkg() {
                         ':platform:($(xcpkg ls-target-platform-names))' \
                         ':bit:(64bit 32bit all)'
                     ;;
+                formula-view)
+                    _arguments \
+                        '1:package-name:_xcpkg_available_packages' \
+                        '--no-color[disables color highlighting]'
+                    ;;
+                formula-edit)
+                    _arguments \
+                        '1:package-name:_xcpkg_available_packages' \
+                        '--editor=-[specify editor]'
+                    ;;
+                formula-repo-add)
+                    _arguments \
+                        '1:formula-repo-name:(name)' \
+                        '2:formula-repo-url:(https://)' \
+                        '--branch=-[change the formula repo branch]' \
+                        + '(pin)' \
+                        '--pin[set pinned to 1]' \
+                        '--unpin[set pinned to 0]' \
+                        + '(enable)' \
+                        '--enable[set enabled to 1]' \
+                        '--disable[set enabled to 0]'
+                    ;;
+                formula-repo-init)
+                    _arguments \
+                        '1:formula-repo-name:(name)' \
+                        '2:formula-repo-url:(https://)' \
+                        '--branch=-[change the formula repo branch]' \
+                        + '(pin)' \
+                        '--pin[set pinned to 1]' \
+                        '--unpin[set pinned to 0]' \
+                        + '(enable)' \
+                        '--enable[set enabled to 1]' \
+                        '--disable[set enabled to 0]'
+                    ;;
+                formula-repo-conf)
+                    _arguments \
+                        '1:formula-repo-name:($(xcpkg formula-repo-list | sed -n "/^name: /p" | cut -c7-))' \
+                        '--url=-[change the formula repo url]' \
+                        '--branch=-[change the formula repo branch]' \
+                        + '(pin)' \
+                        '--pin[set pinned to yes]' \
+                        '--unpin[set pinned to no]' \
+                        + '(enable)' \
+                        '--enable[set enabled to yes]' \
+                        '--disable[set enabled to no]'
+                    ;;
                 formula-repo-del)
-                    _arguments '1:repo-name:($(xcpkg formula-repo-list | sed -n "/name: /p" | cut -c7-))'
+                    _arguments '1:formula-repo-name:($(xcpkg formula-repo-list | sed -n "/^name: /p" | cut -c7-))'
+                    ;;
+                formula-repo-sync)
+                    _arguments '1:formula-repo-name:($(xcpkg formula-repo-list | sed -n "/^name: /p" | cut -c7-))'
+                    ;;
+                formula-repo-info)
+                    _arguments '1:formula-repo-name:($(xcpkg formula-repo-list | sed -n "/^name: /p" | cut -c7-))'
                     ;;
                 integrate)
                     _arguments '1:what:(zsh)'
