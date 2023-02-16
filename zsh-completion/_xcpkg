@@ -35,6 +35,7 @@ _commands=(
     'pack:pack all the installed files of the given installed package to a archive file.'
     'logs:show logs of the given installed package.'
     'gen-github-workflows:generate github workflows.'
+    'gen-url-transform-sample:generate url-transform sample.'
     'compare-versions:compare versions with homebrew.'
 )
 

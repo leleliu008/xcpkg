@@ -220,6 +220,10 @@ all relevant dirs and files are located in `~/.xcpkg` directory.
         xcpkg pack iPhoneOS/9.0/armv7s/curl -t zip -o a/
         xcpkg pack iPhoneOS/9.0/armv7s/curl -o a/x.zip
         
+*   **generate url-transform sample**
+
+        xcpkg gen-url-transform-sample
+
 *   **delete the unused cached files**
         
         xcpkg cleanup
@@ -287,22 +291,7 @@ all relevant dirs and files are located in `~/.xcpkg` directory.
 
     `/path/of/url-transform` command must output a `<URL>`
 
-    following is a example of `/path/of/url-transform` command implementation:
-
-    ```bash
-    #!/bin/sh
-
-    case $1 in
-        *githubusercontent.com/*)
-            printf 'https://ghproxy.com/%s\n' "$1"
-            ;;
-        https://github.com/*)
-            printf 'https://ghproxy.com/%s\n' "$1"
-            ;;
-        '') printf '%s\n' "$0 <URL>, <URL> is not given." >&2 ;;
-        *)  printf '%s\n' "$1"
-    esac
-    ```
+    you can generate a url-transform sample via `xcpkg gen-url-transform-sample`
 
     If you want to change the request url, you can set this environment variable. It is very useful for chinese users.
 

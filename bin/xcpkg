@@ -523,7 +523,7 @@ version_match() {
     XCPKG_FORMULA_REPO_PATH="$XCPKG_HOME/repos.d/$1"
     XCPKG_FORMULA_REPO_CONFIG_FILEPATH="$XCPKG_FORMULA_REPO_PATH/.xcpkg-formula-repo.yml"
 
-    [ -d "$XCPKG_FORMULA_REPO_PATH" ] || abort 1 "$1 named formula repository does not exist."
+    [ -d "$XCPKG_FORMULA_REPO_PATH" ] || abort 1 "'$1' formula repository does not exist."
     [ -f "$XCPKG_FORMULA_REPO_CONFIG_FILEPATH" ] || abort 1 "$1 formula repository is broken."
 
     XCPKG_FORMULA_REPO_URL=
@@ -623,7 +623,7 @@ version_match() {
 
     XCPKG_FORMULA_REPO_PATH="$XCPKG_HOME/repos.d/$XCPKG_FORMULA_REPO_NAME"
 
-    [ -d "$XCPKG_FORMULA_REPO_PATH" ] && abort 1 "$XCPKG_FORMULA_REPO_NAME named formula repository already exists."
+    [ -d "$XCPKG_FORMULA_REPO_PATH" ] && abort 1 "'$XCPKG_FORMULA_REPO_NAME' formula repository already exists."
 
     printf '%b\n' "${COLOR_PURPLE}==> Adding formula repository${COLOR_OFF} ${COLOR_GREEN}$XCPKG_FORMULA_REPO_NAME${COLOR_OFF}"
 
@@ -705,7 +705,7 @@ EOF
 
     XCPKG_FORMULA_REPO_PATH="$XCPKG_HOME/repos.d/$XCPKG_FORMULA_REPO_NAME"
 
-    [ -d "$XCPKG_FORMULA_REPO_PATH" ] && abort 1 "$XCPKG_FORMULA_REPO_NAME named formula repository already exists."
+    [ -d "$XCPKG_FORMULA_REPO_PATH" ] && abort 1 "'$XCPKG_FORMULA_REPO_NAME' formula repository already exists."
 
     printf '%b\n' "${COLOR_PURPLE}==> Creating formula repository${COLOR_OFF} ${COLOR_GREEN}$XCPKG_FORMULA_REPO_NAME${COLOR_OFF}"
 
@@ -738,7 +738,7 @@ EOF
     if [ -d    "$XCPKG_HOME/repos.d/$1" ] ; then
         rm -rf "$XCPKG_HOME/repos.d/$1"
     else
-        warn "$1 named formula repository does not exist."
+        abort 1 "'$1' formula repository does not exist."
     fi
 }
 
@@ -753,7 +753,7 @@ EOF
     __load_formula_repository_config "$1"
 
     [ "$XCPKG_FORMULA_REPO_PINNED" = yes ] && {
-        info "'$XCPKG_FORMULA_REPO_NAME' named formula repository is pinned."
+        note "'$XCPKG_FORMULA_REPO_NAME' formula repository is pinned."
         return 0
     }
 
@@ -1550,7 +1550,6 @@ prompt_user_to_install_bat() {
 # __edit_formula_of_the_given_package <PACKAGE-NAME>
   __edit_formula_of_the_given_package() {
     [ -z "$1" ] && abort 1 "__edit_formula_of_the_given_package <PACKAGE-NAME>, <PACKAGE-NAME> is unspecified."
-    [ -z "$2" ] || warn "edit action accept only one argument."
 
     unset PACKAGE_FORMULA_FILEPATH
 
@@ -2676,7 +2675,7 @@ $DOT_CONTENT
             esac
         fi
 
-        warn "$1 will be treated as a package name, and it will be expanded to $PACKAGE_SPEC"
+        note "$1 will be treated as a package name, and it will be expanded to $PACKAGE_SPEC"
         printf '%s\n' "$PACKAGE_SPEC"
     else
         case $1 in
@@ -2820,6 +2819,14 @@ inspect_install_arguments() {
                 ;;
             --export-compile-commands-json)
                 EXPORT_COMPILE_COMMANDS_JSON=yes
+                ;;
+            --install-lib=*)
+                INSTALL_LIB="${1#*=}"
+                case $INSTALL_LIB in
+                    static|shared|both|yes|no) ;;
+                    '') abort 1 "--install-lib=<VALUE>, VALUE must be non-empty." ;;
+                    *)  abort 1 "--install-lib=<VALUE>, VALUE must be one of static|shared|both|yes|no"
+                esac
                 ;;
             --build-type=*)
                 BUILD_TYPE="${1#*=}"
@@ -6691,6 +6698,9 @@ ${COLOR_GREEN}xcpkg uninstall <PACKAGE-SPEC>...${COLOR_OFF}
 
 ${COLOR_GREEN}xcpkg create-framework <PACKAGE>...${COLOR_OFF}
     create framework for packages.
+
+${COLOR_GREEN}xcpkg gen-url-transform-sample${COLOR_OFF}
+    generate url-transform sample.
 
 
 ${COLOR_GREEN}PACKAGE-SPEC:${COLOR_OFF}
