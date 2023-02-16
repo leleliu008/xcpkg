@@ -3718,11 +3718,17 @@ $PACKAGE_BUILD0_ACTIONS
 
     #########################################################################################
 
+    if [ "$TARGET_PLATFORM_NAME" = "$NATIVE_OS_NAME" ] ; then
+        CROSS_COMPILING=no
+    else
+        CROSS_COMPILING=yes
+    fi
+
     TARGET_PLATFORM_NAME_LOWER_CASE="$(printf "$TARGET_PLATFORM_NAME" | tr A-Z a-z)"
 
     #########################################################################################
 
-    step "locate C/C++ toolchain for $TARGET_PLATFORM_NAME"
+    step "locate C/C++ toolchain for target build"
 
     unset      CC
     unset     CXX
@@ -6405,7 +6411,7 @@ __setup_homebrew() {
         run "$BREW" update
     fi
 
-    unset BREW_PACKAGE_EXEFIND_PATH
+    BREW_PACKAGE_EXEFIND_PATH='PLACE-HOLDER'
 
     for item in coreutils findutils gawk gsed grep gnu-tar gzip lzip unzip zip jq yq git curl tree
     do
@@ -6514,8 +6520,8 @@ __setup_uppm() {
     run "$UPPM" env
     run "$UPPM" update
 
-    unset UPPM_PACKAGE_EXEFIND_PATH
-    unset UPPM_PACKAGE_ACLOCAL_PATH
+    UPPM_PACKAGE_EXEFIND_PATH='PLACE-HOLDER'
+    UPPM_PACKAGE_ACLOCAL_PATH='PLACE-HOLDER'
 
     for item in coreutils findutils gawk gsed grep gtar gzip lzip unzip zip jq yq git curl tree
     do
