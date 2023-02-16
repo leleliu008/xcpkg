@@ -98,7 +98,7 @@ run() {
 }
 
 list_size() {
-    printf '%s' "$#"
+    printf '%s\n' "$#"
 }
 
 is_integer() {
@@ -1074,12 +1074,16 @@ __load_formula_of_the_given_package() {
         eval "PACKAGE_$__KEY_UPPERCASE_UNDERSCORE__='$__VALUE__'"
     done
 
+    unset PACKAGE_BUILD0_ACTIONS
+    PACKAGE_BUILD0_ACTIONS="$(yq .build0  "$PACKAGE_FORMULA_FILEPATH")"
+
     unset PACKAGE_PREPARE_ACTIONS
     PACKAGE_PREPARE_ACTIONS="$(yq .prepare "$PACKAGE_FORMULA_FILEPATH")"
 
     unset PACKAGE_INSTALL_ACTIONS
     PACKAGE_INSTALL_ACTIONS="$(yq .install "$PACKAGE_FORMULA_FILEPATH")"
 
+    [ "$PACKAGE_BUILD0_ACTIONS" = null ]  && unset PACKAGE_BUILD0_ACTIONS
     [ "$PACKAGE_PREPARE_ACTIONS" = null ] && unset PACKAGE_PREPARE_ACTIONS
     [ "$PACKAGE_INSTALL_ACTIONS" = null ] && unset PACKAGE_INSTALL_ACTIONS
 
@@ -4281,7 +4285,58 @@ EOF
 
     #########################################################################################
 
-    step "do some preparation works"
+    step "build and install for native"
+
+    if [ -n "$PACKAGE_BUILD0_ACTIONS" ] ; then
+        eval "
+build0() {
+$PACKAGE_BUILD0_ACTIONS
+}"
+        NATIVE_BCACHED_DIR="$PACKAGE_WORKING_DIR/-/native"
+        NATIVE_INSTALL_DIR="$XCPKG_HOME/native/$1"
+
+        printf '%s\n' "
+        NATIVE_BCACHED_DIR = $NATIVE_BCACHED_DIR
+        NATIVE_INSTALL_DIR = $NATIVE_INSTALL_DIR
+        "
+
+        if [ -f "$NATIVE_INSTALL_DIR/version.txt" ] ; then
+            if [ "$(cat "$NATIVE_INSTALL_DIR/version.txt")" != "$PACKAGE_VERSION" ] ; then
+                note "build for native already have been done, but not same version. I will remove it then rebuild it."
+                run rm -rf "$NATIVE_INSTALL_DIR"
+            fi
+        fi
+
+        if [ -f "$NATIVE_INSTALL_DIR/version.txt" ] ; then
+            note "build for native already have been done, skipped."
+        else
+            if [ "$PACKAGE_BUILD_IN_BSCRIPT_DIR" = yes ] ; then
+                if [ "$PWD" != "$PACKAGE_BSCRIPT_DIR" ] ; then
+                    run cd "$PACKAGE_BSCRIPT_DIR"
+                fi
+            else
+                    run cd "$NATIVE_BCACHED_DIR"
+            fi
+
+            run build0
+
+            printf '%s\n' "$PACKAGE_VERSION" > "$NATIVE_INSTALL_DIR/version.txt"
+
+            if [ -d "$NATIVE_INSTALL_DIR/bin" ] ; then
+                export PATH="$NATIVE_INSTALL_DIR/bin:$PATH"
+            fi
+
+            if [ -d "$NATIVE_INSTALL_DIR/sbin" ] ; then
+                export PATH="$NATIVE_INSTALL_DIR/sbin:$PATH"
+            fi
+        fi
+    else
+        note "build0 mapping was not found in formula, skipped."
+    fi
+
+    #########################################################################################
+
+    step "prepare for target"
 
     if [ "$PWD" != "$PACKAGE_BSCRIPT_DIR" ] ; then
         run cd "$PACKAGE_BSCRIPT_DIR"
@@ -4309,7 +4364,7 @@ $PACKAGE_PREPARE_ACTIONS
 
     #########################################################################################
 
-    step "building"
+    step "build and install for target"
 
     if [ "$PACKAGE_BUILD_IN_BSCRIPT_DIR" = yes ] ; then
         if [ "$PWD" != "$PACKAGE_BSCRIPT_DIR" ] ; then
@@ -4921,6 +4976,13 @@ install_pc_file() {
 
 # must run in a subshell
 configure() {
+    export FORCE_UNSAFE_CONFIGURE=1
+
+    export ac_cv_func_malloc_0_nonnull=yes
+    export ac_cv_func_calloc_0_nonnull=yes
+    export ac_cv_func_realloc_0_nonnull=yes
+
+
     if [ -z "$CONFIG_XX_UPDATED" ] ; then
         CONFIG_XX_UPDATED=yes
         # https://www.gnu.org/software/gettext/manual/html_node/config_002eguess.html
@@ -4942,7 +5004,7 @@ configure() {
         done
     fi
 
-    if [ "$STEP_MESSAGE" = 'build for native' ] ; then
+    if [ "$STEP_MESSAGE" = 'build and install for native' ] ; then
         if run "$PACKAGE_BSCRIPT_DIR"/configure \
             --prefix="$NATIVE_INSTALL_DIR" \
             "$@" ; then
@@ -4972,37 +5034,34 @@ configure() {
             fi
         fi
 
-        if run "$PACKAGE_BSCRIPT_DIR"/configure \
-            --host="\"$TARGET_TRIPLE\"" \
-            --prefix="\"$PACKAGE_INSTALL_DIR\"" \
-            --disable-option-checking \
-            --disable-rpath \
-            --disable-debug \
-            --disable-nls\
-            --enable-largefile \
-            --enable-static \
-            --disable-shared \
-            CC="\"$CC\"" \
-            CFLAGS="\"$CFLAGS\"" \
-            CXX="\"$CXX\"" \
-            CXXFLAGS="\"$CXXFLAGS\"" \
-            CPP="\"$CPP\"" \
-            CPPFLAGS="\"$CPPFLAGS\"" \
-            LDFLAGS="\"$LDFLAGS\"" \
-            AR="\"$AR\"" \
-            RANLIB="\"$RANLIB\"" \
-            PKG_CONFIG="\"$PKG_CONFIG\"" \
-            PKG_CONFIG_PATH="\"$PKG_CONFIG_PATH\"" \
-            PKG_CONFIG_LIBDIR="\"\"" \
-            CC_FOR_BUILD="\"$CC_FOR_BUILD\"" \
-            "$@" ; then
-            echo
+        CONFIGURE_ARGS="--host='$TARGET_TRIPLE' --prefix='$PACKAGE_INSTALL_DIR' --disable-option-checking --enable-rpath --disable-nls --enable-largefile"
+
+        if [ "$BUILD_TYPE" = release ] ; then
+            CONFIGURE_ARGS="$CONFIGURE_ARGS --disable-debug"
+        else
+            CONFIGURE_ARGS="$CONFIGURE_ARGS --enable-debug"
+        fi
+
+        case $INSTALL_LIB in
+            static) CONFIGURE_ARGS="$CONFIGURE_ARGS --enable-static --disable-shared" ;;
+            shared) CONFIGURE_ARGS="$CONFIGURE_ARGS --enable-shared --disable-static" ;;
+            both)   CONFIGURE_ARGS="$CONFIGURE_ARGS --enable-static --enable-shared"  ;;
+            no)     CONFIGURE_ARGS="$CONFIGURE_ARGS --disable-static --disable-shared";;
+        esac
+
+        if [ -n "$XCPKG_XTRACE" ] ; then
+            sed_in_place '1a set -x' "$PACKAGE_BSCRIPT_DIR/configure"
+        fi
+
+        if run "$PACKAGE_BSCRIPT_DIR/configure" "$CONFIGURE_ARGS" "$@" ; then
+            printf '\n'
         else
             if [ -f "$PACKAGE_BCACHED_DIR/config.log" ] ; then
                 run cat "$PACKAGE_BCACHED_DIR/config.log"
             elif [ -f "$PACKAGE_BSCRIPT_DIR/config.log" ] ; then
                 run cat "$PACKAGE_BSCRIPT_DIR/config.log"
             fi
+
             return 1
         fi
     fi
@@ -5734,7 +5793,7 @@ __list_supported_target_platform_versions() {
 
 # }}}
 ##############################################################################
-# {{{ ppkg logs
+# {{{ xcpkg logs
 
 # __logs_the_given_installed_package <PACKAGE-SPEC>
   __logs_the_given_installed_package() {
@@ -5742,7 +5801,7 @@ __list_supported_target_platform_versions() {
 
     is_package_installed "$1" || abort 1 "package '$1' is not installed."
 
-    unset FILEPATHS; FILEPATHS="$(find "$PPKG_PACKAGE_INSTALLED_ROOT/$1/.ppkg" -type f)"
+    unset FILEPATHS; FILEPATHS="$(find "$XCPKG_PACKAGE_INSTALLED_ROOT/$1/.xcpkg" -type f)"
 
     for filepath in $FILEPATHS
     do
