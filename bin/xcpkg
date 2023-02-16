@@ -3470,7 +3470,6 @@ $DOT_CONTENT
     unset AUTOCONF
     unset AUTOMAKE
     unset ACLOCAL
-    unset PERL
     unset M4
 
     unset MESON
@@ -3483,6 +3482,22 @@ $DOT_CONTENT
     unset CCACHE
     unset PKG_CONFIG
 
+    [ -n "$PACKAGE_DEP_UPP" ] && {
+        for item in $PACKAGE_DEP_UPP
+        do
+            case $item in
+                curl)   run curl --version ;;
+                git)    run git  --version ;;
+                gtar)   run tar  --version ;;
+                gzip)   run gzip --version ;;
+                xz)     run xz   --version ;;
+                patch)  run patch --version ;;
+                perl)   run perl --version ;;
+                python3)run python3 --version ;;
+            esac
+        done
+    }
+
     {
         [ "$PACKAGE_BUILD_SYSTEM_AUTOGENSH" = yes ] ||
         [ "$PACKAGE_BUILD_SYSTEM_AUTOTOOLS" = yes ]
@@ -3491,7 +3506,6 @@ $DOT_CONTENT
         AUTOCONF=$(command -v autoconf)     || abort 1 "command not found: autoconf"
         AUTOMAKE=$(command -v automake)     || abort 1 "command not found: automake"
         ACLOCAL=$(command -v aclocal)       || abort 1 "command not found: aclocal"
-        PERL=$(command -v perl)             || abort 1 "command not found: perl"
         M4=$(command -v m4)                 || abort 1 "command not found: m4"
 
         run "$AUTORECONF" --version
@@ -3501,8 +3515,6 @@ $DOT_CONTENT
         run "$AUTOMAKE"   --version
         printf '\n'
         run "$ACLOCAL"    --version
-        printf '\n'
-        run "$PERL"       --version
         printf '\n'
         run "$M4"         --version
         printf '\n'
