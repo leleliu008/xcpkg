@@ -3855,11 +3855,6 @@ $PACKAGE_BUILD0_ACTIONS
     PPFLAGS="-I$PACKAGE_INSTALLING_INC_DIR $PPFLAGS"
     LDFLAGS="-L$PACKAGE_INSTALLING_LIB_DIR $LDFLAGS"
 
-    case $NATIVE_OS_KIND in
-        netbsd)  LDFLAGS="$LDFLAGS -pthread" ;;
-        openbsd) LDFLAGS="$LDFLAGS -pthread" ;;
-    esac
-
     export   CFLAGS="$CCFLAGS"
     export CXXFLAGS="$XXFLAGS"
     export CPPFLAGS="$PPFLAGS"
@@ -5464,6 +5459,34 @@ cargow() {
 # {{{ gow
 
 gow() {
+    if command -v bat > /dev/null ; then
+        run "go env | bat --language=bash --paging=never --style=plain"
+    else
+        run "go env"
+    fi
+
+    printf '\n'
+
+    # /Users/runner/go/pkg/mod/golang.org/x/sys@v0.0.0-20191028164358-195ce5e7f934/unix/syscall_darwin.1_13.go:25:3: //go:linkname must refer to declared function or variable
+    GOMOD="$PACKAGE_BSCRIPT_DIR/go.mod"
+
+    if [ -f "$GOMOD" ] && go mod graph | grep -q 'golang\.org/x/sys' ; then
+        run go get -u golang.org/x/sys
+
+        if [ -d "$PACKAGE_BSCRIPT_DIR/vendor" ] ; then
+            unset GO_VERSION_MAJOR
+            unset GO_VERSION_MINOR
+
+            GO_VERSION_MAJOR=$(go env GOVERSION | cut -c3- | cut -d. -f1)
+            GO_VERSION_MINOR=$(go env GOVERSION | cut -c3- | cut -d. -f2)
+
+            sed_in_place "/^go[[:space:]]*[1-9]\.[0-9][0-9]/c go $GO_VERSION_MAJOR.$GO_VERSION_MINOR" "$GOMOD"
+
+            run go mod tidy
+            run go mod vendor
+        fi
+    fi
+
     # https://pkg.go.dev/cmd/go
     # https://pkg.go.dev/cmd/link
 
@@ -5507,7 +5530,7 @@ gow() {
     GO_BUILD_ARGS='-trimpath'
 
     if [ -z "$GO_BUILD_ARGV_V" ] ; then
-        if [ "$LOG_LEVEL" -gt "$LOG_LEVEL_QUIET" ] ; then
+        if [ "$LOG_LEVEL" -gt 0 ] ; then
             GO_BUILD_ARGS="$GO_BUILD_ARGS -v"
         fi
     else
@@ -5515,18 +5538,18 @@ gow() {
     fi
 
     if [ -z "$GO_BUILD_ARGV_X" ] ; then
-        if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
+        if [ "$LOG_LEVEL" -ge 2 ] ; then
             GO_BUILD_ARGS="$GO_BUILD_ARGS -x"
         fi
     else
         GO_BUILD_ARGS="$GO_BUILD_ARGS -x"
     fi
 
-    if [ -z "$GO_BUILD_ARGV_LDFLAGS" ] ; then
-        GO_BUILD_ARGS="$GO_BUILD_ARGS -ldflags '-s -w'"
-    else
-        GO_BUILD_ARGS="$GO_BUILD_ARGS -ldflags '-s -w $GO_BUILD_ARGV_LDFLAGS'"
+    if [ "$BUILD_TYPE" = release ] ; then
+        GO_BUILD_ARGV_LDFLAGS="$GO_BUILD_ARGV_LDFLAGS -s -w"
     fi
+
+    GO_BUILD_ARGS="$GO_BUILD_ARGS -ldflags '$GO_BUILD_ARGV_LDFLAGS'"
 
     if [ -z "$GO_BUILD_ARGV_O" ] ; then
         GO_BUILD_ARGS="$GO_BUILD_ARGS -o $PACKAGE_BCACHED_DIR/"
@@ -5536,17 +5559,19 @@ gow() {
 
     GO_BUILD_ARGS="$GO_BUILD_ARGS $GO_BUILD_ARGS_EXTRA"
 
-    run go build $GO_BUILD_ARGS || return 1
+    # shellcheck disable=SC2086
+    run go build $GO_BUILD_ARGS
 
     for item in $(ls "$PACKAGE_BCACHED_DIR")
     do
         case $item in
-            *.a)  run install_libs "$PACKAGE_BCACHED_DIR/$item" ;;
-            *.so) run install_libs "$PACKAGE_BCACHED_DIR/$item" ;;
-            *)    run install_bins "$PACKAGE_BCACHED_DIR/$item" ;;
+            *.a)     run install_libs "$PACKAGE_BCACHED_DIR/$item" ;;
+            *.dylib) run install_libs "$PACKAGE_BCACHED_DIR/$item" ;;
+            *)       run install_bins "$PACKAGE_BCACHED_DIR/$item" ;;
         esac
     done
 }
+
 
 # }}}
 ##############################################################################
