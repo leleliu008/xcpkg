@@ -3464,7 +3464,7 @@ $DOT_CONTENT
 
     #########################################################################################
 
-    step "locate build tools"
+    step "locate needed tools"
 
     unset AUTORECONF
     unset AUTOCONF
@@ -3569,48 +3569,152 @@ $DOT_CONTENT
 
     #########################################################################################
 
-    step "create symbolic link for ccache"
+    step "fetch source/patches/resources from server"
+    __fetch_sources_of_the_given_package "$1"
+    __fetch_patches_of_the_given_package "$1"
 
-    if [ "$CCACHE_ENABLED" = yes ] ; then
-        run ln -sf "$CCACHE" "$PACKAGE_INSTALLING_BIN_DIR/$(basename "$CC")"
-        run ln -sf "$CCACHE" "$PACKAGE_INSTALLING_BIN_DIR/$(basename "$CXX")"
+    #########################################################################################
 
-        "$CCACHE" -s > "$PACKAGE_WORKING_DIR/ccache-s.txt"
-    else
-        note "ccache is disabled, skipped."
+    case $PACKAGE_SRC_FILETYPE in
+        .dir)
+            if [ "$PACKAGE_SRC_FILEPATH" = '/dev/null' ] ; then
+                :
+            elif [ -d "$PACKAGE_SRC_FILEPATH" ] ; then
+                if [ -d "$PACKAGE_SRC_FILEPATH/.git" ] && command -v git > /dev/null ; then
+                    PACKAGE_GIT_SHA=$(git -C "$PACKAGE_SRC_FILEPATH" rev-parse HEAD || true)
+                fi
+                step "copy source files to the installing src directory"
+                run cp -r "$PACKAGE_SRC_FILEPATH/." "$PACKAGE_INSTALLING_SRC_DIR"
+            else
+                abort 1 "src-url point to dir does not exist."
+            fi
+            ;;
+        .git)
+            if [ -z "$PACKAGE_GIT_SHA" ] ; then
+                PACKAGE_GIT_SHA=$(git -C "$PACKAGE_SRC_FILEPATH" rev-parse HEAD || true)
+            fi
+            step "copy source files to the installing src directory"
+            run cp -r "$PACKAGE_SRC_FILEPATH/." "$PACKAGE_INSTALLING_SRC_DIR"
+            ;;
+        .zip)
+            step "uncompressed source file to the installing src directory"
+            run unzip  "$PACKAGE_SRC_FILEPATH" -d "$PACKAGE_INSTALLING_SRC_DIR"
+            ;;
+        .txz|.tgz|.tlz|.tbz2)
+            step "uncompressed source file to the installing src directory"
+            run tar xf "$PACKAGE_SRC_FILEPATH" -C "$PACKAGE_INSTALLING_SRC_DIR" --strip-components 1 --no-same-owner
+            ;;
+        *)  step "copy source files to the installing src directory"
+            run cp     "$PACKAGE_SRC_FILEPATH"    "$PACKAGE_INSTALLING_SRC_DIR"
+    esac
+
+    if [ -n "$PACKAGE_FIX_FILETYPE" ] ; then
+        case $PACKAGE_FIX_FILETYPE in
+            .zip)
+                step "uncompressed patch file to the installing fix directory"
+                run unzip  "$PACKAGE_FIX_FILEPATH" -d "$PACKAGE_INSTALLING_FIX_DIR"
+                ;;
+            .txz|.tgz|.tlz|.tbz2)
+                step "uncompressed patch file to the installing fix directory"
+                run tar xf "$PACKAGE_FIX_FILEPATH" -C "$PACKAGE_INSTALLING_FIX_DIR" --strip-components 1 --no-same-owner
+                ;;
+            *)  step "copy patch file to the installing fix directory"
+                run cp     "$PACKAGE_FIX_FILEPATH"    "$PACKAGE_INSTALLING_FIX_DIR"
+        esac
+    fi
+
+    if [ -n "$PACKAGE_RES_FILETYPE" ] ; then
+        case $PACKAGE_RES_FILETYPE in
+            .zip)
+                step "uncompressed res file to the installing res directory"
+                run unzip "$PACKAGE_RES_FILEPATH" -d "$PACKAGE_INSTALLING_RES_DIR"
+                ;;
+            .txz|.tgz|.tlz|.tbz2)
+                step "uncompressed res file to the installing res directory"
+                run tar xf "$PACKAGE_RES_FILEPATH" -C "$PACKAGE_INSTALLING_RES_DIR" --strip-components 1 --no-same-owner
+                ;;
+            *)  step "copy res file to the installing res directory"
+                run cp    "$PACKAGE_RES_FILEPATH"   "$PACKAGE_INSTALLING_RES_DIR"
+        esac
     fi
 
     #########################################################################################
 
-    [ -n "$PACKAGE_DEP_PKG" ] && {
-        step "create symbolic links for dependent libraries"
+    PACKAGE_BSCRIPT_DIR="$PACKAGE_INSTALLING_SRC_DIR/$PACKAGE_BSCRIPT"
+    PACKAGE_BSCRIPT_DIR="${PACKAGE_BSCRIPT_DIR%/}"
 
-        unset libFileNameSuffix
+    step "tree files of the installing top directory"
+    run tree --dirsfirst -L 2 "$PACKAGE_WORKING_DIR"
 
-        case $LINK_TYPE in
-            static-only|static-prefered)
-                libFileNameSuffix='.a'
-                ;;
-            shared-only|shared-prefered)
-                libFileNameSuffix='.dylib'
-                ;;
-            *)  die "unrecognized link type: $LINK_TYPE"
-        esac
+    step "list files of the installing src directory"
+    run ls -l "$PACKAGE_INSTALLING_SRC_DIR"
 
-        for DEPENDENT_PACKAGE_INSTALL_DIR in $RECURSIVE_DEPENDENT_PACKAGE_INSTALL_DIRS
-        do
-            DEPENDENT_PACKAGE_LIBRARY_DIR="$DEPENDENT_PACKAGE_INSTALL_DIR/lib"
+    if [ -n "$PACKAGE_BSCRIPT" ] ; then
+        step "list files of the installing build script directory"
+        run ls -l "$PACKAGE_BSCRIPT_DIR"
+    fi
 
-            if [ -d "$DEPENDENT_PACKAGE_LIBRARY_DIR" ] ; then
-                for libFileName in $(find "$DEPENDENT_PACKAGE_LIBRARY_DIR" -maxdepth 1 -mindepth 1 -name "lib*$libFileNameSuffix" -exec basename {} \;)
-                do
-                    if [ ! -e "$PACKAGE_INSTALLING_LIB_DIR/$libFileName" ] ; then
-                        run ln -s "$DEPENDENT_PACKAGE_LIBRARY_DIR/$libFileName" "$PACKAGE_INSTALLING_LIB_DIR/$libFileName"
-                    fi
-                done
-            fi
-        done
+    #########################################################################################
+
+    [ "$DRYRUN" = yes ] && {
+        [ -z "$SHELL" ] || SHELL=$(command -v zsh || command -v bash || command -v sh) || abort 1 "none of zsh|bash|sh shell found in your system."
+        exec "$SHELL"
     }
+
+    #########################################################################################
+
+    step "install for native"
+
+    if [ -n "$PACKAGE_BUILD0_ACTIONS" ] ; then
+        eval "
+build0() {
+$PACKAGE_BUILD0_ACTIONS
+}"
+        NATIVE_BCACHED_DIR="$PACKAGE_WORKING_DIR/-/native"
+        NATIVE_INSTALL_DIR="$XCPKG_HOME/native/$1"
+
+        printf '%s\n' "
+        NATIVE_BCACHED_DIR = $NATIVE_BCACHED_DIR
+        NATIVE_INSTALL_DIR = $NATIVE_INSTALL_DIR
+        "
+
+        if [ -f "$NATIVE_INSTALL_DIR/version.txt" ] ; then
+            if [ "$(cat "$NATIVE_INSTALL_DIR/version.txt")" != "$PACKAGE_VERSION" ] ; then
+                note "build for native already have been done, but not same version. I will remove it then rebuild it."
+                run rm -rf "$NATIVE_INSTALL_DIR"
+            fi
+        fi
+
+        if [ -f "$NATIVE_INSTALL_DIR/version.txt" ] ; then
+            note "build for native already have been done, skipped."
+        else
+            if [ "$PACKAGE_BUILD_IN_BSCRIPT_DIR" = yes ] ; then
+                if [ "$PWD" != "$PACKAGE_BSCRIPT_DIR" ] ; then
+                    run cd "$PACKAGE_BSCRIPT_DIR"
+                fi
+            else
+                    run cd "$NATIVE_BCACHED_DIR"
+            fi
+
+            run build0
+
+            printf '%s\n' "$PACKAGE_VERSION" > "$NATIVE_INSTALL_DIR/version.txt"
+
+            if [ -d  "$NATIVE_INSTALL_DIR/bin" ] ; then
+                PATH="$NATIVE_INSTALL_DIR/bin:$PATH"
+            fi
+
+            if [ -d  "$NATIVE_INSTALL_DIR/sbin" ] ; then
+                PATH="$NATIVE_INSTALL_DIR/sbin:$PATH"
+            fi
+
+            if [ -d          "$NATIVE_INSTALL_DIR/share/aclocal" ] ; then
+                ACLOCAL_PATH="$NATIVE_INSTALL_DIR/share/aclocal:$ACLOCAL_PATH"
+            fi
+        fi
+    else
+        note "build0 mapping was not found in formula, skipped."
+    fi
 
     #########################################################################################
 
@@ -4191,148 +4295,48 @@ EOF
 
     #########################################################################################
 
-    step "fetch resources from server"
-    __fetch_sources_of_the_given_package "$1"
-    __fetch_patches_of_the_given_package "$1"
+    step "create symbolic links named as the C/C++ compiler point to ccache"
 
-    #########################################################################################
+    if [ "$CCACHE_ENABLED" = yes ] ; then
+        run ln -sf "$CCACHE" "$PACKAGE_INSTALLING_BIN_DIR/$(basename "$CC")"
+        run ln -sf "$CCACHE" "$PACKAGE_INSTALLING_BIN_DIR/$(basename "$CXX")"
 
-    case $PACKAGE_SRC_FILETYPE in
-        .dir)
-            if [ "$PACKAGE_SRC_FILEPATH" = '/dev/null' ] ; then
-                :
-            elif [ -d "$PACKAGE_SRC_FILEPATH" ] ; then
-                if [ -d "$PACKAGE_SRC_FILEPATH/.git" ] && command -v git > /dev/null ; then
-                    PACKAGE_GIT_SHA=$(git -C "$PACKAGE_SRC_FILEPATH" rev-parse HEAD || true)
-                fi
-                step "copy source files to the installing src directory"
-                run cp -r "$PACKAGE_SRC_FILEPATH/." "$PACKAGE_INSTALLING_SRC_DIR"
-            else
-                abort 1 "src-url point to dir does not exist."
-            fi
-            ;;
-        .git)
-            if [ -z "$PACKAGE_GIT_SHA" ] ; then
-                PACKAGE_GIT_SHA=$(git -C "$PACKAGE_SRC_FILEPATH" rev-parse HEAD || true)
-            fi
-            step "copy source files to the installing src directory"
-            run cp -r "$PACKAGE_SRC_FILEPATH/." "$PACKAGE_INSTALLING_SRC_DIR"
-            ;;
-        .zip)
-            step "uncompressed source file to the installing src directory"
-            run unzip  "$PACKAGE_SRC_FILEPATH" -d "$PACKAGE_INSTALLING_SRC_DIR"
-            ;;
-        .txz|.tgz|.tlz|.tbz2)
-            step "uncompressed source file to the installing src directory"
-            run tar xf "$PACKAGE_SRC_FILEPATH" -C "$PACKAGE_INSTALLING_SRC_DIR" --strip-components 1 --no-same-owner
-            ;;
-        *)  step "copy source files to the installing src directory"
-            run cp     "$PACKAGE_SRC_FILEPATH"    "$PACKAGE_INSTALLING_SRC_DIR"
-    esac
-
-    if [ -n "$PACKAGE_FIX_FILETYPE" ] ; then
-        case $PACKAGE_FIX_FILETYPE in
-            .zip)
-                step "uncompressed patch file to the installing fix directory"
-                run unzip  "$PACKAGE_FIX_FILEPATH" -d "$PACKAGE_INSTALLING_FIX_DIR"
-                ;;
-            .txz|.tgz|.tlz|.tbz2)
-                step "uncompressed patch file to the installing fix directory"
-                run tar xf "$PACKAGE_FIX_FILEPATH" -C "$PACKAGE_INSTALLING_FIX_DIR" --strip-components 1 --no-same-owner
-                ;;
-            *)  step "copy patch file to the installing fix directory"
-                run cp     "$PACKAGE_FIX_FILEPATH"    "$PACKAGE_INSTALLING_FIX_DIR"
-        esac
-    fi
-
-    if [ -n "$PACKAGE_RES_FILETYPE" ] ; then
-        case $PACKAGE_RES_FILETYPE in
-            .zip)
-                step "uncompressed res file to the installing res directory"
-                run unzip "$PACKAGE_RES_FILEPATH" -d "$PACKAGE_INSTALLING_RES_DIR"
-                ;;
-            .txz|.tgz|.tlz|.tbz2)
-                step "uncompressed res file to the installing res directory"
-                run tar xf "$PACKAGE_RES_FILEPATH" -C "$PACKAGE_INSTALLING_RES_DIR" --strip-components 1 --no-same-owner
-                ;;
-            *)  step "copy res file to the installing res directory"
-                run cp    "$PACKAGE_RES_FILEPATH"   "$PACKAGE_INSTALLING_RES_DIR"
-        esac
-    fi
-
-    #########################################################################################
-
-    PACKAGE_BSCRIPT_DIR="$PACKAGE_INSTALLING_SRC_DIR/$PACKAGE_BSCRIPT"
-    PACKAGE_BSCRIPT_DIR="${PACKAGE_BSCRIPT_DIR%/}"
-
-    step "tree files of the installing top directory"
-    run tree --dirsfirst -L 2 "$PACKAGE_WORKING_DIR"
-
-    step "list files of the installing src directory"
-    run ls -l "$PACKAGE_INSTALLING_SRC_DIR"
-
-    if [ -n "$PACKAGE_BSCRIPT" ] ; then
-        step "list files of the installing build script directory"
-        run ls -l "$PACKAGE_BSCRIPT_DIR"
-    fi
-
-    #########################################################################################
-
-    [ "$DRYRUN" = yes ] && {
-        [ -z "$SHELL" ] || SHELL=$(command -v zsh || command -v bash || command -v sh) || abort 1 "none of zsh|bash|sh shell found in your system."
-        exec "$SHELL"
-    }
-
-    #########################################################################################
-
-    step "build and install for native"
-
-    if [ -n "$PACKAGE_BUILD0_ACTIONS" ] ; then
-        eval "
-build0() {
-$PACKAGE_BUILD0_ACTIONS
-}"
-        NATIVE_BCACHED_DIR="$PACKAGE_WORKING_DIR/-/native"
-        NATIVE_INSTALL_DIR="$XCPKG_HOME/native/$1"
-
-        printf '%s\n' "
-        NATIVE_BCACHED_DIR = $NATIVE_BCACHED_DIR
-        NATIVE_INSTALL_DIR = $NATIVE_INSTALL_DIR
-        "
-
-        if [ -f "$NATIVE_INSTALL_DIR/version.txt" ] ; then
-            if [ "$(cat "$NATIVE_INSTALL_DIR/version.txt")" != "$PACKAGE_VERSION" ] ; then
-                note "build for native already have been done, but not same version. I will remove it then rebuild it."
-                run rm -rf "$NATIVE_INSTALL_DIR"
-            fi
-        fi
-
-        if [ -f "$NATIVE_INSTALL_DIR/version.txt" ] ; then
-            note "build for native already have been done, skipped."
-        else
-            if [ "$PACKAGE_BUILD_IN_BSCRIPT_DIR" = yes ] ; then
-                if [ "$PWD" != "$PACKAGE_BSCRIPT_DIR" ] ; then
-                    run cd "$PACKAGE_BSCRIPT_DIR"
-                fi
-            else
-                    run cd "$NATIVE_BCACHED_DIR"
-            fi
-
-            run build0
-
-            printf '%s\n' "$PACKAGE_VERSION" > "$NATIVE_INSTALL_DIR/version.txt"
-
-            if [ -d "$NATIVE_INSTALL_DIR/bin" ] ; then
-                export PATH="$NATIVE_INSTALL_DIR/bin:$PATH"
-            fi
-
-            if [ -d "$NATIVE_INSTALL_DIR/sbin" ] ; then
-                export PATH="$NATIVE_INSTALL_DIR/sbin:$PATH"
-            fi
-        fi
+        "$CCACHE" -s > "$PACKAGE_WORKING_DIR/ccache-s.txt"
     else
-        note "build0 mapping was not found in formula, skipped."
+        note "ccache is disabled, skipped."
     fi
+
+    #########################################################################################
+
+    [ -n "$PACKAGE_DEP_PKG" ] && {
+        step "create symbolic links for dependent libraries"
+
+        unset libFileNameSuffix
+
+        case $LINK_TYPE in
+            static-only|static-prefered)
+                libFileNameSuffix='.a'
+                ;;
+            shared-only|shared-prefered)
+                libFileNameSuffix='.dylib'
+                ;;
+            *)  die "unrecognized link type: $LINK_TYPE"
+        esac
+
+        for DEPENDENT_PACKAGE_INSTALL_DIR in $RECURSIVE_DEPENDENT_PACKAGE_INSTALL_DIRS
+        do
+            DEPENDENT_PACKAGE_LIBRARY_DIR="$DEPENDENT_PACKAGE_INSTALL_DIR/lib"
+
+            if [ -d "$DEPENDENT_PACKAGE_LIBRARY_DIR" ] ; then
+                for libFileName in $(find "$DEPENDENT_PACKAGE_LIBRARY_DIR" -maxdepth 1 -mindepth 1 -name "lib*$libFileNameSuffix" -exec basename {} \;)
+                do
+                    if [ ! -e "$PACKAGE_INSTALLING_LIB_DIR/$libFileName" ] ; then
+                        run ln -s "$DEPENDENT_PACKAGE_LIBRARY_DIR/$libFileName" "$PACKAGE_INSTALLING_LIB_DIR/$libFileName"
+                    fi
+                done
+            fi
+        done
+    }
 
     #########################################################################################
 
@@ -4364,7 +4368,7 @@ $PACKAGE_PREPARE_ACTIONS
 
     #########################################################################################
 
-    step "build and install for target"
+    step "install for target"
 
     if [ "$PACKAGE_BUILD_IN_BSCRIPT_DIR" = yes ] ; then
         if [ "$PWD" != "$PACKAGE_BSCRIPT_DIR" ] ; then
@@ -5004,7 +5008,7 @@ configure() {
         done
     fi
 
-    if [ "$STEP_MESSAGE" = 'build and install for native' ] ; then
+    if [ "$STEP_MESSAGE" = 'install for native' ] ; then
         if run "$PACKAGE_BSCRIPT_DIR"/configure \
             --prefix="$NATIVE_INSTALL_DIR" \
             "$@" ; then
