@@ -4153,12 +4153,26 @@ $PACKAGE_BUILD0_ACTIONS
 
         env | sed -n '/^CMAKE_/p'
 
+        # https://cmake.org/cmake/help/latest/manual/cmake-toolchains.7.html#cross-compiling-for-ios-tvos-or-watchos
+        case $TARGET_PLATFORM_NAME in
+            iPhoneOS|iPhoneSimulator)
+                CMAKE_SYSTEM_NAME=iOS
+                ;;
+            WatchOS|WatchSimulator)
+                CMAKE_SYSTEM_NAME=tvOS
+                ;;
+            AppleTVOS|AppleTVSimulator)
+                CMAKE_SYSTEM_NAME=watchOS
+                ;;
+            *)  CMAKE_SYSTEM_NAME=Darwin
+        esac
+
         CMAKE_TOOLCHAIN_FILE="$PACKAGE_WORKING_DIR/toolchain.cmake"
 
         cat > "$CMAKE_TOOLCHAIN_FILE" <<EOF
 set(CMAKE_BUILD_TYPE  $CMAKE_BUILD_TYPE)
 
-set(CMAKE_SYSTEM_NAME      Darwin)
+set(CMAKE_SYSTEM_NAME      $CMAKE_SYSTEM_NAME)
 set(CMAKE_SYSTEM_VERSION   $TARGET_PLATFORM_VERS)
 set(CMAKE_SYSTEM_PROCESSOR $TARGET_PLATFORM_ARCH)
 
@@ -6275,8 +6289,6 @@ package_name_transform_from_uppm_to_brew() {
 }
 
 __compare_versions_with_brew() {
-    set -e
-
     cd "$XCPKG_HOME/repos.d/offical-core/formula"
 
     AVAILABLE_PACKAGES="$(find . -mindepth 1 -maxdepth 1 -name "*.yml" -exec basename {} .yml \;)"
@@ -6295,6 +6307,30 @@ __compare_versions_with_brew() {
             else
                 :
                 #printf "${COLOR_GREEN}%-10s %-10s  |  %-10s %-10s${COLOR_OFF}\n" "$PACKAGE_NAME" "$PACKAGE_VERSION" "$BREW_PKG_NMAE" "$BREW_PKG_VERS"
+            fi
+        else
+            printf "${COLOR_BLUE}%-10s %-10s  |${COLOR_OFF}\n" "$PACKAGE_NAME" "$PACKAGE_VERSION"
+        fi
+    done
+}
+
+__compare_versions_with_ppkg() {
+    cd "$XCPKG_HOME/repos.d/offical-core/formula"
+
+    unset AVAILABLE_PACKAGE_NAMES
+    AVAILABLE_PACKAGE_NAMES="$(find . -mindepth 1 -maxdepth 1 -name "*.yml" -exec basename {} .yml \;)"
+
+    for PACKAGE_NAME in $AVAILABLE_PACKAGE_NAMES
+    do
+        __load_formula_of_the_given_package "$PACKAGE_NAME"
+
+        if ppkg is-available "$PACKAGE_NAME" ; then
+            PPKG_PACKAGE_VERSION="$(ppkg info "$PACKAGE_NMAE" version)"
+
+            if version_match "$PPKG_PACKAGE_VERSION" ne "$PACKAGE_VERSION" ; then
+                :
+            else
+                printf "${COLOR_RED}%-10s %-10s  |  %-10s %-10s${COLOR_OFF}\n" "$PACKAGE_NAME" "$PACKAGE_VERSION" "$PACKAGE_NAME" "$PPKG_PACKAGE_VERSION"
             fi
         else
             printf "${COLOR_BLUE}%-10s %-10s  |${COLOR_OFF}\n" "$PACKAGE_NAME" "$PACKAGE_VERSION"
@@ -7168,7 +7204,12 @@ EOF
             __gen_github_workflows "$@"
             ;;
         compare-versions)
-            __compare_versions_with_brew
+            shift
+            case $1 in
+                brew) __compare_versions_with_brew ;;
+                ppkg) __compare_versions_with_ppkg ;;
+                *)    abort 1 "unrecognized argument: $1"
+            esac
             ;;
         *)  abort 1 "unrecognized argument: $1"
     esac

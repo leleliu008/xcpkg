@@ -37,7 +37,7 @@ _commands=(
     'logs:show logs of the given installed package.'
     'gen-github-workflows:generate github workflows.'
     'gen-url-transform-sample:generate url-transform sample.'
-    'compare-versions:compare versions with homebrew.'
+    'compare-versions:compare versions with homebrew or ppkg.'
 )
 
 function _xcpkg_commands() {
@@ -234,6 +234,9 @@ function _xcpkg() {
                     ;;
                 is-outdated)
                     _arguments '1:package-name:_xcpkg_outdated_packages'
+                    ;;
+                compare-versions)
+                    _arguments '1:which:(brew ppkg)'
                     ;;
             esac
             ;;

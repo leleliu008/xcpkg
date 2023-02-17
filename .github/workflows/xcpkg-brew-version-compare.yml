@@ -19,3 +19,4 @@ jobs:
       - run: bin/xcpkg env
       - run: bin/xcpkg update
       - run: bin/xcpkg version-compare brew
+      - run: bin/xcpkg version-compare ppkg
