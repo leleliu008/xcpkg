@@ -60,7 +60,7 @@ all relevant dirs and files are located in `~/.xcpkg` directory.
 
         xcpkg update
         
-*   **search all available packages whose name matches the given regular express partten**
+*   **search all available packages whose name matches the given regular express pattern**
         
         xcpkg search curl
         xcpkg search lib
@@ -240,16 +240,6 @@ all relevant dirs and files are located in `~/.xcpkg` directory.
         
         xcpkg cleanup
         
-*   **view the formula of the given package**
-
-        xcpkg formula-view curl
-        
-*   **edit the formula of the given package**
-
-        xcpkg formula-edit curl
-        
-    **Note:** xcpkg do NOT save your changes, that's to say, your changes may be lost after the formula repository is updated!
-
 *   **list the supported target platforms**
         
         xcpkg ls-target-platform-names
@@ -354,7 +344,7 @@ a xcpkg formula's filename suffix must be `.yml`
 
 a xcpkg formula'a filename prefix would be treated as the package name.
 
-a xcpkg formula'a filename prefix must match regular expression partten `^[A-Za-z0-9+-._]{1,50}$`
+a xcpkg formula'a filename prefix must match regular expression pattern `^[A-Za-z0-9+-._]{1,50}$`
 
 a xcpkg formula's file content must follow [the xcpkg formula scheme](https://github.com/leleliu008/xcpkg-formula-repository-offical-core)
 
