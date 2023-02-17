@@ -3729,19 +3729,21 @@ EOF
 
             run build0
 
-            printf '%s\n' "$PACKAGE_VERSION" > "$NATIVE_INSTALL_DIR/version.txt"
+            [ -d "$NATIVE_INSTALL_DIR" ] && {
+                printf '%s\n' "$PACKAGE_VERSION" > "$NATIVE_INSTALL_DIR/version.txt"
 
-            if [ -d  "$NATIVE_INSTALL_DIR/bin" ] ; then
-                PATH="$NATIVE_INSTALL_DIR/bin:$PATH"
-            fi
+                if [ -d  "$NATIVE_INSTALL_DIR/bin" ] ; then
+                    PATH="$NATIVE_INSTALL_DIR/bin:$PATH"
+                fi
 
-            if [ -d  "$NATIVE_INSTALL_DIR/sbin" ] ; then
-                PATH="$NATIVE_INSTALL_DIR/sbin:$PATH"
-            fi
+                if [ -d  "$NATIVE_INSTALL_DIR/sbin" ] ; then
+                    PATH="$NATIVE_INSTALL_DIR/sbin:$PATH"
+                fi
 
-            if [ -d          "$NATIVE_INSTALL_DIR/share/aclocal" ] ; then
-                ACLOCAL_PATH="$NATIVE_INSTALL_DIR/share/aclocal:$ACLOCAL_PATH"
-            fi
+                if [ -d          "$NATIVE_INSTALL_DIR/share/aclocal" ] ; then
+                    ACLOCAL_PATH="$NATIVE_INSTALL_DIR/share/aclocal:$ACLOCAL_PATH"
+                fi
+            }
         fi
     else
         note "build0 mapping was not found in formula, skipped."
