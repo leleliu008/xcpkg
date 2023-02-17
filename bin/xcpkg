@@ -2980,6 +2980,16 @@ __install_the_given_package() {
 
     #########################################################################################
 
+    if [ "$TARGET_PLATFORM_NAME" = "$NATIVE_OS_NAME" ] ; then
+        CROSS_COMPILING=no
+    else
+        CROSS_COMPILING=yes
+    fi
+
+    TARGET_PLATFORM_NAME_LOWER_CASE="$(printf "$TARGET_PLATFORM_NAME" | tr A-Z a-z)"
+
+    #########################################################################################
+
     printf '%s\n' "
      TIMESTAMP_UNIX = $TIMESTAMP_UNIX
 
@@ -3003,6 +3013,7 @@ XCPKG_URL_TRANSFORM  = $XCPKG_URL_TRANSFORM
 
              DRYRUN = $DRYRUN
      CCACHE_ENABLED = $CCACHE_ENABLED
+    CROSS_COMPILING = $CROSS_COMPILING
    KEEP_PACKING_DIR = $KEEP_WORKING_DIR
 EXPORT_COMPILE_COMMANDS_JSON = $EXPORT_COMPILE_COMMANDS_JSON
     "
@@ -3722,11 +3733,11 @@ $DOT_CONTENT
 
     step "install for native"
 
-    if [ -n "$PACKAGE_BUILD0_ACTIONS" ] ; then
-        eval "
-build0() {
-$PACKAGE_BUILD0_ACTIONS
-}"
+    if [ "$CROSS_COMPILING" = no ] ; then
+        note "not cross compiling, skipped."
+    elif [ -z "$PACKAGE_BUILD0_ACTIONS" ] ; then
+        note "build0 mapping was not found in formula, skipped."
+    else
         NATIVE_BCACHED_DIR="$PACKAGE_WORKING_DIR/src/-"
         NATIVE_INSTALL_DIR="$XCPKG_HOME/native/$1"
 
@@ -3734,6 +3745,11 @@ $PACKAGE_BUILD0_ACTIONS
 NATIVE_BCACHED_DIR = $NATIVE_BCACHED_DIR
 NATIVE_INSTALL_DIR = $NATIVE_INSTALL_DIR
 EOF
+
+        eval "
+build0() {
+$PACKAGE_BUILD0_ACTIONS
+}"
 
         if [ -f "$NATIVE_INSTALL_DIR/version.txt" ] ; then
             if [ "$(cat "$NATIVE_INSTALL_DIR/version.txt")" != "$PACKAGE_VERSION" ] ; then
@@ -3773,19 +3789,7 @@ EOF
                 fi
             }
         fi
-    else
-        note "build0 mapping was not found in formula, skipped."
     fi
-
-    #########################################################################################
-
-    if [ "$TARGET_PLATFORM_NAME" = "$NATIVE_OS_NAME" ] ; then
-        CROSS_COMPILING=no
-    else
-        CROSS_COMPILING=yes
-    fi
-
-    TARGET_PLATFORM_NAME_LOWER_CASE="$(printf "$TARGET_PLATFORM_NAME" | tr A-Z a-z)"
 
     #########################################################################################
 
