@@ -1202,7 +1202,7 @@ __load_formula_of_the_given_package() {
             .tbz2)  PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP patch gtar bzip2" ;;
         esac
 
-        PACKAGE_FIX_FILENAME="$PACKAGE_FIX_URL$PACKAGE_FIX_FILETYPE"
+        PACKAGE_FIX_FILENAME="$PACKAGE_FIX_SHA$PACKAGE_FIX_FILETYPE"
         PACKAGE_FIX_FILEPATH="$XCPKG_DOWNLOADS_DIR/$PACKAGE_FIX_FILENAME"
     fi
 
@@ -1223,7 +1223,7 @@ __load_formula_of_the_given_package() {
             .tbz2)  PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP patch gtar bzip2" ;;
         esac
 
-        PACKAGE_RES_FILENAME="$PACKAGE_RES_URL$PACKAGE_RES_FILETYPE"
+        PACKAGE_RES_FILENAME="$PACKAGE_RES_SHA$PACKAGE_RES_FILETYPE"
         PACKAGE_RES_FILEPATH="$XCPKG_DOWNLOADS_DIR/$PACKAGE_RES_FILENAME"
     fi
 
