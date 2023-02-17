@@ -1283,10 +1283,6 @@ __load_formula_of_the_given_package() {
         PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP perl"
     fi
 
-    if [ "$PACKAGE_BUILD_IN_PARALLEL" = no ] ; then
-        BUILD_NJOBS=1
-    fi
-
     if [ "$PACKAGE_BUILD_SYSTEM_GO" = yes ] ; then
         PACKAGE_BINBSTD=yes
         PACKAGE_BUILD_IN_BSCRIPT_DIR=yes
@@ -3001,9 +2997,20 @@ XCPKG_HOME           = $XCPKG_HOME
 XCPKG                = $XCPKG
 XCPKG_URL_TRANSFORM  = $XCPKG_URL_TRANSFORM
 
-        BUILD_NJOBS = $BUILD_NJOBS
-        BUILD_TYPE  = $BUILD_TYPE
+          LOG_LEVEL = $LOG_LEVEL
+          LINK_TYPE = $LINK_TYPE
+         BUILD_TYPE = $BUILD_TYPE
+
+             DRYRUN = $DRYRUN
+     CCACHE_ENABLED = $CCACHE_ENABLED
+   KEEP_PACKING_DIR = $KEEP_WORKING_DIR
+EXPORT_COMPILE_COMMANDS_JSON = $EXPORT_COMPILE_COMMANDS_JSON
     "
+
+    #########################################################################################
+
+    STATIC_LIBRARY_SUFFIX=.a
+    SHARED_LIBRARY_SUFFIX=.dylib
 
     #########################################################################################
 
@@ -3149,6 +3156,16 @@ EOF
    
     step "load formula"
     __load_formula_of_the_given_package "$PACKAGE_NAME" "$PACKAGE_FORMULA_FILEPATH"
+
+    #########################################################################################
+
+    if [ "$PACKAGE_BUILD_IN_PARALLEL" = no ] ; then
+        BUILD_NJOBS=1
+    fi
+
+    printf '%s\n' "
+        BUILD_NJOBS = $BUILD_NJOBS
+    "
 
     #########################################################################################
 
