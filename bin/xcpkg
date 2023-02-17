@@ -3685,10 +3685,10 @@ $PACKAGE_BUILD0_ACTIONS
         NATIVE_BCACHED_DIR="$PACKAGE_WORKING_DIR/src/-"
         NATIVE_INSTALL_DIR="$XCPKG_HOME/native/$1"
 
-        printf '%s\n' "
-        NATIVE_BCACHED_DIR = $NATIVE_BCACHED_DIR
-        NATIVE_INSTALL_DIR = $NATIVE_INSTALL_DIR
-        "
+        cat <<EOF
+NATIVE_BCACHED_DIR = $NATIVE_BCACHED_DIR
+NATIVE_INSTALL_DIR = $NATIVE_INSTALL_DIR
+EOF
 
         if [ -f "$NATIVE_INSTALL_DIR/version.txt" ] ; then
             if [ "$(cat "$NATIVE_INSTALL_DIR/version.txt")" != "$PACKAGE_VERSION" ] ; then
@@ -5125,23 +5125,40 @@ gmakew() {
 # https://cmake.org/cmake/help/latest/command/enable_testing.html?highlight=build_testing
 # run in a subshell
 cmakew() {
-    if [ "$STEP_MESSAGE" = 'build for native' ] ; then
-        # https://cmake.org/cmake/help/latest/variable/CMAKE_FIND_DEBUG_MODE.html
-        if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERY_VERBOSE" ] ; then
-            CMAKE_CONFIG_OPTIONS="$@ -DCMAKE_FIND_DEBUG_MODE=TRUE"
+    if [ "$STEP_MESSAGE" = 'install for native' ] ; then
+        if [ "$PACKAGE_BUILD_SYSTEM_NINJA" = yes ] ; then
+            CMAKE_GENERATOR='Ninja'
         else
-            CMAKE_CONFIG_OPTIONS="$@"
+            CMAKE_GENERATOR='Unix Makefiles'
+        fi
+
+        if [ "$LOG_LEVEL" -eq 0 ] ; then
+            CMAKE_VERBOSE_MAKEFILE=OFF
+            CMAKE_COLOR_MAKEFILE=OFF
+        else
+            CMAKE_VERBOSE_MAKEFILE=ON
+            CMAKE_COLOR_MAKEFILE=ON
+        fi
+
+        if [ "$LOG_LEVEL" -ge 3 ] ; then
+            CMAKE_FIND_DEBUG_MODE=ON
+        else
+            CMAKE_FIND_DEBUG_MODE=OFF
         fi
 
         run "$CMAKE" \
             -Wno-dev \
+            -G "'$CMAKE_GENERATOR'" \
             -S "$PACKAGE_BSCRIPT_DIR" \
             -B "$NATIVE_BCACHED_DIR" \
+            -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_INSTALL_PREFIX="$NATIVE_INSTALL_DIR" \
+            -DCMAKE_FIND_DEBUG_MODE="$CMAKE_FIND_DEBUG_MODE" \
+            -DCMAKE_VERBOSE_MAKEFILE="$CMAKE_VERBOSE_MAKEFILE" \
+            -DCMAKE_COLOR_MAKEFILE="$CMAKE_COLOR_MAKEFILE" \
             -DBUILD_SHARED_LIBS=OFF \
-            -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
             -DBUILD_TESTING=OFF \
-            "$CMAKE_CONFIG_OPTIONS" &&
+            "$@" &&
         run "$CMAKE" --build   "$NATIVE_BCACHED_DIR" -- "-j$BUILD_NJOBS" &&
         run "$CMAKE" --install "$NATIVE_BCACHED_DIR"
     else
