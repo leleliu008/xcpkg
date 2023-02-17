@@ -3692,6 +3692,34 @@ $DOT_CONTENT
 
     #########################################################################################
 
+    # https://www.gnu.org/software/gettext/manual/html_node/config_002eguess.html
+    # https://git.savannah.gnu.org/cgit/config.git/tree/
+
+    step "replace config.sub and config.guess with the lastest version"
+
+    {
+        [ "$PACKAGE_BUILD_SYSTEM_AUTOGENSH" = yes ] ||
+        [ "$PACKAGE_BUILD_SYSTEM_AUTOTOOLS" = yes ] ||
+        [ "$PACKAGE_BUILD_SYSTEM_CONFIGURE" = yes ]
+    } && {
+        for FILENAME in config.sub config.guess
+        do
+            FILEPATH="$PACKAGE_WORKING_DIR/$FILENAME"
+
+            wfetch "http://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=$FILENAME;hb=HEAD" --output-path="$FILEPATH"
+
+            run chmod a+x "$FILEPATH"
+
+            if [ "$FILENAME" = 'config.sub' ] ; then
+                sed_in_place 's/arm64-*/arm64-*|arm64e-*/g' "$FILEPATH"
+            fi
+
+            find "$PACKAGE_BSCRIPT_DIR" -name "$FILENAME" -exec cp -vf "$FILEPATH" {} \;
+        done
+    }
+
+    #########################################################################################
+
     step "install for native"
 
     if [ -n "$PACKAGE_BUILD0_ACTIONS" ] ; then
@@ -5035,35 +5063,13 @@ install_pc_file() {
 ##############################################################################
 # {{{ configure
 
-# must run in a subshell
-configure() {
+configure_only() {
     export FORCE_UNSAFE_CONFIGURE=1
 
     export ac_cv_func_malloc_0_nonnull=yes
     export ac_cv_func_calloc_0_nonnull=yes
     export ac_cv_func_realloc_0_nonnull=yes
 
-
-    if [ -z "$CONFIG_XX_UPDATED" ] ; then
-        CONFIG_XX_UPDATED=yes
-        # https://www.gnu.org/software/gettext/manual/html_node/config_002eguess.html
-        # https://git.savannah.gnu.org/cgit/config.git/tree/
-        for item in config.sub config.guess
-        do
-            for file in $(find "$PACKAGE_BSCRIPT_DIR" -name "$item")
-            do
-                CONFIG_XX="$XCPKG_DOWNLOADS_DIR/config/$item"
-                if [ ! -f "$CONFIG_XX" ] ; then
-                    wfetch "http://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=$item;hb=HEAD" --output-path="$CONFIG_XX" || return 1
-                    run chmod a+x "$CONFIG_XX" || return 1
-                    if [ "$item" = 'config.sub' ] ; then
-                        sed_in_place 's/arm64-*/arm64-*|arm64e-*/g' "$CONFIG_XX" || return 1
-                    fi
-                fi
-                run cp -f "$CONFIG_XX" "$file" || return 1
-            done
-        done
-    fi
 
     if [ "$STEP_MESSAGE" = 'install for native' ] ; then
         if run "$PACKAGE_BSCRIPT_DIR"/configure \
@@ -5135,9 +5141,12 @@ configure() {
         done
         unset Makefile
     fi
+}
 
+configure() {
+    configure_only "$@" &&
     gmakew clean &&
-    gmakew       &&
+    gmakew V=1   &&
     gmakew install
 }
 
@@ -5146,10 +5155,6 @@ configure() {
 # {{{ gmakew
 
 gmakew() {
-    GMAKE=$(command -v gmake || command -v make) || abort 1 "command not found: make"
-
-    run "$GMAKE" --version
-
     if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERY_VERBOSE" ] ; then
         run "$GMAKE -w -j$BUILD_NJOBS --debug V=1 $*"
     else
@@ -5243,11 +5248,7 @@ cmakew() {
 
 # run in a subshell
 xmakew() {
-    XMAKE=$(command -v xmake) || abort 1 "command not found: xmake"
-
-    run "$XMAKE" --version
-
-    XMAKE_CONFIG_OPTIONS="$@"
+    XMAKE_CONFIG_OPTIONS="$*"
 
     XMAKE_CONFIG_OPTION_CLEAN=
     XMAKE_CONFIG_OPTION_MODE=
