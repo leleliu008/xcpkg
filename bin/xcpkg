@@ -2980,7 +2980,7 @@ __install_the_given_package() {
 
     #########################################################################################
 
-    if [ "$TARGET_PLATFORM_NAME" = "$NATIVE_OS_NAME" ] ; then
+    if [ "$TARGET_PLATFORM_NAME-$TARGET_PLATFORM_ARCH" = "$NATIVE_OS_NAME-$NATIVE_OS_ARCH" ] ; then
         CROSS_COMPILING=no
     else
         CROSS_COMPILING=yes
