@@ -1,16 +1,8 @@
 # xcpkg
-a package manager for [Xcode](https://developer.apple.com/xcode) to build C/C++/Rust project.
+a package manager for [Xcode](https://developer.apple.com/xcode) to build C/C++/Rust/Go project.
 
 ## project status
 This project is being actively developed. It's in beta stage and may not be stable. Some features are subject to change without notice.
-
-
-## Install xcpkg via HomeBrew
-
-```bash
-brew tap leleliu008/fpliu
-brew install xcpkg
-```
 
 ## Install xcpkg via cURL
 ```bash
