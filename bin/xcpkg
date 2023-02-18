@@ -5131,7 +5131,11 @@ configure_only() {
             fi
         fi
 
-        CONFIGURE_ARGS="--host='$TARGET_TRIPLE' --prefix='$PACKAGE_INSTALL_DIR' --disable-option-checking --enable-rpath --disable-nls --enable-largefile"
+        CONFIGURE_ARGS="--prefix=$PACKAGE_INSTALL_DIR"
+
+        if [ "$CROSS_COMPILING" = yes ] ; then
+            CONFIGURE_ARGS="$CONFIGURE_ARGS --host=$TARGET_TRIPLE"
+        fi
 
         if [ "$BUILD_TYPE" = release ] ; then
             CONFIGURE_ARGS="$CONFIGURE_ARGS --disable-debug"
@@ -5145,6 +5149,8 @@ configure_only() {
             both)   CONFIGURE_ARGS="$CONFIGURE_ARGS --enable-static --enable-shared"  ;;
             no)     CONFIGURE_ARGS="$CONFIGURE_ARGS --disable-static --disable-shared";;
         esac
+
+        CONFIGURE_ARGS="$CONFIGURE_ARGS --disable-option-checking --enable-rpath --disable-nls --enable-largefile"
 
         if [ -n "$XCPKG_XTRACE" ] ; then
             sed_in_place '1a set -x' "$PACKAGE_BSCRIPT_DIR/configure"
