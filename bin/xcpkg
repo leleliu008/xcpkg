@@ -4246,12 +4246,8 @@ EOF
     if [ "$PACKAGE_BUILD_SYSTEM_CARGO" = yes ] ; then
         step "config environment variables for rustc and cargo"
 
-        # https://docs.rs/backtrace/latest/backtrace/
-        export RUST_BACKTRACE=1
-
-        #################################################################
-
-        unset RUST_TARGET
+        # this environment variable is not defined by Rust, but it is widely used by third-party project.
+        export RUST_TARGET=''
 
         case $TARGET_PLATFORM_NAME/$TARGET_PLATFORM_ARCH in
             MacOSX/x86_64)
@@ -4264,7 +4260,7 @@ EOF
                 RUST_TARGET="aarch64-apple-darwin"
                 ;;
             *Simulator/arm64)
-                RUST_TARGET="aarch64-apple-darwin"
+                RUST_TARGET="aarch64-apple-ios-sim"
                 ;;
             */arm64*)
                 RUST_TARGET="aarch64-apple-ios"
@@ -4272,33 +4268,36 @@ EOF
             *)  RUST_TARGET="$TARGET_PLATFORM_ARCH-apple-ios"
         esac
 
-        # this environment variable is not defined by Rust, but it is widely used by third-party project.
-        export RUST_TARGET
+        export CARGO_BUILD_TARGET="$RUST_TARGET"
+
+        export CARGO_BUILD_TARGET_DIR='target'
+
+        export CARGO_BUILD_JOBS="$BUILD_NJOBS"
 
         #################################################################
 
+        # https://doc.rust-lang.org/cargo/commands/cargo-rustc.html
         # https://doc.rust-lang.org/rustc/codegen-options/index.html#link-arg
-        export RUSTFLAGS="-Clinker=$CC -Clink-arg=-L$SYSROOT/lib -Clink-arg=-L$PACKAGE_WORKING_DIR/lib"
+        export RUSTFLAGS="-Clinker=$CC"
 
-        for DEPENDENT_PACKAGE_INSTALL_DIR in $RECURSIVE_DEPENDENT_PACKAGE_INSTALL_DIRS
+        for LINKER_FLAG in $LDFLAGS
         do
-            DEPENDENT_PACKAGE_LIBRARY_DIR="$DEPENDENT_PACKAGE_INSTALL_DIR/lib"
-
-            if [ -d "$DEPENDENT_PACKAGE_LIBRARY_DIR" ] ; then
-                RUSTFLAGS="$RUSTFLAGS -Clink-arg=-L$DEPENDENT_PACKAGE_LIBRARY_DIR -Clink-arg=-Wl,-rpath,$DEPENDENT_PACKAGE_LIBRARY_DIR"
-            fi
+            RUSTFLAGS="$RUSTFLAGS -Clink-arg=-L$LINKER_FLAG"
         done
 
         #################################################################
 
-        RUST_TARGET_UPPERCASE_UNDERSCORE=$(printf '%s\n' "$RUST_TARGET" | tr a-z A-Z | tr - _)
+        RUST_TARGET_UPPERCASE_UNDERSCORE="$(printf '%s\n' "$RUST_TARGET" | tr a-z A-Z | tr - _)"
 
         # https://doc.rust-lang.org/cargo/reference/config.html#environment-variables
         # https://doc.rust-lang.org/cargo/reference/environment-variables.html
-        export "CARGO_TARGET_${RUST_TARGET_UPPERCASE_UNDERSCORE}_AR"="$AR"
-        export "CARGO_TARGET_${RUST_TARGET_UPPERCASE_UNDERSCORE}_LINKER"="$CC"
+        # export "CARGO_TARGET_${RUST_TARGET_UPPERCASE_UNDERSCORE}_AR"="$AR"
+        # export "CARGO_TARGET_${RUST_TARGET_UPPERCASE_UNDERSCORE}_LINKER"="$CC"
 
-        export CARGO_BUILD_JOBS="$BUILD_NJOBS"
+        #################################################################
+
+        # https://docs.rs/backtrace/latest/backtrace/
+        export RUST_BACKTRACE=1
 
         #################################################################
 
@@ -4330,7 +4329,6 @@ EOF
         # https://github.com/rust-lang/pkg-config-rs
         export TARGET_PKG_CONFIG_ALLOW_CROSS=1
 
-
         #################################################################
 
         # https://libraries.io/cargo/cmake
@@ -4340,12 +4338,16 @@ EOF
         # this variable is not motioned in their document. you must read the source code of cmake-rs crate.
         export TARGET_CMAKE_TOOLCHAIN_FILE="$TARGET_WORKING_DIR/toolchain.cmake"
 
-
         #################################################################
 
-        for item in $RECURSIVE_DEPENDENT_PACKAGE_NAMES
+        for DEPENDENT_PACKAGE_NAME in $RECURSIVE_DEPENDENT_PACKAGE_NAMES
         do
-            case $item in
+            case $DEPENDENT_PACKAGE_NAME in
+                openssl@1.1)
+                    unset OPENSSL_DIR
+                    # https://docs.rs/openssl/0.10.35/openssl/
+                    export OPENSSL_DIR="$openssl_1_1_INSTALL_DIR"
+                    ;;
                 openssl)
                     unset OPENSSL_DIR
                     # https://docs.rs/openssl/0.10.35/openssl/
@@ -5423,6 +5425,8 @@ to_meson_array() {
 # {{{ cargow
 
 cargow() {
+    run rustup target add "$RUST_TARGET"
+
     case $1 in
         build)
             # https://doc.rust-lang.org/cargo/commands/cargo-clean.html
