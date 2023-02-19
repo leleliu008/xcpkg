@@ -3086,24 +3086,9 @@ EOF
     OBJDUMP_FOR_BUILD="$(xcrun --sdk macosx --find objdump)"
     SYSROOT_FOR_BUILD="$(xcrun --sdk macosx --show-sdk-path)"
 
-        CPP_FOR_BUILD="$CC_FOR_BUILD -E"
-
-    export      CC_FOR_BUILD
-    export     CXX_FOR_BUILD
-    export     CPP_FOR_BUILD
-    export      AS_FOR_BUILD
-    export      AR_FOR_BUILD
-    export  RANLIB_FOR_BUILD
-    export      LD_FOR_BUILD
-    export      NM_FOR_BUILD
-    export    SIZE_FOR_BUILD
-    export   STRIP_FOR_BUILD
-    export STRINGS_FOR_BUILD
-    export OBJDUMP_FOR_BUILD
-    export SYSROOT_FOR_BUILD
-
-    for TOOL in CC CXX CPP AS AR RANLIB LD NM STRIP SIZE STRINGS OBJDUMP SYSROOT
+    for TOOL in CC CXX AS AR RANLIB LD NM STRIP SIZE STRINGS OBJDUMP SYSROOT
     do
+        export "${TOOL}_FOR_BUILD"
         printf "%17s = %s\n" "${TOOL}_FOR_BUILD" "$(eval echo \$"${TOOL}_FOR_BUILD")"
     done
 
@@ -3184,7 +3169,6 @@ EOF
 
     export CC_FOR_BUILD="$PROXY_CC_FOR_BUILD"
     export CXX_FOR_BUILD="$PROXY_CXX_FOR_BUILD"
-
     export CPP_FOR_BUILD="$CC_FOR_BUILD -E"
 
 cat <<EOF
@@ -3192,8 +3176,8 @@ PROXIED_CC_FOR_BUILD  = $PROXIED_CC_FOR_BUILD
 PROXIED_CXX_FOR_BUILD = $PROXIED_CXX_FOR_BUILD
 
         CC_FOR_BUILD  = $CC_FOR_BUILD
-        CXX_FOR_BUILD = $CXX_FOR_BUILD
         CPP_FOR_BUILD = $CPP_FOR_BUILD
+        CXX_FOR_BUILD = $CXX_FOR_BUILD
 EOF
 
     #########################################################################################
@@ -3891,6 +3875,7 @@ $PACKAGE_BUILD0_ACTIONS
     unset   STRIP
     unset STRINGS
     unset OBJDUMP
+    unset SYSROOT
 
          CC="$(xcrun --sdk "$TARGET_PLATFORM_NAME_LOWER_CASE" --find clang)"
         CXX="$(xcrun --sdk "$TARGET_PLATFORM_NAME_LOWER_CASE" --find clang++)"
@@ -3903,24 +3888,11 @@ $PACKAGE_BUILD0_ACTIONS
       STRIP="$(xcrun --sdk "$TARGET_PLATFORM_NAME_LOWER_CASE" --find strip)"
     STRINGS="$(xcrun --sdk "$TARGET_PLATFORM_NAME_LOWER_CASE" --find strings)"
     OBJDUMP="$(xcrun --sdk "$TARGET_PLATFORM_NAME_LOWER_CASE" --find objdump)"
+    SYSROOT="$(xcrun --sdk "$TARGET_PLATFORM_NAME_LOWER_CASE" --show-sdk-path)"
 
-        CPP="$CC -E"
-
-    export      CC
-    export     CXX
-    export     CPP
-    export      AS
-    export      AR
-    export  RANLIB
-    export      LD
-    export      NM
-    export    SIZE
-    export   STRIP
-    export STRINGS
-    export OBJDUMP
-
-    for TOOL in CC CXX CPP AS AR RANLIB LD NM STRIP SIZE STRINGS OBJDUMP SYSROOT
+    for TOOL in CC CXX AS AR RANLIB LD NM STRIP SIZE STRINGS OBJDUMP SYSROOT
     do
+        export "$TOOL"
         printf "%7s = %s\n" "${TOOL}" "$(eval echo \$"${TOOL}")"
     done
 
@@ -4001,7 +3973,6 @@ EOF
 
     export CC="$PROXY_CC"
     export CXX="$PROXY_CXX"
-
     export CPP="$CC -E"
 
 cat <<EOF
@@ -4009,8 +3980,8 @@ PROXIED_CC  = $PROXIED_CC
 PROXIED_CXX = $PROXIED_CXX
 
         CC  = $CC
-        CXX = $CXX
         CPP = $CPP
+        CXX = $CXX
 EOF
 
     #########################################################################################
@@ -4025,8 +3996,6 @@ EOF
     CCFLAGS="$(printf '%s\n' "$CCFLAGS" | sed -e 's|--static||g' -e 's|-static||g')"
     XXFLAGS="$(printf '%s\n' "$XXFLAGS" | sed -e 's|--static||g' -e 's|-static||g')"
     LDFLAGS="$(printf '%s\n' "$LDFLAGS" | sed -e 's|--static||g' -e 's|-static||g')"
-
-    unset SYSROOT; SYSROOT="$(xcrun --sdk "$TARGET_PLATFORM_NAME_LOWER_CASE" --show-sdk-path)"; export SYSROOT
 
     PPFLAGS="-isysroot $SYSROOT -Qunused-arguments $PPFLAGS"
     CCFLAGS="-isysroot $SYSROOT -arch $TARGET_PLATFORM_ARCH -m${TARGET_PLATFORM_NAME_LOWER_CASE}-version-min=$TARGET_PLATFORM_VERS -Qunused-arguments $CCFLAGS"
