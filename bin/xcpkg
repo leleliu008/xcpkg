@@ -4278,7 +4278,7 @@ EOF
         #################################################################
 
         # https://doc.rust-lang.org/rustc/codegen-options/index.html#link-arg
-        export RUSTFLAGS="-Clinker=$CC -Clink-arg=-L$PACKAGE_WORKING_DIR/lib"
+        export RUSTFLAGS="-Clinker=$CC -Clink-arg=-L$SYSROOT/lib -Clink-arg=-L$PACKAGE_WORKING_DIR/lib"
 
         for DEPENDENT_PACKAGE_INSTALL_DIR in $RECURSIVE_DEPENDENT_PACKAGE_INSTALL_DIRS
         do
