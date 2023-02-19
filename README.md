@@ -17,6 +17,8 @@ xcpkg setup
 ## ~/.xcpkg
 all relevant dirs and files are located in `~/.xcpkg` directory.
 
+**Note**: Please do NOT place your own files in `~/.xcpkg` directory, as `xcpkg` will change files in `~/.xcpkg` directory without notice.
+
 ## xcpkg command usage
 *   **show help of this command**
         
