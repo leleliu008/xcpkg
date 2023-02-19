@@ -3087,8 +3087,6 @@ EOF
     SYSROOT_FOR_BUILD="$(xcrun --sdk macosx --show-sdk-path)"
 
         CPP_FOR_BUILD="$CC_FOR_BUILD -E"
-        CXX_FOR_BUILD="$CXX_FOR_BUILD -isysroot $SYSROOT_FOR_BUILD"
-         CC_FOR_BUILD="$CC_FOR_BUILD -isysroot $SYSROOT_FOR_BUILD"
 
     export      CC_FOR_BUILD
     export     CXX_FOR_BUILD
