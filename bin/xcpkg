@@ -4282,7 +4282,7 @@ EOF
 
         for LINKER_FLAG in $LDFLAGS
         do
-            RUSTFLAGS="$RUSTFLAGS -Clink-arg=-L$LINKER_FLAG"
+            RUSTFLAGS="$RUSTFLAGS -Clink-arg=$LINKER_FLAG"
         done
 
         #################################################################
