@@ -1185,10 +1185,8 @@ __load_formula_of_the_given_package() {
             PACKAGE_SRC_FILEPATH="$XCPKG_DOWNLOADS_DIR/$PACKAGE_SRC_FILENAME"
     esac
 
-    if [ -n "$PACKAGE_FIX_URL" ] ; then
-        if [ -z "$PACKAGE_FIX_SHA" ] ; then
-            abort 1 "fix-sha mapping was not found in $PACKAGE_FORMULA_FILEPATH"
-        fi
+    [ -n "$PACKAGE_FIX_URL" ] && {
+        [ -z "$PACKAGE_FIX_SHA" ] && abort 1 "fix-sha mapping was not found in $PACKAGE_FORMULA_FILEPATH"
 
         PACKAGE_FIX_FILETYPE="$(get_file_extension_from_url "$PACKAGE_FIX_URL")"
 
@@ -1204,12 +1202,10 @@ __load_formula_of_the_given_package() {
 
         PACKAGE_FIX_FILENAME="$PACKAGE_FIX_SHA$PACKAGE_FIX_FILETYPE"
         PACKAGE_FIX_FILEPATH="$XCPKG_DOWNLOADS_DIR/$PACKAGE_FIX_FILENAME"
-    fi
+    }
 
-    if [ -n "$PACKAGE_RES_URL" ] ; then
-        if [ -z "$PACKAGE_RES_SHA" ] ; then
-            abort 1 "res-sha mapping was not found in $PACKAGE_FORMULA_FILEPATH"
-        fi
+    [ -n "$PACKAGE_RES_URL" ] && {
+        [ -z "$PACKAGE_RES_SHA" ] && abort 1 "res-sha mapping was not found in $PACKAGE_FORMULA_FILEPATH"
 
         PACKAGE_RES_FILETYPE="$(get_file_extension_from_url "$PACKAGE_RES_URL")"
 
@@ -1225,14 +1221,14 @@ __load_formula_of_the_given_package() {
 
         PACKAGE_RES_FILENAME="$PACKAGE_RES_SHA$PACKAGE_RES_FILETYPE"
         PACKAGE_RES_FILEPATH="$XCPKG_DOWNLOADS_DIR/$PACKAGE_RES_FILENAME"
-    fi
+    }
 
-    if [ -n "$PACKAGE_VERSION" ] ; then
+    [ -n "$PACKAGE_VERSION" ] && {
         PACKAGE_VERSION_MAJOR="$(printf '%s\n' "$PACKAGE_VERSION" | cut -d. -f1)"
         PACKAGE_VERSION_MINOR="$(printf '%s\n' "$PACKAGE_VERSION" | cut -d. -f2)"
         PACKAGE_VERSION_PATCH="$(printf '%s\n' "$PACKAGE_VERSION" | cut -d. -f3)"
         PACKAGE_VERSION_TWEAK="$(printf '%s\n' "$PACKAGE_VERSION" | cut -d. -f4)"
-    fi
+    }
 
     for item in $PACKAGE_BUILD_SYSTEM
     do
@@ -1256,8 +1252,8 @@ __load_formula_of_the_given_package() {
     for item in $PACKAGE_BUILD_SYSTEM
     do
         case $item in
-            autogen)     PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP automake autoconf gm4 gmake" ;;
-            autotools)   PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP automake autoconf gm4 gmake" ;;
+            autogen)     PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP automake autoconf perl gm4 gmake" ;;
+            autotools)   PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP automake autoconf perl gm4 gmake" ;;
             configure)   PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP gmake"  ;;
             cmake-gmake) PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP cmake gmake"  ;;
             cmake-ninja) PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP cmake ninja"  ;;
@@ -1271,32 +1267,32 @@ __load_formula_of_the_given_package() {
         esac
     done
 
-    if [ "$PACKAGE_BUILD_SYSTEM_MESON" = yes ] ; then
+    [ "$PACKAGE_BUILD_SYSTEM_MESON" = yes ] && {
         PACKAGE_DEP_PYM="$PACKAGE_DEP_PYM meson"
-    fi
+    }
 
-    if [ -n "$PACKAGE_DEP_PYM" ] ; then
+    [ -n "$PACKAGE_DEP_PYM" ] && {
         PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP python3"
-    fi
+    }
 
-    if [ -n "$PACKAGE_DEP_PLM" ] ; then
+    [ -n "$PACKAGE_DEP_PLM" ] && {
         PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP perl"
-    fi
+    }
 
-    if [ "$PACKAGE_BUILD_SYSTEM_GO" = yes ] ; then
+    [ "$PACKAGE_BUILD_SYSTEM_GO" = yes ] && {
         PACKAGE_BINBSTD=yes
         PACKAGE_BUILD_IN_BSCRIPT_DIR=yes
-    fi
+    }
 
-    if [ "$PACKAGE_BUILD_SYSTEM_CARGO" = yes ] ; then
+    [ "$PACKAGE_BUILD_SYSTEM_CARGO" = yes ] && {
         PACKAGE_BINBSTD=yes
         PACKAGE_BUILD_IN_BSCRIPT_DIR=yes
-    fi
+    }
 
-    if [ "$PACKAGE_BUILD_SYSTEM_XMAKE" = yes ] ; then
+    [ "$PACKAGE_BUILD_SYSTEM_XMAKE" = yes ] && {
         PACKAGE_BINBSTD=yes
         PACKAGE_BUILD_IN_BSCRIPT_DIR=yes
-    fi
+    }
 
     PACKAGE_FORMULA_LOADED=yes
 }
@@ -6527,7 +6523,7 @@ __setup() {
 
     #################################################################################
 
-    if [ "$1" = '--use-brew' ] ; then
+    if [ -z "$1" ] || [ "$1" = '--use-brew' ] ; then
         __setup_homebrew
     else
         __setup_uppm
