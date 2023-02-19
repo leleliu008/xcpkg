@@ -16,6 +16,7 @@ jobs:
 
       - uses: actions/checkout@v3
 
+      - run: bin/xcpkg setup
       - run: bin/xcpkg env
       - run: bin/xcpkg update
       - run: bin/xcpkg version-compare brew

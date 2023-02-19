@@ -2980,6 +2980,9 @@ __install_the_given_package() {
 
     #########################################################################################
 
+    STATIC_LIBRARY_SUFFIX=.a
+    SHARED_LIBRARY_SUFFIX=.dylib
+
     if [ "$TARGET_PLATFORM_NAME-$TARGET_PLATFORM_ARCH" = "$NATIVE_OS_NAME-$NATIVE_OS_ARCH" ] ; then
         CROSS_COMPILING=no
     else
@@ -3017,11 +3020,6 @@ XCPKG_URL_TRANSFORM  = $XCPKG_URL_TRANSFORM
    KEEP_PACKING_DIR = $KEEP_WORKING_DIR
 EXPORT_COMPILE_COMMANDS_JSON = $EXPORT_COMPILE_COMMANDS_JSON
     "
-
-    #########################################################################################
-
-    STATIC_LIBRARY_SUFFIX=.a
-    SHARED_LIBRARY_SUFFIX=.dylib
 
     #########################################################################################
 
