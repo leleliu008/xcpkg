@@ -1,8 +1,9 @@
 # xcpkg
 a package manager for [Xcode](https://developer.apple.com/xcode) to build C/C++/Rust/Go project.
 
-## project status
-This project is being actively developed. It's in beta stage and may not be stable. Some features are subject to change without notice.
+<br>
+
+**Note**: This project is being actively developed. It's in beta stage and may not be stable. Some features are subject to change without notice.
 
 ## Install xcpkg via cURL
 ```bash
@@ -12,7 +13,7 @@ mv xcpkg /usr/local/bin/
 xcpkg setup
 ```
 
-**Note**: `xcpkg` rely on [homebrew](https://brew.sh/) to install dependent tools (e.g. automake, autoconf, libtool, gmake, cmake, xmake, etc) right now, I will replace it with [uppm](https://github.com/leleliu008/uppm) later.
+**Note**: `xcpkg` relies on [homebrew](https://brew.sh/) to install dependent tools (e.g. `automake`, `autoconf`, `libtool`, `gmake`, `cmake`, `xmake`, etc) right now, I will replace it with [uppm](https://github.com/leleliu008/uppm) later.
 
 ## ~/.xcpkg
 all relevant dirs and files are located in `~/.xcpkg` directory.
