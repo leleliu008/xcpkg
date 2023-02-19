@@ -3102,7 +3102,7 @@ EOF
     export OBJDUMP_FOR_BUILD
     export SYSROOT_FOR_BUILD
 
-    for TOOL in CC CXX CPP AS AR RANLIB LD NM STRIP SIZE STRINGS OBJDUMP
+    for TOOL in CC CXX CPP AS AR RANLIB LD NM STRIP SIZE STRINGS OBJDUMP SYSROOT
     do
         printf "%17s = %s\n" "${TOOL}_FOR_BUILD" "$(eval echo \$"${TOOL}_FOR_BUILD")"
     done
@@ -3916,7 +3916,7 @@ $PACKAGE_BUILD0_ACTIONS
     export STRINGS
     export OBJDUMP
 
-    for TOOL in CC CXX CPP AS AR RANLIB LD NM STRIP SIZE STRINGS OBJDUMP
+    for TOOL in CC CXX CPP AS AR RANLIB LD NM STRIP SIZE STRINGS OBJDUMP SYSROOT
     do
         printf "%7s = %s\n" "${TOOL}" "$(eval echo \$"${TOOL}")"
     done
