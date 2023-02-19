@@ -3185,12 +3185,15 @@ EOF
     export CC_FOR_BUILD="$PROXY_CC_FOR_BUILD"
     export CXX_FOR_BUILD="$PROXY_CXX_FOR_BUILD"
 
+    export CPP_FOR_BUILD="$CC_FOR_BUILD -E"
+
 cat <<EOF
 PROXIED_CC_FOR_BUILD  = $PROXIED_CC_FOR_BUILD
 PROXIED_CXX_FOR_BUILD = $PROXIED_CXX_FOR_BUILD
 
         CC_FOR_BUILD  = $CC_FOR_BUILD
         CXX_FOR_BUILD = $CXX_FOR_BUILD
+        CPP_FOR_BUILD = $CPP_FOR_BUILD
 EOF
 
     #########################################################################################
@@ -3999,12 +4002,15 @@ EOF
     export CC="$PROXY_CC"
     export CXX="$PROXY_CXX"
 
+    export CPP="$CC -E"
+
 cat <<EOF
 PROXIED_CC  = $PROXIED_CC
 PROXIED_CXX = $PROXIED_CXX
 
         CC  = $CC
         CXX = $CXX
+        CPP = $CPP
 EOF
 
     #########################################################################################
