@@ -33,7 +33,7 @@ int main(int argc, char * argv[]) {
     char   sysroot[sysrootLength];
     snprintf(sysroot, sysrootLength, "--sysroot=%s", SYSROOT);
 
-    char * argv2[argc + 1];
+    char * argv2[argc + 2];
 
     argv2[0] = PROXIED_PROGRAM;
     argv2[1] = sysroot;
@@ -42,12 +42,14 @@ int main(int argc, char * argv[]) {
         argv2[i + 1] = argv[i];
     }
 
+    argv2[argc + 1] = NULL;
+
     if (PROXIED_PROGRAM[0] == '/') {
-        execv (PROXIED_PROGRAM, argv);
+        execv (PROXIED_PROGRAM, argv2);
         perror(PROXIED_PROGRAM);
         return -1;
     } else {
-        execvp(PROXIED_PROGRAM, argv);
+        execvp(PROXIED_PROGRAM, argv2);
         perror(PROXIED_PROGRAM);
         return -1;
     }
