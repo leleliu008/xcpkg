@@ -2972,7 +2972,7 @@ __install_the_given_package() {
     # brew install meson
     # Error: The current work directory doesn't exist, cannot proceed.
     # beacuse previous package's work direcotory is deleted.
-    cd ~
+    cd "$HOME"
 
     #########################################################################################
 
@@ -3049,6 +3049,8 @@ PACKAGE_BCACHED_DIR = $PACKAGE_BCACHED_DIR
 PACKAGE_INSTALL_DIR = $PACKAGE_INSTALL_DIR
 EOF
 
+    run cd "$PACKAGE_WORKING_DIR"
+
     #########################################################################################
 
     step "locate C/C++ toolchain for native build"
@@ -3071,7 +3073,6 @@ EOF
     unset OBJDUMP_FOR_BUILD
     unset SYSROOT_FOR_BUILD
 
-    SYSROOT_FOR_BUILD="$(xcrun --sdk macosx --show-sdk-path)"
          CC_FOR_BUILD="$(xcrun --sdk macosx --find clang)"
         CXX_FOR_BUILD="$(xcrun --sdk macosx --find clang++)"
          AS_FOR_BUILD="$(xcrun --sdk macosx --find as)"
@@ -3083,6 +3084,7 @@ EOF
       STRIP_FOR_BUILD="$(xcrun --sdk macosx --find strip)"
     STRINGS_FOR_BUILD="$(xcrun --sdk macosx --find strings)"
     OBJDUMP_FOR_BUILD="$(xcrun --sdk macosx --find objdump)"
+    SYSROOT_FOR_BUILD="$(xcrun --sdk macosx --show-sdk-path)"
 
         CPP_FOR_BUILD="$CC_FOR_BUILD -E"
         CXX_FOR_BUILD="$CXX_FOR_BUILD -isysroot $SYSROOT_FOR_BUILD"
@@ -3100,11 +3102,96 @@ EOF
     export   STRIP_FOR_BUILD
     export STRINGS_FOR_BUILD
     export OBJDUMP_FOR_BUILD
+    export SYSROOT_FOR_BUILD
 
     for TOOL in CC CXX CPP AS AR RANLIB LD NM STRIP SIZE STRINGS OBJDUMP
     do
         printf "%17s = %s\n" "${TOOL}_FOR_BUILD" "$(eval echo \$"${TOOL}_FOR_BUILD")"
     done
+
+    ##################################################################################
+
+    step "create proxy for C/C++ compiler for native build"
+
+    cat > proxy-cc-for-build.c <<EOF
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+int main(int argc, char * argv[]) {
+    char * PROXIED_PROGRAM = NULL;
+
+    if (argv[0][strlen(argv[0]) - 1] == '+') {
+        PROXIED_PROGRAM = getenv("PROXIED_CXX_FOR_BUILD");
+
+        if (PROXIED_PROGRAM == NULL) {
+            fprintf(stderr, "PROXIED_CXX_FOR_BUILD environment variable is not set.\n");
+            return 2;
+        }
+    } else {
+        PROXIED_PROGRAM = getenv("PROXIED_CC_FOR_BUILD");
+
+        if (PROXIED_PROGRAM == NULL) {
+            fprintf(stderr, "PROXIED_CC_FOR_BUILD environment variable is not set.\n");
+            return 2;
+        }
+    }
+
+    char * SYSROOT = getenv("SYSROOT_FOR_BUILD");
+
+    if (SYSROOT == NULL) {
+        fprintf(stderr, "SYSROOT_FOR_BUILD environment variable is not set.\n");
+        return 2;
+    }
+
+    size_t sysrootLength = strlen(SYSROOT) + 11;
+    char   sysroot[sysrootLength];
+    snprintf(sysroot, sysrootLength, "--sysroot=%s", SYSROOT);
+
+    char * argv2[argc + 1];
+
+    argv2[0] = PROXIED_PROGRAM;
+    argv2[1] = sysroot;
+
+    for (int i = 1; i < argc; i++) {
+        argv2[i + 1] = argv[i];
+    }
+
+    if (PROXIED_PROGRAM[0] == '/') {
+        execv (PROXIED_PROGRAM, argv);
+        perror(PROXIED_PROGRAM);
+        return -1;
+    } else {
+        execvp(PROXIED_PROGRAM, argv);
+        perror(PROXIED_PROGRAM);
+        return -1;
+    }
+
+    return 0;
+}
+EOF
+
+    PROXY_CC_FOR_BUILD="$PPKG_CORE_BIN_DIR/proxy-cc-for-build"
+    PROXY_CXX_FOR_BUILD="$PPKG_CORE_BIN_DIR/proxy-c++-for-build"
+
+    run "$CC_FOR_BUILD" -std=c99 -isysroot "$SYSROOT_FOR_BUILD" -o "$PROXY_CC_FOR_BUILD" proxy-cc-for-build.c
+
+    run ln -sfr "$PROXY_CC_FOR_BUILD" "$PROXY_CXX_FOR_BUILD"
+
+    export PROXIED_CC_FOR_BUILD="$CC_FOR_BUILD"
+    export PROXIED_CXX_FOR_BUILD="$CXX_FOR_BUILD"
+
+    export CC_FOR_BUILD="$PROXY_CC_FOR_BUILD"
+    export CXX_FOR_BUILD="$PROXY_CXX_FOR_BUILD"
+
+cat <<EOF
+PROXIED_CC_FOR_BUILD  = $PROXIED_CC_FOR_BUILD
+PROXIED_CXX_FOR_BUILD = $PROXIED_CXX_FOR_BUILD
+
+        CC_FOR_BUILD  = $CC_FOR_BUILD
+        CXX_FOR_BUILD = $CXX_FOR_BUILD
+EOF
 
     #########################################################################################
 
@@ -3834,6 +3921,90 @@ $PACKAGE_BUILD0_ACTIONS
         printf "%7s = %s\n" "${TOOL}" "$(eval echo \$"${TOOL}")"
     done
 
+    ##################################################################################
+
+    step "create proxy for C/C++ compiler for target build"
+
+    cat > proxy-cc.c <<EOF
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+int main(int argc, char * argv[]) {
+    char * PROXIED_PROGRAM = NULL;
+
+    if (argv[0][strlen(argv[0]) - 1] == '+') {
+        PROXIED_PROGRAM = getenv("PROXIED_CXX");
+
+        if (PROXIED_PROGRAM == NULL) {
+            fprintf(stderr, "PROXIED_CXX environment variable is not set.\n");
+            return 2;
+        }
+    } else {
+        PROXIED_PROGRAM = getenv("PROXIED_CC");
+
+        if (PROXIED_PROGRAM == NULL) {
+            fprintf(stderr, "PROXIED_CC environment variable is not set.\n");
+            return 2;
+        }
+    }
+
+    char * SYSROOT = getenv("SYSROOT");
+
+    if (SYSROOT == NULL) {
+        fprintf(stderr, "SYSROOT environment variable is not set.\n");
+        return 2;
+    }
+
+    size_t sysrootLength = strlen(SYSROOT) + 11;
+    char   sysroot[sysrootLength];
+    snprintf(sysroot, sysrootLength, "--sysroot=%s", SYSROOT);
+
+    char * argv2[argc + 1];
+
+    argv2[0] = PROXIED_PROGRAM;
+    argv2[1] = sysroot;
+
+    for (int i = 1; i < argc; i++) {
+        argv2[i + 1] = argv[i];
+    }
+
+    if (PROXIED_PROGRAM[0] == '/') {
+        execv (PROXIED_PROGRAM, argv);
+        perror(PROXIED_PROGRAM);
+        return -1;
+    } else {
+        execvp(PROXIED_PROGRAM, argv);
+        perror(PROXIED_PROGRAM);
+        return -1;
+    }
+
+    return 0;
+}
+EOF
+
+    PROXY_CC="$PPKG_CORE_BIN_DIR/proxy-cc"
+    PROXY_CXX="$PPKG_CORE_BIN_DIR/proxy-c++"
+
+    run "$CC_FOR_BUILD" -std=c99 -o "$PROXY_CC" proxy-cc.c
+
+    run ln -sfr "$PROXY_CC" "$PROXY_CXX"
+
+    export PROXIED_CC="$CC"
+    export PROXIED_CXX="$CXX"
+
+    export CC="$PROXY_CC"
+    export CXX="$PROXY_CXX"
+
+cat <<EOF
+PROXIED_CC  = $PROXIED_CC
+PROXIED_CXX = $PROXIED_CXX
+
+        CC  = $CC
+        CXX = $CXX
+EOF
+
     #########################################################################################
 
     step "config CFLAGS CXXFLAGS CPPFLAGS LDFLAGS"
@@ -3847,7 +4018,7 @@ $PACKAGE_BUILD0_ACTIONS
     XXFLAGS="$(printf '%s\n' "$XXFLAGS" | sed -e 's|--static||g' -e 's|-static||g')"
     LDFLAGS="$(printf '%s\n' "$LDFLAGS" | sed -e 's|--static||g' -e 's|-static||g')"
 
-    unset SYSROOT; SYSROOT="$(xcrun --sdk "$TARGET_PLATFORM_NAME_LOWER_CASE" --show-sdk-path)"
+    unset SYSROOT; SYSROOT="$(xcrun --sdk "$TARGET_PLATFORM_NAME_LOWER_CASE" --show-sdk-path)"; export SYSROOT
 
     PPFLAGS="-isysroot $SYSROOT -Qunused-arguments $PPFLAGS"
     CCFLAGS="-isysroot $SYSROOT -arch $TARGET_PLATFORM_ARCH -m${TARGET_PLATFORM_NAME_LOWER_CASE}-version-min=$TARGET_PLATFORM_VERS -Qunused-arguments $CCFLAGS"
