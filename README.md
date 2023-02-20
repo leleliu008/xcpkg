@@ -13,7 +13,7 @@ mv xcpkg /usr/local/bin/
 xcpkg setup
 ```
 
-**Note**: `xcpkg` relies on [homebrew](https://brew.sh/) to install dependent tools (e.g. `automake`, `autoconf`, `libtool`, `gmake`, `cmake`, `xmake`, etc) right now, I will replace it with [uppm](https://github.com/leleliu008/uppm) later.
+**Note**: `xcpkg` relies on [homebrew](https://brew.sh/) to install dependent tools (e.g. `automake`, `autoconf`, `libtool`, `gmake`, `cmake`, `xmake`, etc) right now, It will be replaced with [uppm](https://github.com/leleliu008/uppm) in due course.
 
 ## ~/.xcpkg
 all relevant dirs and files are located in `~/.xcpkg` directory.
