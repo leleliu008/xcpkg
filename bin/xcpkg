@@ -3157,8 +3157,8 @@ int main(int argc, char * argv[]) {
 }
 EOF
 
-    PROXY_CC_FOR_BUILD="$XCPKG_CORE_BIN_DIR/proxy-cc-for-build"
-    PROXY_CXX_FOR_BUILD="$XCPKG_CORE_BIN_DIR/proxy-c++-for-build"
+    PROXY_CC_FOR_BUILD="$XCPKG_CORE_BIN_DIR/proxy-native-cc"
+    PROXY_CXX_FOR_BUILD="$XCPKG_CORE_BIN_DIR/proxy-native-c++"
 
     run "$CC_FOR_BUILD" -std=c99 -isysroot "$SYSROOT_FOR_BUILD" -o "$PROXY_CC_FOR_BUILD" proxy-cc-for-build.c
 
