@@ -3416,7 +3416,7 @@ $DOT_CONTENT
         PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP ccache"
     fi
 
-    PACKAGE_DEP_UPP="${PACKAGE_DEP_UPP#' '} pkg-config patchelf tree"
+    PACKAGE_DEP_UPP="${PACKAGE_DEP_UPP#' '} pkg-config tree"
 
     #########################################################################################
 
@@ -6451,9 +6451,9 @@ package_name_transform_from_uppm_to_brew() {
 __compare_versions_with_brew() {
     cd "$XCPKG_HOME/repos.d/offical-core/formula"
 
-    AVAILABLE_PACKAGES="$(find . -mindepth 1 -maxdepth 1 -name "*.yml" -exec basename {} .yml \;)"
+    AVAILABLE_PACKAGE_NAME_LIST="$(find . -mindepth 1 -maxdepth 1 -name "*.yml" -exec basename {} .yml \;)"
 
-    for item in $AVAILABLE_PACKAGES
+    for item in $AVAILABLE_PACKAGE_NAME_LIST
     do
         __load_formula_of_the_given_package "$item"
 
@@ -6477,10 +6477,10 @@ __compare_versions_with_brew() {
 __compare_versions_with_ppkg() {
     cd "$XCPKG_HOME/repos.d/offical-core/formula"
 
-    unset AVAILABLE_PACKAGE_NAMES
-    AVAILABLE_PACKAGE_NAMES="$(find . -mindepth 1 -maxdepth 1 -name "*.yml" -exec basename {} .yml \;)"
+    unset AVAILABLE_PACKAGE_NAME_LIST
+    AVAILABLE_PACKAGE_NAME_LIST="$(find . -mindepth 1 -maxdepth 1 -name "*.yml" -exec basename {} .yml \;)"
 
-    for PACKAGE_NAME in $AVAILABLE_PACKAGE_NAMES
+    for PACKAGE_NAME in $AVAILABLE_PACKAGE_NAME_LIST
     do
         __load_formula_of_the_given_package "$PACKAGE_NAME"
 
@@ -6575,74 +6575,77 @@ __gen_github_workflows() {
         __sync_available_formula_repositories
     fi
 
-    unset AVAILABLE_PACKAGES
-    unset YDEPENDED_PACKAGES
-    unset NDEPENDED_PACKAGES
+    ##############################################################################
 
-    AVAILABLE_PACKAGES=$(__list_available_packages)
+    unset AVAILABLE_PACKAGE_NAME_LIST
+    unset AVAILABLE_PACKAGE_NAME_LIST_PART1
+    unset AVAILABLE_PACKAGE_NAME_LIST_PART2
+
+    # part1 are packages that are     depended by any other packages.
+    # part2 are packages that are not depended by any other packages.
+
+    ##############################################################################
+
+    AVAILABLE_PACKAGE_NAME_LIST="$(__list_available_packages)"
 
     for item in test v8 webrtc
     do
-        AVAILABLE_PACKAGES=$(printf '%s\n' "$AVAILABLE_PACKAGES" | sed "s|^$item$||")
+        AVAILABLE_PACKAGE_NAME_LIST=$(printf '%s\n' "$AVAILABLE_PACKAGE_NAME_LIST" | sed "s|^$item$||")
     done
 
-    for x in $AVAILABLE_PACKAGES
+    ##############################################################################
+
+    for item in $AVAILABLE_PACKAGE_NAME_LIST
     do
-        __load_formula_of_the_given_package "$x"
+        __load_formula_of_the_given_package "$item"
 
-        YDEPENDED_PACKAGES="$YDEPENDED_PACKAGES $PACKAGE_DEP_PKG"
+        AVAILABLE_PACKAGE_NAME_LIST_PART1="$AVAILABLE_PACKAGE_NAME_LIST_PART1 $PACKAGE_DEP_PKG"
     done
 
-    YDEPENDED_PACKAGES=$(printf '%s\n' "$YDEPENDED_PACKAGES" | tr ' ' '\n' | sort | uniq)
+    AVAILABLE_PACKAGE_NAME_LIST_PART1=$(printf '%s\n' $AVAILABLE_PACKAGE_NAME_LIST_PART1 | sort | uniq)
 
-    printf '%s\n' "YDEPENDED_PACKAGES=$YDEPENDED_PACKAGES"
+    printf '%s\n' "AVAILABLE_PACKAGE_NAME_LIST_PART1=$AVAILABLE_PACKAGE_NAME_LIST_PART1"
 
-    unset AVAILABLE_PACKAGES_COUNT
+    ##############################################################################
 
-    AVAILABLE_PACKAGES_COUNT="$(list_size $AVAILABLE_PACKAGES)"
+    unset AVAILABLE_PACKAGE_NAME_LIST_SIZE
 
-    printf '%s\n' "$AVAILABLE_PACKAGES_COUNT"
+    AVAILABLE_PACKAGE_NAME_LIST_SIZE="$(list_size $AVAILABLE_PACKAGE_NAME_LIST)"
+
+    printf '%s\n' "$AVAILABLE_PACKAGE_NAME_LIST_SIZE"
+
+    ##############################################################################
 
     I=0
     J=0
     K=0
 
-    for x in $AVAILABLE_PACKAGES
+    for x in $AVAILABLE_PACKAGE_NAME_LIST
     do
-        I=$(expr "$I" + 1)
-        K=$(expr "$K" + 1)
+        I="$(expr "$I" + 1)"
 
-        EXIST=n
-
-        for y in $YDEPENDED_PACKAGES
+        for y in $AVAILABLE_PACKAGE_NAME_LIST_PART1
         do
-            if [ "$x" = "$y" ] ; then
-                EXIST=y
-                break
-            fi
+            [ "$x" = "$y" ] && continue 2
         done
 
-        if [ "$EXIST" = n ] ; then
-            if [ -z "$NDEPENDED_PACKAGES" ] ; then
-                NDEPENDED_PACKAGES="$x"
-            else
-                NDEPENDED_PACKAGES="$NDEPENDED_PACKAGES $x"
-            fi
-        fi
+        AVAILABLE_PACKAGE_NAME_LIST_PART2="$AVAILABLE_PACKAGE_NAME_LIST_PART2,$x"
 
-        if [ "$I" -eq "$AVAILABLE_PACKAGES_COUNT" ] || [ "$K" -eq "$GROUP_SIZE" ] ; then
-            unset OUTPUT_FILEPATH
+        K="$(expr "$K" + 1)"
 
-            J=$(expr "$J" + 1)
+        if [ "$I" -eq "$AVAILABLE_PACKAGE_NAME_LIST_SIZE" ] || [ "$K" -eq "$GROUP_SIZE" ] ; then
+            J="$(expr "$J" + 1)"
+
             OUTPUT_FILEPATH="$OUTPUT_DIR/ci$J.yml"
-            NDEPENDED_PACKAGES=$(printf '%s\n' "$NDEPENDED_PACKAGES" | tr ' ' ,)
+
+            AVAILABLE_PACKAGE_NAME_LIST_PART2="${AVAILABLE_PACKAGE_NAME_LIST_PART2#,}"
 
             printf '\n'
-            run cp "$GITHUB_ACTIONS_WORKFLOW_TEMPLATE_FILEPATH" "$OUTPUT_FILEPATH"
-            sed_in_place "s/INDEX/$J/"                          "$OUTPUT_FILEPATH"
-            sed_in_place "s/PKGLIST/$NDEPENDED_PACKAGES/"       "$OUTPUT_FILEPATH"
+            run cp "$GITHUB_ACTIONS_WORKFLOW_TEMPLATE_FILEPATH"          "$OUTPUT_FILEPATH"
+            sed_in_place "s/INDEX/$J/"                                   "$OUTPUT_FILEPATH"
+            sed_in_place "s/PKGLIST/$AVAILABLE_PACKAGE_NAME_LIST_PART2/" "$OUTPUT_FILEPATH"
 
-            unset NDEPENDED_PACKAGES
+            AVAILABLE_PACKAGE_NAME_LIST_PART2=
 
             K=0
         fi
