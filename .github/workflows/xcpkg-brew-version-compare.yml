@@ -19,5 +19,5 @@ jobs:
       - run: bin/xcpkg setup
       - run: bin/xcpkg env
       - run: bin/xcpkg update
-      - run: bin/xcpkg version-compares brew
-      - run: bin/xcpkg version-compares ppkg
+      - run: bin/xcpkg compare-versions brew
+      - run: bin/xcpkg compare-versions ppkg
