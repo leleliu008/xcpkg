@@ -447,17 +447,7 @@ wfetch() {
 # {{{ version
 
 version_sort() {
-    # https://pubs.opengroup.org/onlinepubs/9699919799/utilities/sort.html
-    # https://man.netbsd.org/NetBSD-8.1/i386/sort.1
-    #
-    # sort: unrecognized option: V
-    # BusyBox v1.29.3 (2019-01-24 07:45:07 UTC) multi-call binary.
-    # Usage: sort [-nrugMcszbdfiokt] [-o FILE] [-k start[.offset][opts][,end[.offset][opts]] [-t CHAR] [FILE]...
-    if  echo | (sort -V > /dev/null 2>&1) ; then
-        echo "$@" | tr ' ' '\n' | sort -V
-    else
-        echo "$@" | tr ' ' '\n' | sort -t. -n -k1,1 -k2,2 -k3,3 -k4,4
-    fi
+    printf '%s\n' "$@" | sort -V
 }
 
 # check if match the condition
@@ -504,7 +494,7 @@ version_match() {
             fi
             [ "$1" = "$(version_sort "$1" "$3" | tail -n 1)" ]
             ;;
-        *)  abort 1 "version_compare: $2: not supported operator."
+        *)  abort 1 "version_match: unsupported operator: $2"
     esac
 }
 
@@ -1678,7 +1668,7 @@ __list_installed_packages() {
     for packageName in *
     do
         if is_package_installed "$packageName" ; then
-            echo "$packageName"
+            printf '%s\n' "$packageName"
         fi
     done
 }
@@ -1699,7 +1689,7 @@ __list__outdated_packages() {
         is_package_available "$packageName" || continue
         is_package_installed "$packageName" || continue
         is_package__outdated "$packageName" || continue
-        echo "$packageName"
+        printf '%s\n' "$packageName"
     done
 }
 
@@ -3526,8 +3516,9 @@ $DOT_CONTENT
                         # https://metacpan.org/release/TODDR/XML-Parser-2.46/source/Makefile.PL#L8-9
                         export EXPATLIBPATH="$expat_LIBRARY_DIR"
                         export EXPATINCPATH="$expat_INCLUDE_DIR"
-                        echo EXPATLIBPATH=$EXPATLIBPATH
-                        echo EXPATINCPATH=$EXPATINCPATH
+
+                        printf '%s\n' EXPATLIBPATH=$EXPATLIBPATH
+                        printf '%s\n' EXPATINCPATH=$EXPATINCPATH
                         ;;
                 esac
 
@@ -4051,6 +4042,7 @@ EOF
 
     PPFLAGS="-I$PACKAGE_INSTALLING_INC_DIR $PPFLAGS"
     LDFLAGS="-L$PACKAGE_INSTALLING_LIB_DIR $LDFLAGS"
+    LDFLAGS="-Wl,-rpath,$PACKAGE_INSTALL_DIR/lib $LDFLAGS"
 
     export   CFLAGS="$CCFLAGS"
     export CXXFLAGS="$XXFLAGS"
@@ -4553,7 +4545,7 @@ EOF
     [ "$LOG_LEVEL" -ge 3 ] && {
         step "show export variables"
         run export -p
-        echo
+        printf '\n'
     }
 
     #########################################################################################
@@ -4995,9 +4987,9 @@ __adjust_mach_o_files_for_the_given_target() {
                 abort 1 "no dependent shared libraries found in $FILEPATH"
             fi
 
-            echo "DT_SONAME=\n$DT_SONAME"
-            echo "DT_NEEDED=\n$DT_NEEDED"
-            echo "DT_RUNPATH=\n$DT_RUNPATH"
+            printf '%s\n' "DT_SONAME=\n$DT_SONAME"
+            printf '%s\n' "DT_NEEDED=\n$DT_NEEDED"
+            printf '%s\n' "DT_RUNPATH=\n$DT_RUNPATH"
 
             case $DT_SONAME in
                 '') ;;
@@ -5107,8 +5099,8 @@ install_incs() {
     do
         unset X1
         unset X2
-        X1=$(echo "$1" | cut -d: -f1)
-        X2=$(echo "$1" | cut -d: -f2)
+        X1=$(printf '%s\n' "$1" | cut -d: -f1)
+        X2=$(printf '%s\n' "$1" | cut -d: -f2)
 
         if [ "$X1" = "$X2" ] ; then
             unset X2
@@ -5151,7 +5143,7 @@ install_mans() {
     for item in "$@"
     do
         unset NUMBER
-        NUMBER=$(echo "$item" | cut -c ${#item}-${#item})
+        NUMBER=$(printf '%s\n' "$item" | cut -c ${#item}-${#item})
         case $NUMBER in
             [1-8]);;
             *)    abort 1 "$item: not a manpage."
@@ -5253,7 +5245,7 @@ configure_only() {
         if run "$PACKAGE_BSCRIPT_DIR"/configure \
             --prefix="$NATIVE_INSTALL_DIR" \
             "$@" ; then
-            echo
+            printf '\n'
         else
             if [ -f "$PACKAGE_BCACHED_DIR/config.log" ] ; then
                 run cat "$PACKAGE_BCACHED_DIR/config.log"
@@ -5569,7 +5561,7 @@ to_meson_array() {
         RESULT="$RESULT, '$item'"
     done
     RESULT="$RESULT]"
-    echo "$RESULT"
+    printf '%s\n' "$RESULT"
 }
 
 # }}}
@@ -5864,7 +5856,7 @@ static int stub_system(char* cmd) {
 EOF
     for item in "$@"
     do
-        echo "inject $PACKAGE_BSCRIPT_DIR/stub-system.c -> $item"
+        printf '%s\n' "inject $PACKAGE_BSCRIPT_DIR/stub-system.c -> $item"
         cat "$PACKAGE_BSCRIPT_DIR/stub-system.c" "$item" > "$item.bak" || return 1
         mv "$item.bak" "$item" || return 1
     done
@@ -6286,7 +6278,7 @@ __list_supported_target_platform_versions() {
     run cp "$OUTPUT_FILENAME" "$OUTPUT_DIR/"
 
     if [ "$KEEP_PACKING_DIR" = yes ] ; then
-        echo
+        printf '\n'
         note "the work dir [$PACKING_DIR] is not deleted as --keep-packing-dir option is given."
     else
         step "delete packing directory"
@@ -6645,7 +6637,7 @@ __gen_github_workflows() {
             OUTPUT_FILEPATH="$OUTPUT_DIR/ci$J.yml"
             NDEPENDED_PACKAGES=$(printf '%s\n' "$NDEPENDED_PACKAGES" | tr ' ' ,)
 
-            echo
+            printf '\n'
             run cp "$GITHUB_ACTIONS_WORKFLOW_TEMPLATE_FILEPATH" "$OUTPUT_FILEPATH"
             sed_in_place "s/INDEX/$J/"                          "$OUTPUT_FILEPATH"
             sed_in_place "s/PKGLIST/$NDEPENDED_PACKAGES/"       "$OUTPUT_FILEPATH"
