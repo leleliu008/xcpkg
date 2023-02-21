@@ -3436,7 +3436,7 @@ $DOT_CONTENT
 
             unset BREW; BREW=$(command -v brew)
 
-            run "$BREW" update
+            #run "$BREW" update
             run "$BREW" --env
 
             for item in $PACKAGE_DEP_UPP
