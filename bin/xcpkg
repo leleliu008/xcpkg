@@ -1034,9 +1034,9 @@ __load_formula_of_the_given_package() {
     # space-separated   xcpkg packages that are depended by this package when installing and/or runtime, which will be installed via xcpkg
     unset PACKAGE_DEP_PKG
 
-    unset PACKAGE_CDEFINE
     unset PACKAGE_CCFLAGS
     unset PACKAGE_XXFLAGS
+    unset PACKAGE_PPFLAGS
     unset PACKAGE_LDFLAGS
 
     unset PACKAGE_FORMULA_FILEPATH
@@ -1049,7 +1049,7 @@ __load_formula_of_the_given_package() {
 
     [ -z "$PACKAGE_FORMULA_FILEPATH" ] && abort 1 "package '$1' is not available."
 
-    for key in summary web-url git-url git-sha git-ref shallow src-url src-uri src-sha fix-url fix-sha res-url res-sha dep-pkg dep-upp dep-pym dep-plm license version bsystem bscript binbstd cdefine ccflags xxflags ldflags parallel toolset cstdlib exetype symlink
+    for key in summary web-url git-url git-sha git-ref shallow src-url src-uri src-sha fix-url fix-sha res-url res-sha dep-pkg dep-upp dep-pym dep-plm license version bsystem bscript binbstd ccflags xxflags ppflags ldflags parallel toolset cstdlib exetype symlink
     do
         unset __KEY_UPPERCASE_UNDERSCORE__
         unset __VALUE__
@@ -1417,7 +1417,7 @@ EOF
 
     #######################################################################################################
 
-    for key in summary web-url git-url git-sha git-ref shallow src-url src-uri src-sha fix-url fix-sha res-url res-sha dep-pkg dep-upp dep-pym dep-plm license version bsystem bscript binbstd cdefine ccflags xxflags ldflags parallel exetype symlink
+    for key in summary web-url git-url git-sha git-ref shallow src-url src-uri src-sha fix-url fix-sha res-url res-sha dep-pkg dep-upp dep-pym dep-plm license version bsystem bscript binbstd ccflags xxflags ppflags ldflags parallel exetype symlink
     do
         unset __KEY_UPPERCASE_UNDERSCORE__
         unset __VALUE__
@@ -1809,9 +1809,9 @@ __show_information_as_shell_of_all_available_packages() {
         --arg install "$PACKAGE_INSTALL_ACTIONS" \
         --arg bsystem "$PACKAGE_BSYSTEM" \
         --arg binbstd "$PACKAGE_BINBSTD" \
-        --arg cdefine "$PACKAGE_CDEFINE" \
         --arg ccflags "$PACKAGE_CCFLAGS" \
         --arg xxflags "$PACKAGE_XXFLAGS" \
+        --arg ppflags "$PACKAGE_PPFLAGS" \
         --arg ldflags "$PACKAGE_LDFLAGS" \
         --arg parallel $PACKAGE_BUILD_IN_PARALLEL \
 '{
@@ -1835,9 +1835,9 @@ __show_information_as_shell_of_all_available_packages() {
     "dep-plm":$dep_plm,
     "bsystem":$bsystem,
     "binbstd":$binbstd,
-    "cdefine":$cdefine,
     "ccflags":$ccflags,
     "xxflags":$xxflags,
+    "ppflags":$ppflags,
     "ldflags":$ldflags,
     "parallel":$parallel,
     "prepare":$prepare,
@@ -1900,9 +1900,9 @@ PACKAGE_BUILD_SYSTEM_CONFIGURE
 PACKAGE_BUILD_IN_BSCRIPT_DIR
 PACKAGE_BUILD_IN_PARALLEL
 PACKAGE_DEP_PKG
-PACKAGE_CDEFINE
 PACKAGE_CCFLAGS
 PACKAGE_XXFLAGS
+PACKAGE_PPFLAGS
 PACKAGE_LDFLAGS
 PACKAGE_FORMULA_FILEPATH
 EOF
@@ -1964,9 +1964,9 @@ EOF
                 --arg dep_upp "$RECEIPT_PACKAGE_DEP_UPP" \
                 --arg dep_pym "$RECEIPT_PACKAGE_DEP_PYM" \
                 --arg dep_plm "$RECEIPT_PACKAGE_DEP_PLM" \
-                --arg cdefine "$RECEIPT_PACKAGE_CDEFINE" \
                 --arg ccflags "$RECEIPT_PACKAGE_CCFLAGS" \
                 --arg xxflags "$RECEIPT_PACKAGE_XXFLAGS" \
+                --arg ppflags "$RECEIPT_PACKAGE_PPFLAGS" \
                 --arg ldflags "$RECEIPT_PACKAGE_LDFLAGS" \
                 --arg bsystem "$RECEIPT_PACKAGE_BSYSTEM" \
                 --arg binbstd "$RECEIPT_PACKAGE_BINBSTD" \
@@ -1994,9 +1994,9 @@ EOF
     "dep-plm":$dep_plm,
     "bsystem":$bsystem,
     "binbstd":$binbstd,
-    "cdefine":$cdefine,
     "ccflags":$ccflags,
     "xxflags":$xxflags,
+    "ppflags":$ppflags,
     "ldflags":$ldflags,
     "parallel":$parallel,
     "signature":$signature,
