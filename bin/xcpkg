@@ -5407,6 +5407,7 @@ cmakew() {
             -Wno-dev \
             -S "$PACKAGE_BSCRIPT_DIR" \
             -B "$PACKAGE_BCACHED_DIR" \
+            -DBUILD_TESTING=OFF \
             -DCMAKE_INSTALL_PREFIX="$PACKAGE_INSTALL_DIR" \
             -DCMAKE_TOOLCHAIN_FILE="$CMAKE_TOOLCHAIN_FILE" \
             -DCMAKE_PROJECT_INCLUDE="$CMAKE_PROJECT_INCLUDE" \
@@ -6460,7 +6461,7 @@ __compare_versions_with_brew() {
         BREW_PKG_NMAE="$(package_name_transform_from_uppm_to_brew "$item")"
 
         if brew info "$BREW_PKG_NMAE" > /dev/null 2>&1 ; then
-            BREW_PKG_VERS=$(__pmw_get_available_package_version_by_package_name brew "$BREW_PKG_NMAE")
+            BREW_PKG_VERS="$(brew info "$BREW_PKG_NMAE" --json | yq '.[0].versions.stable')"
 
             if version_match "$BREW_PKG_VERS" gt "$PACKAGE_VERSION" ; then
                 printf "${COLOR_RED}%-10s %-10s  |  %-10s %-10s${COLOR_OFF}\n" "$PACKAGE_NAME" "$PACKAGE_VERSION" "$BREW_PKG_NMAE" "$BREW_PKG_VERS"
