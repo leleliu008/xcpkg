@@ -6809,7 +6809,7 @@ __setup_homebrew() {
 
     BREW_PACKAGE_EXEFIND_PATH='PLACE-HOLDER'
 
-    for item in coreutils findutils gawk gsed grep gnu-tar gzip lzip unzip zip jq yq git curl tree
+    for item in coreutils findutils util-linux gawk gsed grep gnu-tar gzip lzip unzip zip jq yq git curl tree
     do
         run "$BREW" install "$item"
 
