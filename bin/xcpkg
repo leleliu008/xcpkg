@@ -3435,7 +3435,8 @@ $DOT_CONTENT
         if [ "$XCPKG_USE_EXTERNAL_PACKAGE_MANAGER" = brew ] ; then
             step "install needed packages via brew"
 
-            unset BREW; BREW=$(command -v brew)
+            BREW=
+            BREW="$(command -v brew)" || abort 1 "command not found: brew"
 
             #run "$BREW" update
             run "$BREW" --env
@@ -6546,7 +6547,12 @@ package_name_transform_from_uppm_to_brew() {
 __compare_versions_with_brew() {
     cd "$XCPKG_HOME/repos.d/offical-core/formula"
 
+    AVAILABLE_PACKAGE_NAME_LIST=
     AVAILABLE_PACKAGE_NAME_LIST="$(find . -mindepth 1 -maxdepth 1 -name "*.yml" -exec basename {} .yml \;)"
+
+    [ -z "$BREW" ] && {
+        BREW="$(command -v brew)" || abort 1 "command not found: brew"
+    }
 
     for item in $AVAILABLE_PACKAGE_NAME_LIST
     do
@@ -6554,14 +6560,14 @@ __compare_versions_with_brew() {
 
         BREW_PKG_NMAE="$(package_name_transform_from_uppm_to_brew "$item")"
 
-        if brew info "$BREW_PKG_NMAE" > /dev/null 2>&1 ; then
-            BREW_PKG_VERS="$(brew info "$BREW_PKG_NMAE" --json | yq '.[0].versions.stable')"
+        if "$BREW" info "$BREW_PKG_NMAE" > /dev/null 2>&1 ; then
+            BREW_PKG_VERS="$("$BREW" info "$BREW_PKG_NMAE" --json | yq '.[0].versions.stable')"
 
-            if version_match "$BREW_PKG_VERS" gt "$PACKAGE_VERSION" ; then
-                printf "${COLOR_RED}%-10s %-10s  |  %-10s %-10s${COLOR_OFF}\n" "$PACKAGE_NAME" "$PACKAGE_VERSION" "$BREW_PKG_NMAE" "$BREW_PKG_VERS"
-            else
+            if version_match "$BREW_PKG_VERS" eq "$PACKAGE_VERSION" ; then
                 :
                 #printf "${COLOR_GREEN}%-10s %-10s  |  %-10s %-10s${COLOR_OFF}\n" "$PACKAGE_NAME" "$PACKAGE_VERSION" "$BREW_PKG_NMAE" "$BREW_PKG_VERS"
+            else
+                printf "${COLOR_RED}%-10s %-10s  |  %-10s %-10s${COLOR_OFF}\n" "$PACKAGE_NAME" "$PACKAGE_VERSION" "$BREW_PKG_NMAE" "$BREW_PKG_VERS"
             fi
         else
             printf "${COLOR_BLUE}%-10s %-10s  |${COLOR_OFF}\n" "$PACKAGE_NAME" "$PACKAGE_VERSION"
@@ -6572,17 +6578,21 @@ __compare_versions_with_brew() {
 __compare_versions_with_ppkg() {
     cd "$XCPKG_HOME/repos.d/offical-core/formula"
 
-    unset AVAILABLE_PACKAGE_NAME_LIST
+    AVAILABLE_PACKAGE_NAME_LIST=
     AVAILABLE_PACKAGE_NAME_LIST="$(find . -mindepth 1 -maxdepth 1 -name "*.yml" -exec basename {} .yml \;)"
+
+    [ -z "$PPKG" ] && {
+        PPKG="$(command -v ppkg)" || abort 1 "command not found: ppkg"
+    }
 
     for PACKAGE_NAME in $AVAILABLE_PACKAGE_NAME_LIST
     do
         __load_formula_of_the_given_package "$PACKAGE_NAME"
 
-        if ppkg is-available "$PACKAGE_NAME" ; then
-            PPKG_PACKAGE_VERSION="$(ppkg info "$PACKAGE_NMAE" version)"
+        if "$PPKG" is-available "$PACKAGE_NAME" ; then
+            PPKG_PACKAGE_VERSION="$("$PPKG" info "$PACKAGE_NMAE" version)"
 
-            if version_match "$PPKG_PACKAGE_VERSION" ne "$PACKAGE_VERSION" ; then
+            if version_match "$PPKG_PACKAGE_VERSION" eq "$PACKAGE_VERSION" ; then
                 :
             else
                 printf "${COLOR_RED}%-10s %-10s  |  %-10s %-10s${COLOR_OFF}\n" "$PACKAGE_NAME" "$PACKAGE_VERSION" "$PACKAGE_NAME" "$PPKG_PACKAGE_VERSION"
@@ -6795,7 +6805,8 @@ EOF
 }
 
 __setup_homebrew() {
-    unset BREW; BREW=$(command -v brew || true)
+    BREW=
+    BREW="$(command -v brew || true)"
 
     if [ -z "$BREW" ] ; then
         unset SETUP_WORKING_DIR
@@ -6804,7 +6815,7 @@ __setup_homebrew() {
         run curl -L -o "$SETUP_WORKING_DIR/homebrew-install.sh" 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh'
         run "yes | bash $SETUP_WORKING_DIR/homebrew-install.sh"
 
-        BREW=$(command -v brew || true)
+        BREW="$(command -v brew || true)"
     else
         run "$BREW" update
     fi
