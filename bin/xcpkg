@@ -3050,6 +3050,7 @@ EOF
     unset SDKROOT
 
     unset      CC_FOR_BUILD
+    unset    OBJC_FOR_BUILD
     unset     CXX_FOR_BUILD
     unset     CPP_FOR_BUILD
     unset      AS_FOR_BUILD
@@ -3064,6 +3065,7 @@ EOF
     unset SYSROOT_FOR_BUILD
 
          CC_FOR_BUILD="$(xcrun --sdk macosx --find clang)"
+       OBJC_FOR_BUILD="$(xcrun --sdk macosx --find clang)"
         CXX_FOR_BUILD="$(xcrun --sdk macosx --find clang++)"
          AS_FOR_BUILD="$(xcrun --sdk macosx --find as)"
          AR_FOR_BUILD="$(xcrun --sdk macosx --find ar)"
@@ -3076,7 +3078,7 @@ EOF
     OBJDUMP_FOR_BUILD="$(xcrun --sdk macosx --find objdump)"
     SYSROOT_FOR_BUILD="$(xcrun --sdk macosx --show-sdk-path)"
 
-    for TOOL in CC CXX AS AR RANLIB LD NM STRIP SIZE STRINGS OBJDUMP SYSROOT
+    for TOOL in CC OBJC CXX AS AR RANLIB LD NM STRIP SIZE STRINGS OBJDUMP SYSROOT
     do
         export "${TOOL}_FOR_BUILD"
         printf "%17s = %s\n" "${TOOL}_FOR_BUILD" "$(eval echo \$"${TOOL}_FOR_BUILD")"
@@ -3172,15 +3174,20 @@ EOF
 
     #########################################################################################
 
-    step "config CFLAGS_FOR_BUILD CXXFLAGS_FOR_BUILD CPPFLAGS_FOR_BUILD LDFLAGS_FOR_BUILD"
+    step "config CFLAGS_FOR_BUILD OBJCFLAGS_FOR_BUILD CXXFLAGS_FOR_BUILD CPPFLAGS_FOR_BUILD LDFLAGS_FOR_BUILD"
 
-    export   CFLAGS_FOR_BUILD="-isysroot $SYSROOT_FOR_BUILD -mmacosx-version-min=$NATIVE_OS_VERS -arch $NATIVE_OS_ARCH -Qunused-arguments"
-    export CXXFLAGS_FOR_BUILD="-isysroot $SYSROOT_FOR_BUILD -mmacosx-version-min=$NATIVE_OS_VERS -arch $NATIVE_OS_ARCH -Qunused-arguments"
-    export CPPFLAGS_FOR_BUILD="-isysroot $SYSROOT_FOR_BUILD -Qunused-arguments"
-    export  LDFLAGS_FOR_BUILD="-isysroot $SYSROOT_FOR_BUILD -mmacosx-version-min=$NATIVE_OS_VERS -arch $NATIVE_OS_ARCH"
+    export    CFLAGS_FOR_BUILD="-isysroot $SYSROOT_FOR_BUILD -mmacosx-version-min=$NATIVE_OS_VERS -arch $NATIVE_OS_ARCH -Qunused-arguments"
+    export OBJCFLAGS_FOR_BUILD="-isysroot $SYSROOT_FOR_BUILD -mmacosx-version-min=$NATIVE_OS_VERS -arch $NATIVE_OS_ARCH -Qunused-arguments"
+    export  CXXFLAGS_FOR_BUILD="-isysroot $SYSROOT_FOR_BUILD -mmacosx-version-min=$NATIVE_OS_VERS -arch $NATIVE_OS_ARCH -Qunused-arguments"
+    export  CPPFLAGS_FOR_BUILD="-isysroot $SYSROOT_FOR_BUILD -Qunused-arguments"
+    export   LDFLAGS_FOR_BUILD="-isysroot $SYSROOT_FOR_BUILD -mmacosx-version-min=$NATIVE_OS_VERS -arch $NATIVE_OS_ARCH"
 
     printf '%b\n' "${COLOR_PURPLE}==>${COLOR_OFF} CFLAGS_FOR_BUILD"
     printf '%s\n' "$CFLAGS_FOR_BUILD"   | xargs printf '        %s\n'
+    printf '\n'
+
+    printf '%b\n' "${COLOR_PURPLE}==>${COLOR_OFF} OBJCFLAGS_FOR_BUILD"
+    printf '%s\n' "$OBJCFLAGS_FOR_BUILD" | xargs printf '        %s\n'
     printf '\n'
 
     printf '%b\n' "${COLOR_PURPLE}==>${COLOR_OFF} CXXFLAGS_FOR_BUILD"
@@ -3199,6 +3206,7 @@ EOF
     # install perl module need these, they will be override when cross compile starting
 
     export      CC="$CC_FOR_BUILD"
+    export    OBJC="$OBJC_FOR_BUILD"
     export     CXX="$CXX_FOR_BUILD"
     export     CPP="$CPP_FOR_BUILD"
     export      AS="$AS_FOR_BUILD"
@@ -3211,10 +3219,11 @@ EOF
     export STRINGS="$STRINGS_FOR_BUILD"
     export OBJDUMP="$OBJDUMP_FOR_BUILD"
 
-    export   CFLAGS="$CFLAGS_FOR_BUILD"
-    export CXXFLAGS="$CXXFLAGS_FOR_BUILD"
-    export CPPFLAGS="$CPPFLAGS_FOR_BUILD"
-    export  LDFLAGS="$LDFLAGS_FOR_BUILD"
+    export    CFLAGS="$CFLAGS_FOR_BUILD"
+    export OBJCFLAGS="$OBJCFLAGS_FOR_BUILD"
+    export  CXXFLAGS="$CXXFLAGS_FOR_BUILD"
+    export  CPPFLAGS="$CPPFLAGS_FOR_BUILD"
+    export   LDFLAGS="$LDFLAGS_FOR_BUILD"
 
     #########################################################################################
 
@@ -3859,6 +3868,7 @@ $PACKAGE_BUILD0_ACTIONS
     step "locate C/C++ toolchain for target build"
 
     unset      CC
+    unset    OBJC
     unset     CXX
     unset     CPP
     unset      AS
@@ -3873,6 +3883,7 @@ $PACKAGE_BUILD0_ACTIONS
     unset SYSROOT
 
          CC="$(xcrun --sdk "$TARGET_PLATFORM_NAME_LOWER_CASE" --find clang)"
+       OBJC="$(xcrun --sdk "$TARGET_PLATFORM_NAME_LOWER_CASE" --find clang)"
         CXX="$(xcrun --sdk "$TARGET_PLATFORM_NAME_LOWER_CASE" --find clang++)"
          AS="$(xcrun --sdk "$TARGET_PLATFORM_NAME_LOWER_CASE" --find as)"
          AR="$(xcrun --sdk "$TARGET_PLATFORM_NAME_LOWER_CASE" --find ar)"
@@ -3885,7 +3896,7 @@ $PACKAGE_BUILD0_ACTIONS
     OBJDUMP="$(xcrun --sdk "$TARGET_PLATFORM_NAME_LOWER_CASE" --find objdump)"
     SYSROOT="$(xcrun --sdk "$TARGET_PLATFORM_NAME_LOWER_CASE" --show-sdk-path)"
 
-    for TOOL in CC CXX AS AR RANLIB LD NM STRIP SIZE STRINGS OBJDUMP SYSROOT
+    for TOOL in CC OBJC CXX AS AR RANLIB LD NM STRIP SIZE STRINGS OBJDUMP SYSROOT
     do
         export "$TOOL"
         printf "%7s = %s\n" "${TOOL}" "$(eval echo \$"${TOOL}")"
@@ -3981,21 +3992,95 @@ EOF
 
     #########################################################################################
 
-    step "config CFLAGS CXXFLAGS CPPFLAGS LDFLAGS"
+    step "config CFLAGS OBJCFLAGS CXXFLAGS CPPFLAGS LDFLAGS"
 
-    CCFLAGS="$PACKAGE_CCFLAGS -fPIC -fno-common"
-    XXFLAGS="$PACKAGE_XXFLAGS -fPIC -fno-common"
+    CCFLAGS="$PACKAGE_CCFLAGS -fPIC"
+    OCFLAGS="$PACKAGE_OCFLAGS -fPIC"
+    OXFLAGS="$PACKAGE_OXFLAGS -fPIC"
+    XXFLAGS="$PACKAGE_XXFLAGS -fPIC"
     PPFLAGS="$PACKAGE_PPFLAGS"
     LDFLAGS="$PACKAGE_LDFLAGS"
 
     CCFLAGS="$(printf '%s\n' "$CCFLAGS" | sed -e 's|--static||g' -e 's|-static||g')"
+    OCFLAGS="$(printf '%s\n' "$OCFLAGS" | sed -e 's|--static||g' -e 's|-static||g')"
+    OXFLAGS="$(printf '%s\n' "$OXFLAGS" | sed -e 's|--static||g' -e 's|-static||g')"
     XXFLAGS="$(printf '%s\n' "$XXFLAGS" | sed -e 's|--static||g' -e 's|-static||g')"
     LDFLAGS="$(printf '%s\n' "$LDFLAGS" | sed -e 's|--static||g' -e 's|-static||g')"
 
+    ##############################################
+
+    _F_COMMON_OPT_IS_SET=no
+
+    for item in $CCFLAGS
+    do
+        [ "$item" = '-fcommon' ] && {
+            _F_COMMON_OPT_IS_SET=yes
+            break
+        }
+    done
+
+    if [ "$_F_COMMON_OPT_IS_SET" = no ] ; then
+        CCFLAGS="$CCFLAGS -fno-common"
+    fi
+
+    ##############################################
+
+    _F_COMMON_OPT_IS_SET=no
+
+    for item in $OCFLAGS
+    do
+        [ "$item" = '-fcommon' ] && {
+            _F_COMMON_OPT_IS_SET=yes
+            break
+        }
+    done
+
+    if [ "$_F_COMMON_OPT_IS_SET" = no ] ; then
+        OCFLAGS="$OCFLAGS -fno-common"
+    fi
+
+    ##############################################
+
+    _F_COMMON_OPT_IS_SET=no
+
+    for item in $OXFLAGS
+    do
+        [ "$item" = '-fcommon' ] && {
+            _F_COMMON_OPT_IS_SET=yes
+            break
+        }
+    done
+
+    if [ "$_F_COMMON_OPT_IS_SET" = no ] ; then
+        OXFLAGS="$OXFLAGS -fno-common"
+    fi
+
+    ##############################################
+
+    _F_COMMON_OPT_IS_SET=no
+
+    for item in $XXFLAGS
+    do
+        [ "$item" = '-fcommon' ] && {
+            _F_COMMON_OPT_IS_SET=yes
+            break
+        }
+    done
+
+    if [ "$_F_COMMON_OPT_IS_SET" = no ] ; then
+        XXFLAGS="$XXFLAGS -fno-common"
+    fi
+
+    ##############################################
+
     PPFLAGS="-isysroot $SYSROOT -Qunused-arguments $PPFLAGS"
     CCFLAGS="-isysroot $SYSROOT -arch $TARGET_PLATFORM_ARCH -m${TARGET_PLATFORM_NAME_LOWER_CASE}-version-min=$TARGET_PLATFORM_VERS -Qunused-arguments $CCFLAGS"
+    OCFLAGS="-isysroot $SYSROOT -arch $TARGET_PLATFORM_ARCH -m${TARGET_PLATFORM_NAME_LOWER_CASE}-version-min=$TARGET_PLATFORM_VERS -Qunused-arguments $OCFLAGS"
+    OXFLAGS="-isysroot $SYSROOT -arch $TARGET_PLATFORM_ARCH -m${TARGET_PLATFORM_NAME_LOWER_CASE}-version-min=$TARGET_PLATFORM_VERS -Qunused-arguments $OXFLAGS"
     XXFLAGS="-isysroot $SYSROOT -arch $TARGET_PLATFORM_ARCH -m${TARGET_PLATFORM_NAME_LOWER_CASE}-version-min=$TARGET_PLATFORM_VERS -Qunused-arguments $XXFLAGS"
     LDFLAGS="-isysroot $SYSROOT -arch $TARGET_PLATFORM_ARCH -m${TARGET_PLATFORM_NAME_LOWER_CASE}-version-min=$TARGET_PLATFORM_VERS -Wl,-search_paths_first $LDFLAGS"
+
+    ##############################################
 
     if [ "$LOG_LEVEL" -ge 3 ] ; then
         CCFLAGS="$CCFLAGS -v"
@@ -4009,6 +4094,8 @@ EOF
         XXFLAGS="$XXFLAGS -Os"
         LDFLAGS="$LDFLAGS -Wl,-S"
     fi
+
+    ##############################################
 
     for DEPENDENT_PACKAGE_NAME in $RECURSIVE_DEPENDENT_PACKAGE_NAMES
     do
@@ -4044,13 +4131,18 @@ EOF
     LDFLAGS="-L$PACKAGE_INSTALLING_LIB_DIR $LDFLAGS"
     LDFLAGS="-Wl,-rpath,$PACKAGE_INSTALL_DIR/lib $LDFLAGS"
 
-    export   CFLAGS="$CCFLAGS"
-    export CXXFLAGS="$XXFLAGS"
-    export CPPFLAGS="$PPFLAGS"
-    export  LDFLAGS="$LDFLAGS"
+    export    CFLAGS="$CCFLAGS"
+    export OBJCFLAGS="$OCFLAGS"
+    export  CXXFLAGS="$XXFLAGS"
+    export  CPPFLAGS="$PPFLAGS"
+    export   LDFLAGS="$LDFLAGS"
 
     printf '%b\n' "${COLOR_PURPLE}==>${COLOR_OFF} CFLAGS"
     printf '%s\n' "$CFLAGS" | xargs printf '        %s\n'
+    printf '\n'
+
+    printf '%b\n' "${COLOR_PURPLE}==>${COLOR_OFF} OBJCFLAGS"
+    printf '%s\n' "$OBJCFLAGS" | xargs printf '        %s\n'
     printf '\n'
 
     printf '%b\n' "${COLOR_PURPLE}==>${COLOR_OFF} CXXFLAGS"
