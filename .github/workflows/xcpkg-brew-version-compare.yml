@@ -1,6 +1,7 @@
 name: xcpkg-brew-version-compare
 
 on:
+  workflow_dispatch:
   schedule:
     - cron: '0 20 * * *'
 
