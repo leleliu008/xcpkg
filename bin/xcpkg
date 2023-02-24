@@ -6554,11 +6554,11 @@ __compare_versions_with_brew() {
         BREW="$(command -v brew)" || abort 1 "command not found: brew"
     }
 
-    for item in $AVAILABLE_PACKAGE_NAME_LIST
+    for PACKAGE_NAME in $AVAILABLE_PACKAGE_NAME_LIST
     do
-        __load_formula_of_the_given_package "$item"
+        __load_formula_of_the_given_package "$PACKAGE_NAME"
 
-        BREW_PKG_NMAE="$(package_name_transform_from_uppm_to_brew "$item")"
+        BREW_PKG_NMAE="$(package_name_transform_from_uppm_to_brew "$PACKAGE_NAME")"
 
         if "$BREW" info "$BREW_PKG_NMAE" > /dev/null 2>&1 ; then
             BREW_PKG_VERS="$("$BREW" info "$BREW_PKG_NMAE" --json | yq '.[0].versions.stable')"
