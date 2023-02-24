@@ -23,5 +23,5 @@ jobs:
 
       - run: curl -LO https://raw.githubusercontent.com/leleliu008/ppkg/master/bin/ppkg
       - run: chmod a+x ppkg
-      - run: ppkg setup
+      - run: ./ppkg setup
       - run: PPKG=$PWD/ppkg bin/xcpkg compare-versions ppkg
