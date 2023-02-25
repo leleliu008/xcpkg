@@ -17,12 +17,12 @@ jobs:
 
       - uses: actions/checkout@v3
 
-      - run: bin/xcpkg setup
-      - run: bin/xcpkg env
-      - run: bin/xcpkg update
-      - run: BREW=/usr/local/bin/brew bin/xcpkg compare-versions brew
+      - run: ./xcpkg setup
+      - run: ./xcpkg env
+      - run: ./xcpkg update
+      - run: BREW=/usr/local/bin/brew ./xcpkg compare-versions brew
 
-      - run: curl -LO https://raw.githubusercontent.com/leleliu008/ppkg/master/bin/ppkg
+      - run: curl -LO https://raw.githubusercontent.com/leleliu008/ppkg/master/ppkg
       - run: chmod a+x ppkg
       - run: ./ppkg setup
-      - run: PPKG=$PWD/ppkg bin/xcpkg compare-versions ppkg
+      - run: PPKG=$PWD/ppkg ./xcpkg compare-versions ppkg

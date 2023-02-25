@@ -25,90 +25,90 @@ jobs:
 
       - run: echo ${{ github.ref_name }}
 
-      - run: bin/xcpkg --help
-      - run: bin/xcpkg --version
+      - run: ./xcpkg --help
+      - run: ./xcpkg --version
 
-      - run: bin/xcpkg -h
-      - run: bin/xcpkg -V
+      - run: ./xcpkg -h
+      - run: ./xcpkg -V
 
-      - run: bin/xcpkg setup --use-brew
+      - run: ./xcpkg setup --use-brew
 
-      - run: bin/xcpkg sysinfo
-      - run: bin/xcpkg xcinfo
-      - run: bin/xcpkg env
-      - run: bin/xcpkg env -v
+      - run: ./xcpkg sysinfo
+      - run: ./xcpkg xcinfo
+      - run: ./xcpkg env
+      - run: ./xcpkg env -v
 
-      - run: bin/xcpkg integrate zsh
+      - run: ./xcpkg integrate zsh
 
-      - run: bin/xcpkg update
+      - run: ./xcpkg update
 
-      - run: bin/xcpkg search lib
-      - run: bin/xcpkg search uctags
+      - run: ./xcpkg search lib
+      - run: ./xcpkg search uctags
 
-      - run: bin/xcpkg info uctags
-      - run: bin/xcpkg info uctags version
-      - run: bin/xcpkg info uctags license
+      - run: ./xcpkg info uctags
+      - run: ./xcpkg info uctags version
+      - run: ./xcpkg info uctags license
 
-      - run: bin/xcpkg depends uctags
-      - run: bin/xcpkg depends uctags -t dot
-      - run: bin/xcpkg depends uctags -t box
-      - run: bin/xcpkg depends uctags -t dot -o a/
-      - run: bin/xcpkg depends uctags -o uctags.box
+      - run: ./xcpkg depends uctags
+      - run: ./xcpkg depends uctags -t dot
+      - run: ./xcpkg depends uctags -t box
+      - run: ./xcpkg depends uctags -t dot -o a/
+      - run: ./xcpkg depends uctags -o uctags.box
 
-      - run: bin/xcpkg install MacOSX/10.15/x86_64/uctags
+      - run: ./xcpkg install MacOSX/10.15/x86_64/uctags
 
-      - run: bin/xcpkg info MacOSX/10.15/x86_64/uctags installed-dir
-      - run: bin/xcpkg info MacOSX/10.15/x86_64/uctags installed-files
-      - run: bin/xcpkg info MacOSX/10.15/x86_64/uctags installed-timestamp-unix
-      - run: bin/xcpkg info MacOSX/10.15/x86_64/uctags installed-timestamp-iso-8601
-      - run: bin/xcpkg info MacOSX/10.15/x86_64/uctags installed-version
+      - run: ./xcpkg info MacOSX/10.15/x86_64/uctags installed-dir
+      - run: ./xcpkg info MacOSX/10.15/x86_64/uctags installed-files
+      - run: ./xcpkg info MacOSX/10.15/x86_64/uctags installed-timestamp-unix
+      - run: ./xcpkg info MacOSX/10.15/x86_64/uctags installed-timestamp-iso-8601
+      - run: ./xcpkg info MacOSX/10.15/x86_64/uctags installed-version
 
-      - run: bin/xcpkg tree MacOSX/10.15/x86_64/uctags
-      - run: bin/xcpkg tree MacOSX/10.15/x86_64/uctags -a
+      - run: ./xcpkg tree MacOSX/10.15/x86_64/uctags
+      - run: ./xcpkg tree MacOSX/10.15/x86_64/uctags -a
 
-      - run: bin/xcpkg pack MacOSX/10.15/x86_64/uctags
-      - run: bin/xcpkg pack MacOSX/10.15/x86_64/uctags -t tar.gz
-      - run: bin/xcpkg pack MacOSX/10.15/x86_64/uctags -t tar.xz
-      - run: bin/xcpkg pack MacOSX/10.15/x86_64/uctags -t tar.xz -o .
-      - run: bin/xcpkg pack MacOSX/10.15/x86_64/uctags -o .
-      - run: bin/xcpkg pack MacOSX/10.15/x86_64/uctags -o xx.tar.xz
+      - run: ./xcpkg pack MacOSX/10.15/x86_64/uctags
+      - run: ./xcpkg pack MacOSX/10.15/x86_64/uctags -t tar.gz
+      - run: ./xcpkg pack MacOSX/10.15/x86_64/uctags -t tar.xz
+      - run: ./xcpkg pack MacOSX/10.15/x86_64/uctags -t tar.xz -o .
+      - run: ./xcpkg pack MacOSX/10.15/x86_64/uctags -o .
+      - run: ./xcpkg pack MacOSX/10.15/x86_64/uctags -o xx.tar.xz
 
-      - run: bin/xcpkg formula-repo-list
-      - run: bin/xcpkg formula-view curl
+      - run: ./xcpkg formula-repo-list
+      - run: ./xcpkg formula-view curl
 
-      - run: bin/xcpkg ls-target-platform-names
+      - run: ./xcpkg ls-target-platform-names
 
-      - run: bin/xcpkg ls-target-platform-archs
-      - run: bin/xcpkg ls-target-platform-archs MacOSX
-      - run: bin/xcpkg ls-target-platform-archs AppleTVOS
-      - run: bin/xcpkg ls-target-platform-archs AppleTVSimulator
-      - run: bin/xcpkg ls-target-platform-archs iPhoneOS
-      - run: bin/xcpkg ls-target-platform-archs iPhoneSimulator
-      - run: bin/xcpkg ls-target-platform-archs WatchOS
-      - run: bin/xcpkg ls-target-platform-archs WatchSimulator
+      - run: ./xcpkg ls-target-platform-archs
+      - run: ./xcpkg ls-target-platform-archs MacOSX
+      - run: ./xcpkg ls-target-platform-archs AppleTVOS
+      - run: ./xcpkg ls-target-platform-archs AppleTVSimulator
+      - run: ./xcpkg ls-target-platform-archs iPhoneOS
+      - run: ./xcpkg ls-target-platform-archs iPhoneSimulator
+      - run: ./xcpkg ls-target-platform-archs WatchOS
+      - run: ./xcpkg ls-target-platform-archs WatchSimulator
 
-      - run: bin/xcpkg ls-target-platform-versions
-      - run: bin/xcpkg ls-target-platform-versions MacOSX
-      - run: bin/xcpkg ls-target-platform-versions AppleTVOS
-      - run: bin/xcpkg ls-target-platform-versions AppleTVSimulator
-      - run: bin/xcpkg ls-target-platform-versions iPhoneOS
-      - run: bin/xcpkg ls-target-platform-versions iPhoneSimulator
-      - run: bin/xcpkg ls-target-platform-versions WatchOS
-      - run: bin/xcpkg ls-target-platform-versions WatchSimulator
+      - run: ./xcpkg ls-target-platform-versions
+      - run: ./xcpkg ls-target-platform-versions MacOSX
+      - run: ./xcpkg ls-target-platform-versions AppleTVOS
+      - run: ./xcpkg ls-target-platform-versions AppleTVSimulator
+      - run: ./xcpkg ls-target-platform-versions iPhoneOS
+      - run: ./xcpkg ls-target-platform-versions iPhoneSimulator
+      - run: ./xcpkg ls-target-platform-versions WatchOS
+      - run: ./xcpkg ls-target-platform-versions WatchSimulator
 
-      - run: bin/xcpkg ls-available
-      - run: bin/xcpkg ls-installed
-      - run: bin/xcpkg ls-outdated
+      - run: ./xcpkg ls-available
+      - run: ./xcpkg ls-installed
+      - run: ./xcpkg ls-outdated
 
-      - run: bin/xcpkg is-available uctags
-      - run: bin/xcpkg is-installed MacOSX/10.15/x86_64/uctags
-      - run: bin/xcpkg is-outdated  MacOSX/10.15/x86_64/uctags || echo 'not outdated'
+      - run: ./xcpkg is-available uctags
+      - run: ./xcpkg is-installed MacOSX/10.15/x86_64/uctags
+      - run: ./xcpkg is-outdated  MacOSX/10.15/x86_64/uctags || echo 'not outdated'
 
-      - run: bin/xcpkg uninstall MacOSX/10.15/x86_64/uctags
+      - run: ./xcpkg uninstall MacOSX/10.15/x86_64/uctags
 
-      - run: bin/xcpkg fetch curl
+      - run: ./xcpkg fetch curl
 
-      - run: bin/xcpkg upgrade-self
+      - run: ./xcpkg upgrade-self
 
   install_via_homebrew:
     if: false
@@ -132,8 +132,8 @@ jobs:
       - run: xcpkg -h
       - run: xcpkg -V
 
-      - run: bin/xcpkg sysinfo
-      - run: bin/xcpkg xcinfo
+      - run: ./xcpkg sysinfo
+      - run: ./xcpkg xcinfo
       - run: xcpkg setup
       - run: xcpkg env
       - run: xcpkg env -v

@@ -7161,7 +7161,7 @@ main() {
 
     [ -n "$XCPKG_XTRACE" ] && set -x
 
-    [ "$(uname)" = 'Darwin' ] || abort 1 "this software can only be run on macOS."
+    #[ "$(uname)" = 'Darwin' ] || abort 1 "this software can only be run on macOS."
 
     unset NATIVE_OS_KIND
     unset NATIVE_OS_TYPE
@@ -7172,9 +7172,9 @@ main() {
     NATIVE_OS_KIND=darwin
     NATIVE_OS_TYPE=macos
     NATIVE_OS_NAME=MacOSX
-    NATIVE_OS_VERS="$(sw_vers -productVersion)"
+    #NATIVE_OS_VERS="$(sw_vers -productVersion)"
     NATIVE_OS_ARCH="$(uname -m)"
-    NATIVE_OS_NCPU="$(sysctl -n machdep.cpu.thread_count)"
+    #NATIVE_OS_NCPU="$(sysctl -n machdep.cpu.thread_count)"
     NATIVE_OS_EUID="$(id -u)"
     NATIVE_OS_EGID="$(id -g)"
 
