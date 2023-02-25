@@ -7,7 +7,7 @@ a package manager for [Xcode](https://developer.apple.com/xcode) to build C/C++/
 
 ## Install xcpkg via cURL
 ```bash
-curl -LO https://raw.githubusercontent.com/leleliu008/xcpkg/master/bin/xcpkg
+curl -LO https://raw.githubusercontent.com/leleliu008/xcpkg/master/xcpkg
 chmod a+x xcpkg
 mv xcpkg /usr/local/bin/
 xcpkg setup

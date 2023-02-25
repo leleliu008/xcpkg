@@ -7448,7 +7448,7 @@ EOF
         integrate)
             shift
             case $1 in
-                zsh) shift; __integrate_zsh_completions 'https://raw.githubusercontent.com/leleliu008/xcpkg/master/zsh-completion/_xcpkg' "$@" ;;
+                zsh) shift; __integrate_zsh_completions 'https://raw.githubusercontent.com/leleliu008/xcpkg/master/xcpkg-zsh-completion' "$@" ;;
                 *)   abort 1 "xcpkg integrate $1: not support."
             esac
             ;;
