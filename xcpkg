@@ -7184,7 +7184,7 @@ main() {
 
     XCPKG_OFFICAL_FORMULA_REPO_URL='https://github.com/leleliu008/xcpkg-formula-repository-offical-core'
 
-    XCPKG_UPGRAGE_URL='https://raw.githubusercontent.com/leleliu008/xcpkg/master/bin/xcpkg'
+    XCPKG_UPGRAGE_URL='https://raw.githubusercontent.com/leleliu008/xcpkg/master/xcpkg'
 
     [ -z "$XCPKG_HOME" ] && {
         if [ -z "$HOME" ] ; then
