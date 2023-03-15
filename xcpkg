@@ -529,15 +529,15 @@ version_match() {
     XCPKG_FORMULA_REPO_PINNED="$(yq .pinned "$XCPKG_FORMULA_REPO_CONFIG_FILEPATH")"
 
     case $XCPKG_FORMULA_REPO_PINNED in
-        yes|no) ;;
-        *)      abort 1 "$1 formula repository is broken."
+        0|1) ;;
+        *)   abort 1 "$1 formula repository is broken."
     esac
 
     XCPKG_FORMULA_REPO_ENABLED="$(yq .enabled "$XCPKG_FORMULA_REPO_CONFIG_FILEPATH")"
 
     case $XCPKG_FORMULA_REPO_ENABLED in
-        yes|no) ;;
-        *)      abort 1 "$1 formula repository is broken."
+        0|1) ;;
+        *)   abort 1 "$1 formula repository is broken."
     esac
 
     XCPKG_FORMULA_REPO_TIMESTAMP_CREATED="$(yq .timestamp-created "$XCPKG_FORMULA_REPO_CONFIG_FILEPATH")"
@@ -565,8 +565,6 @@ version_match() {
     XCPKG_FORMULA_REPO_NAME="$1"
     XCPKG_FORMULA_REPO_URL="$2"
 
-    unset GIT_FETCH_URL
-
     if [ -z "$XCPKG_URL_TRANSFORM" ] ; then
         GIT_FETCH_URL="$XCPKG_FORMULA_REPO_URL"
     else
@@ -586,16 +584,16 @@ version_match() {
                 XCPKG_FORMULA_REPO_BRANCH="${1#*=}"
                 ;;
             --pin)
-                XCPKG_FORMULA_REPO_PINNED=yes
+                XCPKG_FORMULA_REPO_PINNED=1
                 ;;
             --unpin)
-                XCPKG_FORMULA_REPO_PINNED=no
+                XCPKG_FORMULA_REPO_PINNED=0
                 ;;
             --enable)
-                XCPKG_FORMULA_REPO_ENABLED=yes
+                XCPKG_FORMULA_REPO_ENABLED=1
                 ;;
             --disable)
-                XCPKG_FORMULA_REPO_ENABLED=no
+                XCPKG_FORMULA_REPO_ENABLED=0
                 ;;
             *)  abort 1 "unrecognized argument: $1"
         esac
@@ -603,8 +601,8 @@ version_match() {
     done
 
     XCPKG_FORMULA_REPO_BRANCH="${XCPKG_FORMULA_REPO_BRANCH:-master}"
-    XCPKG_FORMULA_REPO_PINNED="${XCPKG_FORMULA_REPO_PINNED:-no}"
-    XCPKG_FORMULA_REPO_ENABLED="${XCPKG_FORMULA_REPO_ENABLED:-yes}"
+    XCPKG_FORMULA_REPO_PINNED="${XCPKG_FORMULA_REPO_PINNED:-0}"
+    XCPKG_FORMULA_REPO_ENABLED="${XCPKG_FORMULA_REPO_ENABLED:-1}"
 
     XCPKG_FORMULA_REPO_PATH="$XCPKG_HOME/repos.d/$XCPKG_FORMULA_REPO_NAME"
 
@@ -668,16 +666,16 @@ EOF
                 XCPKG_FORMULA_REPO_BRANCH="${1#*=}"
                 ;;
             --pin)
-                XCPKG_FORMULA_REPO_PINNED=yes
+                XCPKG_FORMULA_REPO_PINNED=1
                 ;;
             --unpin)
-                XCPKG_FORMULA_REPO_PINNED=no
+                XCPKG_FORMULA_REPO_PINNED=0
                 ;;
             --enable)
-                XCPKG_FORMULA_REPO_ENABLED=yes
+                XCPKG_FORMULA_REPO_ENABLED=1
                 ;;
             --disable)
-                XCPKG_FORMULA_REPO_ENABLED=no
+                XCPKG_FORMULA_REPO_ENABLED=0
                 ;;
             *)  abort 1 "unrecognized argument: $1"
         esac
@@ -685,8 +683,8 @@ EOF
     done
 
     XCPKG_FORMULA_REPO_BRANCH="${XCPKG_FORMULA_REPO_BRANCH:-master}"
-    XCPKG_FORMULA_REPO_PINNED="${XCPKG_FORMULA_REPO_PINNED:-yes}"
-    XCPKG_FORMULA_REPO_ENABLED="${XCPKG_FORMULA_REPO_ENABLED:-yes}"
+    XCPKG_FORMULA_REPO_PINNED="${XCPKG_FORMULA_REPO_PINNED:-1}"
+    XCPKG_FORMULA_REPO_ENABLED="${XCPKG_FORMULA_REPO_ENABLED:-1}"
 
     XCPKG_FORMULA_REPO_PATH="$XCPKG_HOME/repos.d/$XCPKG_FORMULA_REPO_NAME"
 
@@ -737,12 +735,7 @@ EOF
 
     __load_formula_repository_config "$1"
 
-    [ "$XCPKG_FORMULA_REPO_PINNED" = yes ] && {
-        note "'$XCPKG_FORMULA_REPO_NAME' formula repository is pinned."
-        return 0
-    }
-
-    unset GIT_FETCH_URL
+    [ "$XCPKG_FORMULA_REPO_PINNED" = 1 ] && abort 1 "'$XCPKG_FORMULA_REPO_NAME' formula repository is pinned."
 
     if [ -z "$XCPKG_URL_TRANSFORM" ] ; then
         GIT_FETCH_URL="$XCPKG_FORMULA_REPO_URL"
@@ -802,16 +795,16 @@ EOF
                 fi
                 ;;
             --pin)
-                XCPKG_FORMULA_REPO_PINNED=yes
+                XCPKG_FORMULA_REPO_PINNED=1
                 ;;
             --unpin)
-                XCPKG_FORMULA_REPO_PINNED=no
+                XCPKG_FORMULA_REPO_PINNED=0
                 ;;
             --enable)
-                XCPKG_FORMULA_REPO_ENABLED=yes
+                XCPKG_FORMULA_REPO_ENABLED=1
                 ;;
             --disable)
-                XCPKG_FORMULA_REPO_ENABLED=no
+                XCPKG_FORMULA_REPO_ENABLED=0
                 ;;
             *)  abort 1 "unrecognized argument: $1"
         esac
@@ -822,7 +815,7 @@ EOF
         cat > "$XCPKG_FORMULA_REPO_PATH/.xcpkg-formula-repo.yml" <<EOF
 url:  $XCPKG_FORMULA_REPO_URL
 branch: $XCPKG_FORMULA_REPO_BRANCH
-pinned:  $XCPKG_FORMULA_REPO_PINNED
+pinned: $XCPKG_FORMULA_REPO_PINNED
 enabled: $XCPKG_FORMULA_REPO_ENABLED
 timestamp-created: $XCPKG_FORMULA_REPO_TIMESTAMP_CREATED
 EOF
@@ -830,14 +823,13 @@ EOF
         cat > "$XCPKG_FORMULA_REPO_PATH/.xcpkg-formula-repo.yml" <<EOF
 url:  $XCPKG_FORMULA_REPO_URL
 branch: $XCPKG_FORMULA_REPO_BRANCH
-pinned:  $XCPKG_FORMULA_REPO_PINNED
+pinned: $XCPKG_FORMULA_REPO_PINNED
 enabled: $XCPKG_FORMULA_REPO_ENABLED
 timestamp-created: $XCPKG_FORMULA_REPO_TIMESTAMP_CREATED
 timestamp-updated: $XCPKG_FORMULA_REPO_TIMESTAMP_UPDATED
 EOF
 fi
 }
-
 
 # }}}
 ##############################################################################
@@ -849,12 +841,22 @@ fi
 
     __load_formula_repository_config "$1"
 
+    case $XCPKG_FORMULA_REPO_PINNED in
+        0)  XCPKG_FORMULA_REPO_PINNED=no  ;;
+        1)  XCPKG_FORMULA_REPO_PINNED=yes ;;
+    esac
+
+    case $XCPKG_FORMULA_REPO_ENABLED in
+        0)  XCPKG_FORMULA_REPO_ENABLED=no  ;;
+        1)  XCPKG_FORMULA_REPO_ENABLED=yes ;;
+    esac
+
     cat <<EOF
 name: $XCPKG_FORMULA_REPO_NAME
 path: $XCPKG_FORMULA_REPO_PATH
 url:  $XCPKG_FORMULA_REPO_URL
 branch: $XCPKG_FORMULA_REPO_BRANCH
-pinned:  $XCPKG_FORMULA_REPO_PINNED
+pinned: $XCPKG_FORMULA_REPO_PINNED
 enabled: $XCPKG_FORMULA_REPO_ENABLED
 timestamp-created: $(format_unix_timestamp "$XCPKG_FORMULA_REPO_TIMESTAMP_CREATED" '+%Y-%m-%d %H:%M:%S%:z')
 EOF
@@ -4392,10 +4394,10 @@ EOF
                 CMAKE_SYSTEM_NAME=iOS
                 ;;
             WatchOS|WatchSimulator)
-                CMAKE_SYSTEM_NAME=tvOS
+                CMAKE_SYSTEM_NAME=watchOS
                 ;;
             AppleTVOS|AppleTVSimulator)
-                CMAKE_SYSTEM_NAME=watchOS
+                CMAKE_SYSTEM_NAME=tvOS
                 ;;
             *)  CMAKE_SYSTEM_NAME=Darwin
         esac
@@ -6271,7 +6273,32 @@ __list_supported_target_platform_versions() {
         shift
     done
 
-    PACKED_DIR_NAME="$RECEIPT_PACKAGE_NAME-$RECEIPT_PACKAGE_VERSION-$TARGET_PLATFORM_NAME$TARGET_PLATFORM_VERS-$TARGET_PLATFORM_ARCH"
+    case $TARGET_PLATFORM_NAME in
+        iPhoneOS)
+            TARGET_PLATFORM_NAME_CANONICAL_NAME=ios
+            ;;
+        iPhoneSimulator)
+            TARGET_PLATFORM_NAME_CANONICAL_NAME=iosSimulator
+            ;;
+        WatchOS)
+            TARGET_PLATFORM_NAME_CANONICAL_NAME=watchos
+            ;;
+        WatchSimulator)
+            TARGET_PLATFORM_NAME_CANONICAL_NAME=watchosSimulator
+            ;;
+        AppleTVOS)
+            TARGET_PLATFORM_NAME_CANONICAL_NAME=tvos
+            ;;
+        AppleTVSimulator)
+            TARGET_PLATFORM_NAME_CANONICAL_NAME=tvosSimulator
+            ;;
+        MacOSX)
+            TARGET_PLATFORM_NAME_CANONICAL_NAME=macos
+            ;;
+        *)  TARGET_PLATFORM_NAME_CANONICAL_NAME="$TARGET_PLATFORM_NAME"
+    esac
+
+    PACKED_DIR_NAME="$RECEIPT_PACKAGE_NAME-$RECEIPT_PACKAGE_VERSION-$TARGET_PLATFORM_NAME_CANONICAL_NAME$TARGET_PLATFORM_VERS-$TARGET_PLATFORM_ARCH"
 
     ###########################################################################################
 
