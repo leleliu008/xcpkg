@@ -7172,10 +7172,12 @@ EOF
             return 0;
             ;;
         xcinfo)
+            shift
             xcinfo "$@"
             return 0;
             ;;
         gen-url-transform-sample)
+            shift
             __gen_url_transform_sample "$@"
             return 0
             ;;
