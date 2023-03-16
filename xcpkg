@@ -2724,7 +2724,7 @@ $DOT_CONTENT
 }
 
 inspect_install_arguments() {
-    inspect_xcode_information
+    xcinfo
 
     # https://stackoverflow.com/questions/18476490/what-is-purpose-of-target-arch-variable-in-makefiles
     unset TARGET_ARCH
@@ -5962,14 +5962,34 @@ EOF
 
 # }}}
 ##############################################################################
-# {{{ xcpkg xcinfo
+# {{{ xcpkg xcinfo [ --developer-dir=<DEVELOPER_DIR> --list-supported-platform-names-only]
 
-inspect_xcode_information() {
-    if [ -z "$DEVELOPER_DIR" ] ; then
-        DEVELOPER_DIR="$(xcode-select -p)"
-        [ -z "$DEVELOPER_DIR" ] && abort 1 "Xcode developer dir can't be located.\nThere're 3 ways to resolve this problem:\n1. run command 'xcode-select --switch DEVELOPER_DIR', then try again.\n2. set system-wide environment variable DEVELOPER_DIR\3. set process-wide environment variable DEVELOPER_DIR, you can run xcpkg command as 'DEVELOPER_DIR=/some/path xcpkg'"
+xcinfo() {
+    unset USER_SPECIFIED_DEVELOPER_DIR
+    unset LIST_SUPPORTED_PLATFORM_NAMES_ONLY
+
+    for arg in "$@"
+    do
+        case "$arg" in
+            --list-supported-platform-names-only)
+                LIST_SUPPORTED_PLATFORM_NAMES_ONLY=yes
+                ;;
+            --developer-dir=*)
+                USER_SPECIFIED_DEVELOPER_DIR="${arg#'--developer-dir='}"
+                ;;
+            *)  die "unrecognized option: $arg"
+        esac
+    done
+
+    if [ -z "$USER_SPECIFIED_DEVELOPER_DIR" ] ; then
+        if [ -z "$DEVELOPER_DIR" ] ; then
+            DEVELOPER_DIR="$(xcode-select -p)"
+            [ -z "$DEVELOPER_DIR" ] && abort 1 "Xcode developer dir can't be located.\nThere're 3 ways to resolve this problem:\n1. run command 'xcode-select --switch DEVELOPER_DIR', then try again.\n2. set system-wide environment variable DEVELOPER_DIR\3. set process-wide environment variable DEVELOPER_DIR, you can run xcpkg command as 'DEVELOPER_DIR=/some/path xcpkg'"
+        else
+            note "you have set DEVELOPER_DIR=$DEVELOPER_DIR, it will be used as the xcode developer directory."
+        fi
     else
-        note "you have set DEVELOPER_DIR=$DEVELOPER_DIR, it will be used as the xcode developer directory."
+        DEVELOPER_DIR="$USER_SPECIFIED_DEVELOPER_DIR"
     fi
 
     [ -e "$DEVELOPER_DIR" ] || abort 1 "$DEVELOPER_DIR was expected to be exist, but it was not."
@@ -6021,6 +6041,11 @@ ${item%.platform}"
 
     unset XCODE_VERSION; XCODE_VERSION=$(system_profiler SPDeveloperToolsDataType | grep Version | head -n 1 | cut -d: -f2 | sed 's/^ //g')
 
+    if [ "$LIST_SUPPORTED_PLATFORM_NAMES_ONLY" = yes ] ; then
+        printf '%s\n' "$XCODE_SUPPORT_PLATFORM_NAMES"
+        return 0
+    fi
+
     cat <<EOF
 DEVELOPER_DIR: $DEVELOPER_DIR
 XCODE_VERSION: $XCODE_VERSION
@@ -6059,149 +6084,6 @@ EOF
             versions: $SDK_SUPPORT_VERSIONS
 EOF
     done
-}
-
-__list_supported_target_platform_names() {
-    [ -z "$XCODE_SUPPORT_PLATFORM_NAMES" ] && inspect_xcode_information
-    printf '%s\n' "$XCODE_SUPPORT_PLATFORM_NAMES"
-}
-
-# __list_supported_target_platform_archs [32bit|64bit|all] [iPhoneOS|WatchOS|AppleTVOS|MacOSX|*Simulator|table|list]
-  __list_supported_target_platform_archs() {
-    unset LIST_SUPPORTED_ARCHS_ARG_BIT
-    unset LIST_SUPPORTED_ARCHS_ARG_PLATFORM
-
-    while [ -n "$1" ]
-    do
-        case $1 in
-            32bit|64bit|all)
-                LIST_SUPPORTED_ARCHS_ARG_BIT=$1
-                ;;
-            iPhoneOS|WatchOS|AppleTVOS|MacOSX|*Simulator|DriverKit|table|list)
-                LIST_SUPPORTED_ARCHS_ARG_PLATFORM=$1
-                ;;
-            *) abort 1 "unrecognized argument : $1."
-        esac
-        shift
-    done
-
-    if [ -z "$LIST_SUPPORTED_ARCHS_ARG_BIT" ] ; then
-        LIST_SUPPORTED_ARCHS_ARG_BIT=all
-    fi
-
-    if [ -z "$LIST_SUPPORTED_ARCHS_ARG_PLATFORM" ] ; then
-        LIST_SUPPORTED_ARCHS_ARG_PLATFORM=list
-    fi
-
-    case $LIST_SUPPORTED_ARCHS_ARG_BIT in
-        all)
-            case $LIST_SUPPORTED_ARCHS_ARG_PLATFORM in
-                iPhoneOS)   printf '%s\n' "arm64 arm64e armv7 armv7s" ;;
-                WatchOS)    printf '%s\n' "arm64_32 armv7k" ;;
-                AppleTVOS)  printf '%s\n' "arm64"       ;;
-                MacOSX)     printf '%s\n' "arm64 x86_64 i386" ;;
-                *Simulator) printf '%s\n' "arm64 x86_64 i386" ;;
-                DriverKit)  ;;
-                list)       printf '%s\n' "arm64 arm64e arm64_32 armv7 armv7s armv7k x86_64" ;;
-                table) __show_supported_target_platform_names_and_its_supported_arch_table ;;
-                *)  abort 1 "unsupported platform : $LIST_SUPPORTED_ARCHS_ARG_PLATFORM."
-            esac
-            ;;
-        64bit)
-            case $LIST_SUPPORTED_ARCHS_ARG_PLATFORM in
-                iPhoneOS)   printf '%s\n' "arm64 arm64e" ;;
-                WatchOS)    printf '%s\n' "arm64_32" ;;
-                AppleTVOS)  printf '%s\n' "arm64"  ;;
-                MacOSX)     printf '%s\n' "arm64 x86_64" ;;
-                *Simulator) printf '%s\n' "arm64 x86_64" ;;
-                DriverKit)  ;;
-                list)       printf '%s\n' "arm64 arm64e arm64_32 x86_64" ;;
-                table) __show_supported_target_platform_names_and_its_supported_64bit_arch_table ;;
-                *)  abort 1 "unsupported platform : $LIST_SUPPORTED_ARCHS_ARG_PLATFORM."
-            esac
-            ;;
-        32bit)
-            case $LIST_SUPPORTED_ARCHS_ARG_PLATFORM in
-                iPhoneOS)   printf '%s\n' "armv7 armv7s" ;;
-                WatchOS)    printf '%s\n' "armv7k" ;;
-                AppleTVOS)  ;;
-                MacOSX)     printf '%s\n' "i386" ;;
-                *Simulator) printf '%s\n' "i386" ;;
-                DriverKit)  ;;
-                list)       printf '%s\n' "armv7 armv7s armv7k i386" ;;
-                table) __show_supported_target_platform_names_and_its_supported_32bit_arch_table ;;
-                *)  abort 1 "unsupported platform : $LIST_SUPPORTED_ARCHS_ARG_PLATFORM."
-            esac
-            ;;
-    esac
-}
-
-__show_supported_target_platform_names_and_its_supported_64bit_arch_table() {
-    cat <<EOF
-┌────────────┬───────────────────────────┐
-│ platform   │ supported 64bit archs     │
-│            │                           │
-│ AppleTVOS  │ arm64                     │
-│ WatchOS    │ arm64_32                  │
-│ iPhoneOS   │ arm64 arm64e              │
-│ MacOSX     │ arm64 x86_64              │
-│ *Simulator │ arm64 x86_64              │
-└────────────┴───────────────────────────┘
-EOF
-}
-
-__show_supported_target_platform_names_and_its_supported_32bit_arch_table() {
-    cat <<EOF
-┌────────────┬───────────────────────────┐
-│ platform   │ supported 32bit archs     │
-│            │                           │
-│ AppleTVOS  │                           │
-│ WatchOS    │ armv7k                    │
-│ iPhoneOS   │ armv7 armv7s              │
-│ MacOSX     │ i386                      │
-│ *Simulator │ i386                      │
-└────────────┴───────────────────────────┘
-EOF
-}
-
-__show_supported_target_platform_names_and_its_supported_arch_table() {
-    cat <<EOF
-┌────────────┬───────────────────────────┐
-│ platform   │ arch                      │
-│            │                           │
-│ AppleTVOS  │ arm64                     │
-│ WatchOS    │ arm64_32 armv7k           │
-│ iPhoneOS   │ arm64 arm64e armv7 armv7s │
-│ MacOSX     │ arm64 x86_64              │
-│ *Simulator │ arm64 x86_64              │
-└────────────┴───────────────────────────┘
-EOF
-}
-
-__list_supported_target_platform_versions() {
-    if [ -z "$1" ] ; then
-        for PLATFORM_NAME in $(__list_supported_target_platform_names)
-        do
-            printf "%-16s : $(__list_supported_target_platform_versions "$PLATFORM_NAME")\n" "$PLATFORM_NAME"
-        done
-    else
-        case $1 in
-            iPhoneOS|iPhoneSimulator)
-                printf '%s\n' "8.0 8.1 8.2 8.3 8.4 9.0 9.1 9.2 9.3 10.0 10.1 10.2 10.3 11.0 11.1 11.2 11.3 11.4 12.0 12.1 12.2 12.3 12.4 13.0 13.1 13.2 13.3 13.4 13.5";;
-            WatchOS|WatchSimulator)
-                printf '%s\n' "2.0 2.1 2.2 3.0 3.1 3.2 4.0 4.1 4.2 4.3 5.0 5.1 5.2 5.3 6.0 6.1 6.2"
-                ;;
-            AppleTVOS|AppleTVSimulator)
-                printf '%s\n' "9.0 9.1 9.2 10.0 10.1 10.2 11.0 11.1 11.2 11.3 11.4 12.0 12.1 12.3 12.4 13.0 13.1 13.2 13.3"
-                ;;
-            MacOSX)
-                printf '%s\n' "10.6 10.7 10.8 10.9 10.10 10.11 10.12 10.13 10.14 10.15"
-                ;;
-            DriverKit)
-                ;;
-            *)  abort 1 "unsupported platform : $1."
-        esac
-    fi
 }
 
 # }}}
@@ -7068,10 +6950,10 @@ ${COLOR_GREEN}xcpkg env [-v]${COLOR_OFF}
 ${COLOR_GREEN}xcpkg sysinfo${COLOR_OFF}
     show your system information.
 
-${COLOR_GREEN}xcpkg xcinfo${COLOR_OFF}
-    show your Xcode information.
+${COLOR_GREEN}xcpkg xcinfo [ --developer-dir=<DEVELOPER_DIR> --list-supported-platform-names-only]${COLOR_OFF}
+    show current active Xcode information.
 
-    If ${COLOR_PURPLE}DEVELOPER_DIR${COLOR_OFF} environment variable is set, xcpkg will use it, otherwize, run command ${COLOR_PURPLE}xcode-select -p${COLOR_OFF} to determine.
+    when --developer-dir=<DEVELOPER_DIR> option is not specified, if ${COLOR_PURPLE}DEVELOPER_DIR${COLOR_OFF} environment variable is set, xcpkg will use it, otherwize, run command ${COLOR_PURPLE}xcode-select -p${COLOR_OFF} to determine.
 
 ${COLOR_GREEN}xcpkg integrate zsh [-v]${COLOR_OFF}
     download a zsh-completion script file to a approprivate location.
@@ -7081,15 +6963,6 @@ ${COLOR_GREEN}xcpkg update${COLOR_OFF}
 
 ${COLOR_GREEN}xcpkg cleanup${COLOR_OFF}
     delete the unused cached files.
-
-${COLOR_GREEN}xcpkg ls-target-platform-names${COLOR_OFF}
-    list the supported target platforms.
-
-${COLOR_GREEN}xcpkg ls-target-platform-versions [PLATFORM]${COLOR_OFF}
-    list the supported target platform's version.
-
-${COLOR_GREEN}xcpkg ls-target-platform-archs   [32bit|64bit|all] [PLATFORM]${COLOR_OFF}
-    list the supported target archs.
 
 ${COLOR_GREEN}xcpkg ls-available${COLOR_OFF}
     list all available packages.
@@ -7206,10 +7079,10 @@ ${COLOR_GREEN}TARGET-PLATFORM-SPEC:${COLOR_OFF}
     indicates which platform should be built for.
 
 ${COLOR_GREEN}PLATFORM-VERSION:${COLOR_OFF}
-    the minimum version supported by this package.
+    the minimum version supported by this package. PLATFORM-VERSION usually matches regular expression pattern '[0-9][0-9]?.[0-9][0-9]?', e.g. 10.15, 11.0, 12.0, 12.6, etc.
 
 ${COLOR_GREEN}PLATFORM-NAME:${COLOR_OFF}
-    xcpkg ls-target-platform-names command will list the supported platform names.
+    'xcpkg xcinfo --list-supported-platform-names-only' command will list the supported platform names.
 
 ${COLOR_GREEN}PACKAGE-NAME:${COLOR_OFF}
     must match regular expression pattern ^[A-Za-z0-9+-._]{1,50}$
@@ -7299,7 +7172,7 @@ EOF
             return 0;
             ;;
         xcinfo)
-            inspect_xcode_information
+            xcinfo "$@"
             return 0;
             ;;
         gen-url-transform-sample)
@@ -7377,17 +7250,13 @@ EOF
                 run uppm env
             fi
 
-            inspect_xcode_information
+            run xcinfo
 
             if [ "$2" = '-v' ] ; then
                 echo "${COLOR_PURPLE}==>${COLOR_OFF} ${COLOR_GREEN}PATH${COLOR_OFF}"
                 printf '%s\n' "$PATH" | tr : '\n'
             fi
             ;;
-
-        ls-target-platform-names)    shift; __list_supported_target_platform_names     "$@" ;;
-        ls-target-platform-versions) shift; __list_supported_target_platform_versions  "$@" ;;
-        ls-target-platform-archs)    shift; __list_supported_target_platform_archs     "$@" ;;
 
         ls-available) shift; __list_available_packages ;;
         ls-installed) shift; __list_installed_packages ;;

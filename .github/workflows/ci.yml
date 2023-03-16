@@ -34,7 +34,10 @@ jobs:
       - run: ./xcpkg setup --use-brew
 
       - run: ./xcpkg sysinfo
+
       - run: ./xcpkg xcinfo
+      - run: ./xcpkg xcinfo --list-target-platform-names-only
+
       - run: ./xcpkg env
       - run: ./xcpkg env -v
 
@@ -76,26 +79,6 @@ jobs:
       - run: ./xcpkg formula-repo-list
       - run: ./xcpkg formula-view curl
 
-      - run: ./xcpkg ls-target-platform-names
-
-      - run: ./xcpkg ls-target-platform-archs
-      - run: ./xcpkg ls-target-platform-archs MacOSX
-      - run: ./xcpkg ls-target-platform-archs AppleTVOS
-      - run: ./xcpkg ls-target-platform-archs AppleTVSimulator
-      - run: ./xcpkg ls-target-platform-archs iPhoneOS
-      - run: ./xcpkg ls-target-platform-archs iPhoneSimulator
-      - run: ./xcpkg ls-target-platform-archs WatchOS
-      - run: ./xcpkg ls-target-platform-archs WatchSimulator
-
-      - run: ./xcpkg ls-target-platform-versions
-      - run: ./xcpkg ls-target-platform-versions MacOSX
-      - run: ./xcpkg ls-target-platform-versions AppleTVOS
-      - run: ./xcpkg ls-target-platform-versions AppleTVSimulator
-      - run: ./xcpkg ls-target-platform-versions iPhoneOS
-      - run: ./xcpkg ls-target-platform-versions iPhoneSimulator
-      - run: ./xcpkg ls-target-platform-versions WatchOS
-      - run: ./xcpkg ls-target-platform-versions WatchSimulator
-
       - run: ./xcpkg ls-available
       - run: ./xcpkg ls-installed
       - run: ./xcpkg ls-outdated
@@ -133,8 +116,12 @@ jobs:
       - run: xcpkg -V
 
       - run: ./xcpkg sysinfo
+
       - run: ./xcpkg xcinfo
+      - run: ./xcpkg xcinfo --list-target-platform-names-only
+
       - run: xcpkg setup
+
       - run: xcpkg env
       - run: xcpkg env -v
 
@@ -167,26 +154,6 @@ jobs:
 
       - run: xcpkg formula-repo-list
       - run: xcpkg formula-view curl
-
-      - run: xcpkg ls-target-platform-names
-
-      - run: xcpkg ls-target-platform-archs
-      - run: xcpkg ls-target-platform-archs MacOSX
-      - run: xcpkg ls-target-platform-archs AppleTVOS
-      - run: xcpkg ls-target-platform-archs AppleTVSimulator
-      - run: xcpkg ls-target-platform-archs iPhoneOS
-      - run: xcpkg ls-target-platform-archs iPhoneSimulator
-      - run: xcpkg ls-target-platform-archs WatchOS
-      - run: xcpkg ls-target-platform-archs WatchSimulator
-
-      - run: xcpkg ls-target-platform-versions
-      - run: xcpkg ls-target-platform-versions MacOSX
-      - run: xcpkg ls-target-platform-versions AppleTVOS
-      - run: xcpkg ls-target-platform-versions AppleTVSimulator
-      - run: xcpkg ls-target-platform-versions iPhoneOS
-      - run: xcpkg ls-target-platform-versions iPhoneSimulator
-      - run: xcpkg ls-target-platform-versions WatchOS
-      - run: xcpkg ls-target-platform-versions WatchSimulator
 
       - run: xcpkg ls-available
       - run: xcpkg ls-installed

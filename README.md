@@ -39,6 +39,15 @@ all relevant dirs and files are located in `~/.xcpkg` directory.
 
         xcpkg xcinfo
 
+*   **show the given [Xcode](https://developer.apple.com/xcode) information**
+
+        xcpkg xcinfo --developer-dir=/Applications/Xcode12.app/Contents/Developer
+
+*   **show the supported target platform names only**
+
+        xcpkg xcinfo --list-target-platform-names-only
+        xcpkg xcinfo --list-target-platform-names-only --developer-dir=/Applications/Xcode12.app/Contents/Developer
+
 *   **show your system and current actived [Xcode](https://developer.apple.com/xcode) information**
 
         xcpkg env
@@ -236,25 +245,6 @@ all relevant dirs and files are located in `~/.xcpkg` directory.
 *   **delete the unused cached files**
         
         xcpkg cleanup
-        
-*   **list the supported target platforms**
-        
-        xcpkg ls-target-platform-names
-        
-*   **list the supported target platform's versions**
-
-        xcpkg ls-target-platform-versions
-        xcpkg ls-target-platform-versions iPhoneOS
-        xcpkg ls-target-platform-versions iPhoneSimulator
-        xcpkg ls-target-platform-versions MacOSX
-        
-*   **list the supported target archs**
-
-        xcpkg ls-target-platform-archs
-        xcpkg ls-target-platform-archs iPhoneOS
-        xcpkg ls-target-platform-archs iPhoneOS 64bit
-        xcpkg ls-target-platform-archs iPhoneOS 32bit
-        xcpkg ls-target-platform-archs iPhoneOS all
         
 
 ## environment variables
