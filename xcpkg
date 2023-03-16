@@ -4672,7 +4672,7 @@ EOF
             shared-only|shared-prefered)
                 libFileNameSuffix='.dylib'
                 ;;
-            *)  die "unrecognized link type: $LINK_TYPE"
+            *)  abort 1 "unrecognized link type: $LINK_TYPE"
         esac
 
         for DEPENDENT_PACKAGE_INSTALL_DIR in $RECURSIVE_DEPENDENT_PACKAGE_INSTALL_DIRS
@@ -5977,7 +5977,7 @@ xcinfo() {
             --developer-dir=*)
                 USER_SPECIFIED_DEVELOPER_DIR="${arg#'--developer-dir='}"
                 ;;
-            *)  die "unrecognized option: $arg"
+            *)  abort 1 "unrecognized option: $arg"
         esac
     done
 
