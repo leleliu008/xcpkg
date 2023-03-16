@@ -6079,9 +6079,8 @@ EOF
 
     $TARGET_PLATFORM_NAME:
         SDKROOT: $SDKROOT
-        supported:
-            archs: $SDK_SUPPORT_ARCHS
-            versions: $SDK_SUPPORT_VERSIONS
+        supported-archs: $SDK_SUPPORT_ARCHS
+        supported-versions: $SDK_SUPPORT_VERSIONS
 EOF
     done
 }
