@@ -36,7 +36,7 @@ jobs:
       - run: ./xcpkg sysinfo
 
       - run: ./xcpkg xcinfo
-      - run: ./xcpkg xcinfo --list-target-platform-names-only
+      - run: ./xcpkg xcinfo --list-supported-platform-names-only
 
       - run: ./xcpkg env
       - run: ./xcpkg env -v
@@ -118,7 +118,7 @@ jobs:
       - run: ./xcpkg sysinfo
 
       - run: ./xcpkg xcinfo
-      - run: ./xcpkg xcinfo --list-target-platform-names-only
+      - run: ./xcpkg xcinfo --list-supported-platform-names-only
 
       - run: xcpkg setup
 
