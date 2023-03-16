@@ -6020,6 +6020,45 @@ ${item%.platform}"
     fi
 
     unset XCODE_VERSION; XCODE_VERSION=$(system_profiler SPDeveloperToolsDataType | grep Version | head -n 1 | cut -d: -f2 | sed 's/^ //g')
+
+    cat <<EOF
+DEVELOPER_DIR: $DEVELOPER_DIR
+XCODE_VERSION: $XCODE_VERSION
+
+toolchains:
+    default:
+        CC:      $CC
+        CXX:     $CXX
+        CPP:     $CPP
+        AS:      $AS
+        AR:      $AR
+        RANLIB:  $RANLIB
+        LD:      $LD
+        NM:      $NM
+        SIZE:    $SIZE
+        STRIP:   $STRIP
+        STRINGS: $STRINGS
+        OBJDUMP: $OBJDUMP
+
+platforms:
+EOF
+
+    for TARGET_PLATFORM_NAME in $XCODE_SUPPORT_PLATFORM_NAMES
+    do
+        SDKNAME="$(printf '%s\n' "$TARGET_PLATFORM_NAME" | tr A-Z a-z)"
+        SDKROOT="$(xcrun --sdk "$SDKNAME" --show-sdk-path)"
+        SDK_SUPPORT_ARCHS="$(jq -r ".SupportedTargets.$SDKNAME.Archs | join(\" \")" "$SDKROOT/SDKSettings.json")"
+        SDK_SUPPORT_VERSIONS="$(jq -r ".SupportedTargets.$SDKNAME.ValideDeploymentTargets | reverse | join(\" \")" "$SDKROOT/SDKSettings.json")"
+
+        cat <<EOF
+
+    $TARGET_PLATFORM_NAME:
+        SDKROOT: $SDKROOT
+        supported:
+            archs: $SDK_SUPPORT_ARCHS
+            versions: $SDK_SUPPORT_VERSIONS
+EOF
+    done
 }
 
 __list_supported_target_platform_names() {
@@ -6832,12 +6871,10 @@ EOF
 }
 
 __setup_homebrew() {
-    BREW=
     BREW="$(command -v brew || true)"
 
     if [ -z "$BREW" ] ; then
-        unset SETUP_WORKING_DIR
-        SETUP_WORKING_DIR=$(mktemp -d)
+        SETUP_WORKING_DIR="$(mktemp -d)"
 
         run curl -L -o "$SETUP_WORKING_DIR/homebrew-install.sh" 'https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh'
         run "yes | bash $SETUP_WORKING_DIR/homebrew-install.sh"
@@ -7263,69 +7300,6 @@ EOF
             ;;
         xcinfo)
             inspect_xcode_information
-
-            cat <<EOF
-DEVELOPER_DIR: $DEVELOPER_DIR
-XCODE_VERSION: $XCODE_VERSION
-
-toolchains:
-    default:
-        CC:      $CC
-        CXX:     $CXX
-        CPP:     $CPP
-        AS:      $AS
-        AR:      $AR
-        RANLIB:  $RANLIB
-        LD:      $LD
-        NM:      $NM
-        SIZE:    $SIZE
-        STRIP:   $STRIP
-        STRINGS: $STRINGS
-        OBJDUMP: $OBJDUMP
-
-platforms:
-    MacOSX:
-        SDKROOT: $(xcrun --sdk macosx --show-sdk-path)
-        supported:
-            archs: $(__list_supported_target_platform_archs MacOSX)
-            versions: $(__list_supported_target_platform_versions MacOSX)
-
-    WatchOS:
-        SDKROOT: $(xcrun --sdk watchos --show-sdk-path)
-        supported:
-            archs: $(__list_supported_target_platform_archs WatchOS)
-            versions: $(__list_supported_target_platform_versions WatchOS)
-
-    WatchSimulator:
-        SDKROOT: $(xcrun --sdk watchsimulator --show-sdk-path)
-        supported:
-            archs: $(__list_supported_target_platform_archs WatchSimulator)
-            versions: $(__list_supported_target_platform_versions WatchSimulator)
-
-    iPhoneOS:
-        SDKROOT: $(xcrun --sdk iphoneos --show-sdk-path)
-        supported:
-            archs: $(__list_supported_target_platform_archs iPhoneOS)
-            versions: $(__list_supported_target_platform_versions iPhoneOS)
-
-    iPhoneSimulator:
-        SDKROOT: $(xcrun --sdk iphonesimulator --show-sdk-path)
-        supported:
-            archs: $(__list_supported_target_platform_archs iPhoneSimulator)
-            versions: $(__list_supported_target_platform_versions iPhoneSimulator)
-
-    AppleTVOS:
-        SDKROOT: $(xcrun --sdk appletvos --show-sdk-path)
-        supported:
-            archs: $(__list_supported_target_platform_archs AppleTVOS)
-            versions: $(__list_supported_target_platform_versions AppleTVOS)
-
-    AppleTVSimulator:
-        SDKROOT: $(xcrun --sdk appletvsimulator --show-sdk-path)
-        supported:
-            archs: $(__list_supported_target_platform_archs AppleTVSimulator)
-            versions: $(__list_supported_target_platform_versions AppleTVSimulator)
-EOF
             return 0;
             ;;
         gen-url-transform-sample)
@@ -7405,11 +7379,6 @@ EOF
 
             inspect_xcode_information
 
-            cat <<EOF
-
-DEVELOPER_DIR: $DEVELOPER_DIR
-XCODE_VERSION: $XCODE_VERSION
-EOF
             if [ "$2" = '-v' ] ; then
                 echo "${COLOR_PURPLE}==>${COLOR_OFF} ${COLOR_GREEN}PATH${COLOR_OFF}"
                 printf '%s\n' "$PATH" | tr : '\n'
