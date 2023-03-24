@@ -3832,7 +3832,7 @@ $DOT_CONTENT
         note "build0 mapping was not found in formula, skipped."
     else
         NATIVE_BCACHED_DIR="$PACKAGE_WORKING_DIR/src/-"
-        NATIVE_INSTALL_DIR="$XCPKG_HOME/native/$1"
+        NATIVE_INSTALL_DIR="$XCPKG_HOME/native/$PACKAGE_NAME"
 
         cat <<EOF
 NATIVE_BCACHED_DIR = $NATIVE_BCACHED_DIR
