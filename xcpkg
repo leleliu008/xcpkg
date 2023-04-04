@@ -4928,7 +4928,7 @@ EOF
         # https://docs.rs/cmake/latest/cmake/
         # https://github.com/alexcrichton/cmake-rs
         # this variable is not motioned in their document. you must read the source code of cmake-rs crate.
-        export TARGET_CMAKE_TOOLCHAIN_FILE="$TARGET_WORKING_DIR/toolchain.cmake"
+        export TARGET_CMAKE_TOOLCHAIN_FILE="$PACKAGE_WORKING_DIR/toolchain.cmake"
 
         #################################################################
 
