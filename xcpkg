@@ -3183,6 +3183,18 @@ EOF
     export  CPPFLAGS_FOR_BUILD="-isysroot $SYSROOT_FOR_BUILD -Qunused-arguments"
     export   LDFLAGS_FOR_BUILD="-isysroot $SYSROOT_FOR_BUILD -mmacosx-version-min=$NATIVE_OS_VERS -arch $NATIVE_OS_ARCH"
 
+    if [ "$LOG_LEVEL" -ge 3 ] ; then
+          CFLAGS_FOR_BUILD="$CFLAGS_FOR_BUILD -v"
+        CXXFLAGS_FOR_BUILD="$CXXFLAGS_FOR_BUILD -v"
+         LDFLAGS_FOR_BUILD="$LDFLAGS_FOR_BUILD -Wl,-v"
+    fi
+
+    if [ "$BUILD_TYPE" = release ] ; then
+          CFLAGS_FOR_BUILD="$CFLAGS_FOR_BUILD -Os"
+        CXXFLAGS_FOR_BUILD="$CXXFLAGS_FOR_BUILD -Os"
+         LDFLAGS_FOR_BUILD="$LDFLAGS_FOR_BUILD -Wl,-S"
+    fi
+
     printf '%b\n' "${COLOR_PURPLE}==>${COLOR_OFF} CFLAGS_FOR_BUILD"
     printf '%s\n' "$CFLAGS_FOR_BUILD"   | xargs printf '        %s\n'
     printf '\n'
@@ -3531,20 +3543,8 @@ $DOT_CONTENT
             done
 
             (
-                CPPFLAGS="$CPPFLAGS -I$XCPKG_CORE_DIR/include"
-                LDFLAGS="$LDFLAGS -L$XCPKG_CORE_DIR/lib -Wl,-rpath,$XCPKG_CORE_DIR/lib"
-
-                if [ "$LOG_LEVEL" -ge 3 ] ; then
-                    CFLAGS="$CFLAGS -v"
-                    CXXFLAGS="$CXXFLAGS -v"
-                    LDFLAGS="$LDFLAGS -Wl,-v"
-                fi
-
-                if [ "$BUILD_TYPE" = release ] ; then
-                    CFLAGS="$CFLAGS -Os"
-                    CXXFLAGS="$CXXFLAGS -Os"
-                    LDFLAGS="$LDFLAGS -Wl,-S"
-                fi
+                export CPPFLAGS="$CPPFLAGS -I$XCPKG_CORE_DIR/include"
+                export  LDFLAGS="$LDFLAGS  -L$XCPKG_CORE_DIR/lib -Wl,-rpath,$XCPKG_CORE_DIR/lib"
 
                 export PKG_CONFIG_PATH="$XCPKG_CORE_DIR/lib/pkgconfig"
 
