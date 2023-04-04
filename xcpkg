@@ -3531,33 +3531,20 @@ $DOT_CONTENT
             done
 
             (
-                CCFLAGS="-fPIC -fno-common"
-                XXFLAGS="-fPIC -fno-common"
-                PPFLAGS="-I$XCPKG_CORE_DIR/include"
-                LDFLAGS="-L$XCPKG_CORE_DIR/lib -Wl,-rpath,$XCPKG_CORE_DIR/lib"
-
-                PPFLAGS="-isysroot $SYSROOT -Qunused-arguments $PPFLAGS"
-                CCFLAGS="-isysroot $SYSROOT -Qunused-arguments $CCFLAGS"
-                XXFLAGS="-isysroot $SYSROOT -Qunused-arguments $XXFLAGS"
-                LDFLAGS="-isysroot $SYSROOT -Wl,-search_paths_first $LDFLAGS"
+                CPPFLAGS="$CPPFLAGS -I$XCPKG_CORE_DIR/include"
+                LDFLAGS="$LDFLAGS -L$XCPKG_CORE_DIR/lib -Wl,-rpath,$XCPKG_CORE_DIR/lib"
 
                 if [ "$LOG_LEVEL" -ge 3 ] ; then
-                    CCFLAGS="$CCFLAGS -v"
-                    XXFLAGS="$XXFLAGS -v"
+                    CFLAGS="$CFLAGS -v"
+                    CXXFLAGS="$CXXFLAGS -v"
                     LDFLAGS="$LDFLAGS -Wl,-v"
                 fi
 
                 if [ "$BUILD_TYPE" = release ] ; then
-                    PPFLAGS="$PPFLAGS -DNDEBUG"
-                    CCFLAGS="$CCFLAGS -Os"
-                    XXFLAGS="$XXFLAGS -Os"
+                    CFLAGS="$CFLAGS -Os"
+                    CXXFLAGS="$CXXFLAGS -Os"
                     LDFLAGS="$LDFLAGS -Wl,-S"
                 fi
-
-                export CFLAGS="$CCFLAGS"
-                export CXXFLAGS="$XXFLAGS"
-                export CPPFLAGS="$PPFLAGS"
-                export LDFLAGS="$LDFLAGS"
 
                 export PKG_CONFIG_PATH="$XCPKG_CORE_DIR/lib/pkgconfig"
 
