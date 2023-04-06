@@ -4704,20 +4704,22 @@ EOF
             CMAKE_FIND_DEBUG_MODE=OFF
         fi
 
-        # https://cmake.org/cmake/help/latest/variable/CMAKE_FIND_ROOT_PATH.html
-        # https://cmake.org/cmake/help/latest/variable/CMAKE_IGNORE_PATH.html
         # https://cmake.org/cmake/help/latest/variable/CMAKE_PREFIX_PATH.html
+        # https://cmake.org/cmake/help/latest/variable/CMAKE_IGNORE_PATH.html
+        #
         # https://cmake.org/cmake/help/latest/variable/CMAKE_MODULE_PATH.html
         # https://cmake.org/cmake/help/latest/variable/CMAKE_INCLUDE_PATH.html
         # https://cmake.org/cmake/help/latest/variable/CMAKE_LIBRARY_PATH.html
         # https://cmake.org/cmake/help/latest/variable/CMAKE_PROGRAM_PATH.html
-        unset CMAKE_FIND_ROOT_PATH
-        unset CMAKE_IGNORE_PATH
-        unset CMAKE_PREFIX_PATH
-        unset CMAKE_MODULE_PATH
-        unset CMAKE_INCLUDE_PATH
-        unset CMAKE_LIBRARY_PATH
-        unset CMAKE_PROGRAM_PATH
+        #
+        # https://cmake.org/cmake/help/latest/variable/CMAKE_FIND_ROOT_PATH.html
+        #
+        # https://cmake.org/cmake/help/latest/variable/CMAKE_FIND_ROOT_PATH_MODE_PACKAGE.html
+        # https://cmake.org/cmake/help/latest/variable/CMAKE_FIND_ROOT_PATH_MODE_INCLUDE.html
+        # https://cmake.org/cmake/help/latest/variable/CMAKE_FIND_ROOT_PATH_MODE_LIBRARY.html
+        # https://cmake.org/cmake/help/latest/variable/CMAKE_FIND_ROOT_PATH_MODE_PROGRAM.html
+
+        CMAKE_FIND_ROOT_PATH="$PACKAGE_WORKING_DIR"
 
         for DEPENDENT_PACKAGE_INSTALL_DIR in $RECURSIVE_DEPENDENT_PACKAGE_INSTALL_DIRS
         do
@@ -4726,17 +4728,6 @@ EOF
             else
                 CMAKE_FIND_ROOT_PATH="$CMAKE_FIND_ROOT_PATH;$DEPENDENT_PACKAGE_INSTALL_DIR"
             fi
-
-            for item in bin sbin
-            do
-                if [ -d "$DEPENDENT_PACKAGE_INSTALL_DIR/$item" ] ; then
-                    if [ -z "$CMAKE_IGNORE_PATH" ] ; then
-                        CMAKE_IGNORE_PATH="$DEPENDENT_PACKAGE_INSTALL_DIR/$item"
-                    else
-                        CMAKE_IGNORE_PATH="$CMAKE_IGNORE_PATH;$DEPENDENT_PACKAGE_INSTALL_DIR/$item"
-                    fi
-                fi
-            done
         done
 
         env | sed -n '/^CMAKE_/p'
@@ -4806,9 +4797,9 @@ set(CMAKE_FIND_DEBUG_MODE $CMAKE_FIND_DEBUG_MODE)
 
 set(CMAKE_FIND_ROOT_PATH "$CMAKE_FIND_ROOT_PATH")
 
-set(CMAKE_LIBRARY_PATH "$SYSROOT/usr/lib")
+set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
 
-set(CMAKE_IGNORE_PATH "$CMAKE_IGNORE_PATH")
+set(CMAKE_LIBRARY_PATH "$SYSROOT/usr/lib")
 EOF
         [ "$LOG_LEVEL" -gt "$LOG_LEVEL_QUIET" ] && {
             if command -v bat > /dev/null ; then
@@ -5788,14 +5779,17 @@ gmakew() {
     fi
 }
 
+# https://cmake.org/cmake/help/latest/command/enable_testing.html?highlight=build_testing
 # https://cmake.org/cmake/help/latest/manual/cmake-toolchains.7.html#cross-compiling
+#
 # https://cmake.org/cmake/help/latest/variable/CMAKE_EXPORT_COMPILE_COMMANDS.html
-# https://cmake.org/cmake/help/latest/variable/CMAKE_FIND_ROOT_PATH.html
-# https://cmake.org/cmake/help/latest/variable/CMAKE_PREFIX_PATH.html
 # https://cmake.org/cmake/help/latest/variable/CMAKE_INSTALL_PREFIX.html
 # https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html
 # https://cmake.org/cmake/help/latest/variable/BUILD_SHARED_LIBS.html
-# https://cmake.org/cmake/help/latest/command/enable_testing.html?highlight=build_testing
+#
+# https://cmake.org/cmake/help/latest/variable/CMAKE_FIND_ROOT_PATH.html
+# https://cmake.org/cmake/help/latest/variable/CMAKE_PREFIX_PATH.html
+#
 # run in a subshell
 cmakew() {
     if [ "$STEP_MESSAGE" = 'install for native' ] ; then
