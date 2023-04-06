@@ -3001,10 +3001,10 @@ XCPKG_URL_TRANSFORM  = $XCPKG_URL_TRANSFORM
           LINK_TYPE = $LINK_TYPE
          BUILD_TYPE = $BUILD_TYPE
 
-             DRYRUN = $DRYRUN
+             DRYRUN = ${DRYRUN:-no}
      CCACHE_ENABLED = $CCACHE_ENABLED
     CROSS_COMPILING = $CROSS_COMPILING
-   KEEP_PACKING_DIR = $KEEP_WORKING_DIR
+   KEEP_WORKING_DIR = $KEEP_WORKING_DIR
 EXPORT_COMPILE_COMMANDS_JSON = $EXPORT_COMPILE_COMMANDS_JSON
     "
 
@@ -3846,8 +3846,10 @@ $DOT_CONTENT
 
                 :
             )
-
         fi
+
+        PATH="$(printf '%s\n' "$PATH" | sed "s|:$XCPKG_CORE_BIN_DIR||g")"
+        PATH="$XCPKG_CORE_BIN_DIR:$PATH"
     }
 
     #########################################################################################
@@ -4443,6 +4445,8 @@ EOF
     if [ "$LOG_LEVEL" -ge 3 ] ; then
         CCFLAGS="$CCFLAGS -v"
         XXFLAGS="$XXFLAGS -v"
+        OCFLAGS="$OCFLAGS -v"
+        OXFLAGS="$OXFLAGS -v"
         LDFLAGS="$LDFLAGS -Wl,-v"
     fi
 
@@ -4450,6 +4454,8 @@ EOF
         PPFLAGS="$PPFLAGS -DNDEBUG"
         CCFLAGS="$CCFLAGS -Os"
         XXFLAGS="$XXFLAGS -Os"
+        OCFLAGS="$OCFLAGS -Os"
+        OXFLAGS="$OXFLAGS -Os"
         LDFLAGS="$LDFLAGS -Wl,-S"
     fi
 
@@ -4458,12 +4464,6 @@ EOF
     for DEPENDENT_PACKAGE_NAME in $RECURSIVE_DEPENDENT_PACKAGE_NAMES
     do
         DEPENDENT_PACKAGE_NAME_UNDERSCORE="$(printf '%s\n' "$DEPENDENT_PACKAGE_NAME" | tr '@+-.' '_')"
-
-        unset DEPENDENT_PACKAGE_INSTALL_DIR
-        unset DEPENDENT_PACKAGE_BINARY__DIR
-        unset DEPENDENT_PACKAGE_INCLUDE_DIR
-        unset DEPENDENT_PACKAGE_LIBRARY_DIR
-        unset DEPENDENT_PACKAGE_PKGCONF_DIR
 
         DEPENDENT_PACKAGE_INSTALL_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$TARGET_PLATFORM_SPEC/$DEPENDENT_PACKAGE_NAME"
         DEPENDENT_PACKAGE_BINARY__DIR="$DEPENDENT_PACKAGE_INSTALL_DIR/bin"
@@ -4798,8 +4798,6 @@ set(CMAKE_FIND_DEBUG_MODE $CMAKE_FIND_DEBUG_MODE)
 set(CMAKE_FIND_ROOT_PATH "$CMAKE_FIND_ROOT_PATH")
 
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
-
-set(CMAKE_LIBRARY_PATH "$SYSROOT/usr/lib")
 EOF
         [ "$LOG_LEVEL" -gt "$LOG_LEVEL_QUIET" ] && {
             if command -v bat > /dev/null ; then
@@ -7107,13 +7105,12 @@ __setup_homebrew() {
         run "$BREW" update
     fi
 
-    BREW_PACKAGE_EXEFIND_PATH='PLACE-HOLDER'
+    BREW_PACKAGE_EXEFIND_PATH=
 
     for item in coreutils findutils util-linux gawk gsed grep gnu-tar gzip lzip unzip zip jq yq git curl tree
     do
         run "$BREW" install "$item"
 
-        unset BREW_PACKAGE_INSTALLED_DIR
         BREW_PACKAGE_INSTALLED_DIR="$(brew --prefix "$item")"
 
         if [ -d "$BREW_PACKAGE_INSTALLED_DIR/bin" ] ; then
@@ -7128,6 +7125,8 @@ __setup_homebrew() {
             BREW_PACKAGE_EXEFIND_PATH="$BREW_PACKAGE_EXEFIND_PATH:$BREW_PACKAGE_INSTALLED_DIR/libexec/gnubin"
         fi
     done
+
+    BREW_PACKAGE_EXEFIND_PATH="${BREW_PACKAGE_EXEFIND_PATH#':'}"
 
     run ln -sf /usr/local/bin/gln      "$XCPKG_CORE_BIN_DIR/ln"
     run ln -sf /usr/local/bin/gtar     "$XCPKG_CORE_BIN_DIR/tar"
@@ -7216,8 +7215,8 @@ __setup_uppm() {
     run "$UPPM" env
     run "$UPPM" update
 
-    UPPM_PACKAGE_EXEFIND_PATH='PLACE-HOLDER'
-    UPPM_PACKAGE_ACLOCAL_PATH='PLACE-HOLDER'
+    UPPM_PACKAGE_EXEFIND_PATH=
+    UPPM_PACKAGE_ACLOCAL_PATH=
 
     for item in coreutils findutils gawk gsed grep gtar gzip lzip unzip zip jq yq git curl tree
     do
@@ -7238,6 +7237,9 @@ __setup_uppm() {
             UPPM_PACKAGE_ACLOCAL_PATH="$UPPM_PACKAGE_ACLOCAL_PATH:$UPPM_PACKAGE_INSTALLED_DIR/share/aclocal"
         fi
     done
+
+    UPPM_PACKAGE_EXEFIND_PATH="${UPPM_PACKAGE_EXEFIND_PATH#':'}"
+    UPPM_PACKAGE_ACLOCAL_PATH="${UPPM_PACKAGE_ACLOCAL_PATH#':'}"
 
     cat > "$XCPKG_CORE_DIR/env" <<EOF
 XCPKG_USE_EXTERNAL_PACKAGE_MANAGER=uppm
