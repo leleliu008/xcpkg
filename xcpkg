@@ -7149,7 +7149,7 @@ export PATH="$BREW_PACKAGE_EXEFIND_PATH:\$PATH"
 EOF
 }
 
-# use commands: uname curl tar gzip xz sed
+# use commands: uname curl tar xz cut
 __setup_uppm() {
     unset FETCH_TOOL
 
@@ -7171,32 +7171,34 @@ __setup_uppm() {
 
     ##################################################################################
 
-    unset NATIVE_OS_ARCH
+    SETUP_WORKING_DIR="$(mktemp -d)"
 
-    NATIVE_OS_ARCH="$(uname -m)"
-
-    unset SETUP_WORKING_DIR
-    SETUP_WORKING_DIR=$(mktemp -d)
-
-    JSON_FILEPATH="$SETUP_WORKING_DIR/latest.json"
-
-    wfetch "https://api.github.com/repos/leleliu008/uppm-package-repository-macos-$NATIVE_OS_ARCH/releases/latest" --output-path="$JSON_FILEPATH"
-
-    FETCH_BASE_URL="https://github.com/leleliu008/uppm-package-repository-macos-$NATIVE_OS_ARCH/releases/download/$(sed -n '/"tag_name":/p' "$JSON_FILEPATH" | sed 's|  "tag_name": "\(.*\)",|\1|')"
+    run cd "$SETUP_WORKING_DIR"
 
     ##################################################################################
 
-    unset UPPM_ARCHIVE_FILENAME
-    UPPM_ARCHIVE_FILENAME=$(sed -n '/"name":/p' "$JSON_FILEPATH" | sed -e 's|[[:space:]]||g' -e 's|"name":"\(.*\)",|\1|' | sed -n '/^uppm-/p')
-    UPPM_ARCHIVE_FILEPATH="$SETUP_WORKING_DIR/$UPPM_ARCHIVE_FILENAME"
+    wfetch 'https://raw.githubusercontent.com/leleliu008/uppm/master/latest-release' --output-name=uppm-latest-release
 
-    wfetch "${FETCH_BASE_URL}/${UPPM_ARCHIVE_FILENAME}" --output-path="$UPPM_ARCHIVE_FILEPATH"
+    ##################################################################################
 
-    run install -d "$XCPKG_CORE_DIR"
+    UPPM_LATEST_RELEASE_TAGNAME="$(cat uppm-latest-release)"
+    UPPM_LATEST_RELEASE_VERSION="$(printf '%s\n' "$UPPM_LATEST_RELEASE_TAGNAME" | cut -d+ -f1)"
 
-    run tar vxf "$UPPM_ARCHIVE_FILEPATH" --strip-components=1 --no-same-owner -C "$XCPKG_CORE_DIR"
+    case $(sw_vers -productVersion | cut -d. -f1) in
+        10) X='10.15' ;;
+        11) X='11.0'  ;;
+        12) X='12.0'  ;;
+        13) X='13.0'  ;;
+        *)  X='13.0'  ;;
+    esac
 
-    rm -rf "$XCPKG_CORE_DIR/.xcpkg"
+    NATIVE_OS_ARCH="$(uname -m)"
+
+    UPPM_LATEST_RELEASE_ARCHIVE_FILENAME="uppm-${UPPM_LATEST_RELEASE_VERSION}-macos${X}-${NATIVE_OS_ARCH}.tar.xz"
+
+    wfetch "https://github.com/leleliu008/uppm/releases/download/${UPPM_LATEST_RELEASE_TAGNAME}/${UPPM_LATEST_RELEASE_ARCHIVE_FILENAME}" --output-name="$UPPM_LATEST_RELEASE_ARCHIVE_FILENAME"
+
+    run tar vxf "$UPPM_LATEST_RELEASE_ARCHIVE_FILENAME" --strip-components=1 --no-same-owner -C "$PPKG_CORE_DIR"
 
     ##################################################################################
 
