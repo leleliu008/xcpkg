@@ -3486,10 +3486,6 @@ $DOT_CONTENT
         PACKAGE_DEP_UPP_ALL="$PACKAGE_DEP_UPP_ALL ccache"
     fi
 
-    if [ "$NATIVE_OS_KIND" != darwin ] ; then
-        PACKAGE_DEP_UPP_ALL="$PACKAGE_DEP_UPP_ALL patchelf"
-    fi
-
     PACKAGE_DEP_UPP_ALL="$PACKAGE_DEP_UPP_ALL tree"
 
     #########################################################################################
@@ -3557,6 +3553,10 @@ $DOT_CONTENT
 
         for item in $PACKAGE_DEP_UPP_ALL
         do
+            case $item in
+                perl|python3|libtool|autoconf|automake) continue
+            esac
+
             run "$UPPM" install "$item"
 
             UPPM_PACKAGE_INSTALLED_DIR="$("$UPPM" info "$item" installed-dir)"
