@@ -118,8 +118,9 @@ all relevant dirs and files are located in `~/.xcpkg` directory.
 
     ```bash
     xcpkg info curl
-    xcpkg info curl summary
     xcpkg info curl version
+    xcpkg info curl license
+    xcpkg info curl summary
     xcpkg info curl web-url
     xcpkg info curl git-url
     xcpkg info curl git-sha
@@ -127,32 +128,52 @@ all relevant dirs and files are located in `~/.xcpkg` directory.
     xcpkg info curl src-url
     xcpkg info curl src-sha
 
-    xcpkg info curl formula-path
-
-    xcpkg info curl formula-json
-    xcpkg info curl formula-yaml
-
-    xcpkg info curl formula-json | jq .
-    xcpkg info curl formula-yaml | yq .
-
-    xcpkg info curl receipt-path
-
-    xcpkg info curl receipt-json
-    xcpkg info curl receipt-yaml
-
-    xcpkg info curl receipt-json | jq .
-    xcpkg info curl receipt-yaml | yq .
-
     xcpkg info curl installed-dir
     xcpkg info curl installed-files
+    xcpkg info curl installed-version
     xcpkg info curl installed-timestamp-unix
     xcpkg info curl installed-timestamp-iso-8601
     xcpkg info curl installed-timestamp-rfc-3339
     xcpkg info curl installed-timestamp-iso-8601-utc
     xcpkg info curl installed-timestamp-rfc-3339-utc
-    xcpkg info curl installed-version
 
     xcpkg info @all
+    ```
+
+* **show formula of the given package**
+
+    ```bash
+    xcpkg formula curl
+    xcpkg formula curl --yaml
+    xcpkg formula curl --json
+    xcpkg formula curl --path
+    xcpkg formula curl version
+    xcpkg formula curl license
+    xcpkg formula curl summary
+    xcpkg formula curl web-url
+    xcpkg formula curl git-url
+    xcpkg formula curl git-sha
+    xcpkg formula curl git-ref
+    xcpkg formula curl src-url
+    xcpkg formula curl src-sha
+    ```
+
+* **show receipt of the given installed package**
+
+    ```bash
+    xcpkg receipt iPhoneOS/9.0/armv7s/curl
+    xcpkg receipt iPhoneOS/9.0/armv7s/curl --yaml
+    xcpkg receipt iPhoneOS/9.0/armv7s/curl --json
+    xcpkg receipt iPhoneOS/9.0/armv7s/curl --path
+    xcpkg receipt iPhoneOS/9.0/armv7s/curl version
+    xcpkg receipt iPhoneOS/9.0/armv7s/curl license
+    xcpkg receipt iPhoneOS/9.0/armv7s/curl summary
+    xcpkg receipt iPhoneOS/9.0/armv7s/curl web-url
+    xcpkg receipt iPhoneOS/9.0/armv7s/curl git-url
+    xcpkg receipt iPhoneOS/9.0/armv7s/curl git-sha
+    xcpkg receipt iPhoneOS/9.0/armv7s/curl git-ref
+    xcpkg receipt iPhoneOS/9.0/armv7s/curl src-url
+    xcpkg receipt iPhoneOS/9.0/armv7s/curl src-sha
     ```
 
 * **show packages that are depended by the given package**
@@ -253,7 +274,7 @@ all relevant dirs and files are located in `~/.xcpkg` directory.
     ```
 
 * **delete a existing formula repository**
-  
+
     ```bash
     xcpkg formula-repo-del my_repo
     ```
