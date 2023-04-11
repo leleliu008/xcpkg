@@ -1533,9 +1533,10 @@ EOF
   __show_receipt_of_the_given_package() {
     [ -z "$1" ] && abort 1 "__show_receipt_of_the_given_package <PACKAGE-SPEC> [--json] [--yaml] [--path] [<KEY>], <PACKAGE-NAME> is unspecified."
 
-    unset PACKAGE_SPEC
+    XCODE_SUPPORT_PLATFORM_NAMES='MacOSX DriverKit WatchOS WatchSimulator iPhoneOS iPhoneSimulator AppleTVOS AppleTVSimulator'
 
-    PACKAGE_SPEC=$(inspect_package_spec "$1")
+    PACKAGE_SPEC=
+    PACKAGE_SPEC="$(inspect_package_spec "$1")"
 
     __load_receipt_of_the_given_package "$PACKAGE_SPEC"
 
@@ -2831,7 +2832,8 @@ inspect_install_arguments() {
                 ;;
             -*) abort 1 "unrecognized option: $1"
                 ;;
-            *)  unset PACKAGE_SPEC; PACKAGE_SPEC="$(inspect_package_spec "$1")"
+            *)  PACKAGE_SPEC=
+                PACKAGE_SPEC="$(inspect_package_spec "$1")"
 
                 if [ -z "$USER_SPECIFIED_PACKAGE_SPEC_LIST" ] ; then
                     USER_SPECIFIED_PACKAGE_SPEC_LIST="$PACKAGE_SPEC"
@@ -6356,7 +6358,7 @@ xcinfo() {
     export  STRINGS="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/strings"
     export  OBJDUMP="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/objdump"
 
-    unset XCODE_SUPPORT_PLATFORM_NAMES
+    XCODE_SUPPORT_PLATFORM_NAMES=
 
     XCODE_PLATFORMS_DIR="$DEVELOPER_DIR/Platforms"
 
@@ -6480,9 +6482,8 @@ EOF
   __pack_the_given_installed_package() {
     XCODE_SUPPORT_PLATFORM_NAMES='MacOSX DriverKit WatchOS WatchSimulator iPhoneOS iPhoneSimulator AppleTVOS AppleTVSimulator'
 
-    unset PACKAGE_SPEC
-
-    PACKAGE_SPEC=$(inspect_package_spec "$1")
+    PACKAGE_SPEC=
+    PACKAGE_SPEC="$(inspect_package_spec "$1")"
 
     __load_receipt_of_the_given_package "$PACKAGE_SPEC"
 
