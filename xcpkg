@@ -3505,7 +3505,8 @@ $DOT_CONTENT
 
         for item in $PACKAGE_DEP_UPP_ALL
         do
-            unset BREW_PACKAGE_NAME; BREW_PACKAGE_NAME=$(package_name_transform_from_uppm_to_brew "$item")
+            BREW_PACKAGE_NAME=
+            BREW_PACKAGE_NAME=$(package_name_transform_from_uppm_to_brew "$item")
 
             if [ "$BREW_PACKAGE_NAME" = 'python3' ] ; then
                 run "$BREW" install --overwrite "$BREW_PACKAGE_NAME"
@@ -3513,7 +3514,8 @@ $DOT_CONTENT
                 run "$BREW" install             "$BREW_PACKAGE_NAME"
             fi
 
-            unset BREW_PACKAGE_INSTALLED_DIR; BREW_PACKAGE_INSTALLED_DIR="$("$BREW" --prefix "$BREW_PACKAGE_NAME")"
+            BREW_PACKAGE_INSTALLED_DIR=
+            BREW_PACKAGE_INSTALLED_DIR="$("$BREW" --prefix "$BREW_PACKAGE_NAME")"
 
             if [ -d  "$BREW_PACKAGE_INSTALLED_DIR/bin" ] ; then
                 PATH="$BREW_PACKAGE_INSTALLED_DIR/bin:$PATH"
@@ -3541,8 +3543,6 @@ $DOT_CONTENT
         PACKAGE_USE_LIBTOOL=no
         PACKAGE_USE_AUTOMAKE=no
         PACKAGE_USE_AUTOCONF=no
-
-        PACKAGE_DEP_UPP_ALL=
 
         for item in $PACKAGE_DEP_UPP_ALL
         do
