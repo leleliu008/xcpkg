@@ -17,9 +17,16 @@ _commands=(
     'is-outdated:is the given package outdated.'
     'tree:list files of the given installed package in a tree-like format.'
     'info:show infomation of the given package or all available packages.'
-    'formula-view:view the formula of the given package.'
     'formula-edit:edit the formula of the given package.'
-    'formula-repo:add, delete, list the formula-repos.'
+    'formula-repo-init:create a new empty formula repository.'
+    'formula-repo-add:create a new empty formula repository then sync with server.'
+    'formula-repo-del:delete the given formula repository from your local cache.'
+    'formula-repo-sync:sync the given formula repository.'
+    'formula-repo-conf:change the config of the given formula repository.'
+    'formula-repo-info:show infomation of the given formula repository.'
+    'formula-repo-list:list all available formula repositories.'
+    'formula:show formula of the given package.'
+    'receipt:show receipt of the given package.'
     'install:install packages.'
     'reinstall:reinstall packages.'
     'uninstall:uninstall packages.'
@@ -37,7 +44,7 @@ _commands=(
     'logs:show logs of the given installed package.'
     'gen-github-workflows:generate github workflows.'
     'gen-url-transform-sample:generate url-transform sample.'
-    'compare-versions:compare versions with homebrew or ppkg.'
+    'compare-versions:compare versions with homebrew or xcpkg.'
 )
 
 function _xcpkg_commands() {
@@ -80,11 +87,6 @@ function _xcpkg() {
                     _arguments \
                         ':platform:($(xcpkg ls-target-platform-names))' \
                         ':bit:(64bit 32bit all)'
-                    ;;
-                formula-view)
-                    _arguments \
-                        '1:package-name:_xcpkg_available_packages' \
-                        '--no-color[disables color highlighting]'
                     ;;
                 formula-edit)
                     _arguments \
@@ -136,8 +138,21 @@ function _xcpkg() {
                 formula-repo-info)
                     _arguments '1:formula-repo-name:($(xcpkg formula-repo-list | sed -n "/^name: /p" | cut -c7-))'
                     ;;
-                integrate)
-                    _arguments '1:what:(zsh)'
+                formula)
+                    _arguments '1:package-name:_xcpkg_available_packages' \
+                        + '(op)' \
+                        '--path[show formula file path only]' \
+                        '--yaml[show formula file content in yaml format]' \
+                        '--json[show formula file content in json format]' \
+                        ':key:(summary version license web-url git-url git-sha git-ref src-url src-sha fix-url fix-sha res-url res-sha dep-pkg dep-upp dep-pym dep-plm ppflags ccflags xxflags ldflags bscript binbstd bsystem dopatch install symlink)'
+                    ;;
+                receipt)
+                    _arguments '1:package-name:_xcpkg_installed_packages' \
+                        + '(op)' \
+                        '--path[show receipt file path only]' \
+                        '--yaml[show receipt file content in yaml format]' \
+                        '--json[show receipt file content in json format]' \
+                        ':key:(summary version license web-url git-url git-sha git-ref src-url src-sha fix-url fix-sha res-url res-sha dep-pkg dep-upp dep-pym dep-plm ppflags ccflags xxflags ldflags bscript binbstd bsystem dopatch install symlink signature timestamp)'
                     ;;
                 info)
                     case $words[3] in
@@ -234,6 +249,9 @@ function _xcpkg() {
                     ;;
                 is-outdated)
                     _arguments '1:package-name:_xcpkg_outdated_packages'
+                    ;;
+                integrate)
+                    _arguments '1:what:(zsh)'
                     ;;
                 compare-versions)
                     _arguments '1:which:(brew ppkg)'

@@ -1529,11 +1529,15 @@ EOF
 ##############################################################################
 # {{{ xcpkg receipt
 
-# __show_receipt_of_the_given_package <PACKAGE-NAME> [--json] [--yaml] [--path] [<KEY>]
+# __show_receipt_of_the_given_package <PACKAGE-SPEC> [--json] [--yaml] [--path] [<KEY>]
   __show_receipt_of_the_given_package() {
-    [ -z "$1" ] && abort 1 "__show_receipt_of_the_given_package <PACKAGE-NAME> [--json] [--yaml] [--path] [<KEY>], <PACKAGE-NAME> is unspecified."
+    [ -z "$1" ] && abort 1 "__show_receipt_of_the_given_package <PACKAGE-SPEC> [--json] [--yaml] [--path] [<KEY>], <PACKAGE-NAME> is unspecified."
 
-    __load_receipt_of_the_given_package "$1"
+    unset PACKAGE_SPEC
+
+    PACKAGE_SPEC=$(inspect_package_spec "$1")
+
+    __load_receipt_of_the_given_package "$PACKAGE_SPEC"
 
     case $2 in
         --yaml|'')
@@ -7329,10 +7333,10 @@ ${COLOR_GREEN}xcpkg is-outdated  <PACKAGE-SPEC>${COLOR_OFF}
 ${COLOR_GREEN}xcpkg search <REGULAR-EXPRESS-PATTERN>${COLOR_OFF}
     search all available packages whose name matches the given regular express pattern.
 
-${COLOR_GREEN}ppkg formula <PACKAGE-NAME> [--path] [--yaml] [--json] [<KEY>]${COLOR_OFF}
+${COLOR_GREEN}xcpkg formula <PACKAGE-NAME> [--path] [--yaml] [--json] [<KEY>]${COLOR_OFF}
     show formula of the given available package.
 
-${COLOR_GREEN}ppkg receipt <PACKAGE-SPEC> [--path] [--yaml] [--json] [<KEY>]${COLOR_OFF}
+${COLOR_GREEN}xcpkg receipt <PACKAGE-SPEC> [--path] [--yaml] [--json] [<KEY>]${COLOR_OFF}
     show receipt of the given installed package.
 
 ${COLOR_GREEN}xcpkg formula-edit <PACKAGE-NAME> --editor=<EDITOR>${COLOR_OFF}
@@ -7615,7 +7619,9 @@ EOF
         is-installed) shift; is_package_installed "$@" ;;
         is-outdated)  shift; is_package__outdated "$@" ;;
 
-        formula-view) shift; __view_formula_of_the_given_package "$@" ;;
+        formula) shift; __show_formula_of_the_given_package "$@" ;;
+        receipt) shift; __show_receipt_of_the_given_package "$@" ;;
+
         formula-edit) shift; __edit_formula_of_the_given_package "$@" ;;
 
         update)            shift; __sync_available_formula_repositories "$@" ;;

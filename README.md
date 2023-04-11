@@ -118,6 +118,8 @@ all relevant dirs and files are located in `~/.xcpkg` directory.
 
     ```bash
     xcpkg info curl
+    xcpkg info curl --yaml
+    xcpkg info curl --json
     xcpkg info curl version
     xcpkg info curl license
     xcpkg info curl summary
@@ -241,13 +243,6 @@ all relevant dirs and files are located in `~/.xcpkg` directory.
     ```bash
     xcpkg upgrade-self
     xcpkg upgrade-self -v
-    ```
-
-* **view the formula of the given package**
-
-    ```bash
-    xcpkg formula-view curl
-    xcpkg formula-view curl --no-color
     ```
 
 * **edit the formula of the given package**

@@ -54,33 +54,33 @@ jobs:
       - run: ./xcpkg search uctags
 
 
-      - run: ./ppkg info @all
-      - run: ./ppkg info uctags
-      - run: ./ppkg info uctags --yaml
-      - run: ./ppkg info uctags --json
-      - run: ./ppkg info uctags version
-      - run: ./ppkg info uctags license
-      - run: ./ppkg info uctags summary
-      - run: ./ppkg info uctags web-url
-      - run: ./ppkg info uctags git-url
-      - run: ./ppkg info uctags git-sha
-      - run: ./ppkg info uctags git-ref
-      - run: ./ppkg info uctags src-url
-      - run: ./ppkg info uctags src-sha
+      - run: ./xcpkg info @all
+      - run: ./xcpkg info uctags
+      - run: ./xcpkg info uctags --yaml
+      - run: ./xcpkg info uctags --json
+      - run: ./xcpkg info uctags version
+      - run: ./xcpkg info uctags license
+      - run: ./xcpkg info uctags summary
+      - run: ./xcpkg info uctags web-url
+      - run: ./xcpkg info uctags git-url
+      - run: ./xcpkg info uctags git-sha
+      - run: ./xcpkg info uctags git-ref
+      - run: ./xcpkg info uctags src-url
+      - run: ./xcpkg info uctags src-sha
 
 
-      - run: ./ppkg formula uctags
-      - run: ./ppkg formula uctags --yaml
-      - run: ./ppkg formula uctags --json
-      - run: ./ppkg formula uctags version
-      - run: ./ppkg formula uctags license
-      - run: ./ppkg formula uctags summary
-      - run: ./ppkg formula uctags web-url
-      - run: ./ppkg formula uctags git-url
-      - run: ./ppkg formula uctags git-sha
-      - run: ./ppkg formula uctags git-ref
-      - run: ./ppkg formula uctags src-url
-      - run: ./ppkg formula uctags src-sha
+      - run: ./xcpkg formula uctags
+      - run: ./xcpkg formula uctags --yaml
+      - run: ./xcpkg formula uctags --json
+      - run: ./xcpkg formula uctags version
+      - run: ./xcpkg formula uctags license
+      - run: ./xcpkg formula uctags summary
+      - run: ./xcpkg formula uctags web-url
+      - run: ./xcpkg formula uctags git-url
+      - run: ./xcpkg formula uctags git-sha
+      - run: ./xcpkg formula uctags git-ref
+      - run: ./xcpkg formula uctags src-url
+      - run: ./xcpkg formula uctags src-sha
 
 
       - run: ./xcpkg depends uctags
@@ -93,28 +93,28 @@ jobs:
       - run: ./xcpkg install MacOSX/10.15/x86_64/uctags
 
 
-      - run: ./ppkg receipt MacOSX/10.15/x86_64/uctags
-      - run: ./ppkg receipt MacOSX/10.15/x86_64/uctags --yaml
-      - run: ./ppkg receipt MacOSX/10.15/x86_64/uctags --json
-      - run: ./ppkg receipt MacOSX/10.15/x86_64/uctags version
-      - run: ./ppkg receipt MacOSX/10.15/x86_64/uctags license
-      - run: ./ppkg receipt MacOSX/10.15/x86_64/uctags summary
-      - run: ./ppkg receipt MacOSX/10.15/x86_64/uctags web-url
-      - run: ./ppkg receipt MacOSX/10.15/x86_64/uctags git-url
-      - run: ./ppkg receipt MacOSX/10.15/x86_64/uctags git-sha
-      - run: ./ppkg receipt MacOSX/10.15/x86_64/uctags git-ref
-      - run: ./ppkg receipt MacOSX/10.15/x86_64/uctags src-url
-      - run: ./ppkg receipt MacOSX/10.15/x86_64/uctags src-sha
+      - run: ./xcpkg receipt MacOSX/10.15/x86_64/uctags
+      - run: ./xcpkg receipt MacOSX/10.15/x86_64/uctags --yaml
+      - run: ./xcpkg receipt MacOSX/10.15/x86_64/uctags --json
+      - run: ./xcpkg receipt MacOSX/10.15/x86_64/uctags version
+      - run: ./xcpkg receipt MacOSX/10.15/x86_64/uctags license
+      - run: ./xcpkg receipt MacOSX/10.15/x86_64/uctags summary
+      - run: ./xcpkg receipt MacOSX/10.15/x86_64/uctags web-url
+      - run: ./xcpkg receipt MacOSX/10.15/x86_64/uctags git-url
+      - run: ./xcpkg receipt MacOSX/10.15/x86_64/uctags git-sha
+      - run: ./xcpkg receipt MacOSX/10.15/x86_64/uctags git-ref
+      - run: ./xcpkg receipt MacOSX/10.15/x86_64/uctags src-url
+      - run: ./xcpkg receipt MacOSX/10.15/x86_64/uctags src-sha
 
 
-      - run: ./ppkg info MacOSX/10.15/x86_64/uctags installed-dir
-      - run: ./ppkg info MacOSX/10.15/x86_64/uctags installed-files
-      - run: ./ppkg info MacOSX/10.15/x86_64/uctags installed-version
-      - run: ./ppkg info MacOSX/10.15/x86_64/uctags installed-timestamp-unix
-      - run: ./ppkg info MacOSX/10.15/x86_64/uctags installed-timestamp-iso-8601
-      - run: ./ppkg info MacOSX/10.15/x86_64/uctags installed-timestamp-rfc-3339
-      - run: ./ppkg info MacOSX/10.15/x86_64/uctags installed-timestamp-iso-8601-utc
-      - run: ./ppkg info MacOSX/10.15/x86_64/uctags installed-timestamp-rfc-3339-utc
+      - run: ./xcpkg info MacOSX/10.15/x86_64/uctags installed-dir
+      - run: ./xcpkg info MacOSX/10.15/x86_64/uctags installed-files
+      - run: ./xcpkg info MacOSX/10.15/x86_64/uctags installed-version
+      - run: ./xcpkg info MacOSX/10.15/x86_64/uctags installed-timestamp-unix
+      - run: ./xcpkg info MacOSX/10.15/x86_64/uctags installed-timestamp-iso-8601
+      - run: ./xcpkg info MacOSX/10.15/x86_64/uctags installed-timestamp-rfc-3339
+      - run: ./xcpkg info MacOSX/10.15/x86_64/uctags installed-timestamp-iso-8601-utc
+      - run: ./xcpkg info MacOSX/10.15/x86_64/uctags installed-timestamp-rfc-3339-utc
 
 
       - run: ./xcpkg tree MacOSX/10.15/x86_64/uctags
