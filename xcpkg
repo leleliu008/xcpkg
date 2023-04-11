@@ -2027,7 +2027,7 @@ EOF
     [ -z "$1" ] && abort 1 "__show_information_of_the_given_package <PACKAGE-NAME> [--yaml] [--json] [<KEY>], <PACKAGE-NAME> is unspecified."
 
     case $1 in
-        @all) shift ; __show_information_of_available_packages "$@" ; return 0
+        @all) shift ; __show_information_of_all_available_packages "$@" ; return 0
     esac
 
     case $2 in
