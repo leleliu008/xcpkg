@@ -3503,7 +3503,7 @@ $DOT_CONTENT
         #run "$BREW" update
         run "$BREW" --env
 
-        for item in $PACKAGE_DEP_UPP
+        for item in $PACKAGE_DEP_UPP_ALL
         do
             unset BREW_PACKAGE_NAME; BREW_PACKAGE_NAME=$(package_name_transform_from_uppm_to_brew "$item")
 
