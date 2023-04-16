@@ -950,7 +950,12 @@ get_file_extension_from_url() {
     esac
 }
 
-__load_formula_of_the_given_package() {
+# __load_formula_of_the_given_package <PACKAGE-NAME> [FORMULA-FILEPATH]
+  __load_formula_of_the_given_package() {
+    [ -z "$1" ] && abort 1 "__load_formula_of_the_given_package <PACKAGE-NAME> [FORMULA-FILEPATH], <PACKAGE-NAME> is unspecified."
+
+    unset PACKAGE_FORMULA_FILEPATH
+
     unset PACKAGE_FORMULA_LOADED
 
     unset PACKAGE_NAME
@@ -1046,9 +1051,15 @@ __load_formula_of_the_given_package() {
     unset -f dopatch
     unset -f dobuild
 
-    PACKAGE_FORMULA_FILEPATH="$(__path_of_formula_of_the_given_package "$1")"
+    #########################################################################################
 
-    [ -z "$PACKAGE_FORMULA_FILEPATH" ] && abort 1 "package '$1' is not available."
+    if [ -z "$2" ] ; then
+        PACKAGE_FORMULA_FILEPATH="$(__path_of_formula_of_the_given_package "$1")" || abort 1 "package [$1] is not available."
+    else
+        PACKAGE_FORMULA_FILEPATH="$2"
+    fi
+
+    #########################################################################################
 
     for key in summary web-url git-url git-sha git-ref shallow src-url src-uri src-sha fix-url fix-sha res-url res-sha dep-pkg dep-upp dep-pym dep-plm license version bsystem bscript binbstd ccflags xxflags ppflags ldflags parallel toolset cstdlib exetype symlink
     do
@@ -1064,6 +1075,8 @@ __load_formula_of_the_given_package() {
 
         eval "PACKAGE_$__KEY_UPPERCASE_UNDERSCORE__='$__VALUE__'"
     done
+
+    #########################################################################################
 
     PACKAGE_BUILD0_ACTIONS=
     PACKAGE_BUILD0_ACTIONS="$(yq '.build0   | select(. != null)'  "$PACKAGE_FORMULA_FILEPATH")"
@@ -1088,6 +1101,8 @@ __load_formula_of_the_given_package() {
             esac
         done
     fi
+
+    #########################################################################################
 
     PACKAGE_NAME="$1"
     PACKAGE_NAME_UPPERCASE_UNDERSCORE="$(printf '%s\n' "$PACKAGE_NAME" | tr a-z A-Z | tr '@+-.' '_')"
@@ -1319,6 +1334,71 @@ __load_formula_of_the_given_package() {
 
 # }}}
 ##############################################################################
+# {{{ xcpkg formula
+
+# __show_formula_of_the_given_package <PACKAGE-NAME> [--json] [--yaml] [--path] [<KEY>]
+  __show_formula_of_the_given_package() {
+    [ -z "$1" ] && abort 1 "__show_formula_of_the_given_package <PACKAGE-NAME> [--json] [--yaml] [--path] [<KEY>], <PACKAGE-NAME> is unspecified."
+
+    PACKAGE_FORMULA_FILEPATH=
+    PACKAGE_FORMULA_FILEPATH="$(__path_of_formula_of_the_given_package "$1")"
+
+    [ -z "$PACKAGE_FORMULA_FILEPATH" ] && abort 1 "package '$1' is not available."
+
+    case $2 in
+        --yaml|'')
+            if [ -t 1 ] ; then
+                yq  "$PACKAGE_FORMULA_FILEPATH"
+            else
+                cat "$PACKAGE_FORMULA_FILEPATH"
+            fi
+            ;;
+        --json)
+            yq -o=json "$PACKAGE_FORMULA_FILEPATH"
+            ;;
+        --path)
+            printf '%s\n' "$PACKAGE_FORMULA_FILEPATH"
+            ;;
+        *)  yq ".$2 | select(. != null)" "$PACKAGE_FORMULA_FILEPATH"
+    esac
+}
+
+# }}}
+##############################################################################
+# {{{ xcpkg formula-edit
+
+# __edit_formula_of_the_given_package <PACKAGE-NAME> [--editor=<EDITOR>]
+  __edit_formula_of_the_given_package() {
+    [ -z "$1" ] && abort 1 "__edit_formula_of_the_given_package <PACKAGE-NAME>, <PACKAGE-NAME> is unspecified."
+
+    unset  PACKAGE_FORMULA_FILEPATH; PACKAGE_FORMULA_FILEPATH="$(__path_of_formula_of_the_given_package "$1")"
+
+    [ -z "$PACKAGE_FORMULA_FILEPATH" ] && abort 1 "package '$1' is not available."
+
+    shift
+
+    EDITOR=
+
+    while [ -n "$1" ]
+    do
+        case $1 in
+            --editor=*)
+                EDITOR="${1#*=}"
+                ;;
+            *)  abort 1 "unrecognized option: $1"
+        esac
+        shift
+    done
+
+    [ -z "$EDITOR" ] && {
+        EDITOR=$(command -v nvim || command -v vim || command -v vi || command -v open) || abort 1 "please sepecify editor via [--editor=<EDITOR> option."
+    }
+
+    "$EDITOR" "$PACKAGE_FORMULA_FILEPATH"
+}
+
+# }}}
+##############################################################################
 # {{{ operations of receipt
 
 # __generate_receipt_of_the_given_package <PACKAGE-NAME>
@@ -1496,37 +1576,6 @@ EOF
 
 # }}}
 ##############################################################################
-# {{{ xcpkg formula
-
-# __show_formula_of_the_given_package <PACKAGE-NAME> [--json] [--yaml] [--path] [<KEY>]
-  __show_formula_of_the_given_package() {
-    [ -z "$1" ] && abort 1 "__show_formula_of_the_given_package <PACKAGE-NAME> [--json] [--yaml] [--path] [<KEY>], <PACKAGE-NAME> is unspecified."
-
-    PACKAGE_FORMULA_FILEPATH=
-    PACKAGE_FORMULA_FILEPATH="$(__path_of_formula_of_the_given_package "$1")"
-
-    [ -z "$PACKAGE_FORMULA_FILEPATH" ] && abort 1 "package '$1' is not available."
-
-    case $2 in
-        --yaml|'')
-            if [ -t 1 ] ; then
-                yq  "$PACKAGE_FORMULA_FILEPATH"
-            else
-                cat "$PACKAGE_FORMULA_FILEPATH"
-            fi
-            ;;
-        --json)
-            yq -o=json "$PACKAGE_FORMULA_FILEPATH"
-            ;;
-        --path)
-            printf '%s\n' "$PACKAGE_FORMULA_FILEPATH"
-            ;;
-        *)  yq ".$2 | select(. != null)" "$PACKAGE_FORMULA_FILEPATH"
-    esac
-}
-
-# }}}
-##############################################################################
 # {{{ xcpkg receipt
 
 # __show_receipt_of_the_given_package <PACKAGE-SPEC> [--json] [--yaml] [--path] [<KEY>]
@@ -1556,40 +1605,6 @@ EOF
             ;;
         *)  yq ".$2 | select(. != null)" "$PACKAGE_RECEIPT_FILEPATH"
     esac
-}
-
-# }}}
-##############################################################################
-# {{{ xcpkg formula-edit
-
-# __edit_formula_of_the_given_package <PACKAGE-NAME> [--editor=<EDITOR>]
-  __edit_formula_of_the_given_package() {
-    [ -z "$1" ] && abort 1 "__edit_formula_of_the_given_package <PACKAGE-NAME>, <PACKAGE-NAME> is unspecified."
-
-    unset  PACKAGE_FORMULA_FILEPATH; PACKAGE_FORMULA_FILEPATH="$(__path_of_formula_of_the_given_package "$1")"
-
-    [ -z "$PACKAGE_FORMULA_FILEPATH" ] && abort 1 "package '$1' is not available."
-
-    shift
-
-    EDITOR=
-
-    while [ -n "$1" ]
-    do
-        case $1 in
-            --editor=*)
-                EDITOR="${1#*=}"
-                ;;
-            *)  abort 1 "unrecognized option: $1"
-        esac
-        shift
-    done
-
-    [ -z "$EDITOR" ] && {
-        EDITOR=$(command -v nvim || command -v vim || command -v vi || command -v open) || abort 1 "please sepecify editor via [--editor=<EDITOR> option."
-    }
-
-    "$EDITOR" "$PACKAGE_FORMULA_FILEPATH"
 }
 
 # }}}
@@ -2099,198 +2114,6 @@ EOF
 
 # }}}
 ##############################################################################
-# {{{ xcpkg fetch
-
-# fetch source code if needed
-__fetch_sources_of_the_given_package() {
-    case $PACKAGE_SRC_FILETYPE in
-        .dir) note "$PACKAGE_SRC_URL is local path, no need to fetch." ;;
-        .git)
-            unset GIT_FETCH_URL
-
-            if [ -z "$XCPKG_URL_TRANSFORM" ] ; then
-                GIT_FETCH_URL="$PACKAGE_GIT_URL"
-            else
-                GIT_FETCH_URL="$("$XCPKG_URL_TRANSFORM" "$PACKAGE_GIT_URL")" || return 1
-            fi
-
-            if [ -z "$PACKAGE_GIT_SHA" ] ; then
-                if [ -z "$PACKAGE_GIT_REF" ] ; then
-                    GIT_BRANCH_NAME=master
-                    GIT_REF_SPEC="+HEAD:refs/remotes/origin/master"
-                else
-                    GIT_BRANCH_NAME="$(basename "$PACKAGE_GIT_REF")"
-                    GIT_REF_SPEC="+$PACKAGE_GIT_REF:refs/remotes/origin/$GIT_BRANCH_NAME"
-                fi
-            else
-                GIT_BRANCH_NAME=master
-                GIT_REF_SPEC="+$PACKAGE_GIT_SHA:refs/remotes/origin/master"
-            fi
-
-            if [ "$PACKAGE_SHALLOW" = yes ] ; then
-                GIT_FETCH_EXTRA_OPTIONS='--depth=1'
-            else
-                if [ -f "$PACKAGE_SRC_FILEPATH/.git/shallow" ] ; then
-                    GIT_FETCH_EXTRA_OPTIONS='--unshallow'
-                else
-                    GIT_FETCH_EXTRA_OPTIONS=
-                fi
-            fi
-
-            if [ -d "$PACKAGE_SRC_FILEPATH" ] ; then
-                if git -C "$PACKAGE_SRC_FILEPATH" rev-parse HEAD > /dev/null 2>&1 ; then
-                    if [ -n "$PACKAGE_GIT_SHA" ] && [ "$PACKAGE_GIT_SHA" = "$(git -C "$PACKAGE_SRC_FILEPATH" rev-parse HEAD)" ] ; then
-                        success "$PACKAGE_SRC_FILEPATH already have been fetched."
-                        return 0
-                    fi
-                else
-                    run rm -rf     "$PACKAGE_SRC_FILEPATH" || return 1
-                    run install -d "$PACKAGE_SRC_FILEPATH" || return 1
-                    run git -C     "$PACKAGE_SRC_FILEPATH" -c init.defaultBranch=master init || return 1
-                    run git -C     "$PACKAGE_SRC_FILEPATH" remote add origin "$GIT_FETCH_URL" || return 1
-                fi
-            else
-                run install -d "$PACKAGE_SRC_FILEPATH" || return 1
-                run git -C     "$PACKAGE_SRC_FILEPATH" -c init.defaultBranch=master init || return 1
-                run git -C     "$PACKAGE_SRC_FILEPATH" remote add origin "$GIT_FETCH_URL" || return 1
-            fi
-
-            run git -C "$PACKAGE_SRC_FILEPATH" -c protocol.version=2 fetch --progress $GIT_FETCH_EXTRA_OPTIONS origin "$GIT_REF_SPEC" || return 1
-            run git -C "$PACKAGE_SRC_FILEPATH" checkout --progress --force -B "$GIT_BRANCH_NAME" "refs/remotes/origin/$GIT_BRANCH_NAME" || return 1
-            run git -C "$PACKAGE_SRC_FILEPATH" submodule update --init || return 1
-            ;;
-        *)  if [ -z    "$PACKAGE_SRC_URI" ] ; then
-                wfetch "$PACKAGE_SRC_URL" --sha256="$PACKAGE_SRC_SHA" --output-path="$PACKAGE_SRC_FILEPATH"
-            else
-                wfetch "$PACKAGE_SRC_URL" --sha256="$PACKAGE_SRC_SHA" --output-path="$PACKAGE_SRC_FILEPATH" --uri="$PACKAGE_SRC_URI"
-            fi
-    esac
-}
-
-__fetch_patches_of_the_given_package() {
-    if [ -n    "$PACKAGE_FIX_URL" ] ; then
-        wfetch "$PACKAGE_FIX_URL" --sha256="$PACKAGE_FIX_SHA" --output-path="$PACKAGE_FIX_FILEPATH"
-    fi
-    if [ -n    "$PACKAGE_RES_URL" ] ; then
-        wfetch "$PACKAGE_RES_URL" --sha256="$PACKAGE_RES_SHA" --output-path="$PACKAGE_RES_FILEPATH"
-    fi
-}
-
-__fetch_resources_of_the_given_package() {
-    [ -z "$1" ] && {
-        error "__fetch_resources_of_the_given_package <PACKAGE-NAME>, <PACKAGE-NAME> is unspecified."
-        return 1
-    }
-
-    case $1 in
-        @all)
-            shift
-            unset STEP_NUM
-            for PKG in $(__list_available_packages)
-            do
-                step "$PKG"
-                 __load_formula_of_the_given_package "$PKG" "$@"
-                __fetch_sources_of_the_given_package "$PKG" "$@"
-                __fetch_patches_of_the_given_package "$PKG" "$@"
-            done
-            ;;
-        *)
-             __load_formula_of_the_given_package "$@"
-            __fetch_sources_of_the_given_package "$@"
-            __fetch_patches_of_the_given_package "$@"
-    esac
-}
-
-# }}}
-##############################################################################
-# {{{ xcpkg uninstall
-
-__uninstall_the_given_packages() {
-    [ -z "$1" ] && abort 1 "package name or spec is unspecified."
-
-    XCODE_SUPPORT_PLATFORM_NAMES='MacOSX DriverKit WatchOS WatchSimulator iPhoneOS iPhoneSimulator AppleTVOS AppleTVSimulator'
-
-    unset PACKAGE_SPECS
-
-    for item in "$@"
-    do
-        PACKAGE_SPECS="$PACKAGE_SPECS $(inspect_package_spec "$item")"
-    done
-
-    for PACKAGE_SPEC in $PACKAGE_SPECS
-    do
-        __uninstall_the_given_package "$PACKAGE_SPEC" || return 1
-    done
-}
-
-# __uninstall_the_given_package <PACKAGE-SPEC>
-  __uninstall_the_given_package() {
-    is_package_installed "$1" || abort 1 "$1 is not installed."
-    run rm -rf "$XCPKG_PACKAGE_INSTALLED_ROOT/$1"
-}
-
-# }}}
-##############################################################################
-# {{{ xcpkg reinstall
-
-__reinstall_the_given_packages() {
-    inspect_install_arguments "$@"
-
-    [ -z "$USER_SPECIFIED_PACKAGE_SPEC_LIST" ] && abort 1 "package name or spec is unspecified."
-
-    for packageName in $USER_SPECIFIED_PACKAGE_SPEC_LIST
-    do
-        is_package_available "$1" || abort 1 "$1 is not available."
-        is_package_installed "$1" || abort 1 "$1 is not installed."
-    done
-
-    for PACKAGE_NAME in $USER_SPECIFIED_PACKAGE_SPEC_LIST
-    do
-        [ -d "$XCPKG_BACKUP_DIR" ] || {
-            install -d "$XCPKG_BACKUP_DIR" || return 1
-        }
-
-        mv "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_NAME" "$XCPKG_BACKUP_DIR/$PACKAGE_NAME" || return 1
-
-        (__install_the_given_package "$PACKAGE_NAME") || return 1
-
-        rm -rf "$XCPKG_BACKUP_DIR/$PACKAGE_NAME" || return 1
-    done
-}
-
-# }}}
-##############################################################################
-# {{{ xcpkg upgrade
-
-__upgrade_packages() {
-    inspect_install_arguments "$@"
-
-    if [ -z "$USER_SPECIFIED_PACKAGE_SPEC_LIST" ] ; then
-        USER_SPECIFIED_PACKAGE_SPEC_LIST=$(__list__outdated_packages)
-    fi
-
-    for packageName in $USER_SPECIFIED_PACKAGE_SPEC_LIST
-    do
-        is_package_available "$1" || abort 1 "$1 is not available."
-        is_package_installed "$1" || abort 1 "$1 is not installed."
-    done
-
-    for PACKAGE_NAME in $USER_SPECIFIED_PACKAGE_SPEC_LIST
-    do
-        [ -d "$XCPKG_BACKUP_DIR" ] || {
-            install -d "$XCPKG_BACKUP_DIR" || return 1
-        }
-
-        mv "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_NAME" "$XCPKG_BACKUP_DIR/$PACKAGE_NAME" || return 1
-
-        (__install_the_given_package "$PACKAGE_NAME") || return 1
-
-        rm -rf "$XCPKG_BACKUP_DIR/$PACKAGE_NAME" || return 1
-    done
-}
-
-# }}}
-##############################################################################
 # {{{ xcpkg depends
 
 # __show_packages_depended_by_the_given_package <PACKAGE-NAME> [-t <dot|box|svg|png>] [-o <OUTPUT-PATH>]
@@ -2570,6 +2393,824 @@ $DOT_CONTENT
     esac
 }
 
+
+# }}}
+##############################################################################
+# {{{ xcpkg fetch
+
+# fetch source code if needed
+__fetch_sources_of_the_given_package() {
+    case $PACKAGE_SRC_FILETYPE in
+        .dir) note "$PACKAGE_SRC_URL is local path, no need to fetch." ;;
+        .git)
+            unset GIT_FETCH_URL
+
+            if [ -z "$XCPKG_URL_TRANSFORM" ] ; then
+                GIT_FETCH_URL="$PACKAGE_GIT_URL"
+            else
+                GIT_FETCH_URL="$("$XCPKG_URL_TRANSFORM" "$PACKAGE_GIT_URL")" || return 1
+            fi
+
+            if [ -z "$PACKAGE_GIT_SHA" ] ; then
+                if [ -z "$PACKAGE_GIT_REF" ] ; then
+                    GIT_BRANCH_NAME=master
+                    GIT_REF_SPEC="+HEAD:refs/remotes/origin/master"
+                else
+                    GIT_BRANCH_NAME="$(basename "$PACKAGE_GIT_REF")"
+                    GIT_REF_SPEC="+$PACKAGE_GIT_REF:refs/remotes/origin/$GIT_BRANCH_NAME"
+                fi
+            else
+                GIT_BRANCH_NAME=master
+                GIT_REF_SPEC="+$PACKAGE_GIT_SHA:refs/remotes/origin/master"
+            fi
+
+            if [ "$PACKAGE_SHALLOW" = yes ] ; then
+                GIT_FETCH_EXTRA_OPTIONS='--depth=1'
+            else
+                if [ -f "$PACKAGE_SRC_FILEPATH/.git/shallow" ] ; then
+                    GIT_FETCH_EXTRA_OPTIONS='--unshallow'
+                else
+                    GIT_FETCH_EXTRA_OPTIONS=
+                fi
+            fi
+
+            if [ -d "$PACKAGE_SRC_FILEPATH" ] ; then
+                if git -C "$PACKAGE_SRC_FILEPATH" rev-parse HEAD > /dev/null 2>&1 ; then
+                    if [ -n "$PACKAGE_GIT_SHA" ] && [ "$PACKAGE_GIT_SHA" = "$(git -C "$PACKAGE_SRC_FILEPATH" rev-parse HEAD)" ] ; then
+                        success "$PACKAGE_SRC_FILEPATH already have been fetched."
+                        return 0
+                    fi
+                else
+                    run rm -rf     "$PACKAGE_SRC_FILEPATH" || return 1
+                    run install -d "$PACKAGE_SRC_FILEPATH" || return 1
+                    run git -C     "$PACKAGE_SRC_FILEPATH" -c init.defaultBranch=master init || return 1
+                    run git -C     "$PACKAGE_SRC_FILEPATH" remote add origin "$GIT_FETCH_URL" || return 1
+                fi
+            else
+                run install -d "$PACKAGE_SRC_FILEPATH" || return 1
+                run git -C     "$PACKAGE_SRC_FILEPATH" -c init.defaultBranch=master init || return 1
+                run git -C     "$PACKAGE_SRC_FILEPATH" remote add origin "$GIT_FETCH_URL" || return 1
+            fi
+
+            run git -C "$PACKAGE_SRC_FILEPATH" -c protocol.version=2 fetch --progress $GIT_FETCH_EXTRA_OPTIONS origin "$GIT_REF_SPEC" || return 1
+            run git -C "$PACKAGE_SRC_FILEPATH" checkout --progress --force -B "$GIT_BRANCH_NAME" "refs/remotes/origin/$GIT_BRANCH_NAME" || return 1
+            run git -C "$PACKAGE_SRC_FILEPATH" submodule update --init || return 1
+            ;;
+        *)  if [ -z    "$PACKAGE_SRC_URI" ] ; then
+                wfetch "$PACKAGE_SRC_URL" --sha256="$PACKAGE_SRC_SHA" --output-path="$PACKAGE_SRC_FILEPATH"
+            else
+                wfetch "$PACKAGE_SRC_URL" --sha256="$PACKAGE_SRC_SHA" --output-path="$PACKAGE_SRC_FILEPATH" --uri="$PACKAGE_SRC_URI"
+            fi
+    esac
+}
+
+__fetch_patches_of_the_given_package() {
+    if [ -n    "$PACKAGE_FIX_URL" ] ; then
+        wfetch "$PACKAGE_FIX_URL" --sha256="$PACKAGE_FIX_SHA" --output-path="$PACKAGE_FIX_FILEPATH"
+    fi
+    if [ -n    "$PACKAGE_RES_URL" ] ; then
+        wfetch "$PACKAGE_RES_URL" --sha256="$PACKAGE_RES_SHA" --output-path="$PACKAGE_RES_FILEPATH"
+    fi
+}
+
+__fetch_resources_of_the_given_package() {
+    [ -z "$1" ] && {
+        error "__fetch_resources_of_the_given_package <PACKAGE-NAME>, <PACKAGE-NAME> is unspecified."
+        return 1
+    }
+
+    case $1 in
+        @all)
+            shift
+            unset STEP_NUM
+            for PKG in $(__list_available_packages)
+            do
+                step "$PKG"
+                 __load_formula_of_the_given_package "$PKG" "$@"
+                __fetch_sources_of_the_given_package "$PKG" "$@"
+                __fetch_patches_of_the_given_package "$PKG" "$@"
+            done
+            ;;
+        *)
+             __load_formula_of_the_given_package "$@"
+            __fetch_sources_of_the_given_package "$@"
+            __fetch_patches_of_the_given_package "$@"
+    esac
+}
+
+# }}}
+##############################################################################
+# {{{ xcpkg tree
+
+# __tree_the_given_installed_package <PACKAGE-SPEC>
+  __tree_the_given_installed_package() {
+    is_package_installed "$1" || abort 1 "package '$1' is not installed."
+    PACKAGE_SPEC="$1"
+    shift
+    run tree "$@" "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_SPEC"
+}
+
+# }}}
+##############################################################################
+# {{{ xcpkg logs
+
+# __logs_the_given_installed_package <PACKAGE-SPEC>
+  __logs_the_given_installed_package() {
+    [ -z "$1" ] && abort 1 "$_0 logs <PACKAGE-SPEC>, <PACKAGE-SPEC> is unspecified."
+
+    is_package_installed "$1" || abort 1 "package '$1' is not installed."
+
+    unset FILEPATHS; FILEPATHS="$(find "$XCPKG_PACKAGE_INSTALLED_ROOT/$1/.xcpkg" -type f)"
+
+    for filepath in $FILEPATHS
+    do
+        [ -d "$filepath" ] && continue
+
+        case $filepath in
+            *.png)  ;;
+            *.yml)  run yq . "$filepath" ;;
+            *.json) run jq . "$filepath" ;;
+            *)  if command -v bat > /dev/null ; then
+                    bat  "$filepath"
+                else
+                    less "$filepath"
+                fi
+        esac
+    done
+}
+
+
+# }}}
+##############################################################################
+# {{{ xcpkg pack
+
+# examples:
+# __pack_the_given_installed_package <PACKAGE-NAME|PACKAGE-SPEC> [-t <zip|tar.gz|tar.xz|tar.lz|tar.bz2>] [-o <OUTPUT-PATH>] [--keep-packing-dir]
+# __pack_the_given_installed_package    autoconf     -t tar.xz
+  __pack_the_given_installed_package() {
+    XCODE_SUPPORT_PLATFORM_NAMES='MacOSX DriverKit WatchOS WatchSimulator iPhoneOS iPhoneSimulator AppleTVOS AppleTVSimulator'
+
+    PACKAGE_SPEC=
+    PACKAGE_SPEC="$(inspect_package_spec "$1")"
+
+    __load_receipt_of_the_given_package "$PACKAGE_SPEC"
+
+    unset TARGET_PLATFORM_NAME
+    unset TARGET_PLATFORM_VERS
+    unset TARGET_PLATFORM_ARCH
+
+    unset RECEIPT_PACKAGE_NAME
+
+    TARGET_PLATFORM_NAME="$(printf '%s\n' "$PACKAGE_SPEC" | cut -d/ -f1)"
+    TARGET_PLATFORM_VERS="$(printf '%s\n' "$PACKAGE_SPEC" | cut -d/ -f2)"
+    TARGET_PLATFORM_ARCH="$(printf '%s\n' "$PACKAGE_SPEC" | cut -d/ -f3)"
+    RECEIPT_PACKAGE_NAME="$(printf '%s\n' "$PACKAGE_SPEC" | cut -d/ -f4)"
+
+    shift
+
+    ###########################################################################################
+
+    unset OUTPUT_DIR
+    unset OUTPUT_FILETYPE
+    unset OUTPUT_FILEPATH
+
+    while [ -n "$1" ]
+    do
+        case $1 in
+            --keep-packing-dir)
+                KEEP_PACKING_DIR=yes
+                ;;
+            -t) shift
+
+                if [ -z "$1" ] ; then
+                    abort 1 "$_0 pack <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>], -t option is given but <OUTPUT-TYPE> is unspecified."
+                else
+                    OUTPUT_FILETYPE="$1"
+                fi
+
+                case $OUTPUT_FILETYPE in
+                    zip|tar.gz|tar.xz|tar.lz|tar.bz2) ;;
+                    *) abort 1 "$_0 pack <PACKAGE-NAME> [-t <OUTPUT-TYPE>], unsupported <OUTPU-TYPE>: $OUTPUT_FILETYPE, <OUTPU-TYPE> should be one of zip|tar.gz|tar.xz|tar.lz|tar.bz2"
+                esac
+                ;;
+            -o) shift
+                if [ -z "$1" ] ; then
+                    abort 1 "$_0 pack <PACKAGE-NAME> [-t <OUTPU-TYPE>] [-o <OUTPUT-PATH>], -o option is given but <OUTPUT-PATH> is unspecified."
+                else
+                    OUTPUT_FILEPATH="$1"
+                fi
+                ;;
+            *)  abort 1 "$_0 pack <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>] [--keep-packing-dir], unrecognized option: $1"
+        esac
+        shift
+    done
+
+    case $TARGET_PLATFORM_NAME in
+        iPhoneOS)
+            TARGET_PLATFORM_NAME_CANONICAL_NAME=ios
+            ;;
+        iPhoneSimulator)
+            TARGET_PLATFORM_NAME_CANONICAL_NAME=iosSimulator
+            ;;
+        WatchOS)
+            TARGET_PLATFORM_NAME_CANONICAL_NAME=watchos
+            ;;
+        WatchSimulator)
+            TARGET_PLATFORM_NAME_CANONICAL_NAME=watchosSimulator
+            ;;
+        AppleTVOS)
+            TARGET_PLATFORM_NAME_CANONICAL_NAME=tvos
+            ;;
+        AppleTVSimulator)
+            TARGET_PLATFORM_NAME_CANONICAL_NAME=tvosSimulator
+            ;;
+        MacOSX)
+            TARGET_PLATFORM_NAME_CANONICAL_NAME=macos
+            ;;
+        *)  TARGET_PLATFORM_NAME_CANONICAL_NAME="$TARGET_PLATFORM_NAME"
+    esac
+
+    PACKED_DIR_NAME="$RECEIPT_PACKAGE_NAME-$RECEIPT_PACKAGE_VERSION-$TARGET_PLATFORM_NAME_CANONICAL_NAME$TARGET_PLATFORM_VERS-$TARGET_PLATFORM_ARCH"
+
+    ###########################################################################################
+
+    if [ -z "$OUTPUT_FILEPATH" ] ; then
+        if [ -z "$OUTPUT_FILETYPE" ] ; then
+            OUTPUT_FILETYPE='tar.xz'
+        fi
+
+        OUTPUT_DIR="$XCPKG_HOME/packed"
+        OUTPUT_FILENAME="$PACKED_DIR_NAME.$OUTPUT_FILETYPE"
+    else
+        if [ -d "$OUTPUT_FILEPATH" ] ; then
+            if [ -z "$OUTPUT_FILETYPE" ] ; then
+                OUTPUT_FILETYPE='tar.xz'
+            fi
+
+            OUTPUT_DIR="$(realpath -s "$OUTPUT_FILEPATH")"
+            OUTPUT_FILENAME="$PACKED_DIR_NAME.$OUTPUT_FILETYPE"
+        else
+            case $OUTPUT_FILEPATH in
+                */)
+                    if [ -z "$OUTPUT_FILETYPE" ] ; then
+                        OUTPUT_FILETYPE='tar.xz'
+                    fi
+
+                    OUTPUT_DIR="$(realpath -s "$OUTPUT_FILEPATH")"
+                    OUTPUT_FILENAME="$PACKED_DIR_NAME.$OUTPUT_FILETYPE"
+                    ;;
+                *)
+                    OUTPUT_FILEPATH="$(realpath -s "$OUTPUT_FILEPATH")"
+
+                    if [ -z "$OUTPUT_FILETYPE" ] ; then
+                        case $OUTPUT_FILEPATH in
+                            *.tar.gz|*.tgz)
+                                OUTPUT_FILETYPE=tar.gz
+                                ;;
+                            *.tar.xz|*.txz)
+                                OUTPUT_FILETYPE=tar.xz
+                                ;;
+                            *.tar.lz|*.tlz)
+                                OUTPUT_FILETYPE=tar.lz
+                                ;;
+                            *.tar.bz2|*.tbz2)
+                                OUTPUT_FILETYPE=tar.bz2
+                                ;;
+                            *.zip)
+                                OUTPUT_FILETYPE=zip
+                                ;;
+                            *.7z)
+                                OUTPUT_FILETYPE=7z
+                                ;;
+                            *)  abort 1 "when -t <OUTPUT-TYPE> option is not given, -o <OUTPUT-PATH> option specified filename must ends with one of .tar.gz|.tar.xz|.tar.lz|.tar.bz2|.tgz|.txz|.tlz|.tbz2|.zip|.7z"
+                        esac
+                    fi
+
+                    OUTPUT_DIR="$(dirname "$OUTPUT_FILEPATH")"
+                    OUTPUT_FILENAME="$(basename "$OUTPUT_FILEPATH")"
+            esac
+        fi
+    fi
+
+    ###########################################################################################
+
+    step "create packing directory"
+    printf '%b\n' "$COLOR_PURPLE==>$COLOR_OFF ${COLOR_GREEN}mktemp -d$COLOR_OFF"
+    PACKING_DIR=$(mktemp -d)
+
+    step "change to packing directory"
+    run cd "$PACKING_DIR"
+
+    step "make link refer to installed package root dir"
+    run ln -s "$PACKAGE_INSTALLED_DIR" "$PACKED_DIR_NAME"
+
+    step "packing"
+    case $OUTPUT_FILETYPE in
+        zip) run zip -9 -r     "$OUTPUT_FILENAME" "$PACKED_DIR_NAME" ;;
+        7z)  run 7za a -t7z -r "$OUTPUT_FILENAME" "$PACKED_DIR_NAME/*" "$PACKED_DIR_NAME/.xcpkg" ;;
+        tar.xz)  run tar cv --xz    -f "$OUTPUT_FILENAME" "$PACKED_DIR_NAME/*" "$PACKED_DIR_NAME/.xcpkg" ;;
+        tar.gz)  run tar cv --gzip  -f "$OUTPUT_FILENAME" "$PACKED_DIR_NAME/*" "$PACKED_DIR_NAME/.xcpkg" ;;
+        tar.lz)  run tar cv --lzip  -f "$OUTPUT_FILENAME" "$PACKED_DIR_NAME/*" "$PACKED_DIR_NAME/.xcpkg" ;;
+        tar.bz2) run tar cv --bzip2 -f "$OUTPUT_FILENAME" "$PACKED_DIR_NAME/*" "$PACKED_DIR_NAME/.xcpkg" ;;
+    esac
+
+    step "check integrity of packed file"
+    case $OUTPUT_FILETYPE in
+        7z)    run 7za t -t7z "$OUTPUT_FILENAME" ;;
+        zip)   run unzip -t   "$OUTPUT_FILENAME" ;;
+        tar.*) run tar   -tf  "$OUTPUT_FILENAME" ;;
+    esac
+
+    step "show size of packed file"
+    run "du -sh $OUTPUT_FILENAME | cut -f1"
+
+    if [ ! -d "$OUTPUT_DIR" ] ; then
+        step "create output dir"
+        run install -d "$OUTPUT_DIR"
+    fi
+
+    step "copy packed file to output dir"
+    run cp "$OUTPUT_FILENAME" "$OUTPUT_DIR/"
+
+    if [ "$KEEP_PACKING_DIR" = yes ] ; then
+        printf '\n'
+        note "the work dir [$PACKING_DIR] is not deleted as --keep-packing-dir option is given."
+    else
+        step "delete packing directory"
+        run rm -rf "$PACKING_DIR"
+    fi
+
+}
+
+# }}}
+##############################################################################
+# {{{ xcpkg upgrade-self
+
+# __upgrade_self <URL>
+  __upgrade_self() {
+    if [ -z "$1" ] ; then
+        error "__upgrade_self <URL> , <URL> must be non-empty."
+        return 1
+    fi
+
+    unset CURRENT_SCRIPT_REALPATH
+
+    # if file exists and is a symbolic link
+    if [ -L "$CURRENT_SCRIPT_FILEPATH" ] ; then
+        # https://unix.stackexchange.com/questions/136494/whats-the-difference-between-realpath-and-readlink-f#:~:text=GNU%20coreutils%20introduced%20a%20realpath,in%20common%20with%20GNU%20readlink%20.
+        if command -v realpath > /dev/null ; then
+            CURRENT_SCRIPT_REALPATH=$(realpath "$CURRENT_SCRIPT_FILEPATH")
+        elif command -v readlink > /dev/null && readlink -f xx > /dev/null 2>&1 ; then
+            CURRENT_SCRIPT_REALPATH=$(readlink -f "$CURRENT_SCRIPT_FILEPATH")
+        else
+            CURRENT_SCRIPT_REALPATH=$(realpath "$CURRENT_SCRIPT_FILEPATH")
+        fi
+    else
+        CURRENT_SCRIPT_REALPATH="$CURRENT_SCRIPT_FILEPATH"
+    fi
+
+    printf '%b\n' "$COLOR_PURPLE==>$COLOR_OFF ${COLOR_GREEN}mktemp -d$COLOR_OFF"
+    WORKING_DIR=$(mktemp -d)
+
+    run cd "$WORKING_DIR"
+
+    wfetch "$1" --output-path="$WORKING_DIR/self"
+
+    __upgrade_self_exit() {
+        if [ -w "$CURRENT_SCRIPT_REALPATH" ] ; then
+            run      install -m 755 self "$CURRENT_SCRIPT_REALPATH"
+        else
+            run sudo install -m 755 self "$CURRENT_SCRIPT_REALPATH"
+        fi
+
+        run rm -rf "$WORKING_DIR"
+    }
+
+    trap __upgrade_self_exit EXIT
+}
+
+# }}}
+##############################################################################
+# {{{ xcpkg integrate zsh
+
+# __integrate_zsh_completions <URL> [--output-dir=<DIR>]
+  __integrate_zsh_completions() {
+    if [ -z "$1" ] ; then
+        error "__integrate_zsh_completions <URL> [--output-dir=<DIR>] , <URL> must be non-empty."
+        return 1
+    else
+        ZSH_COMPLETIONS_SCRIPT_URL="$1"
+    fi
+
+    shift
+
+    unset OUTPUT_DIR
+
+    for arg in "$@"
+    do
+        case $arg in
+            --output-dir=*)
+                OUTPUT_DIR="${arg#*=}"
+                case $OUTPUT_DIR in
+                    '')     abort 1 "__integrate_zsh_completions <URL> [--output-dir=<DIR>] , <DIR> must be non-empty." ;;
+                    \~|\~/) OUTPUT_DIR="${HOME}" ;;
+                    \~/*)   OUTPUT_DIR="$HOME/$(printf '%s\n' "$OUTPUT_DIR" | cut -c3-)" ;;
+                esac
+                ;;
+            *)  abort 1 "__integrate_zsh_completions <URL> [--output-dir=<DIR>] , unrecognized argument: $arg"
+        esac
+    done
+
+    ZSH_COMPLETIONS_SCRIPT_FILENAME="_$CURRENT_SCRIPT_FILENAME"
+
+    if [ -n "$OUTPUT_DIR" ] ; then
+        ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH="$OUTPUT_DIR/$ZSH_COMPLETIONS_SCRIPT_FILENAME"
+    elif [ "$(uname)" = Linux ] && command -v termux-info > /dev/null && [ "$HOME" = '/data/data/com.termux/files/home' ] ; then
+        ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH="/data/data/com.termux/files/usr/share/zsh/site-functions/$ZSH_COMPLETIONS_SCRIPT_FILENAME"
+    else
+        ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH="/usr/local/share/zsh/site-functions/$ZSH_COMPLETIONS_SCRIPT_FILENAME"
+    fi
+
+    # if file exists and is a symbolic link
+    if [ -L "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH" ] ; then
+        # https://unix.stackexchange.com/questions/136494/whats-the-difference-between-realpath-and-readlink-f#:~:text=GNU%20coreutils%20introduced%20a%20realpath,in%20common%20with%20GNU%20readlink%20.
+        if command -v realpath > /dev/null ; then
+            ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH=$(realpath "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH")
+        elif command -v readlink > /dev/null && readlink -f xx > /dev/null 2>&1 ; then
+            ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH=$(readlink -f "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH")
+        else
+            ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH=$(realpath "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH")
+        fi
+    fi
+
+    printf '%b\n' "$COLOR_PURPLE==>$COLOR_OFF ${COLOR_GREEN}mktemp -d$COLOR_OFF"
+    WORKING_DIR=$(mktemp -d)
+
+    run cd "$WORKING_DIR"
+
+    wfetch "$ZSH_COMPLETIONS_SCRIPT_URL" --output-path="$WORKING_DIR/$ZSH_COMPLETIONS_SCRIPT_FILENAME"
+
+    if [ -f "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH" ] ; then
+        if [ -w "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH" ] ; then
+            run      install -m 644 "$ZSH_COMPLETIONS_SCRIPT_FILENAME" "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH"
+        else
+            run sudo install -m 644 "$ZSH_COMPLETIONS_SCRIPT_FILENAME" "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH"
+        fi
+    else
+        ZSH_COMPLETIONS_SCRIPT_OUT_DIR="$(dirname "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH")"
+        if [ ! -d "$ZSH_COMPLETIONS_SCRIPT_OUT_DIR" ] ; then
+            run install -d "$ZSH_COMPLETIONS_SCRIPT_OUT_DIR" || run sudo install -d "$ZSH_COMPLETIONS_SCRIPT_OUT_DIR"
+        fi
+        if [ -w "$ZSH_COMPLETIONS_SCRIPT_OUT_DIR" ] ; then
+            run      install -m 644 "$ZSH_COMPLETIONS_SCRIPT_FILENAME" "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH"
+        else
+            run sudo install -m 644 "$ZSH_COMPLETIONS_SCRIPT_FILENAME" "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH"
+        fi
+    fi
+
+    run rm -rf "$WORKING_DIR"
+
+    printf '\n'
+    note "${COLOR_YELLOW}you need to run command${COLOR_RED} ${COLOR_GREEN}autoload -U compinit && compinit${COLOR_OFF} ${COLOR_YELLOW}in zsh to make it work.${COLOR_OFF}"
+}
+
+# }}}
+##############################################################################
+# {{{ xcpkg compare-versions
+
+package_name_transform_from_uppm_to_brew() {
+    case $1 in
+        file)     printf '%s\n' 'file-formula' ;;
+        delta)    printf '%s\n' 'git-delta' ;;
+        gmake)    printf '%s\n' 'make'      ;;
+        gtar)     printf '%s\n' 'gnu-tar'   ;;
+        gm4)      printf '%s\n' 'm4'        ;;
+        patch)    printf '%s\n' 'gpatch'    ;;
+        libjxl)   printf '%s\n' 'jpeg-xl'   ;;
+        blake3)   printf '%s\n' 'b3sum'     ;;
+        libwebp)  printf '%s\n' 'webp'      ;;
+        proj7)    printf '%s\n' 'proj@7'    ;;
+        openssl)  printf '%s\n' 'openssl@1.1';;
+        freetype2)printf '%s\n' 'freetype'  ;;
+        freetype2-with-harfbuzz)
+                  printf '%s\n' 'freetype'  ;;
+        gnu-coreutils)
+                  printf '%s\n' 'coreutils' ;;
+        libmediainfo|mediainfo)
+                  printf '%s\n' 'media-info';;
+        tcl-core) printf '%s\n' 'tcl-tk'    ;;
+        *)        printf '%s\n' "$1"
+    esac
+}
+
+__compare_versions_with_brew() {
+    cd "$XCPKG_HOME/repos.d/offical-core/formula"
+
+    AVAILABLE_PACKAGE_NAME_LIST=
+    AVAILABLE_PACKAGE_NAME_LIST="$(find . -mindepth 1 -maxdepth 1 -name "*.yml" -exec basename {} .yml \;)"
+
+    [ -z "$BREW" ] && {
+        BREW="$(command -v brew)" || abort 1 "command not found: brew"
+    }
+
+    for PACKAGE_NAME in $AVAILABLE_PACKAGE_NAME_LIST
+    do
+        __load_formula_of_the_given_package "$PACKAGE_NAME"
+
+        BREW_PKG_NMAE="$(package_name_transform_from_uppm_to_brew "$PACKAGE_NAME")"
+
+        if "$BREW" info "$BREW_PKG_NMAE" > /dev/null 2>&1 ; then
+            BREW_PKG_VERS="$("$BREW" info "$BREW_PKG_NMAE" --json | yq '.[0].versions.stable')"
+
+            if version_match "$BREW_PKG_VERS" eq "$PACKAGE_VERSION" ; then
+                :
+                #printf "${COLOR_GREEN}%-10s %-10s  |  %-10s %-10s${COLOR_OFF}\n" "$PACKAGE_NAME" "$PACKAGE_VERSION" "$BREW_PKG_NMAE" "$BREW_PKG_VERS"
+            else
+                printf "${COLOR_RED}%-10s %-10s  |  %-10s %-10s${COLOR_OFF}\n" "$PACKAGE_NAME" "$PACKAGE_VERSION" "$BREW_PKG_NMAE" "$BREW_PKG_VERS"
+            fi
+        else
+            printf "${COLOR_BLUE}%-10s %-10s  |${COLOR_OFF}\n" "$PACKAGE_NAME" "$PACKAGE_VERSION"
+        fi
+    done
+}
+
+__compare_versions_with_ppkg() {
+    cd "$XCPKG_HOME/repos.d/offical-core/formula"
+
+    AVAILABLE_PACKAGE_NAME_LIST=
+    AVAILABLE_PACKAGE_NAME_LIST="$(find . -mindepth 1 -maxdepth 1 -name "*.yml" -exec basename {} .yml \;)"
+
+    [ -z "$PPKG" ] && {
+        PPKG="$(command -v ppkg)" || abort 1 "command not found: ppkg"
+    }
+
+    for PACKAGE_NAME in $AVAILABLE_PACKAGE_NAME_LIST
+    do
+        __load_formula_of_the_given_package "$PACKAGE_NAME"
+
+        if "$PPKG" is-available "$PACKAGE_NAME" ; then
+            PPKG_PACKAGE_VERSION="$("$PPKG" info "$PACKAGE_NMAE" version)"
+
+            if version_match "$PPKG_PACKAGE_VERSION" eq "$PACKAGE_VERSION" ; then
+                :
+            else
+                printf "${COLOR_RED}%-10s %-10s  |  %-10s %-10s${COLOR_OFF}\n" "$PACKAGE_NAME" "$PACKAGE_VERSION" "$PACKAGE_NAME" "$PPKG_PACKAGE_VERSION"
+            fi
+        else
+            printf "${COLOR_BLUE}%-10s %-10s  |${COLOR_OFF}\n" "$PACKAGE_NAME" "$PACKAGE_VERSION"
+        fi
+    done
+}
+
+# }}}
+##############################################################################
+# {{{ xcpkg gen-url-transform-sample
+
+__gen_url_transform_sample() {
+    install -d "$XCPKG_HOME"
+
+    FILEPATH="$XCPKG_HOME/url-transform.sample"
+
+    cat > "$FILEPATH" <<EOF
+#!/bin/sh
+
+# https://ghproxy.com/
+case \$1 in
+    *githubusercontent.com/*)
+        printf 'https://ghproxy.com/%s\n' "\$1"
+        ;;
+    https://github.com/*)
+        printf 'https://ghproxy.com/%s\n' "\$1"
+        ;;
+    '') printf '%s\n' "\$0 <URL>, <URL> is unspecified." >&2 ;;
+    *)  printf '%s\n' "\$1"
+esac
+EOF
+
+    chmod +x "$FILEPATH"
+
+    success "url-transform sample has been written into $XCPKG_HOME/url-transform.sample"
+    note "You can rename url-transform.sample to url-transform then edit it to meet your needs. To apply this, you should run 'export XCPKG_URL_TRANSFORM=$XCPKG_HOME/url-transform' in your terminal."
+}
+
+# }}}
+##############################################################################
+# {{{ xcpkg gen-github-workflows
+
+__gen_github_workflows() {
+    unset GROUP_SIZE
+    unset OUTPUT_DIR
+
+    while [ -n "$1" ]
+    do
+        case $1 in
+            --group-size=*)
+                GROUP_SIZE="${1#*=}"
+                is_integer "$GROUP_SIZE" || abort 1 "--group-size=<INTEGER>, <INTEGER> must be an integer."
+                ;;
+            --output-dir=*)
+                OUTPUT_DIR="${1#*=}"
+
+                case "$OUTPUT_DIR" in
+                    '') abort 1 "--output-dir=<DIR>, <DIR> must be non-empty." ;;
+                    /*) ;;
+                    \~|\~/) OUTPUT_DIR="${HOME}" ;;
+                    \~/*)   OUTPUT_DIR="${HOME}${OUTPUT_DIR#'~/'}" ;;
+                    .|./)   OUTPUT_DIR="${PWD}" ;;
+                    *)      OUTPUT_DIR="${PWD}/$OUTPUT_DIR" ;;
+                esac
+
+                [ -d "$OUTPUT_DIR" ] || run install -d "$OUTPUT_DIR"
+        esac
+        shift
+    done
+
+    if [ -z "$GROUP_SIZE" ] ; then
+        abort 1 "--group-size=<INTEGER> option must be given."
+    fi
+
+    if [ -z "$OUTPUT_DIR" ] ; then
+        OUTPUT_DIR="$XCPKG_HOME/repos.d/offical-core/.github/workflows"
+    fi
+
+    GITHUB_ACTIONS_WORKFLOW_TEMPLATE_FILEPATH="$XCPKG_HOME/repos.d/offical-core/.github/workflows/template"
+
+    if [ ! -f "$GITHUB_ACTIONS_WORKFLOW_TEMPLATE_FILEPATH" ] ; then
+        __sync_available_formula_repositories
+    fi
+
+    ##############################################################################
+
+    unset AVAILABLE_PACKAGE_NAME_LIST
+    unset AVAILABLE_PACKAGE_NAME_LIST_PART1
+    unset AVAILABLE_PACKAGE_NAME_LIST_PART2
+
+    # part1 are packages that are     depended by any other packages.
+    # part2 are packages that are not depended by any other packages.
+
+    ##############################################################################
+
+    AVAILABLE_PACKAGE_NAME_LIST="$(__list_available_packages)"
+
+    for item in test v8 webrtc
+    do
+        AVAILABLE_PACKAGE_NAME_LIST=$(printf '%s\n' "$AVAILABLE_PACKAGE_NAME_LIST" | sed "s|^$item$||")
+    done
+
+    ##############################################################################
+
+    for item in $AVAILABLE_PACKAGE_NAME_LIST
+    do
+        __load_formula_of_the_given_package "$item"
+
+        AVAILABLE_PACKAGE_NAME_LIST_PART1="$AVAILABLE_PACKAGE_NAME_LIST_PART1 $PACKAGE_DEP_PKG"
+    done
+
+    AVAILABLE_PACKAGE_NAME_LIST_PART1=$(printf '%s\n' $AVAILABLE_PACKAGE_NAME_LIST_PART1 | sort | uniq)
+
+    printf '%s\n' "AVAILABLE_PACKAGE_NAME_LIST_PART1=$AVAILABLE_PACKAGE_NAME_LIST_PART1"
+
+    ##############################################################################
+
+    unset AVAILABLE_PACKAGE_NAME_LIST_SIZE
+
+    AVAILABLE_PACKAGE_NAME_LIST_SIZE="$(list_size $AVAILABLE_PACKAGE_NAME_LIST)"
+
+    printf '%s\n' "$AVAILABLE_PACKAGE_NAME_LIST_SIZE"
+
+    ##############################################################################
+
+    I=0
+    J=0
+    K=0
+
+    for x in $AVAILABLE_PACKAGE_NAME_LIST
+    do
+        I="$(expr "$I" + 1)"
+
+        for y in $AVAILABLE_PACKAGE_NAME_LIST_PART1
+        do
+            [ "$x" = "$y" ] && continue 2
+        done
+
+        AVAILABLE_PACKAGE_NAME_LIST_PART2="$AVAILABLE_PACKAGE_NAME_LIST_PART2,$x"
+
+        K="$(expr "$K" + 1)"
+
+        if [ "$I" -eq "$AVAILABLE_PACKAGE_NAME_LIST_SIZE" ] || [ "$K" -eq "$GROUP_SIZE" ] ; then
+            J="$(expr "$J" + 1)"
+
+            OUTPUT_FILEPATH="$OUTPUT_DIR/ci$J.yml"
+
+            AVAILABLE_PACKAGE_NAME_LIST_PART2="${AVAILABLE_PACKAGE_NAME_LIST_PART2#,}"
+
+            printf '\n'
+            run cp "$GITHUB_ACTIONS_WORKFLOW_TEMPLATE_FILEPATH"          "$OUTPUT_FILEPATH"
+            sed_in_place "s/INDEX/$J/"                                   "$OUTPUT_FILEPATH"
+            sed_in_place "s/PKGLIST/$AVAILABLE_PACKAGE_NAME_LIST_PART2/" "$OUTPUT_FILEPATH"
+
+            AVAILABLE_PACKAGE_NAME_LIST_PART2=
+
+            K=0
+        fi
+    done
+}
+
+# }}}
+##############################################################################
+# {{{ xcpkg cleanup
+
+__cleanup() {
+    success "Done."
+}
+
+# }}}
+##############################################################################
+# {{{ xcpkg uninstall
+
+__uninstall_the_given_packages() {
+    [ -z "$1" ] && abort 1 "package name or spec is unspecified."
+
+    XCODE_SUPPORT_PLATFORM_NAMES='MacOSX DriverKit WatchOS WatchSimulator iPhoneOS iPhoneSimulator AppleTVOS AppleTVSimulator'
+
+    unset PACKAGE_SPECS
+
+    for item in "$@"
+    do
+        PACKAGE_SPECS="$PACKAGE_SPECS $(inspect_package_spec "$item")"
+    done
+
+    for PACKAGE_SPEC in $PACKAGE_SPECS
+    do
+        __uninstall_the_given_package "$PACKAGE_SPEC" || return 1
+    done
+}
+
+# __uninstall_the_given_package <PACKAGE-SPEC>
+  __uninstall_the_given_package() {
+    is_package_installed "$1" || abort 1 "$1 is not installed."
+    run rm -rf "$XCPKG_PACKAGE_INSTALLED_ROOT/$1"
+}
+
+# }}}
+##############################################################################
+# {{{ xcpkg reinstall
+
+__reinstall_the_given_packages() {
+    inspect_install_arguments "$@"
+
+    [ -z "$USER_SPECIFIED_PACKAGE_SPEC_LIST" ] && abort 1 "package name or spec is unspecified."
+
+    for packageName in $USER_SPECIFIED_PACKAGE_SPEC_LIST
+    do
+        is_package_available "$1" || abort 1 "$1 is not available."
+        is_package_installed "$1" || abort 1 "$1 is not installed."
+    done
+
+    for PACKAGE_NAME in $USER_SPECIFIED_PACKAGE_SPEC_LIST
+    do
+        [ -d "$XCPKG_BACKUP_DIR" ] || {
+            install -d "$XCPKG_BACKUP_DIR" || return 1
+        }
+
+        mv "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_NAME" "$XCPKG_BACKUP_DIR/$PACKAGE_NAME" || return 1
+
+        (__install_the_given_package "$PACKAGE_NAME") || return 1
+
+        rm -rf "$XCPKG_BACKUP_DIR/$PACKAGE_NAME" || return 1
+    done
+}
+
+# }}}
+##############################################################################
+# {{{ xcpkg upgrade
+
+__upgrade_packages() {
+    inspect_install_arguments "$@"
+
+    if [ -z "$USER_SPECIFIED_PACKAGE_SPEC_LIST" ] ; then
+        USER_SPECIFIED_PACKAGE_SPEC_LIST=$(__list__outdated_packages)
+    fi
+
+    for packageName in $USER_SPECIFIED_PACKAGE_SPEC_LIST
+    do
+        is_package_available "$1" || abort 1 "$1 is not available."
+        is_package_installed "$1" || abort 1 "$1 is not installed."
+    done
+
+    for PACKAGE_NAME in $USER_SPECIFIED_PACKAGE_SPEC_LIST
+    do
+        [ -d "$XCPKG_BACKUP_DIR" ] || {
+            install -d "$XCPKG_BACKUP_DIR" || return 1
+        }
+
+        mv "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_NAME" "$XCPKG_BACKUP_DIR/$PACKAGE_NAME" || return 1
+
+        (__install_the_given_package "$PACKAGE_NAME") || return 1
+
+        rm -rf "$XCPKG_BACKUP_DIR/$PACKAGE_NAME" || return 1
+    done
+}
 
 # }}}
 ##############################################################################
@@ -6432,633 +7073,6 @@ EOF
 
 # }}}
 ##############################################################################
-# {{{ xcpkg tree
-
-# __tree_the_given_installed_package <PACKAGE-SPEC>
-  __tree_the_given_installed_package() {
-    is_package_installed "$1" || abort 1 "package '$1' is not installed."
-    PACKAGE_SPEC="$1"
-    shift
-    run tree "$@" "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_SPEC"
-}
-
-# }}}
-##############################################################################
-# {{{ xcpkg logs
-
-# __logs_the_given_installed_package <PACKAGE-SPEC>
-  __logs_the_given_installed_package() {
-    [ -z "$1" ] && abort 1 "$_0 logs <PACKAGE-SPEC>, <PACKAGE-SPEC> is unspecified."
-
-    is_package_installed "$1" || abort 1 "package '$1' is not installed."
-
-    unset FILEPATHS; FILEPATHS="$(find "$XCPKG_PACKAGE_INSTALLED_ROOT/$1/.xcpkg" -type f)"
-
-    for filepath in $FILEPATHS
-    do
-        [ -d "$filepath" ] && continue
-
-        case $filepath in
-            *.png)  ;;
-            *.yml)  run yq . "$filepath" ;;
-            *.json) run jq . "$filepath" ;;
-            *)  if command -v bat > /dev/null ; then
-                    bat  "$filepath"
-                else
-                    less "$filepath"
-                fi
-        esac
-    done
-}
-
-
-# }}}
-##############################################################################
-# {{{ xcpkg pack
-
-# examples:
-# __pack_the_given_installed_package <PACKAGE-NAME|PACKAGE-SPEC> [-t <zip|tar.gz|tar.xz|tar.lz|tar.bz2>] [-o <OUTPUT-PATH>] [--keep-packing-dir]
-# __pack_the_given_installed_package    autoconf     -t tar.xz
-  __pack_the_given_installed_package() {
-    XCODE_SUPPORT_PLATFORM_NAMES='MacOSX DriverKit WatchOS WatchSimulator iPhoneOS iPhoneSimulator AppleTVOS AppleTVSimulator'
-
-    PACKAGE_SPEC=
-    PACKAGE_SPEC="$(inspect_package_spec "$1")"
-
-    __load_receipt_of_the_given_package "$PACKAGE_SPEC"
-
-    unset TARGET_PLATFORM_NAME
-    unset TARGET_PLATFORM_VERS
-    unset TARGET_PLATFORM_ARCH
-
-    unset RECEIPT_PACKAGE_NAME
-
-    TARGET_PLATFORM_NAME="$(printf '%s\n' "$PACKAGE_SPEC" | cut -d/ -f1)"
-    TARGET_PLATFORM_VERS="$(printf '%s\n' "$PACKAGE_SPEC" | cut -d/ -f2)"
-    TARGET_PLATFORM_ARCH="$(printf '%s\n' "$PACKAGE_SPEC" | cut -d/ -f3)"
-    RECEIPT_PACKAGE_NAME="$(printf '%s\n' "$PACKAGE_SPEC" | cut -d/ -f4)"
-
-    shift
-
-    ###########################################################################################
-
-    unset OUTPUT_DIR
-    unset OUTPUT_FILETYPE
-    unset OUTPUT_FILEPATH
-
-    while [ -n "$1" ]
-    do
-        case $1 in
-            --keep-packing-dir)
-                KEEP_PACKING_DIR=yes
-                ;;
-            -t) shift
-
-                if [ -z "$1" ] ; then
-                    abort 1 "$_0 pack <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>], -t option is given but <OUTPUT-TYPE> is unspecified."
-                else
-                    OUTPUT_FILETYPE="$1"
-                fi
-
-                case $OUTPUT_FILETYPE in
-                    zip|tar.gz|tar.xz|tar.lz|tar.bz2) ;;
-                    *) abort 1 "$_0 pack <PACKAGE-NAME> [-t <OUTPUT-TYPE>], unsupported <OUTPU-TYPE>: $OUTPUT_FILETYPE, <OUTPU-TYPE> should be one of zip|tar.gz|tar.xz|tar.lz|tar.bz2"
-                esac
-                ;;
-            -o) shift
-                if [ -z "$1" ] ; then
-                    abort 1 "$_0 pack <PACKAGE-NAME> [-t <OUTPU-TYPE>] [-o <OUTPUT-PATH>], -o option is given but <OUTPUT-PATH> is unspecified."
-                else
-                    OUTPUT_FILEPATH="$1"
-                fi
-                ;;
-            *)  abort 1 "$_0 pack <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>] [--keep-packing-dir], unrecognized option: $1"
-        esac
-        shift
-    done
-
-    case $TARGET_PLATFORM_NAME in
-        iPhoneOS)
-            TARGET_PLATFORM_NAME_CANONICAL_NAME=ios
-            ;;
-        iPhoneSimulator)
-            TARGET_PLATFORM_NAME_CANONICAL_NAME=iosSimulator
-            ;;
-        WatchOS)
-            TARGET_PLATFORM_NAME_CANONICAL_NAME=watchos
-            ;;
-        WatchSimulator)
-            TARGET_PLATFORM_NAME_CANONICAL_NAME=watchosSimulator
-            ;;
-        AppleTVOS)
-            TARGET_PLATFORM_NAME_CANONICAL_NAME=tvos
-            ;;
-        AppleTVSimulator)
-            TARGET_PLATFORM_NAME_CANONICAL_NAME=tvosSimulator
-            ;;
-        MacOSX)
-            TARGET_PLATFORM_NAME_CANONICAL_NAME=macos
-            ;;
-        *)  TARGET_PLATFORM_NAME_CANONICAL_NAME="$TARGET_PLATFORM_NAME"
-    esac
-
-    PACKED_DIR_NAME="$RECEIPT_PACKAGE_NAME-$RECEIPT_PACKAGE_VERSION-$TARGET_PLATFORM_NAME_CANONICAL_NAME$TARGET_PLATFORM_VERS-$TARGET_PLATFORM_ARCH"
-
-    ###########################################################################################
-
-    if [ -z "$OUTPUT_FILEPATH" ] ; then
-        if [ -z "$OUTPUT_FILETYPE" ] ; then
-            OUTPUT_FILETYPE='tar.xz'
-        fi
-
-        OUTPUT_DIR="$XCPKG_HOME/packed"
-        OUTPUT_FILENAME="$PACKED_DIR_NAME.$OUTPUT_FILETYPE"
-    else
-        if [ -d "$OUTPUT_FILEPATH" ] ; then
-            if [ -z "$OUTPUT_FILETYPE" ] ; then
-                OUTPUT_FILETYPE='tar.xz'
-            fi
-
-            OUTPUT_DIR="$(realpath -s "$OUTPUT_FILEPATH")"
-            OUTPUT_FILENAME="$PACKED_DIR_NAME.$OUTPUT_FILETYPE"
-        else
-            case $OUTPUT_FILEPATH in
-                */)
-                    if [ -z "$OUTPUT_FILETYPE" ] ; then
-                        OUTPUT_FILETYPE='tar.xz'
-                    fi
-
-                    OUTPUT_DIR="$(realpath -s "$OUTPUT_FILEPATH")"
-                    OUTPUT_FILENAME="$PACKED_DIR_NAME.$OUTPUT_FILETYPE"
-                    ;;
-                *)
-                    OUTPUT_FILEPATH="$(realpath -s "$OUTPUT_FILEPATH")"
-
-                    if [ -z "$OUTPUT_FILETYPE" ] ; then
-                        case $OUTPUT_FILEPATH in
-                            *.tar.gz|*.tgz)
-                                OUTPUT_FILETYPE=tar.gz
-                                ;;
-                            *.tar.xz|*.txz)
-                                OUTPUT_FILETYPE=tar.xz
-                                ;;
-                            *.tar.lz|*.tlz)
-                                OUTPUT_FILETYPE=tar.lz
-                                ;;
-                            *.tar.bz2|*.tbz2)
-                                OUTPUT_FILETYPE=tar.bz2
-                                ;;
-                            *.zip)
-                                OUTPUT_FILETYPE=zip
-                                ;;
-                            *.7z)
-                                OUTPUT_FILETYPE=7z
-                                ;;
-                            *)  abort 1 "when -t <OUTPUT-TYPE> option is not given, -o <OUTPUT-PATH> option specified filename must ends with one of .tar.gz|.tar.xz|.tar.lz|.tar.bz2|.tgz|.txz|.tlz|.tbz2|.zip|.7z"
-                        esac
-                    fi
-
-                    OUTPUT_DIR="$(dirname "$OUTPUT_FILEPATH")"
-                    OUTPUT_FILENAME="$(basename "$OUTPUT_FILEPATH")"
-            esac
-        fi
-    fi
-
-    ###########################################################################################
-
-    step "create packing directory"
-    printf '%b\n' "$COLOR_PURPLE==>$COLOR_OFF ${COLOR_GREEN}mktemp -d$COLOR_OFF"
-    PACKING_DIR=$(mktemp -d)
-
-    step "change to packing directory"
-    run cd "$PACKING_DIR"
-
-    step "make link refer to installed package root dir"
-    run ln -s "$PACKAGE_INSTALLED_DIR" "$PACKED_DIR_NAME"
-
-    step "packing"
-    case $OUTPUT_FILETYPE in
-        zip) run zip -9 -r     "$OUTPUT_FILENAME" "$PACKED_DIR_NAME" ;;
-        7z)  run 7za a -t7z -r "$OUTPUT_FILENAME" "$PACKED_DIR_NAME/*" "$PACKED_DIR_NAME/.xcpkg" ;;
-        tar.xz)  run tar cv --xz    -f "$OUTPUT_FILENAME" "$PACKED_DIR_NAME/*" "$PACKED_DIR_NAME/.xcpkg" ;;
-        tar.gz)  run tar cv --gzip  -f "$OUTPUT_FILENAME" "$PACKED_DIR_NAME/*" "$PACKED_DIR_NAME/.xcpkg" ;;
-        tar.lz)  run tar cv --lzip  -f "$OUTPUT_FILENAME" "$PACKED_DIR_NAME/*" "$PACKED_DIR_NAME/.xcpkg" ;;
-        tar.bz2) run tar cv --bzip2 -f "$OUTPUT_FILENAME" "$PACKED_DIR_NAME/*" "$PACKED_DIR_NAME/.xcpkg" ;;
-    esac
-
-    step "check integrity of packed file"
-    case $OUTPUT_FILETYPE in
-        7z)    run 7za t -t7z "$OUTPUT_FILENAME" ;;
-        zip)   run unzip -t   "$OUTPUT_FILENAME" ;;
-        tar.*) run tar   -tf  "$OUTPUT_FILENAME" ;;
-    esac
-
-    step "show size of packed file"
-    run "du -sh $OUTPUT_FILENAME | cut -f1"
-
-    if [ ! -d "$OUTPUT_DIR" ] ; then
-        step "create output dir"
-        run install -d "$OUTPUT_DIR"
-    fi
-
-    step "copy packed file to output dir"
-    run cp "$OUTPUT_FILENAME" "$OUTPUT_DIR/"
-
-    if [ "$KEEP_PACKING_DIR" = yes ] ; then
-        printf '\n'
-        note "the work dir [$PACKING_DIR] is not deleted as --keep-packing-dir option is given."
-    else
-        step "delete packing directory"
-        run rm -rf "$PACKING_DIR"
-    fi
-
-}
-
-# }}}
-##############################################################################
-# {{{ xcpkg upgrade-self
-
-# __upgrade_self <URL>
-  __upgrade_self() {
-    if [ -z "$1" ] ; then
-        error "__upgrade_self <URL> , <URL> must be non-empty."
-        return 1
-    fi
-
-    unset CURRENT_SCRIPT_REALPATH
-
-    # if file exists and is a symbolic link
-    if [ -L "$CURRENT_SCRIPT_FILEPATH" ] ; then
-        # https://unix.stackexchange.com/questions/136494/whats-the-difference-between-realpath-and-readlink-f#:~:text=GNU%20coreutils%20introduced%20a%20realpath,in%20common%20with%20GNU%20readlink%20.
-        if command -v realpath > /dev/null ; then
-            CURRENT_SCRIPT_REALPATH=$(realpath "$CURRENT_SCRIPT_FILEPATH")
-        elif command -v readlink > /dev/null && readlink -f xx > /dev/null 2>&1 ; then
-            CURRENT_SCRIPT_REALPATH=$(readlink -f "$CURRENT_SCRIPT_FILEPATH")
-        else
-            CURRENT_SCRIPT_REALPATH=$(realpath "$CURRENT_SCRIPT_FILEPATH")
-        fi
-    else
-        CURRENT_SCRIPT_REALPATH="$CURRENT_SCRIPT_FILEPATH"
-    fi
-
-    printf '%b\n' "$COLOR_PURPLE==>$COLOR_OFF ${COLOR_GREEN}mktemp -d$COLOR_OFF"
-    WORKING_DIR=$(mktemp -d)
-
-    run cd "$WORKING_DIR"
-
-    wfetch "$1" --output-path="$WORKING_DIR/self"
-
-    __upgrade_self_exit() {
-        if [ -w "$CURRENT_SCRIPT_REALPATH" ] ; then
-            run      install -m 755 self "$CURRENT_SCRIPT_REALPATH"
-        else
-            run sudo install -m 755 self "$CURRENT_SCRIPT_REALPATH"
-        fi
-
-        run rm -rf "$WORKING_DIR"
-    }
-
-    trap __upgrade_self_exit EXIT
-}
-
-# }}}
-##############################################################################
-# {{{ xcpkg integrate zsh
-
-# __integrate_zsh_completions <URL> [--output-dir=<DIR>]
-  __integrate_zsh_completions() {
-    if [ -z "$1" ] ; then
-        error "__integrate_zsh_completions <URL> [--output-dir=<DIR>] , <URL> must be non-empty."
-        return 1
-    else
-        ZSH_COMPLETIONS_SCRIPT_URL="$1"
-    fi
-
-    shift
-
-    unset OUTPUT_DIR
-
-    for arg in "$@"
-    do
-        case $arg in
-            --output-dir=*)
-                OUTPUT_DIR="${arg#*=}"
-                case $OUTPUT_DIR in
-                    '')     abort 1 "__integrate_zsh_completions <URL> [--output-dir=<DIR>] , <DIR> must be non-empty." ;;
-                    \~|\~/) OUTPUT_DIR="${HOME}" ;;
-                    \~/*)   OUTPUT_DIR="$HOME/$(printf '%s\n' "$OUTPUT_DIR" | cut -c3-)" ;;
-                esac
-                ;;
-            *)  abort 1 "__integrate_zsh_completions <URL> [--output-dir=<DIR>] , unrecognized argument: $arg"
-        esac
-    done
-
-    ZSH_COMPLETIONS_SCRIPT_FILENAME="_$CURRENT_SCRIPT_FILENAME"
-
-    if [ -n "$OUTPUT_DIR" ] ; then
-        ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH="$OUTPUT_DIR/$ZSH_COMPLETIONS_SCRIPT_FILENAME"
-    elif [ "$(uname)" = Linux ] && command -v termux-info > /dev/null && [ "$HOME" = '/data/data/com.termux/files/home' ] ; then
-        ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH="/data/data/com.termux/files/usr/share/zsh/site-functions/$ZSH_COMPLETIONS_SCRIPT_FILENAME"
-    else
-        ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH="/usr/local/share/zsh/site-functions/$ZSH_COMPLETIONS_SCRIPT_FILENAME"
-    fi
-
-    # if file exists and is a symbolic link
-    if [ -L "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH" ] ; then
-        # https://unix.stackexchange.com/questions/136494/whats-the-difference-between-realpath-and-readlink-f#:~:text=GNU%20coreutils%20introduced%20a%20realpath,in%20common%20with%20GNU%20readlink%20.
-        if command -v realpath > /dev/null ; then
-            ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH=$(realpath "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH")
-        elif command -v readlink > /dev/null && readlink -f xx > /dev/null 2>&1 ; then
-            ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH=$(readlink -f "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH")
-        else
-            ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH=$(realpath "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH")
-        fi
-    fi
-
-    printf '%b\n' "$COLOR_PURPLE==>$COLOR_OFF ${COLOR_GREEN}mktemp -d$COLOR_OFF"
-    WORKING_DIR=$(mktemp -d)
-
-    run cd "$WORKING_DIR"
-
-    wfetch "$ZSH_COMPLETIONS_SCRIPT_URL" --output-path="$WORKING_DIR/$ZSH_COMPLETIONS_SCRIPT_FILENAME"
-
-    if [ -f "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH" ] ; then
-        if [ -w "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH" ] ; then
-            run      install -m 644 "$ZSH_COMPLETIONS_SCRIPT_FILENAME" "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH"
-        else
-            run sudo install -m 644 "$ZSH_COMPLETIONS_SCRIPT_FILENAME" "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH"
-        fi
-    else
-        ZSH_COMPLETIONS_SCRIPT_OUT_DIR="$(dirname "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH")"
-        if [ ! -d "$ZSH_COMPLETIONS_SCRIPT_OUT_DIR" ] ; then
-            run install -d "$ZSH_COMPLETIONS_SCRIPT_OUT_DIR" || run sudo install -d "$ZSH_COMPLETIONS_SCRIPT_OUT_DIR"
-        fi
-        if [ -w "$ZSH_COMPLETIONS_SCRIPT_OUT_DIR" ] ; then
-            run      install -m 644 "$ZSH_COMPLETIONS_SCRIPT_FILENAME" "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH"
-        else
-            run sudo install -m 644 "$ZSH_COMPLETIONS_SCRIPT_FILENAME" "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH"
-        fi
-    fi
-
-    run rm -rf "$WORKING_DIR"
-
-    printf '\n'
-    note "${COLOR_YELLOW}you need to run command${COLOR_RED} ${COLOR_GREEN}autoload -U compinit && compinit${COLOR_OFF} ${COLOR_YELLOW}in zsh to make it work.${COLOR_OFF}"
-}
-
-# }}}
-##############################################################################
-# {{{ xcpkg compare-versions
-
-package_name_transform_from_uppm_to_brew() {
-    case $1 in
-        file)     printf '%s\n' 'file-formula' ;;
-        delta)    printf '%s\n' 'git-delta' ;;
-        gmake)    printf '%s\n' 'make'      ;;
-        gtar)     printf '%s\n' 'gnu-tar'   ;;
-        gm4)      printf '%s\n' 'm4'        ;;
-        patch)    printf '%s\n' 'gpatch'    ;;
-        libjxl)   printf '%s\n' 'jpeg-xl'   ;;
-        blake3)   printf '%s\n' 'b3sum'     ;;
-        libwebp)  printf '%s\n' 'webp'      ;;
-        proj7)    printf '%s\n' 'proj@7'    ;;
-        openssl)  printf '%s\n' 'openssl@1.1';;
-        freetype2)printf '%s\n' 'freetype'  ;;
-        freetype2-with-harfbuzz)
-                  printf '%s\n' 'freetype'  ;;
-        gnu-coreutils)
-                  printf '%s\n' 'coreutils' ;;
-        libmediainfo|mediainfo)
-                  printf '%s\n' 'media-info';;
-        tcl-core) printf '%s\n' 'tcl-tk'    ;;
-        *)        printf '%s\n' "$1"
-    esac
-}
-
-__compare_versions_with_brew() {
-    cd "$XCPKG_HOME/repos.d/offical-core/formula"
-
-    AVAILABLE_PACKAGE_NAME_LIST=
-    AVAILABLE_PACKAGE_NAME_LIST="$(find . -mindepth 1 -maxdepth 1 -name "*.yml" -exec basename {} .yml \;)"
-
-    [ -z "$BREW" ] && {
-        BREW="$(command -v brew)" || abort 1 "command not found: brew"
-    }
-
-    for PACKAGE_NAME in $AVAILABLE_PACKAGE_NAME_LIST
-    do
-        __load_formula_of_the_given_package "$PACKAGE_NAME"
-
-        BREW_PKG_NMAE="$(package_name_transform_from_uppm_to_brew "$PACKAGE_NAME")"
-
-        if "$BREW" info "$BREW_PKG_NMAE" > /dev/null 2>&1 ; then
-            BREW_PKG_VERS="$("$BREW" info "$BREW_PKG_NMAE" --json | yq '.[0].versions.stable')"
-
-            if version_match "$BREW_PKG_VERS" eq "$PACKAGE_VERSION" ; then
-                :
-                #printf "${COLOR_GREEN}%-10s %-10s  |  %-10s %-10s${COLOR_OFF}\n" "$PACKAGE_NAME" "$PACKAGE_VERSION" "$BREW_PKG_NMAE" "$BREW_PKG_VERS"
-            else
-                printf "${COLOR_RED}%-10s %-10s  |  %-10s %-10s${COLOR_OFF}\n" "$PACKAGE_NAME" "$PACKAGE_VERSION" "$BREW_PKG_NMAE" "$BREW_PKG_VERS"
-            fi
-        else
-            printf "${COLOR_BLUE}%-10s %-10s  |${COLOR_OFF}\n" "$PACKAGE_NAME" "$PACKAGE_VERSION"
-        fi
-    done
-}
-
-__compare_versions_with_ppkg() {
-    cd "$XCPKG_HOME/repos.d/offical-core/formula"
-
-    AVAILABLE_PACKAGE_NAME_LIST=
-    AVAILABLE_PACKAGE_NAME_LIST="$(find . -mindepth 1 -maxdepth 1 -name "*.yml" -exec basename {} .yml \;)"
-
-    [ -z "$PPKG" ] && {
-        PPKG="$(command -v ppkg)" || abort 1 "command not found: ppkg"
-    }
-
-    for PACKAGE_NAME in $AVAILABLE_PACKAGE_NAME_LIST
-    do
-        __load_formula_of_the_given_package "$PACKAGE_NAME"
-
-        if "$PPKG" is-available "$PACKAGE_NAME" ; then
-            PPKG_PACKAGE_VERSION="$("$PPKG" info "$PACKAGE_NMAE" version)"
-
-            if version_match "$PPKG_PACKAGE_VERSION" eq "$PACKAGE_VERSION" ; then
-                :
-            else
-                printf "${COLOR_RED}%-10s %-10s  |  %-10s %-10s${COLOR_OFF}\n" "$PACKAGE_NAME" "$PACKAGE_VERSION" "$PACKAGE_NAME" "$PPKG_PACKAGE_VERSION"
-            fi
-        else
-            printf "${COLOR_BLUE}%-10s %-10s  |${COLOR_OFF}\n" "$PACKAGE_NAME" "$PACKAGE_VERSION"
-        fi
-    done
-}
-
-# }}}
-##############################################################################
-# {{{ xcpkg gen-url-transform-sample
-
-__gen_url_transform_sample() {
-    install -d "$XCPKG_HOME"
-
-    FILEPATH="$XCPKG_HOME/url-transform.sample"
-
-    cat > "$FILEPATH" <<EOF
-#!/bin/sh
-
-# https://ghproxy.com/
-case \$1 in
-    *githubusercontent.com/*)
-        printf 'https://ghproxy.com/%s\n' "\$1"
-        ;;
-    https://github.com/*)
-        printf 'https://ghproxy.com/%s\n' "\$1"
-        ;;
-    '') printf '%s\n' "\$0 <URL>, <URL> is unspecified." >&2 ;;
-    *)  printf '%s\n' "\$1"
-esac
-EOF
-
-    chmod +x "$FILEPATH"
-
-    success "url-transform sample has been written into $XCPKG_HOME/url-transform.sample"
-    note "You can rename url-transform.sample to url-transform then edit it to meet your needs. To apply this, you should run 'export XCPKG_URL_TRANSFORM=$XCPKG_HOME/url-transform' in your terminal."
-}
-
-# }}}
-##############################################################################
-# {{{ xcpkg gen-github-workflows
-
-__gen_github_workflows() {
-    unset GROUP_SIZE
-    unset OUTPUT_DIR
-
-    while [ -n "$1" ]
-    do
-        case $1 in
-            --group-size=*)
-                GROUP_SIZE="${1#*=}"
-                is_integer "$GROUP_SIZE" || abort 1 "--group-size=<INTEGER>, <INTEGER> must be an integer."
-                ;;
-            --output-dir=*)
-                OUTPUT_DIR="${1#*=}"
-
-                case "$OUTPUT_DIR" in
-                    '') abort 1 "--output-dir=<DIR>, <DIR> must be non-empty." ;;
-                    /*) ;;
-                    \~|\~/) OUTPUT_DIR="${HOME}" ;;
-                    \~/*)   OUTPUT_DIR="${HOME}${OUTPUT_DIR#'~/'}" ;;
-                    .|./)   OUTPUT_DIR="${PWD}" ;;
-                    *)      OUTPUT_DIR="${PWD}/$OUTPUT_DIR" ;;
-                esac
-
-                [ -d "$OUTPUT_DIR" ] || run install -d "$OUTPUT_DIR"
-        esac
-        shift
-    done
-
-    if [ -z "$GROUP_SIZE" ] ; then
-        abort 1 "--group-size=<INTEGER> option must be given."
-    fi
-
-    if [ -z "$OUTPUT_DIR" ] ; then
-        OUTPUT_DIR="$XCPKG_HOME/repos.d/offical-core/.github/workflows"
-    fi
-
-    GITHUB_ACTIONS_WORKFLOW_TEMPLATE_FILEPATH="$XCPKG_HOME/repos.d/offical-core/.github/workflows/template"
-
-    if [ ! -f "$GITHUB_ACTIONS_WORKFLOW_TEMPLATE_FILEPATH" ] ; then
-        __sync_available_formula_repositories
-    fi
-
-    ##############################################################################
-
-    unset AVAILABLE_PACKAGE_NAME_LIST
-    unset AVAILABLE_PACKAGE_NAME_LIST_PART1
-    unset AVAILABLE_PACKAGE_NAME_LIST_PART2
-
-    # part1 are packages that are     depended by any other packages.
-    # part2 are packages that are not depended by any other packages.
-
-    ##############################################################################
-
-    AVAILABLE_PACKAGE_NAME_LIST="$(__list_available_packages)"
-
-    for item in test v8 webrtc
-    do
-        AVAILABLE_PACKAGE_NAME_LIST=$(printf '%s\n' "$AVAILABLE_PACKAGE_NAME_LIST" | sed "s|^$item$||")
-    done
-
-    ##############################################################################
-
-    for item in $AVAILABLE_PACKAGE_NAME_LIST
-    do
-        __load_formula_of_the_given_package "$item"
-
-        AVAILABLE_PACKAGE_NAME_LIST_PART1="$AVAILABLE_PACKAGE_NAME_LIST_PART1 $PACKAGE_DEP_PKG"
-    done
-
-    AVAILABLE_PACKAGE_NAME_LIST_PART1=$(printf '%s\n' $AVAILABLE_PACKAGE_NAME_LIST_PART1 | sort | uniq)
-
-    printf '%s\n' "AVAILABLE_PACKAGE_NAME_LIST_PART1=$AVAILABLE_PACKAGE_NAME_LIST_PART1"
-
-    ##############################################################################
-
-    unset AVAILABLE_PACKAGE_NAME_LIST_SIZE
-
-    AVAILABLE_PACKAGE_NAME_LIST_SIZE="$(list_size $AVAILABLE_PACKAGE_NAME_LIST)"
-
-    printf '%s\n' "$AVAILABLE_PACKAGE_NAME_LIST_SIZE"
-
-    ##############################################################################
-
-    I=0
-    J=0
-    K=0
-
-    for x in $AVAILABLE_PACKAGE_NAME_LIST
-    do
-        I="$(expr "$I" + 1)"
-
-        for y in $AVAILABLE_PACKAGE_NAME_LIST_PART1
-        do
-            [ "$x" = "$y" ] && continue 2
-        done
-
-        AVAILABLE_PACKAGE_NAME_LIST_PART2="$AVAILABLE_PACKAGE_NAME_LIST_PART2,$x"
-
-        K="$(expr "$K" + 1)"
-
-        if [ "$I" -eq "$AVAILABLE_PACKAGE_NAME_LIST_SIZE" ] || [ "$K" -eq "$GROUP_SIZE" ] ; then
-            J="$(expr "$J" + 1)"
-
-            OUTPUT_FILEPATH="$OUTPUT_DIR/ci$J.yml"
-
-            AVAILABLE_PACKAGE_NAME_LIST_PART2="${AVAILABLE_PACKAGE_NAME_LIST_PART2#,}"
-
-            printf '\n'
-            run cp "$GITHUB_ACTIONS_WORKFLOW_TEMPLATE_FILEPATH"          "$OUTPUT_FILEPATH"
-            sed_in_place "s/INDEX/$J/"                                   "$OUTPUT_FILEPATH"
-            sed_in_place "s/PKGLIST/$AVAILABLE_PACKAGE_NAME_LIST_PART2/" "$OUTPUT_FILEPATH"
-
-            AVAILABLE_PACKAGE_NAME_LIST_PART2=
-
-            K=0
-        fi
-    done
-}
-
-
-# }}}
-##############################################################################
-# {{{ xcpkg cleanup
-
-__cleanup() {
-    success "Done."
-}
-
-# }}}
-##############################################################################
 # {{{ xcpkg setup
 
 __setup() {
@@ -7280,7 +7294,7 @@ X19ffCAuX18vfF98XF9cX18sIHwKICAgICAgICAgfF98ICAgICAgICB8X19fLyAK'
         fi
     fi
 
-    echo "
+    printf '%b\n' "
 A package manager for Xcode to build C/C++/Rust/Go project.${COLOR_OFF}
 
 ${COLOR_GREEN}xcpkg <ACTION> [ARGUMENT...]${COLOR_OFF}
@@ -7293,11 +7307,11 @@ ${COLOR_GREEN}xcpkg --version${COLOR_OFF}
 ${COLOR_GREEN}xcpkg -V${COLOR_OFF}
     show version of this command.
 
-${COLOR_GREEN}xcpkg env [-v]${COLOR_OFF}
-    show your system and Xcode information.
-
 ${COLOR_GREEN}xcpkg sysinfo${COLOR_OFF}
     show your system information.
+
+${COLOR_GREEN}xcpkg env [-v]${COLOR_OFF}
+    show your system and Xcode information.
 
 ${COLOR_GREEN}xcpkg xcinfo [ --developer-dir=<DEVELOPER_DIR> --list-supported-platform-names-only]${COLOR_OFF}
     show current active Xcode information.
@@ -7331,8 +7345,8 @@ ${COLOR_GREEN}xcpkg is-installed <PACKAGE-SPEC>${COLOR_OFF}
 ${COLOR_GREEN}xcpkg is-outdated  <PACKAGE-SPEC>${COLOR_OFF}
     check if the given package is outdated.
 
-${COLOR_GREEN}xcpkg search <REGULAR-EXPRESS-PATTERN>${COLOR_OFF}
-    search all available packages whose name matches the given regular express pattern.
+${COLOR_GREEN}xcpkg search <REGULAR-EXPRESSION-PATTERN>${COLOR_OFF}
+    search all available packages whose name matches the given regular expression pattern.
 
 ${COLOR_GREEN}xcpkg formula <PACKAGE-NAME> [--path] [--yaml] [--json] [<KEY>]${COLOR_OFF}
     show formula of the given available package.
