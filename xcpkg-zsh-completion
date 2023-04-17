@@ -172,7 +172,8 @@ function _xcpkg() {
                 depends)
                     _arguments \
                         '1:package-name:_xcpkg_available_packages' \
-                        '--format=-[set output format]:format:(dot box svg png)'
+                        '-t[set output format]:output-type:(dot box svg png)' \
+                        '-o[set output filepath or directory]:output-path:{_files}'
                     ;;
                 pack)
                     _arguments \

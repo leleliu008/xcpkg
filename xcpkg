@@ -7437,21 +7437,25 @@ ${COLOR_GREEN}xcpkg gen-url-transform-sample${COLOR_OFF}
     generate url-transform sample.
 
 
-${COLOR_GREEN}PACKAGE-SPEC:${COLOR_OFF}
+
+${COLOR_GREEN}PACKAGE-NAME${COLOR_OFF}
+    must match regular expression pattern ^[A-Za-z0-9+-._]{1,50}$
+
+${COLOR_GREEN}PACKAGE-SPEC${COLOR_OFF}
     a formatted srting that has form: <TARGET-PLATFORM-SPEC>/<PACKAGE-NAME>
 
-${COLOR_GREEN}TARGET-PLATFORM-SPEC:${COLOR_OFF}
+${COLOR_GREEN}TARGET-PLATFORM-SPEC${COLOR_OFF}
     a formatted srting that has form: <PLATFORM-NAME>/<PLATFORM-VERSION>/<PLATFORM-ARCH>
-    indicates which platform should be built for.
+    indicates which platform would be built for.
 
-${COLOR_GREEN}PLATFORM-VERSION:${COLOR_OFF}
-    the minimum version supported by this package. PLATFORM-VERSION usually matches regular expression pattern '[0-9][0-9]?.[0-9][0-9]?', e.g. 10.15, 11.0, 12.0, 12.6, etc.
-
-${COLOR_GREEN}PLATFORM-NAME:${COLOR_OFF}
+${COLOR_GREEN}PLATFORM-NAME${COLOR_OFF}
     'xcpkg xcinfo --list-supported-platform-names-only' command will list the supported platform names.
 
-${COLOR_GREEN}PACKAGE-NAME:${COLOR_OFF}
-    must match regular expression pattern ^[A-Za-z0-9+-._]{1,50}$
+${COLOR_GREEN}PLATFORM-VERSION${COLOR_OFF}
+    the minimum version of platform supported by this package. It usually matches regular expression pattern '[0-9][0-9]?.[0-9][0-9]?', e.g. 10.15, 11.0, 12.0, 12.6, etc.
+
+${COLOR_GREEN}PLATFORM-ARCH${COLOR_OFF}
+    indicates which ISA would be built for.
     "
 }
 
