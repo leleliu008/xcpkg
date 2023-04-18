@@ -1750,7 +1750,7 @@ __list_installed_packages() {
         return 0
     fi
 
-    for packageName in *
+    for packageName in $(find . -maxdepth 1 -mindepth 1 -type d -printf '%P\n')
     do
         if is_package_installed "$packageName" ; then
             printf '%s\n' "$packageName"
@@ -1769,7 +1769,7 @@ __list__outdated_packages() {
         return 0
     fi
 
-    for packageName in *
+    for packageName in $(find . -maxdepth 1 -mindepth 1 -type d -printf '%P\n')
     do
         is_package_available "$packageName" || continue
         is_package_installed "$packageName" || continue
@@ -1783,7 +1783,7 @@ __list__outdated_packages() {
 # {{{ xcpkg search
 
 __search_packages() {
-    [ -z "$1" ] && abort 1 "please specify a regular express pattern."
+    [ -z "$1" ] && abort 1 "please specify a regular expression pattern."
 
     __list_available_packages | grep "$*"
 }
@@ -2520,7 +2520,8 @@ __fetch_resources_of_the_given_package() {
 
     is_package_installed "$1" || abort 1 "package '$1' is not installed."
 
-    unset FILEPATHS; FILEPATHS="$(find "$XCPKG_PACKAGE_INSTALLED_ROOT/$1/.xcpkg" -type f)"
+    FILEPATHS=
+    FILEPATHS="$(find "$XCPKG_PACKAGE_INSTALLED_ROOT/$1/.xcpkg" -type f)"
 
     for filepath in $FILEPATHS
     do
@@ -2538,7 +2539,6 @@ __fetch_resources_of_the_given_package() {
         esac
     done
 }
-
 
 # }}}
 ##############################################################################
@@ -2739,7 +2739,6 @@ __fetch_resources_of_the_given_package() {
         step "delete packing directory"
         run rm -rf "$PACKING_DIR"
     fi
-
 }
 
 # }}}
@@ -3498,7 +3497,7 @@ __install_the_given_packages() {
 
     #########################################################################################
 
-    SESSION_DIR="$XCPKG_HOME/var/run/$$"
+    SESSION_DIR="$XCPKG_HOME/installing/.session/$$"
 
     rm -rf     "$SESSION_DIR"
     install -d "$SESSION_DIR"
