@@ -1811,7 +1811,7 @@ __show_information_as_mixed_of_all_available_packages() {
         if [ "$FIRST" = yes ] ; then
             FIRST=no
         else
-            printf '%s\n' '========'
+            printf '---\n'
         fi
         __show_information_of_the_given_package "$PACKAGE"
     done
@@ -1843,7 +1843,7 @@ __show_information_as_yaml__of_all_available_packages() {
         if [ "$FIRST" = yes ] ; then
             FIRST=no
         else
-            printf '%s\n' '---'
+            printf '---\n'
         fi
         __show_information_as_yaml__of_the_given_package "$PACKAGE"
     done
@@ -4834,7 +4834,7 @@ $DOT_CONTENT
 
     #########################################################################################
 
-    step "install for native"
+    step "build for native"
 
     if [ "$CROSS_COMPILING" = no ] ; then
         note "not cross compiling, skipped."
