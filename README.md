@@ -38,7 +38,7 @@ all relevant dirs and files are located in `~/.xcpkg` directory.
     xcpkg --version
     ```
 
-* **show your system's information**
+* **show basic information about your current running operation system**
 
     ```bash
     xcpkg sysinfo
