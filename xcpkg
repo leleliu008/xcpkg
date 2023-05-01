@@ -6325,7 +6325,7 @@ configure_only() {
     export ac_cv_func_realloc_0_nonnull=yes
 
 
-    if [ "$STEP_MESSAGE" = 'install for native' ] ; then
+    if [ "$STEP_MESSAGE" = 'build for native' ] ; then
         if run "$PACKAGE_BSCRIPT_DIR"/configure \
             --prefix="$NATIVE_INSTALL_DIR" \
             "$@" ; then
@@ -6435,7 +6435,7 @@ gmakew() {
 #
 # run in a subshell
 cmakew() {
-    if [ "$STEP_MESSAGE" = 'install for native' ] ; then
+    if [ "$STEP_MESSAGE" = 'build for native' ] ; then
         if [ "$PACKAGE_BUILD_SYSTEM_NINJA" = yes ] ; then
             CMAKE_GENERATOR='Ninja'
         else
