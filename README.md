@@ -436,7 +436,7 @@ a xcpkg formula's filename suffix must be `.yml`
 
 a xcpkg formula'a filename prefix would be treated as the package name.
 
-a xcpkg formula'a filename prefix must match regular expression pattern `^[A-Za-z0-9+-._]{1,50}$`
+a xcpkg formula'a filename prefix must match regular expression pattern `^[A-Za-z0-9+-._@]{1,50}$`
 
 a xcpkg formula's file content must follow [the xcpkg formula scheme](https://github.com/leleliu008/xcpkg-formula-repository-offical-core)
 
@@ -476,3 +476,16 @@ xcpkg offical formula repository's url: <https://github.com/leleliu008/xcpkg-for
 xcpkg offical formula repository would be automatically fetched to local cache as name `offical-core` when you run `xcpkg update` command.
 
 **Note:** If you find that a package is not in xcpkg offical formula repository yet, PR is welcomed.
+
+## xcpkg offical prebuild package repository
+
+I have built and packed some commonly used packages using this software:
+
+- <https://github.com/leleliu008/uppm-package-repository-macos10.15-x86_64>
+- <https://github.com/leleliu008/uppm-package-repository-macos11.0-x86_64>
+- <https://github.com/leleliu008/uppm-package-repository-macos12.0-x86_64>
+- <https://github.com/leleliu008/uppm-package-repository-macos13.0-x86_64>
+
+- <https://github.com/leleliu008/uppm-package-repository-macos11.0-arm64>
+- <https://github.com/leleliu008/uppm-package-repository-macos12.0-arm64>
+- <https://github.com/leleliu008/uppm-package-repository-macos13.0-arm64>
