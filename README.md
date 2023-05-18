@@ -77,7 +77,7 @@ all relevant dirs and files are located in `~/.xcpkg` directory.
 
     **Note**:
   * above command will install all the essential tools (e.g. `coreutils` `findutils` `gawk` `gsed` `grep` `gtar` `gzip` `lzip` `unzip` `zip` `jq` `yq` `git` `curl` `tree`) that are used by this shell script via [uppm](https://github.com/leleliu008/uppm)
-  * dependent tools (e.g. `automake`, `autoconf`, `libtool`, `gmake`, `cmake`, `xmake`, etc) when installing package will also be installed via [uppm](https://github.com/leleliu008/uppm).
+  * dependent tools (e.g. `automake`, `autoconf`, `libtool`, `cmake`, `gmake`, `ninja`, etc) when installing package will also be installed via [uppm](https://github.com/leleliu008/uppm).
 
 * **install essential tools via homebrew**
 
@@ -87,7 +87,7 @@ all relevant dirs and files are located in `~/.xcpkg` directory.
 
     **Note**:
   * above command will install all the essential tools (e.g. `coreutils` `findutils` `gawk` `gsed` `grep` `gnu-tar` `gzip` `lzip` `unzip` `zip` `jq` `yq` `git` `curl` `tree`) that are used by this shell script via [homebrew](https://brew.sh/)
-  * dependent tools (e.g. `automake`, `autoconf`, `libtool`, `gmake`, `cmake`, `xmake`, etc) when installing package will also be installed via [homebrew](https://brew.sh/).
+  * dependent tools (e.g. `automake`, `autoconf`, `libtool`, `cmake`, `gmake`, `ninja`, etc) when installing package will also be installed via [homebrew](https://brew.sh/).
 
 * **integrate `zsh-completion` script**
 
