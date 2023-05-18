@@ -41,7 +41,7 @@ jobs:
       - run: ./xcpkg sysinfo
 
       - run: ./xcpkg xcinfo
-      - run: ./xcpkg xcinfo --list-supported-platform-names-only
+      - run: ./xcpkg xcinfo --list-supported-platform-names
 
       - run: ./xcpkg env
       - run: ./xcpkg env -v

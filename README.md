@@ -38,6 +38,12 @@ all relevant dirs and files are located in `~/.xcpkg` directory.
     xcpkg --version
     ```
 
+* **show basic information about this software**
+
+    ```bash
+    xcpkg env
+    ```
+
 * **show basic information about your current running operation system**
 
     ```bash
@@ -59,14 +65,8 @@ all relevant dirs and files are located in `~/.xcpkg` directory.
 * **show the supported target platform names only**
 
     ```bash
-    xcpkg xcinfo --list-target-platform-names-only
-    xcpkg xcinfo --list-target-platform-names-only --developer-dir=/Applications/Xcode12.app/Contents/Developer
-    ```
-
-* **show your system and current actived [Xcode](https://developer.apple.com/xcode) information**
-
-    ```bash
-    xcpkg env
+    xcpkg xcinfo --list-supported-platform-names
+    xcpkg xcinfo --list-supported-platform-names --developer-dir=/Applications/Xcode12.app/Contents/Developer
     ```
 
 * **install essential tools via uppm**

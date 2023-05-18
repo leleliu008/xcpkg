@@ -6724,17 +6724,17 @@ EOF
 
 # }}}
 ##############################################################################
-# {{{ xcpkg xcinfo [ --developer-dir=<DEVELOPER_DIR> --list-supported-platform-names-only]
+# {{{ xcpkg xcinfo [ --developer-dir=<DEVELOPER_DIR> --list-supported-platform-names]
 
 xcinfo() {
     unset USER_SPECIFIED_DEVELOPER_DIR
-    unset LIST_SUPPORTED_PLATFORM_NAMES_ONLY
+    unset LIST_SUPPORTED_PLATFORM_NAMES
 
     for arg in "$@"
     do
         case "$arg" in
-            --list-supported-platform-names-only)
-                LIST_SUPPORTED_PLATFORM_NAMES_ONLY=yes
+            --list-supported-platform-names)
+                LIST_SUPPORTED_PLATFORM_NAMES=yes
                 ;;
             --developer-dir=*)
                 USER_SPECIFIED_DEVELOPER_DIR="${arg#'--developer-dir='}"
@@ -6801,9 +6801,10 @@ ${item%.platform}"
         [ -d "$XCODE_PLATFORMS_DIR" ] || abort 1 "$XCODE_PLATFORMS_DIR was expected to be a directory, but it was not."
     fi
 
-    unset XCODE_VERSION; XCODE_VERSION=$(system_profiler SPDeveloperToolsDataType | grep Version | head -n 1 | cut -d: -f2 | sed 's/^ //g')
+    XCODE_VERSION=
+    XCODE_VERSION="$(system_profiler SPDeveloperToolsDataType | grep Version | head -n 1 | cut -d: -f2 | sed 's/^ //g')"
 
-    if [ "$LIST_SUPPORTED_PLATFORM_NAMES_ONLY" = yes ] ; then
+    if [ "$LIST_SUPPORTED_PLATFORM_NAMES" = yes ] ; then
         printf '%s\n' "$XCODE_SUPPORT_PLATFORM_NAMES"
         return 0
     fi
@@ -7083,13 +7084,13 @@ ${COLOR_GREEN}xcpkg --version${COLOR_OFF}
 ${COLOR_GREEN}xcpkg -V${COLOR_OFF}
     show version of this command.
 
-${COLOR_GREEN}ndk-pkg env${COLOR_OFF}
+${COLOR_GREEN}xcpkg env${COLOR_OFF}
     show basic information about this software.
 
 ${COLOR_GREEN}xcpkg sysinfo${COLOR_OFF}
     show basic information about your current running operation system.
 
-${COLOR_GREEN}xcpkg xcinfo [ --developer-dir=<DEVELOPER_DIR> --list-supported-platform-names-only]${COLOR_OFF}
+${COLOR_GREEN}xcpkg xcinfo [ --developer-dir=<DEVELOPER_DIR> --list-supported-platform-names]${COLOR_OFF}
     show current active Xcode information.
 
     when --developer-dir=<DEVELOPER_DIR> option is not specified, if ${COLOR_PURPLE}DEVELOPER_DIR${COLOR_OFF} environment variable is set, xcpkg will use it, otherwize, run command ${COLOR_PURPLE}xcode-select -p${COLOR_OFF} to determine.
@@ -7181,10 +7182,10 @@ ${COLOR_GREEN}xcpkg depends <PACKAGE-NAME> [-t <dot|box|svg|png>] [-o <OUTPUT-PA
     If -t <OUTPUT-TYPE> and -o <OUTPUT-PATH> options both are not given, <OUTPU-TYPE> will be box and output to stdout.
 
 
-${COLOR_GREEN}ndk-pkg fetch <PACKAGE-NAME>${COLOR_OFF}
+${COLOR_GREEN}xcpkg fetch <PACKAGE-NAME>${COLOR_OFF}
     download formula resources of the given package to the local cache.
 
-${COLOR_GREEN}ndk-pkg fetch @all${COLOR_OFF}
+${COLOR_GREEN}xcpkg fetch @all${COLOR_OFF}
     download formula resources of all the available packages to the local cache.
 
 
@@ -7236,7 +7237,7 @@ ${COLOR_GREEN}PLATFORM-SPEC${COLOR_OFF}
     indicates which platform would be built for or run on.
 
 ${COLOR_GREEN}PLATFORM-NAME${COLOR_OFF}
-    'xcpkg xcinfo --list-supported-platform-names-only' command will list the supported platform names.
+    'xcpkg xcinfo --list-supported-platform-names' command will list the supported platform names.
 
 ${COLOR_GREEN}PLATFORM-VERSION${COLOR_OFF}
     the minimum version of platform supported by this package. It usually matches regular expression pattern '[0-9][0-9]?.[0-9][0-9]?', e.g. 10.15, 11.0, 12.0, 12.6, etc.
@@ -7257,11 +7258,7 @@ main() {
 
     [ "$(uname)" = 'Darwin' ] || abort 1 "this software can only be run on macOS."
 
-    unset NATIVE_OS_KIND
-    unset NATIVE_OS_TYPE
-    unset NATIVE_OS_VERS
-    unset NATIVE_OS_ARCH
-    unset NATIVE_OS_NCPU
+    TIMESTAMP_UNIX="$(date +%s)"
 
     NATIVE_OS_KIND=darwin
     NATIVE_OS_TYPE=macos
@@ -7300,8 +7297,6 @@ main() {
     XCPKG_CORE_DIR="$XCPKG_HOME/core"
     XCPKG_CORE_BIN_DIR="$XCPKG_CORE_DIR/bin"
 
-    unset TIMESTAMP_UNIX; TIMESTAMP_UNIX="$(date +%s)"
-
     case $1 in
         ''|--help|-h)
             __help
@@ -7311,10 +7306,16 @@ main() {
             printf '%s\n' "$XCPKG_VERSION"
             return 0
             ;;
-        setup)
-            shift
-            __setup "$@"
-            return 0
+         env)
+            cat <<EOF
+xcpkg.vers : $XCPKG_VERSION
+xcpkg.home : $XCPKG_HOME
+xcpkg.path : $XCPKG
+xcpkg.link : https://github.com/leleliu008/xcpkg
+EOF
+            if [ -f "$XCPKG_CORE_DIR/env" ] && [ -f "$XCPKG_CORE_DIR/bin/uppm" ] ; then
+                run "$XCPKG_CORE_DIR/bin/uppm" env
+            fi
             ;;
         sysinfo)
             cat <<EOF
@@ -7336,6 +7337,11 @@ EOF
         gen-url-transform-sample)
             shift
             __gen_url_transform_sample "$@"
+            return 0
+            ;;
+       setup)
+            shift
+            __setup "$@"
             return 0
             ;;
     esac
@@ -7387,36 +7393,6 @@ EOF
     #########################################################################################
 
     case $1 in
-        env)
-            cat <<EOF
-sysinfo.ncpu: $NATIVE_OS_NCPU
-sysinfo.arch: $NATIVE_OS_ARCH
-sysinfo.kind: $NATIVE_OS_KIND
-sysinfo.type: $NATIVE_OS_TYPE
-sysinfo.vers: $NATIVE_OS_VERS
-sysinfo.euid: $NATIVE_OS_EUID
-sysinfo.egid: $NATIVE_OS_EGID
-
-xcpkg.vers : $XCPKG_VERSION
-xcpkg.home : $XCPKG_HOME
-xcpkg.path : $XCPKG
-xcpkg.link : https://github.com/leleliu008/xcpkg
-EOF
-            if [ "$XCPKG_USE_EXTERNAL_PACKAGE_MANAGER" = brew ] ; then
-                run brew --version
-                run brew --env
-            else
-                run uppm env
-            fi
-
-            run xcinfo
-
-            if [ "$2" = '-v' ] ; then
-                echo "${COLOR_PURPLE}==>${COLOR_OFF} ${COLOR_GREEN}PATH${COLOR_OFF}"
-                printf '%s\n' "$PATH" | tr : '\n'
-            fi
-            ;;
-
         ls-available) shift; __list_available_packages ;;
         ls-installed) shift; __list_installed_packages ;;
         ls-outdated)  shift; __list__outdated_packages ;;
