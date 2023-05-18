@@ -1460,7 +1460,7 @@ build-on:
     os-euid: $NATIVE_OS_EUID
     os-egid: $NATIVE_OS_EGID
 built-for: $TARGET_PLATFORM_NAME/$TARGET_PLATFORM_VERS/$TARGET_PLATFORM_ARCH
-signature: xcpkg-$PPKG_VERSION
+signature: xcpkg-$XCPKG_VERSION
 timestamp: $TIMESTAMP_UNIX
 EOF
 }
@@ -2872,94 +2872,6 @@ __fetch_resources_of_the_given_package() {
 
 # }}}
 ##############################################################################
-# {{{ xcpkg compare-versions
-
-package_name_transform_from_uppm_to_brew() {
-    case $1 in
-        file)     printf '%s\n' 'file-formula' ;;
-        delta)    printf '%s\n' 'git-delta' ;;
-        gmake)    printf '%s\n' 'make'      ;;
-        gtar)     printf '%s\n' 'gnu-tar'   ;;
-        gm4)      printf '%s\n' 'm4'        ;;
-        patch)    printf '%s\n' 'gpatch'    ;;
-        libjxl)   printf '%s\n' 'jpeg-xl'   ;;
-        blake3)   printf '%s\n' 'b3sum'     ;;
-        libwebp)  printf '%s\n' 'webp'      ;;
-        proj7)    printf '%s\n' 'proj@7'    ;;
-        openssl)  printf '%s\n' 'openssl@1.1';;
-        freetype2)printf '%s\n' 'freetype'  ;;
-        freetype2-with-harfbuzz)
-                  printf '%s\n' 'freetype'  ;;
-        gnu-coreutils)
-                  printf '%s\n' 'coreutils' ;;
-        libmediainfo|mediainfo)
-                  printf '%s\n' 'media-info';;
-        tcl-core) printf '%s\n' 'tcl-tk'    ;;
-        *)        printf '%s\n' "$1"
-    esac
-}
-
-__compare_versions_with_brew() {
-    cd "$XCPKG_HOME/repos.d/offical-core/formula"
-
-    AVAILABLE_PACKAGE_NAME_LIST=
-    AVAILABLE_PACKAGE_NAME_LIST="$(find . -mindepth 1 -maxdepth 1 -name "*.yml" -exec basename {} .yml \;)"
-
-    [ -z "$BREW" ] && {
-        BREW="$(command -v brew)" || abort 1 "command not found: brew"
-    }
-
-    for PACKAGE_NAME in $AVAILABLE_PACKAGE_NAME_LIST
-    do
-        __load_formula_of_the_given_package "$PACKAGE_NAME"
-
-        BREW_PKG_NMAE="$(package_name_transform_from_uppm_to_brew "$PACKAGE_NAME")"
-
-        if "$BREW" info "$BREW_PKG_NMAE" > /dev/null 2>&1 ; then
-            BREW_PKG_VERS="$("$BREW" info "$BREW_PKG_NMAE" --json | yq '.[0].versions.stable')"
-
-            if version_match "$BREW_PKG_VERS" eq "$PACKAGE_VERSION" ; then
-                :
-                #printf "${COLOR_GREEN}%-10s %-10s  |  %-10s %-10s${COLOR_OFF}\n" "$PACKAGE_NAME" "$PACKAGE_VERSION" "$BREW_PKG_NMAE" "$BREW_PKG_VERS"
-            else
-                printf "${COLOR_RED}%-10s %-10s  |  %-10s %-10s${COLOR_OFF}\n" "$PACKAGE_NAME" "$PACKAGE_VERSION" "$BREW_PKG_NMAE" "$BREW_PKG_VERS"
-            fi
-        else
-            printf "${COLOR_BLUE}%-10s %-10s  |${COLOR_OFF}\n" "$PACKAGE_NAME" "$PACKAGE_VERSION"
-        fi
-    done
-}
-
-__compare_versions_with_ppkg() {
-    cd "$XCPKG_HOME/repos.d/offical-core/formula"
-
-    AVAILABLE_PACKAGE_NAME_LIST=
-    AVAILABLE_PACKAGE_NAME_LIST="$(find . -mindepth 1 -maxdepth 1 -name "*.yml" -exec basename {} .yml \;)"
-
-    [ -z "$PPKG" ] && {
-        PPKG="$(command -v ppkg)" || abort 1 "command not found: ppkg"
-    }
-
-    for PACKAGE_NAME in $AVAILABLE_PACKAGE_NAME_LIST
-    do
-        __load_formula_of_the_given_package "$PACKAGE_NAME"
-
-        if "$PPKG" is-available "$PACKAGE_NAME" ; then
-            PPKG_PACKAGE_VERSION="$("$PPKG" info "$PACKAGE_NMAE" version)"
-
-            if version_match "$PPKG_PACKAGE_VERSION" eq "$PACKAGE_VERSION" ; then
-                :
-            else
-                printf "${COLOR_RED}%-10s %-10s  |  %-10s %-10s${COLOR_OFF}\n" "$PACKAGE_NAME" "$PACKAGE_VERSION" "$PACKAGE_NAME" "$PPKG_PACKAGE_VERSION"
-            fi
-        else
-            printf "${COLOR_BLUE}%-10s %-10s  |${COLOR_OFF}\n" "$PACKAGE_NAME" "$PACKAGE_VERSION"
-        fi
-    done
-}
-
-# }}}
-##############################################################################
 # {{{ xcpkg gen-url-transform-sample
 
 __gen_url_transform_sample() {
@@ -2987,129 +2899,6 @@ EOF
 
     success "url-transform sample has been written into $XCPKG_HOME/url-transform.sample"
     note "You can rename url-transform.sample to url-transform then edit it to meet your needs. To apply this, you should run 'export XCPKG_URL_TRANSFORM=$XCPKG_HOME/url-transform' in your terminal."
-}
-
-# }}}
-##############################################################################
-# {{{ xcpkg gen-github-workflows
-
-__gen_github_workflows() {
-    unset GROUP_SIZE
-    unset OUTPUT_DIR
-
-    while [ -n "$1" ]
-    do
-        case $1 in
-            --group-size=*)
-                GROUP_SIZE="${1#*=}"
-                is_integer "$GROUP_SIZE" || abort 1 "--group-size=<INTEGER>, <INTEGER> must be an integer."
-                ;;
-            --output-dir=*)
-                OUTPUT_DIR="${1#*=}"
-
-                case "$OUTPUT_DIR" in
-                    '') abort 1 "--output-dir=<DIR>, <DIR> must be non-empty." ;;
-                    /*) ;;
-                    \~|\~/) OUTPUT_DIR="${HOME}" ;;
-                    \~/*)   OUTPUT_DIR="${HOME}${OUTPUT_DIR#'~/'}" ;;
-                    .|./)   OUTPUT_DIR="${PWD}" ;;
-                    *)      OUTPUT_DIR="${PWD}/$OUTPUT_DIR" ;;
-                esac
-
-                [ -d "$OUTPUT_DIR" ] || run install -d "$OUTPUT_DIR"
-        esac
-        shift
-    done
-
-    if [ -z "$GROUP_SIZE" ] ; then
-        abort 1 "--group-size=<INTEGER> option must be given."
-    fi
-
-    if [ -z "$OUTPUT_DIR" ] ; then
-        OUTPUT_DIR="$XCPKG_HOME/repos.d/offical-core/.github/workflows"
-    fi
-
-    GITHUB_ACTIONS_WORKFLOW_TEMPLATE_FILEPATH="$XCPKG_HOME/repos.d/offical-core/.github/workflows/template"
-
-    if [ ! -f "$GITHUB_ACTIONS_WORKFLOW_TEMPLATE_FILEPATH" ] ; then
-        __sync_available_formula_repositories
-    fi
-
-    ##############################################################################
-
-    unset AVAILABLE_PACKAGE_NAME_LIST
-    unset AVAILABLE_PACKAGE_NAME_LIST_PART1
-    unset AVAILABLE_PACKAGE_NAME_LIST_PART2
-
-    # part1 are packages that are     depended by any other packages.
-    # part2 are packages that are not depended by any other packages.
-
-    ##############################################################################
-
-    AVAILABLE_PACKAGE_NAME_LIST="$(__list_available_packages)"
-
-    for item in test v8 webrtc
-    do
-        AVAILABLE_PACKAGE_NAME_LIST=$(printf '%s\n' "$AVAILABLE_PACKAGE_NAME_LIST" | sed "s|^$item$||")
-    done
-
-    ##############################################################################
-
-    for item in $AVAILABLE_PACKAGE_NAME_LIST
-    do
-        __load_formula_of_the_given_package "$item"
-
-        AVAILABLE_PACKAGE_NAME_LIST_PART1="$AVAILABLE_PACKAGE_NAME_LIST_PART1 $PACKAGE_DEP_PKG"
-    done
-
-    AVAILABLE_PACKAGE_NAME_LIST_PART1=$(printf '%s\n' $AVAILABLE_PACKAGE_NAME_LIST_PART1 | sort | uniq)
-
-    printf '%s\n' "AVAILABLE_PACKAGE_NAME_LIST_PART1=$AVAILABLE_PACKAGE_NAME_LIST_PART1"
-
-    ##############################################################################
-
-    unset AVAILABLE_PACKAGE_NAME_LIST_SIZE
-
-    AVAILABLE_PACKAGE_NAME_LIST_SIZE="$(list_size $AVAILABLE_PACKAGE_NAME_LIST)"
-
-    printf '%s\n' "$AVAILABLE_PACKAGE_NAME_LIST_SIZE"
-
-    ##############################################################################
-
-    I=0
-    J=0
-    K=0
-
-    for x in $AVAILABLE_PACKAGE_NAME_LIST
-    do
-        I="$(expr "$I" + 1)"
-
-        for y in $AVAILABLE_PACKAGE_NAME_LIST_PART1
-        do
-            [ "$x" = "$y" ] && continue 2
-        done
-
-        AVAILABLE_PACKAGE_NAME_LIST_PART2="$AVAILABLE_PACKAGE_NAME_LIST_PART2,$x"
-
-        K="$(expr "$K" + 1)"
-
-        if [ "$I" -eq "$AVAILABLE_PACKAGE_NAME_LIST_SIZE" ] || [ "$K" -eq "$GROUP_SIZE" ] ; then
-            J="$(expr "$J" + 1)"
-
-            OUTPUT_FILEPATH="$OUTPUT_DIR/ci$J.yml"
-
-            AVAILABLE_PACKAGE_NAME_LIST_PART2="${AVAILABLE_PACKAGE_NAME_LIST_PART2#,}"
-
-            printf '\n'
-            run cp "$GITHUB_ACTIONS_WORKFLOW_TEMPLATE_FILEPATH"          "$OUTPUT_FILEPATH"
-            sed_in_place "s/INDEX/$J/"                                   "$OUTPUT_FILEPATH"
-            sed_in_place "s/PKGLIST/$AVAILABLE_PACKAGE_NAME_LIST_PART2/" "$OUTPUT_FILEPATH"
-
-            AVAILABLE_PACKAGE_NAME_LIST_PART2=
-
-            K=0
-        fi
-    done
 }
 
 # }}}
@@ -7485,7 +7274,7 @@ main() {
 
     XCPKG="$CURRENT_SCRIPT_FILEPATH"
 
-    XCPKG_VERSION=0.10.1
+    XCPKG_VERSION=0.11.0
 
     XCPKG_OFFICAL_FORMULA_REPO_URL='https://github.com/leleliu008/xcpkg-formula-repository-offical-core'
 
@@ -7704,18 +7493,6 @@ EOF
         info)
             shift
             __show_information_of_the_given_package "$@"
-            ;;
-        gen-github-workflows)
-            shift
-            __gen_github_workflows "$@"
-            ;;
-        compare-versions)
-            shift
-            case $1 in
-                brew) __compare_versions_with_brew ;;
-                ppkg) __compare_versions_with_ppkg ;;
-                *)    abort 1 "unrecognized argument: $1"
-            esac
             ;;
         *)  abort 1 "unrecognized argument: $1"
     esac

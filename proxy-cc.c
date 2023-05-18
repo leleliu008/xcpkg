@@ -29,8 +29,8 @@ int main(int argc, char * argv[]) {
         return 2;
     }
 
-    size_t sysrootLength = strlen(SYSROOT) + 11;
-    char   sysroot[sysrootLength];
+    size_t   sysrootLength = strlen(SYSROOT) + 11;
+    char     sysroot[sysrootLength];
     snprintf(sysroot, sysrootLength, "--sysroot=%s", SYSROOT);
 
     char * argv2[argc + 2];

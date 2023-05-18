@@ -42,9 +42,7 @@ _commands=(
     'depends:show depends of the given package.'
     'pack:pack all the installed files of the given installed package to a archive file.'
     'logs:show logs of the given installed package.'
-    'gen-github-workflows:generate github workflows.'
     'gen-url-transform-sample:generate url-transform sample.'
-    'compare-versions:compare versions with homebrew or xcpkg.'
 )
 
 function _xcpkg_commands() {
@@ -254,9 +252,6 @@ function _xcpkg() {
                     ;;
                 integrate)
                     _arguments '1:what:(zsh)'
-                    ;;
-                compare-versions)
-                    _arguments '1:which:(brew ppkg)'
                     ;;
             esac
             ;;
