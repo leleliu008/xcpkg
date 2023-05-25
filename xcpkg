@@ -3487,6 +3487,34 @@ __install_native_package_to_core_dir_via_cmake() {
     printf '%s\n' "$SRC_SHA" > "$RECEIPT_FILEPATH"
 }
 
+package_name_transform_from_uppm_to_brew() {
+    case $1 in
+        gm4)      printf '%s\n' 'm4'        ;;
+        file)     printf '%s\n' 'file-formula' ;;
+        xattr)    printf '%s\n' 'attr'      ;;
+        patch)    printf '%s\n' 'gpatch'    ;;
+        delta)    printf '%s\n' 'git-delta' ;;
+        gmake)    printf '%s\n' 'make'      ;;
+        gtar)     printf '%s\n' 'gnu-tar'   ;;
+        libjxl)   printf '%s\n' 'jpeg-xl'   ;;
+        blake3)   printf '%s\n' 'b3sum'     ;;
+        libwebp)  printf '%s\n' 'webp'      ;;
+        proj7)    printf '%s\n' 'proj@7'    ;;
+        openssl)  printf '%s\n' 'openssl@1.1';;
+        freetype2)printf '%s\n' 'freetype'  ;;
+        freetype2-with-harfbuzz)
+                  printf '%s\n' 'freetype'  ;;
+        libmediainfo|mediainfo)
+                  printf '%s\n' 'media-info';;
+        tcl-core) printf '%s\n' 'tcl-tk'    ;;
+        openssl1.1.x)
+                  printf '%s\n' 'openssl@1.1';;
+        gnu-binutils)
+                  printf '%s\n' 'binutils'  ;;
+        *)        printf '%s\n' "$1"
+    esac
+}
+
 __install_the_given_package_onexit() {
     if [ "$DRYRUN" != yes ] ; then
         is_package_installed "$PACKAGE_SPEC" || abort 1 "package installation failure: $PACKAGE_SPEC"
