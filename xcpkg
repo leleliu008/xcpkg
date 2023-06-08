@@ -7336,10 +7336,10 @@ main() {
             ;;
          env)
             cat <<EOF
-xcpkg.vers : $XCPKG_VERSION
-xcpkg.home : $XCPKG_HOME
-xcpkg.path : $XCPKG
-xcpkg.link : https://github.com/leleliu008/xcpkg
+xcpkg.version : $XCPKG_VERSION
+xcpkg.homedir : $XCPKG_HOME
+xcpkg.exepath : $XCPKG
+xcpkg.website : https://github.com/leleliu008/xcpkg
 EOF
             if [ -f "$XCPKG_CORE_DIR/env" ] && [ -f "$XCPKG_CORE_DIR/bin/uppm" ] ; then
                 run "$XCPKG_CORE_DIR/bin/uppm" env
