@@ -7348,6 +7348,7 @@ EOF
             if [ -f "$XCPKG_CORE_DIR/env" ] && [ -f "$XCPKG_CORE_DIR/bin/uppm" ] ; then
                 run "$XCPKG_CORE_DIR/bin/uppm" env
             fi
+            return 0
             ;;
         sysinfo)
             cat <<EOF
