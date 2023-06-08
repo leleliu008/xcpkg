@@ -7313,6 +7313,10 @@ main() {
         fi
     }
 
+    if [ -n "$XCPKG_URL_TRANSFORM" ] ; then
+        export UPPM_URL_TRANSFORM="$XCPKG_URL_TRANSFORM"
+    fi
+
     XCPKG_FORMULA_REPO_ROOT="$XCPKG_HOME/repos.d"
 
     XCPKG_PACKAGE_INSTALLED_ROOT="$XCPKG_HOME/installed"
