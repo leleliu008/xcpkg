@@ -6354,7 +6354,8 @@ to_meson_array() {
 
 cargow() {
     if [ "$CI" = true ] ; then
-        run rustup update
+        run rustup default stable
+        run rustup update  stable
     fi
 
     run rustup target add "$RUST_TARGET"

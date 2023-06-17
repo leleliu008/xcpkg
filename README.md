@@ -113,7 +113,7 @@ all relevant dirs and files are located in `~/.xcpkg` directory.
     xcpkg update
     ```
 
-* **search all available packages whose name matches the given regular express pattern**
+* **search all available packages whose name matches the given regular expression pattern**
 
     ```bash
     xcpkg search curl
