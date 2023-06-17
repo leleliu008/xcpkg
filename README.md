@@ -13,7 +13,6 @@ curl -LO https://raw.githubusercontent.com/leleliu008/xcpkg/master/xcpkg
 chmod a+x xcpkg
 mv xcpkg /usr/local/bin/
 xcpkg setup
-# xcpkg setup --use-brew
 ```
 
 ## ~/.xcpkg
@@ -69,25 +68,32 @@ all relevant dirs and files are located in `~/.xcpkg` directory.
     xcpkg xcinfo --list-supported-platform-names --developer-dir=/Applications/Xcode12.app/Contents/Developer
     ```
 
-* **install essential tools via uppm**
+* **install essential tools**
 
     ```bash
     xcpkg setup
     ```
 
-    **Note**:
-  * above command will install all the essential tools (e.g. `coreutils` `findutils` `gawk` `gsed` `grep` `gtar` `gzip` `lzip` `unzip` `zip` `jq` `yq` `git` `curl` `tree`) that are used by this shell script via [uppm](https://github.com/leleliu008/uppm)
-  * dependent tools (e.g. `automake`, `autoconf`, `libtool`, `cmake`, `gmake`, `ninja`, etc) when installing package will also be installed via [uppm](https://github.com/leleliu008/uppm).
+    This command is actually to install following tools to `~/.xcpkg/core`.
 
-* **install essential tools via homebrew**
-
-    ```bash
-    xcpkg setup --use-brew
-    ```
-
-    **Note**:
-  * above command will install all the essential tools (e.g. `coreutils` `findutils` `gawk` `gsed` `grep` `gnu-tar` `gzip` `lzip` `unzip` `zip` `jq` `yq` `git` `curl` `tree`) that are used by this shell script via [homebrew](https://brew.sh/)
-  * dependent tools (e.g. `automake`, `autoconf`, `libtool`, `cmake`, `gmake`, `ninja`, etc) when installing package will also be installed via [homebrew](https://brew.sh/).
+  * [uppm](https://github.com/leleliu008/uppm)
+  * [GNU Bash](https://www.gnu.org/software/bash/manual/bash.html)
+  * [GNU CoreUtils](https://www.gnu.org/software/coreutils/manual/coreutils.html)
+  * [GNU FindUtils](https://www.gnu.org/software/findutils/manual/html_mono/find.html)
+  * [GNU awk](https://www.gnu.org/software/gawk/manual/gawk.html)
+  * [GNU sed](https://www.gnu.org/software/sed/manual/sed.html)
+  * [GNU grep](https://www.gnu.org/software/grep/manual/grep.html)
+  * [curl](https://curl.se/docs/manpage.html)
+  * [git](https://git-scm.com/docs/git)
+  * [GNU tar](https://www.gnu.org/software/tar/manual/tar.html)
+  * [gzip](https://www.gnu.org/software/gzip/manual/gzip.html)
+  * [bzip2](https://linux.die.net/man/1/bzip2)
+  * [xz](https://linux.die.net/man/1/xz)
+  * [zip](https://linux.die.net/man/1/zip)
+  * [unzip](https://linux.die.net/man/1/unzip)
+  * [yq](https://mikefarah.gitbook.io/yq/)
+  * [jq](https://stedolan.github.io/jq/manual/)
+  * [tree](https://linux.die.net/man/1/tree)
 
 * **integrate `zsh-completion` script**
 
@@ -481,11 +487,10 @@ xcpkg offical formula repository would be automatically fetched to local cache a
 
 I have built and packed some commonly used packages using this software:
 
-- <https://github.com/leleliu008/uppm-package-repository-macos10.15-x86_64>
-- <https://github.com/leleliu008/uppm-package-repository-macos11.0-x86_64>
-- <https://github.com/leleliu008/uppm-package-repository-macos12.0-x86_64>
-- <https://github.com/leleliu008/uppm-package-repository-macos13.0-x86_64>
-
-- <https://github.com/leleliu008/uppm-package-repository-macos11.0-arm64>
-- <https://github.com/leleliu008/uppm-package-repository-macos12.0-arm64>
-- <https://github.com/leleliu008/uppm-package-repository-macos13.0-arm64>
+* <https://github.com/leleliu008/uppm-package-repository-macos10.15-x86_64>
+* <https://github.com/leleliu008/uppm-package-repository-macos11.0-x86_64>
+* <https://github.com/leleliu008/uppm-package-repository-macos12.0-x86_64>
+* <https://github.com/leleliu008/uppm-package-repository-macos13.0-x86_64>
+* <https://github.com/leleliu008/uppm-package-repository-macos11.0-arm64>
+* <https://github.com/leleliu008/uppm-package-repository-macos12.0-arm64>
+* <https://github.com/leleliu008/uppm-package-repository-macos13.0-arm64>
