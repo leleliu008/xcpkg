@@ -38,9 +38,9 @@ jobs:
       - run: ./xcpkg xcinfo
       - run: ./xcpkg xcinfo --list-supported-platform-names
 
-      - run: ./xcpkg integrate zsh
-
       - run: ./xcpkg setup
+
+      - run: ./xcpkg integrate zsh
 
       - run: ./xcpkg update
 
