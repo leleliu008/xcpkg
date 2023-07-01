@@ -3662,7 +3662,7 @@ EOF
     export    CFLAGS_FOR_BUILD="-isysroot $SYSROOT_FOR_BUILD -mmacosx-version-min=$NATIVE_OS_VERS -arch $NATIVE_OS_ARCH -Qunused-arguments"
     export OBJCFLAGS_FOR_BUILD="-isysroot $SYSROOT_FOR_BUILD -mmacosx-version-min=$NATIVE_OS_VERS -arch $NATIVE_OS_ARCH -Qunused-arguments"
     export  CXXFLAGS_FOR_BUILD="-isysroot $SYSROOT_FOR_BUILD -mmacosx-version-min=$NATIVE_OS_VERS -arch $NATIVE_OS_ARCH -Qunused-arguments"
-    export  CPPFLAGS_FOR_BUILD="-isysroot $SYSROOT_FOR_BUILD -Qunused-arguments"
+    export  CPPFLAGS_FOR_BUILD="-isysroot $SYSROOT_FOR_BUILD -mmacosx-version-min=$NATIVE_OS_VERS -arch $NATIVE_OS_ARCH -Qunused-arguments"
     export   LDFLAGS_FOR_BUILD="-isysroot $SYSROOT_FOR_BUILD -mmacosx-version-min=$NATIVE_OS_VERS -arch $NATIVE_OS_ARCH"
 
     if [ "$LOG_LEVEL" -ge 3 ] ; then
@@ -4804,7 +4804,7 @@ EOF
 
     ##############################################
 
-    PPFLAGS="-isysroot $SYSROOT -Qunused-arguments $PPFLAGS"
+    PPFLAGS="-isysroot $SYSROOT -arch $TARGET_PLATFORM_ARCH -m${TARGET_PLATFORM_NAME_LOWER_CASE}-version-min=$TARGET_PLATFORM_VERS -Qunused-arguments $PPFLAGS"
     CCFLAGS="-isysroot $SYSROOT -arch $TARGET_PLATFORM_ARCH -m${TARGET_PLATFORM_NAME_LOWER_CASE}-version-min=$TARGET_PLATFORM_VERS -Qunused-arguments $CCFLAGS"
     OCFLAGS="-isysroot $SYSROOT -arch $TARGET_PLATFORM_ARCH -m${TARGET_PLATFORM_NAME_LOWER_CASE}-version-min=$TARGET_PLATFORM_VERS -Qunused-arguments $OCFLAGS"
     OXFLAGS="-isysroot $SYSROOT -arch $TARGET_PLATFORM_ARCH -m${TARGET_PLATFORM_NAME_LOWER_CASE}-version-min=$TARGET_PLATFORM_VERS -Qunused-arguments $OXFLAGS"
