@@ -5478,6 +5478,16 @@ $PACKAGE_DOPATCH_ACTIONS
 
     #########################################################################################
 
+    [ "$TARGET_PLATFORM_ARCH" = arm64e ] && {
+        {
+            [ "$PACKAGE_BUILD_SYSTEM_AUTOGENSH" = yes ] ||
+            [ "$PACKAGE_BUILD_SYSTEM_AUTOTOOLS" = yes ] ||
+            [ "$PACKAGE_BUILD_SYSTEM_CONFIGURE" = yes ]
+        } && find . -name 'config.sub' -exec sed -i 's/arm64-*/arm64-*|arm64e-*/g' '{}' \;
+    }
+
+    #########################################################################################
+
     step "install for target"
 
     if [ "$PACKAGE_BUILD_IN_BSCRIPT_DIR" = yes ] ; then
