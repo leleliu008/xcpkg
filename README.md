@@ -410,7 +410,7 @@ all relevant dirs and files are located in `~/.xcpkg` directory.
 
 * **XCPKG_DEFAULT_TARGET_PLATFORM_SPEC**
 
-    some commands need `<PACKAGE-SPEC>` to be specified. `<PACKAGE-SPEC>` has the form `<TARGET-PLATFORM-SPEC>/<PACKAGE-NAME>`, you can omit `<TARGET-PLATFORM-SPEC>/`. If `<TARGET-PLATFORM-SPEC>/` is omitted, this environment variables will be used, if this environment variables is not set, then will retrive your current os's info.
+    some commands need `<PACKAGE-SPEC>` to be specified. `<PACKAGE-SPEC>` has the form `<TARGET-PLATFORM-SPEC>/<PACKAGE-NAME>`, you can omit `<TARGET-PLATFORM-SPEC>/`. If `<TARGET-PLATFORM-SPEC>/` is omitted, this environment variable will be used, if this environment variable is not set, then will retrive your current os's info.
 
     example:
 
