@@ -4163,13 +4163,13 @@ $DOT_CONTENT
             __install_native_package_to_core_dir gdbm
             __install_native_package_to_core_dir expat
             __install_native_package_to_core_dir sqlite3
-            __install_native_package_to_core_dir libtiff
+            __install_native_package_to_core_dir libffi
         }
 
         [ "$PACKAGE_USE_RUBY" = yes ] && {
             __install_native_package_to_core_dir zlib
             __install_native_package_to_core_dir libyaml
-            __install_native_package_to_core_dir libtiff
+            __install_native_package_to_core_dir libffi
             __install_native_package_to_core_dir ruby
         }
 
