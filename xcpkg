@@ -4547,6 +4547,14 @@ $PACKAGE_BUILD0_ACTIONS
 
     #########################################################################################
 
+    # some other software may read this environment variable. for example: https://github.com/rust-lang/cc-rs
+    case $TARGET_PLATFORM_NAME in
+        iPhoneOS)   export IPHONEOS_DEPLOYMENT_TARGET="$TARGET_PLATFORM_VERS" ;;
+         WatchOS)   export  WATCHOS_DEPLOYMENT_TARGET="$TARGET_PLATFORM_VERS" ;;
+    esac
+
+    #########################################################################################
+
     step "locate C/C++ toolchain for target build"
 
     unset      CC
