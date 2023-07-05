@@ -3778,7 +3778,7 @@ EOF
     export CXX_FOR_BUILD="$PROXY_CXX_FOR_BUILD"
     export CPP_FOR_BUILD="$CC_FOR_BUILD -E"
 
-cat <<EOF
+    cat <<EOF
 PROXIED_CC_FOR_BUILD  = $PROXIED_CC_FOR_BUILD
 PROXIED_CXX_FOR_BUILD = $PROXIED_CXX_FOR_BUILD
 
@@ -4544,14 +4544,6 @@ $PACKAGE_BUILD0_ACTIONS
             }
         fi
     fi
-
-    #########################################################################################
-
-    # some other software may read this environment variable. for example: https://github.com/rust-lang/cc-rs
-    case $TARGET_PLATFORM_NAME in
-        iPhoneOS)   export IPHONEOS_DEPLOYMENT_TARGET="$TARGET_PLATFORM_VERS" ;;
-         WatchOS)   export  WATCHOS_DEPLOYMENT_TARGET="$TARGET_PLATFORM_VERS" ;;
-    esac
 
     #########################################################################################
 
@@ -7188,7 +7180,10 @@ main() {
 
     # DO NOT use this environment variable
     # https://cmake.org/cmake/help/latest/envvar/MACOSX_DEPLOYMENT_TARGET.html
-    unset MACOSX_DEPLOYMENT_TARGET
+    unset   MACOSX_DEPLOYMENT_TARGET
+    unset IPHONEOS_DEPLOYMENT_TARGET
+    unset  WATCHOS_DEPLOYMENT_TARGET
+
 
     case $1 in
         ''|--help|-h)
