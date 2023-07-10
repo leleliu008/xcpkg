@@ -870,19 +870,26 @@ __list_available_formula_repositories() {
 ##############################################################################
 # {{{ operations of formula
 
-get_file_extension_from_url() {
-    unset URL
-    URL="$(printf '%s\n' "$1" | sed 's|\?.*||')"
+filetype_from_url() {
+    # remove query params
+    URL="${1%%'?'*}"
 
-    unset EXT
-    EXT="$(printf '%s\n' "$URL" | sed 's|.*\(\.[^.]\+$\)|\1|g')"
+    FNAME="${URL##*/}"
 
-    case $EXT in
-        .gz)  printf '%s\n' '.tgz' ;;
-        .lz)  printf '%s\n' '.tlz' ;;
-        .xz)  printf '%s\n' '.txz' ;;
-        .bz2) printf '%s\n' '.tbz2' ;;
-        *)    printf '%s\n' "$EXT" ;;
+    case $FNAME in
+        *.tar.gz|*.tgz)
+            printf '%s\n' '.tgz'
+            ;;
+        *.tar.lz|*.tlz)
+            printf '%s\n' '.tlz'
+            ;;
+        *.tar.xz|*.txz)
+            printf '%s\n' '.txz'
+            ;;
+        *.tar.bz2|*.tbz2)
+            printf '%s\n' '.tbz2'
+            ;;
+        *.*)printf '%s\n' ".${FNAME##*.}"
     esac
 }
 
@@ -1082,7 +1089,7 @@ get_file_extension_from_url() {
         case $PACKAGE_SRC_URL in
             dir://*)
                 PACKAGE_SRC_FILETYPE=.dir ;;
-            *)  PACKAGE_SRC_FILETYPE="$(get_file_extension_from_url "$PACKAGE_SRC_URL")"
+            *)  PACKAGE_SRC_FILETYPE="$(filetype_from_url "$PACKAGE_SRC_URL")"
 
                 case $PACKAGE_SRC_FILETYPE in
                     .zip)     PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP curl unzip"      ;;
@@ -1131,7 +1138,7 @@ get_file_extension_from_url() {
     [ -n "$PACKAGE_FIX_URL" ] && {
         [ -z "$PACKAGE_FIX_SHA" ] && abort 1 "fix-sha mapping was not found in $PACKAGE_FORMULA_FILEPATH"
 
-        PACKAGE_FIX_FILETYPE="$(get_file_extension_from_url "$PACKAGE_FIX_URL")"
+        PACKAGE_FIX_FILETYPE="$(filetype_from_url "$PACKAGE_FIX_URL")"
 
         case $PACKAGE_FIX_FILETYPE in
             .diff)  PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP patch"            ;;
@@ -1150,7 +1157,7 @@ get_file_extension_from_url() {
     [ -n "$PACKAGE_RES_URL" ] && {
         [ -z "$PACKAGE_RES_SHA" ] && abort 1 "res-sha mapping was not found in $PACKAGE_FORMULA_FILEPATH"
 
-        PACKAGE_RES_FILETYPE="$(get_file_extension_from_url "$PACKAGE_RES_URL")"
+        PACKAGE_RES_FILETYPE="$(filetype_from_url "$PACKAGE_RES_URL")"
 
         case $PACKAGE_RES_FILETYPE in
             .diff)  PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP patch"            ;;
