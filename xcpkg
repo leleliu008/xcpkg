@@ -3771,8 +3771,10 @@ int main(int argc, char * argv[]) {
 }
 EOF
 
-    PROXY_CC_FOR_BUILD="$XCPKG_CORE_BIN_DIR/proxy-native-cc"
-    PROXY_CXX_FOR_BUILD="$XCPKG_CORE_BIN_DIR/proxy-native-c++"
+    PROXY_CC_FOR_BUILD="$XCPKG_CORE_DIR/libexec/proxy-native-cc"
+    PROXY_CXX_FOR_BUILD="$XCPKG_CORE_DIR/libexec/proxy-native-c++"
+
+    install -d "$XCPKG_CORE_DIR/libexec"
 
     run "$CC_FOR_BUILD" -std=c99 -isysroot "$SYSROOT_FOR_BUILD" -o "$PROXY_CC_FOR_BUILD" proxy-cc-for-build.c
 
@@ -4656,8 +4658,8 @@ int main(int argc, char * argv[]) {
 }
 EOF
 
-    PROXY_CC="$XCPKG_CORE_BIN_DIR/proxy-cc"
-    PROXY_CXX="$XCPKG_CORE_BIN_DIR/proxy-c++"
+    PROXY_CC="$XCPKG_CORE_DIR/libexec/proxy-cc"
+    PROXY_CXX="$XCPKG_CORE_DIR/libexec/proxy-c++"
 
     run "$CC_FOR_BUILD" -std=c99 -o "$PROXY_CC" proxy-cc.c
 
