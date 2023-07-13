@@ -5820,7 +5820,8 @@ __adjust_mach_o_files_for_the_given_target() {
                         NEEDED_DYLIB_DIR="$(dirname "$NEEDED")"
                         NEEDED_DYLIB_FILENAME="$(basename "$NEEDED")"
 
-                        run install_name_tool -add_rpath "$NEEDED_DYLIB_DIR" "$FILEPATH"
+                        # error: /Applications/Xcode_14.2.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/install_name_tool: for: /Users/runner/.xcpkg/installed/MacOSX/13.0/x86_64/ncurses/bin/tabs (for architecture x86_64) option "-add_rpath /Users/runner/.xcpkg/installed/MacOSX/13.0/x86_64/ncurses/lib" would duplicate path, file already has LC_RPATH for: /Users/runner/.xcpkg/installed/MacOSX/13.0/x86_64/ncurses/lib
+                        run install_name_tool -add_rpath "$NEEDED_DYLIB_DIR" "$FILEPATH" || true
                         run install_name_tool -change "$NEEDED" "@rpath/$NEEDED_DYLIB_FILENAME" "$FILEPATH"
                         ;;
                     *)  abort 1 "unexpected runtime dependency: $NEEDED , which is needed by $FILEPATH"
