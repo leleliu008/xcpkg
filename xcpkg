@@ -997,10 +997,12 @@ filetype_from_url() {
     #########################################################################################
 
     if [ -z "$2" ] ; then
-        PACKAGE_FORMULA_FILEPATH="$(__path_of_formula_of_the_given_package "$1")" || abort 1 "package [$1] is not available."
+        PACKAGE_FORMULA_FILEPATH="$(__path_of_formula_of_the_given_package "$1")"
     else
         PACKAGE_FORMULA_FILEPATH="$2"
     fi
+
+    [ -z "$PACKAGE_FORMULA_FILEPATH" ] && abort 1 "package '$1' is not available."
 
     #########################################################################################
 
@@ -5789,6 +5791,7 @@ __adjust_mach_o_files_for_the_given_target() {
                 abort 1 "no dependent shared libraries found in $FILEPATH"
             fi
 
+            printf '%s\n' "FILEPATH: $FILEPATH"
             printf '%s\n' "DT_SONAME=\n$DT_SONAME"
             printf '%s\n' "DT_NEEDED=\n$DT_NEEDED"
             printf '%s\n' "DT_RUNPATH=\n$DT_RUNPATH"
@@ -5803,13 +5806,24 @@ __adjust_mach_o_files_for_the_given_target() {
             for NEEDED in $DT_NEEDED
             do
                 case $NEEDED in
+                    @rpath/*)
+                        ;;
+                    @loader_path/*)
+                        ;;
+                    @executable_path/*)
+                        ;;
                     /usr/lib/lib*.dylib)
                         ;;
                     /System/Library/Frameworks/*)
                         ;;
-                    @*) ;;
-                    *)  run install_name_tool -change "$NEEDED" "@rpath/$(basename "$NEEDED")" "$FILEPATH"
+                    /*)
+                        NEEDED_DYLIB_DIR="$(dirname "$NEEDED")"
+                        NEEDED_DYLIB_FILENAME="$(basename "$NEEDED")"
+
+                        run install_name_tool -add_rpath "$NEEDED_DYLIB_DIR" "$FILEPATH"
+                        run install_name_tool -change "$NEEDED" "@rpath/$NEEDED_DYLIB_FILENAME" "$FILEPATH"
                         ;;
+                    *)  abort 1 "unexpected runtime dependency: $NEEDED , which is needed by $FILEPATH"
                 esac
             done
 
