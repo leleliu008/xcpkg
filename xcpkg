@@ -6160,6 +6160,19 @@ gmakew() {
     fi
 }
 
+# }}}
+##############################################################################
+# {{{ ninjaw
+
+ninjaw() {
+    if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERY_VERBOSE" ] ; then
+        run "$NINJA -j $BUILD_NJOBS -v $*"
+    else
+        run "$NINJA -j $BUILD_NJOBS    $*"
+    fi
+}
+
+
 # https://cmake.org/cmake/help/latest/command/enable_testing.html?highlight=build_testing
 # https://cmake.org/cmake/help/latest/manual/cmake-toolchains.7.html#cross-compiling
 #
@@ -6324,7 +6337,7 @@ mesonw() {
             ;;
     esac
 
-    MESON_CROSS_FILE="$PACKAGE_BCACHED_DIR/cross-file"
+    MESON_CROSS_FILE="$PACKAGE_WORKING_DIR/cross-file"
 
     cat > "$MESON_CROSS_FILE" <<EOF
 [host_machine]
@@ -6356,23 +6369,26 @@ cmake_toolchain_file='$CMAKE_TOOLCHAIN_FILE'
 EOF
     fi
 
-    unset MESON_ARGUMENT_DEFAULT_LIBRARY
+    MESON_SETUP_ARGS="--prefix=$PACKAGE_INSTALL_DIR --buildtype=$BUILD_TYPE --backend=ninja --pkg-config-path=$PKG_CONFIG_PATH --build.pkg-config-path=$PKG_CONFIG_PATH_FOR_BUILD --cross-file=$MESON_CROSS_FILE -Dlibdir=lib"
 
     case $INSTALL_LIB in
-        static|shared|both) MESON_ARGUMENT_DEFAULT_LIBRARY="-Ddefault_library=$INSTALL_LIB"
+        static|shared|both) MESON_SETUP_ARGS="$MESON_SETUP_ARGS -Ddefault_library=$INSTALL_LIB"
     esac
 
-    run "$MESON" setup \
-        --prefix="$PACKAGE_INSTALL_DIR" \
-        --buildtype=$BUILD_TYPE \
-        --backend=ninja \
-        --pkg-config-path="$PKG_CONFIG_PATH" \
-        --build.pkg-config-path="$PKG_CONFIG_PATH_FOR_BUILD" \
-        --cross-file="$MESON_CROSS_FILE" \
-        $MESON_ARGUMENT_DEFAULT_LIBRARY \
-        "$@" "$PACKAGE_BCACHED_DIR" "$PACKAGE_BSCRIPT_DIR" &&
-    run ninja -C "$PACKAGE_BCACHED_DIR" &&
-    run ninja -C "$PACKAGE_BCACHED_DIR" install
+    case $LINK_TYPE in
+        static-only|static-prefered) MESON_SETUP_ARGS="$MESON_SETUP_ARGS --prefer-static"
+    esac
+
+    MESON_COMPILE_ARGS="-C $PACKAGE_BCACHED_DIR -j $BUILD_NJOBS"
+    MESON_INSTALL_ARGS="-C $PACKAGE_BCACHED_DIR"
+
+    if [ "$LOG_LEVEL" -ge 3 ] ; then
+        MESON_COMPILE_ARGS="$MESON_COMPILE_ARGS -v"
+    fi
+
+    run "$MESON" setup   "$MESON_SETUP_ARGS" "$@" "$PACKAGE_BCACHED_DIR" "$PACKAGE_BSCRIPT_DIR" &&
+    run "$MESON" compile "$MESON_COMPILE_ARGS" &&
+    run "$MESON" install "$MESON_INSTALL_ARGS"
 }
 
 to_meson_array() {
