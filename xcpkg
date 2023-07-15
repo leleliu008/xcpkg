@@ -5825,7 +5825,7 @@ __adjust_mach_o_files_for_the_given_target() {
                         run install_name_tool -add_rpath "$NEEDED_DYLIB_DIR" "$FILEPATH" || true
                         run install_name_tool -change "$NEEDED" "@rpath/$NEEDED_DYLIB_FILENAME" "$FILEPATH"
                         ;;
-                    *)  abort 1 "unexpected runtime dependency: $NEEDED , which is needed by $FILEPATH"
+                    #*)  abort 1 "unexpected runtime dependency: $NEEDED , which is needed by $FILEPATH"
                 esac
             done
 
