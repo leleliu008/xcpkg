@@ -4175,6 +4175,7 @@ $DOT_CONTENT
             __install_native_package_to_core_dir expat
             __install_native_package_to_core_dir sqlite3
             __install_native_package_to_core_dir libffi
+            __install_native_package_to_core_dir python3
         }
 
         [ "$PACKAGE_USE_RUBY" = yes ] && {
