@@ -3505,7 +3505,10 @@ __install_the_given_packages() {
         return 0
     fi
 
-    wfetch "$SRC_URL" --sha256="$SRC_SHA" --output-dir="$XCPKG_DOWNLOADS_DIR"
+    SRC_FILETYPE="$(filetype_from_url "$SRC_URL")"
+    SRC_FILENAME="$SRC_SHA$SRC_FILETYPE"
+
+    wfetch "$SRC_URL" --sha256="$SRC_SHA" --output-path="$XCPKG_DOWNLOADS_DIR/$SRC_FILENAME"
 
     SRC_DIR="$PACKAGE_WORKING_DIR/$TIMESTAMP_UNIX/$1"
 
@@ -5713,6 +5716,8 @@ $PACKAGE_DOBUILD_ACTIONS
         step "adjust .pc files for ${COLOR_GREEN}$*${COLOR_OFF}"
         __adjust_pc_files_for_the_given_target "$@"
     fi
+
+    find "$PACKAGE_INSTALL_DIR" -type f -name '*.cmake' -exec sed -i "s|$SESSION_DIR/.*/lib\(.*\)\.a|\1|g" {} \;
 
     #########################################################################################
 
