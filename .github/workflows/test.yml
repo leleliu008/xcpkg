@@ -33,12 +33,12 @@ jobs:
 
       - run: ./xcpkg env
 
+      - run: ./xcpkg setup
+
       - run: ./xcpkg sysinfo
 
       - run: ./xcpkg xcinfo
       - run: ./xcpkg xcinfo --list-supported-platform-names
-
-      - run: ./xcpkg setup
 
       - run: ./xcpkg integrate zsh
 
