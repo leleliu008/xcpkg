@@ -7263,11 +7263,6 @@ sysinfo.egid: $NATIVE_OS_EGID
 EOF
             return 0;
             ;;
-        xcinfo)
-            shift
-            xcinfo "$@"
-            return 0;
-            ;;
         gen-url-transform-sample)
             shift
             __gen_url_transform_sample "$@"
@@ -7325,6 +7320,8 @@ EOF
     #########################################################################################
 
     case $1 in
+        xcinfo) shift ; xcinfo "$@" ;;
+
         ls-available) shift; __list_available_packages ;;
         ls-installed) shift; __list_installed_packages ;;
         ls-outdated)  shift; __list__outdated_packages ;;
