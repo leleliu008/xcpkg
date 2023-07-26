@@ -1,101 +1,105 @@
 # xcpkg
 
-a package manager for [Xcode](https://developer.apple.com/xcode) to build C/C++/Rust/Go project.
+A package manager for [Xcode](https://developer.apple.com/xcode) to build C/C++/Rust/Go project.
 
-<br>
+## Caveats
 
-**Note**: This project is being actively developed. It's in beta stage and may not be stable. Some features are subject to change without notice.
+- This software is being actively developed. It's in beta stage and may not be stable. Some features are subject to change without notice.
+
+- Please do NOT place your own files under `~/.xcpkg` directory, as `xcpkg` will change files under `~/.xcpkg` directory without notice.
+
+- Please do NOT run `xcpkg` command in parallell to avoid generating dirty data.
 
 ## Install xcpkg via cURL
 
 ```bash
 curl -LO https://raw.githubusercontent.com/leleliu008/xcpkg/master/xcpkg
 chmod a+x xcpkg
-mv xcpkg /usr/local/bin/
-xcpkg setup
+./xcpkg setup
 ```
 
 ## ~/.xcpkg
 
-all relevant dirs and files are located in `~/.xcpkg` directory.
-
-**Note**: Please do NOT place your own files in `~/.xcpkg` directory, as `xcpkg` will change files in `~/.xcpkg` directory without notice.
+all relevant directories and files are located under `~/.xcpkg` directory.
 
 ## xcpkg command usage
 
-* **show help of this command**
+- **show help of this command**
 
     ```bash
     xcpkg -h
     xcpkg --help
     ```
 
-* **show version of this command**
+- **show version of this command**
 
     ```bash
     xcpkg -V
     xcpkg --version
     ```
 
-* **show basic information about this software**
+- **show basic information about this software**
 
     ```bash
     xcpkg env
     ```
 
-* **show basic information about your current running operation system**
+- **show basic information about your current running operation system**
 
     ```bash
     xcpkg sysinfo
     ```
 
-* **show your current actived [Xcode](https://developer.apple.com/xcode) information**
+- **show your current actived [Xcode](https://developer.apple.com/xcode) information**
 
     ```bash
     xcpkg xcinfo
     ```
 
-* **show the given [Xcode](https://developer.apple.com/xcode) information**
+- **show the given [Xcode](https://developer.apple.com/xcode) information**
 
     ```bash
     xcpkg xcinfo --developer-dir=/Applications/Xcode12.app/Contents/Developer
     ```
 
-* **show the supported target platform names only**
+- **show the supported target platform names only**
 
     ```bash
     xcpkg xcinfo --list-supported-platform-names
     xcpkg xcinfo --list-supported-platform-names --developer-dir=/Applications/Xcode12.app/Contents/Developer
     ```
 
-* **install essential tools**
+- **install essential tools**
 
     ```bash
     xcpkg setup
     ```
 
-    This command is actually to install following tools to `~/.xcpkg/core`.
+    This command is actually to do two things:
 
-  * [uppm](https://github.com/leleliu008/uppm)
-  * [GNU Bash](https://www.gnu.org/software/bash/manual/bash.html)
-  * [GNU CoreUtils](https://www.gnu.org/software/coreutils/manual/coreutils.html)
-  * [GNU FindUtils](https://www.gnu.org/software/findutils/manual/html_mono/find.html)
-  * [GNU awk](https://www.gnu.org/software/gawk/manual/gawk.html)
-  * [GNU sed](https://www.gnu.org/software/sed/manual/sed.html)
-  * [GNU grep](https://www.gnu.org/software/grep/manual/grep.html)
-  * [curl](https://curl.se/docs/manpage.html)
-  * [git](https://git-scm.com/docs/git)
-  * [GNU tar](https://www.gnu.org/software/tar/manual/tar.html)
-  * [gzip](https://www.gnu.org/software/gzip/manual/gzip.html)
-  * [bzip2](https://linux.die.net/man/1/bzip2)
-  * [xz](https://linux.die.net/man/1/xz)
-  * [zip](https://linux.die.net/man/1/zip)
-  * [unzip](https://linux.die.net/man/1/unzip)
-  * [yq](https://mikefarah.gitbook.io/yq/)
-  * [jq](https://stedolan.github.io/jq/manual/)
-  * [tree](https://linux.die.net/man/1/tree)
+  - install [uppm](https://github.com/leleliu008/uppm) to `~/.xcpkg/core`
+  - install other essential tools (listed below) that are used by this shell script via [uppm](https://github.com/leleliu008/uppm)
 
-* **integrate `zsh-completion` script**
+    - [GNU Bash](https://www.gnu.org/software/bash/manual/bash.html)
+    - [GNU CoreUtils](https://www.gnu.org/software/coreutils/manual/coreutils.html)
+    - [GNU FindUtils](https://www.gnu.org/software/findutils/manual/html_mono/find.html)
+    - [GNU awk](https://www.gnu.org/software/gawk/manual/gawk.html)
+    - [GNU sed](https://www.gnu.org/software/sed/manual/sed.html)
+    - [GNU grep](https://www.gnu.org/software/grep/manual/grep.html)
+    - [curl](https://curl.se/docs/manpage.html)
+    - [git](https://git-scm.com/docs/git)
+    - [GNU tar](https://www.gnu.org/software/tar/manual/tar.html)
+    - [gzip](https://www.gnu.org/software/gzip/manual/gzip.html)
+    - [lzip](https://www.nongnu.org/lzip/)
+    - [bzip2](https://linux.die.net/man/1/bzip2)
+    - [xz](https://linux.die.net/man/1/xz)
+    - [zip](https://linux.die.net/man/1/zip)
+    - [unzip](https://linux.die.net/man/1/unzip)
+    - [yq](https://mikefarah.gitbook.io/yq/)
+    - [jq](https://stedolan.github.io/jq/manual/)
+    - [tree](https://linux.die.net/man/1/tree)
+
+- **integrate `zsh-completion` script**
 
     ```bash
     xcpkg integrate zsh
@@ -107,20 +111,20 @@ all relevant dirs and files are located in `~/.xcpkg` directory.
 
     **Note**: to apply this feature, you may need to run the command `autoload -U compinit && compinit` in your terminal (your current running shell must be zsh).
 
-* **update all available formula repositories**
+- **update all available formula repositories**
 
     ```bash
     xcpkg update
     ```
 
-* **search all available packages whose name matches the given regular expression pattern**
+- **search all available packages whose name matches the given regular expression pattern**
 
     ```bash
     xcpkg search curl
     xcpkg search lib
     ```
 
-* **show information of the given package**
+- **show information of the given package**
 
     ```bash
     xcpkg info curl
@@ -148,7 +152,7 @@ all relevant dirs and files are located in `~/.xcpkg` directory.
     xcpkg info @all
     ```
 
-* **show formula of the given package**
+- **show formula of the given package**
 
     ```bash
     xcpkg formula curl
@@ -166,7 +170,7 @@ all relevant dirs and files are located in `~/.xcpkg` directory.
     xcpkg formula curl src-sha
     ```
 
-* **show receipt of the given installed package**
+- **show receipt of the given installed package**
 
     ```bash
     xcpkg receipt iPhoneOS/9.0/armv7s/curl
@@ -184,7 +188,7 @@ all relevant dirs and files are located in `~/.xcpkg` directory.
     xcpkg receipt iPhoneOS/9.0/armv7s/curl src-sha
     ```
 
-* **show packages that are depended by the given package**
+- **show packages that are depended by the given package**
 
     ```bash
     xcpkg depends curl
@@ -205,7 +209,7 @@ all relevant dirs and files are located in `~/.xcpkg` directory.
     xcpkg depends curl -o curl-dependencies.svg
     ```
 
-* **download resources of the given package to the local cache**
+- **download resources of the given package to the local cache**
 
     ```bash
     xcpkg fetch curl
@@ -215,28 +219,28 @@ all relevant dirs and files are located in `~/.xcpkg` directory.
     xcpkg fetch @all -v
     ```
 
-* **install packages**
+- **install packages**
 
     ```bash
     xcpkg install curl
     xcpkg install curl bzip2 -v
     ```
 
-* **reinstall packages**
+- **reinstall packages**
 
     ```bash
     xcpkg reinstall curl
     xcpkg reinstall curl bzip2 -v
     ```
 
-* **uninstall packages**
+- **uninstall packages**
 
     ```bash
     xcpkg uninstall curl
     xcpkg uninstall curl bzip2 -v
     ```
 
-* **upgrade the outdated packages**
+- **upgrade the outdated packages**
 
     ```bash
     xcpkg upgrade
@@ -244,14 +248,14 @@ all relevant dirs and files are located in `~/.xcpkg` directory.
     xcpkg upgrade curl bzip2 -v
     ```
 
-* **upgrade this software**
+- **upgrade this software**
 
     ```bash
     xcpkg upgrade-self
     xcpkg upgrade-self -v
     ```
 
-* **edit the formula of the given package**
+- **edit the formula of the given package**
 
     ```bash
     xcpkg formula-edit curl
@@ -260,13 +264,13 @@ all relevant dirs and files are located in `~/.xcpkg` directory.
 
     **Note**: xcpkg do NOT save your changes, which means that your changes may be lost after the formula repository is updated!
 
-* **list all avaliable formula repositories**
+- **list all avaliable formula repositories**
 
     ```bash
     xcpkg formula-repo-list
     ```
 
-* **add a new formula repository**
+- **add a new formula repository**
 
     ```bash
     xcpkg formula-repo-add my_repo https://github.com/leleliu008/xcpkg-formula-repository-my_repo
@@ -274,58 +278,58 @@ all relevant dirs and files are located in `~/.xcpkg` directory.
     xcpkg formula-repo-add my_repo https://github.com/leleliu008/xcpkg-formula-repository-my_repo main
     ```
 
-* **delete a existing formula repository**
+- **delete a existing formula repository**
 
     ```bash
     xcpkg formula-repo-del my_repo
     ```
 
-* **list all available packages**
+- **list all available packages**
 
     ```bash
     xcpkg ls-available
     ```
 
-* **list all installed packages**
+- **list all installed packages**
 
     ```bash
     xcpkg ls-installed
     ```
 
-* **list all outdated packages**
+- **list all outdated packages**
 
     ```bash
     xcpkg ls-outdated
     ```
 
-* **check if the given package is available**
+- **check if the given package is available**
 
     ```bash
     xcpkg is-available curl
     ```
 
-* **check if the given package is installed**
+- **check if the given package is installed**
 
     ```bash
     xcpkg is-installed curl
     xcpkg is-installed iPhoneOS/9.0/armv7s/curl
     ```
 
-* **check if the given package is outdated**
+- **check if the given package is outdated**
 
     ```bash
     xcpkg is-outdated  curl
     xcpkg is-outdated  iPhoneOS/9.0/armv7s/curl
     ```
 
-* **list installed files of the given installed package in a tree-like format**
+- **list installed files of the given installed package in a tree-like format**
 
     ```bash
     xcpkg tree curl
     xcpkg tree iPhoneOS/9.0/armv7s/curl -L 3
     ```
 
-* **show logs of the given installed package**
+- **show logs of the given installed package**
 
     ```bash
     xcpkg logs curl
@@ -333,7 +337,7 @@ all relevant dirs and files are located in `~/.xcpkg` directory.
     xcpkg logs curl iPhoneOS/9.0/arm64/curl
     ```
 
-* **pack the given installed package**
+- **pack the given installed package**
 
     ```bash
     xcpkg pack curl
@@ -347,13 +351,13 @@ all relevant dirs and files are located in `~/.xcpkg` directory.
     xcpkg pack iPhoneOS/9.0/armv7s/curl -o a/x.zip
     ```
 
-* **generate url-transform sample**
+- **generate url-transform sample**
 
     ```bash
     xcpkg gen-url-transform-sample
     ```
 
-* **delete the unused cached files**
+- **delete the unused cached files**
 
     ```bash
     xcpkg cleanup
@@ -361,19 +365,19 @@ all relevant dirs and files are located in `~/.xcpkg` directory.
 
 ## environment variables
 
-* **HOME**
+- **HOME**
 
     This environment variable already have been set on macOS, if not set or set a empty string, you will receive an error message.
 
-* **PATH**
+- **PATH**
 
     This environment variable already have been set on macOS, if not set or set a empty string, you will receive an error message.
 
-* **DEVELOPER_DIR**
+- **DEVELOPER_DIR**
 
     If this environment variable is set, `xcpkg` will use it as the Xcode developer dir, otherwise, `xcpkg` will run command `xcode-select -p` to determine the Xcode developer dir.
 
-* **SSL_CERT_FILE**
+- **SSL_CERT_FILE**
 
     ```bash
     curl -LO https://curl.se/ca/cacert.pem
@@ -382,7 +386,7 @@ all relevant dirs and files are located in `~/.xcpkg` directory.
 
     In general, you don't need to set this environment variable, but, if you encounter the reporting `the SSL certificate is invalid`, trying to run above commands in your terminal will do the trick.
 
-* **XCPKG_URL_TRANSFORM**
+- **XCPKG_URL_TRANSFORM**
 
     ```bash
     export XCPKG_URL_TRANSFORM=/path/of/url-transform
@@ -396,7 +400,7 @@ all relevant dirs and files are located in `~/.xcpkg` directory.
 
     If you want to change the request url, you can set this environment variable. It is very useful for chinese users.
 
-* **XCPKG_XTRACE**
+- **XCPKG_XTRACE**
 
     for debugging purposes.
 
@@ -408,7 +412,7 @@ all relevant dirs and files are located in `~/.xcpkg` directory.
     export XCPKG_XTRACE=1
     ```
 
-* **XCPKG_DEFAULT_TARGET_PLATFORM_SPEC**
+- **XCPKG_DEFAULT_TARGET_PLATFORM_SPEC**
 
     some commands need `<PACKAGE-SPEC>` to be specified. `<PACKAGE-SPEC>` has the form `<TARGET-PLATFORM-SPEC>/<PACKAGE-NAME>`, you can omit `<TARGET-PLATFORM-SPEC>/`. If `<TARGET-PLATFORM-SPEC>/` is omitted, this environment variable will be used, if this environment variable is not set, then will retrive your current os's info.
 
@@ -418,7 +422,7 @@ all relevant dirs and files are located in `~/.xcpkg` directory.
     export XCPKG_DEFAULT_TARGET_PLATFORM_SPEC=MacOSX/10.15/x86_64
     ```
 
-* **other relevant environment variables**
+- **other relevant environment variables**
 
     |utility|reference|
     |-|-|
@@ -487,10 +491,10 @@ xcpkg offical formula repository would be automatically fetched to local cache a
 
 I have built and packed some commonly used packages using this software:
 
-* <https://github.com/leleliu008/uppm-package-repository-macos10.15-x86_64>
-* <https://github.com/leleliu008/uppm-package-repository-macos11.0-x86_64>
-* <https://github.com/leleliu008/uppm-package-repository-macos12.0-x86_64>
-* <https://github.com/leleliu008/uppm-package-repository-macos13.0-x86_64>
-* <https://github.com/leleliu008/uppm-package-repository-macos11.0-arm64>
-* <https://github.com/leleliu008/uppm-package-repository-macos12.0-arm64>
-* <https://github.com/leleliu008/uppm-package-repository-macos13.0-arm64>
+- <https://github.com/leleliu008/uppm-package-repository-macos10.15-x86_64>
+- <https://github.com/leleliu008/uppm-package-repository-macos11.0-x86_64>
+- <https://github.com/leleliu008/uppm-package-repository-macos12.0-x86_64>
+- <https://github.com/leleliu008/uppm-package-repository-macos13.0-x86_64>
+- <https://github.com/leleliu008/uppm-package-repository-macos11.0-arm64>
+- <https://github.com/leleliu008/uppm-package-repository-macos12.0-arm64>
+- <https://github.com/leleliu008/uppm-package-repository-macos13.0-arm64>
