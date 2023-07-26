@@ -69,6 +69,12 @@ all relevant directories and files are located under `~/.xcpkg` directory.
     xcpkg xcinfo --list-supported-platform-names --developer-dir=/Applications/Xcode12.app/Contents/Developer
     ```
 
+- **generate url-transform sample**
+
+    ```bash
+    xcpkg gen-url-transform-sample
+    ```
+
 - **install essential tools**
 
     ```bash
@@ -349,12 +355,6 @@ all relevant directories and files are located under `~/.xcpkg` directory.
     xcpkg pack iPhoneOS/9.0/armv7s/curl -t zip
     xcpkg pack iPhoneOS/9.0/armv7s/curl -t zip -o a/
     xcpkg pack iPhoneOS/9.0/armv7s/curl -o a/x.zip
-    ```
-
-- **generate url-transform sample**
-
-    ```bash
-    xcpkg gen-url-transform-sample
     ```
 
 - **delete the unused cached files**
