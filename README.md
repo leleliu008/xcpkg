@@ -10,6 +10,14 @@ A package manager for [Xcode](https://developer.apple.com/xcode) to build C/C++/
 
 - Please do NOT run `xcpkg` command in parallell to avoid generating dirty data.
 
+## Manually build packages using this software via GitHub Actions
+
+In this way, you will be liberated from the rut of setting up the build environemt.
+
+In this way, all you need to do is just clicking the buttons and waiting for finishing. After finishing, a url refers to a zip archive will be provided to download.
+
+For more details please refer to <https://github.com/leleliu008/xcpkg-package-manually-build>
+
 ## Install xcpkg via cURL
 
 ```bash
