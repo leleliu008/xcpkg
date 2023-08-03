@@ -187,19 +187,19 @@ all relevant directories and files are located under `~/.xcpkg` directory.
 - **show receipt of the given installed package**
 
     ```bash
-    xcpkg receipt iPhoneOS/9.0/armv7s/curl
-    xcpkg receipt iPhoneOS/9.0/armv7s/curl --yaml
-    xcpkg receipt iPhoneOS/9.0/armv7s/curl --json
-    xcpkg receipt iPhoneOS/9.0/armv7s/curl --path
-    xcpkg receipt iPhoneOS/9.0/armv7s/curl version
-    xcpkg receipt iPhoneOS/9.0/armv7s/curl license
-    xcpkg receipt iPhoneOS/9.0/armv7s/curl summary
-    xcpkg receipt iPhoneOS/9.0/armv7s/curl web-url
-    xcpkg receipt iPhoneOS/9.0/armv7s/curl git-url
-    xcpkg receipt iPhoneOS/9.0/armv7s/curl git-sha
-    xcpkg receipt iPhoneOS/9.0/armv7s/curl git-ref
-    xcpkg receipt iPhoneOS/9.0/armv7s/curl src-url
-    xcpkg receipt iPhoneOS/9.0/armv7s/curl src-sha
+    xcpkg receipt curl:iPhoneOS:9.0:armv7s
+    xcpkg receipt curl:iPhoneOS:9.0:armv7s --yaml
+    xcpkg receipt curl:iPhoneOS:9.0:armv7s --json
+    xcpkg receipt curl:iPhoneOS:9.0:armv7s --path
+    xcpkg receipt curl:iPhoneOS:9.0:armv7s version
+    xcpkg receipt curl:iPhoneOS:9.0:armv7s license
+    xcpkg receipt curl:iPhoneOS:9.0:armv7s summary
+    xcpkg receipt curl:iPhoneOS:9.0:armv7s web-url
+    xcpkg receipt curl:iPhoneOS:9.0:armv7s git-url
+    xcpkg receipt curl:iPhoneOS:9.0:armv7s git-sha
+    xcpkg receipt curl:iPhoneOS:9.0:armv7s git-ref
+    xcpkg receipt curl:iPhoneOS:9.0:armv7s src-url
+    xcpkg receipt curl:iPhoneOS:9.0:armv7s src-sha
     ```
 
 - **show packages that are depended by the given package**
@@ -237,21 +237,21 @@ all relevant directories and files are located under `~/.xcpkg` directory.
 
     ```bash
     xcpkg install curl
-    xcpkg install curl bzip2 -v
+    xcpkg install curl:iPhoneOS:9.0:armv7s
     ```
 
 - **reinstall packages**
 
     ```bash
     xcpkg reinstall curl
-    xcpkg reinstall curl bzip2 -v
+    xcpkg reinstall curl:iPhoneOS:9.0:armv7s
     ```
 
 - **uninstall packages**
 
     ```bash
     xcpkg uninstall curl
-    xcpkg uninstall curl bzip2 -v
+    xcpkg uninstall curl:iPhoneOS:9.0:armv7s
     ```
 
 - **upgrade the outdated packages**
@@ -259,7 +259,7 @@ all relevant directories and files are located under `~/.xcpkg` directory.
     ```bash
     xcpkg upgrade
     xcpkg upgrade curl
-    xcpkg upgrade curl bzip2 -v
+    xcpkg upgrade curl:iPhoneOS:9.0:armv7s
     ```
 
 - **upgrade this software**
@@ -326,43 +326,43 @@ all relevant directories and files are located under `~/.xcpkg` directory.
 
     ```bash
     xcpkg is-installed curl
-    xcpkg is-installed iPhoneOS/9.0/armv7s/curl
+    xcpkg is-installed curl:iPhoneOS:9.0:armv7s
     ```
 
 - **check if the given package is outdated**
 
     ```bash
     xcpkg is-outdated  curl
-    xcpkg is-outdated  iPhoneOS/9.0/armv7s/curl
+    xcpkg is-outdated  curl:iPhoneOS:9.0:armv7s
     ```
 
 - **list installed files of the given installed package in a tree-like format**
 
     ```bash
     xcpkg tree curl
-    xcpkg tree iPhoneOS/9.0/armv7s/curl -L 3
+    xcpkg tree curl:iPhoneOS:9.0:armv7s -L 3
     ```
 
 - **show logs of the given installed package**
 
     ```bash
     xcpkg logs curl
-    xcpkg logs curl iPhoneOS/9.0/armv7s/curl
-    xcpkg logs curl iPhoneOS/9.0/arm64/curl
+    xcpkg logs curl:iPhoneOS/9.0/arm64
+    xcpkg logs curl:iPhoneOS:9.0:armv7s
     ```
 
 - **pack the given installed package**
 
     ```bash
     xcpkg pack curl
-    xcpkg pack iPhoneOS/9.0/armv7s/curl
-    xcpkg pack iPhoneOS/9.0/armv7s/curl -t tar.xz
-    xcpkg pack iPhoneOS/9.0/armv7s/curl -t tar.gz
-    xcpkg pack iPhoneOS/9.0/armv7s/curl -t tar.lz
-    xcpkg pack iPhoneOS/9.0/armv7s/curl -t tar.bz2
-    xcpkg pack iPhoneOS/9.0/armv7s/curl -t zip
-    xcpkg pack iPhoneOS/9.0/armv7s/curl -t zip -o a/
-    xcpkg pack iPhoneOS/9.0/armv7s/curl -o a/x.zip
+    xcpkg pack curl:iPhoneOS:9.0:armv7s
+    xcpkg pack curl:iPhoneOS:9.0:armv7s -t tar.xz
+    xcpkg pack curl:iPhoneOS:9.0:armv7s -t tar.gz
+    xcpkg pack curl:iPhoneOS:9.0:armv7s -t tar.lz
+    xcpkg pack curl:iPhoneOS:9.0:armv7s -t tar.bz2
+    xcpkg pack curl:iPhoneOS:9.0:armv7s -t zip
+    xcpkg pack curl:iPhoneOS:9.0:armv7s -t zip -o a/
+    xcpkg pack curl:iPhoneOS:9.0:armv7s -o a/x.zip
     ```
 
 - **delete the unused cached files**
@@ -422,12 +422,14 @@ all relevant directories and files are located under `~/.xcpkg` directory.
 
 - **XCPKG_DEFAULT_TARGET_PLATFORM_SPEC**
 
-    some commands need `<PACKAGE-SPEC>` to be specified. `<PACKAGE-SPEC>` has the form `<TARGET-PLATFORM-SPEC>/<PACKAGE-NAME>`, you can omit `<TARGET-PLATFORM-SPEC>/`. If `<TARGET-PLATFORM-SPEC>/` is omitted, this environment variable will be used, if this environment variable is not set, then will retrive your current os's info.
+    some commands need `<PACKAGE-SPEC>` to be specified. `<PACKAGE-SPEC>` has the form `<PACKAGE-NAME>:<TARGET-PLATFORM-SPEC>`. To simplify the usage, `xcpkg` allows omitting `:<TARGET-PLATFORM-SPEC>`. If `:<TARGET-PLATFORM-SPEC>` is omitted, this environment variable will be used, if this environment variable is not set, then will retrive your current running system's information.
+
+    `<TARGET-PLATFORM-SPEC>` has the form `<TARGET-PLATFORM-NAME>:<TARGET-PLATFORM-VERSION>:<TARGET-PLATFORM-ARCH>`
 
     example:
 
     ```bash
-    export XCPKG_DEFAULT_TARGET_PLATFORM_SPEC=MacOSX/10.15/x86_64
+    export XCPKG_DEFAULT_TARGET_PLATFORM_SPEC=MacOSX:10.15:x86_64
     ```
 
 - **other relevant environment variables**

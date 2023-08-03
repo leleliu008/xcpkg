@@ -2510,10 +2510,11 @@ __fetch_resources_of_the_given_package() {
 
     unset RECEIPT_PACKAGE_NAME
 
-    TARGET_PLATFORM_NAME="$(printf '%s\n' "$PACKAGE_SPEC" | cut -d/ -f1)"
-    TARGET_PLATFORM_VERS="$(printf '%s\n' "$PACKAGE_SPEC" | cut -d/ -f2)"
-    TARGET_PLATFORM_ARCH="$(printf '%s\n' "$PACKAGE_SPEC" | cut -d/ -f3)"
-    RECEIPT_PACKAGE_NAME="$(printf '%s\n' "$PACKAGE_SPEC" | cut -d/ -f4)"
+    RECEIPT_PACKAGE_NAME="$(printf '%s\n' "$PACKAGE_SPEC" | cut -d: -f1)"
+
+    TARGET_PLATFORM_NAME="$(printf '%s\n' "$PACKAGE_SPEC" | cut -d: -f2)"
+    TARGET_PLATFORM_VERS="$(printf '%s\n' "$PACKAGE_SPEC" | cut -d: -f3)"
+    TARGET_PLATFORM_ARCH="$(printf '%s\n' "$PACKAGE_SPEC" | cut -d: -f4)"
 
     shift
 
@@ -2960,22 +2961,22 @@ __upgrade_packages() {
   inspect_package_spec() {
     [ -z "$1" ] && abort 1 "package name or package spec is unspecified."
 
-    if printf '%s\n' "$1" | grep -q -E '^[A-Za-z0-9+-._]{1,50}$' ; then
+    if printf '%s\n' "$1" | grep -q -E '^[A-Za-z0-9+-._@]{1,50}$' ; then
         if [ -z "$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC" ] ; then
-            PACKAGE_SPEC="$NATIVE_OS_NAME/$NATIVE_OS_VERS/$NATIVE_OS_ARCH/$1"
+            PACKAGE_SPEC="$1:$NATIVE_OS_NAME:$NATIVE_OS_VERS:$NATIVE_OS_ARCH"
         else
             case $XCPKG_DEFAULT_TARGET_PLATFORM_SPEC in
-                */*/*/*)
+                *:*:*:*)
                     abort 1 "you have set XCPKG_DEFAULT_TARGET_PLATFORM_SPEC=$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC , but it is an invalid package spec."
                     ;;
-                */*/*)
+                *:*:*)
                     unset TARGET_PLATFORM_NAME
                     unset TARGET_PLATFORM_VERS
                     unset TARGET_PLATFORM_ARCH
 
-                    TARGET_PLATFORM_NAME=$(printf '%s\n' "$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC" | cut -d/ -f1)
-                    TARGET_PLATFORM_VERS=$(printf '%s\n' "$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC" | cut -d/ -f2)
-                    TARGET_PLATFORM_ARCH=$(printf '%s\n' "$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC" | cut -d/ -f3)
+                    TARGET_PLATFORM_NAME=$(printf '%s\n' "$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC" | cut -d: -f1)
+                    TARGET_PLATFORM_VERS=$(printf '%s\n' "$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC" | cut -d: -f2)
+                    TARGET_PLATFORM_ARCH=$(printf '%s\n' "$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC" | cut -d: -f3)
 
                     if [ -z "$TARGET_PLATFORM_NAME" ] ; then
                         TARGET_PLATFORM_NAME=$NATIVE_OS_NAME
@@ -3032,7 +3033,7 @@ __upgrade_packages() {
                         esac
                     fi
 
-                    PACKAGE_SPEC="$TARGET_PLATFORM_NAME/$TARGET_PLATFORM_VERS/$TARGET_PLATFORM_ARCH/$1"
+                    PACKAGE_SPEC="$1:$TARGET_PLATFORM_NAME:$TARGET_PLATFORM_VERS:$TARGET_PLATFORM_ARCH"
                     ;;
                 *) abort 1 "you have set XCPKG_DEFAULT_TARGET_PLATFORM_SPEC=$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC , but it is an invalid package spec."
             esac
@@ -3042,27 +3043,27 @@ __upgrade_packages() {
         printf '%s\n' "$PACKAGE_SPEC"
     else
         case $1 in
-            */*/*/*/*)
+            *:*:*:*:*)
                 abort 1 "invalid package spec: $1"
                 ;;
-            */*/*/*)
+            *:*:*:*)
                 unset PACKAGE_NAME
 
                 unset TARGET_PLATFORM_NAME
                 unset TARGET_PLATFORM_VERS
                 unset TARGET_PLATFORM_ARCH
 
-                TARGET_PLATFORM_NAME=$(printf '%s\n' "$1" | cut -d/ -f1)
-                TARGET_PLATFORM_VERS=$(printf '%s\n' "$1" | cut -d/ -f2)
-                TARGET_PLATFORM_ARCH=$(printf '%s\n' "$1" | cut -d/ -f3)
-                        PACKAGE_NAME=$(printf '%s\n' "$1" | cut -d/ -f4)
+                        PACKAGE_NAME=$(printf '%s\n' "$1" | cut -d: -f1)
+                TARGET_PLATFORM_NAME=$(printf '%s\n' "$1" | cut -d: -f2)
+                TARGET_PLATFORM_VERS=$(printf '%s\n' "$1" | cut -d: -f3)
+                TARGET_PLATFORM_ARCH=$(printf '%s\n' "$1" | cut -d: -f4)
 
                 if [ -z "$PACKAGE_NAME" ] ; then
                     abort 1 "invalid package spec: $1\npackage name is unspecified."
-                elif printf '%s\n' "$PACKAGE_NAME" | grep -q -E '^[A-Za-z0-9+-._]{1,50}$' ; then
+                elif printf '%s\n' "$PACKAGE_NAME" | grep -q -E '^[A-Za-z0-9+-._@]{1,50}$' ; then
                     :
                 else
-                    abort 1 "invalid package spec: $1\npackage name does not match pattern ^[A-Za-z0-9+-._]{1,50}$"
+                    abort 1 "invalid package spec: $1\npackage name does not match pattern ^[A-Za-z0-9+-._@]{1,50}$"
                 fi
 
                 if [ -z "$TARGET_PLATFORM_NAME" ] ; then
@@ -3120,7 +3121,7 @@ __upgrade_packages() {
                     esac
                 fi
 
-                PACKAGE_SPEC="$TARGET_PLATFORM_NAME/$TARGET_PLATFORM_VERS/$TARGET_PLATFORM_ARCH/$PACKAGE_NAME"
+                PACKAGE_SPEC="$PACKAGE_NAME:$TARGET_PLATFORM_NAME:$TARGET_PLATFORM_VERS:$TARGET_PLATFORM_ARCH"
                 printf '%s\n' "$PACKAGE_SPEC"
                 ;;
             *)  abort 1 "invalid package spec: $1"
@@ -3293,17 +3294,17 @@ __install_the_given_packages() {
         unset TARGET_PLATFORM_VERS
         unset TARGET_PLATFORM_ARCH
 
-        TARGET_PLATFORM_NAME="$(printf '%s\n' "$USER_SPECIFIED_PACKAGE_SPEC" | cut -d/ -f1)"
-        TARGET_PLATFORM_VERS="$(printf '%s\n' "$USER_SPECIFIED_PACKAGE_SPEC" | cut -d/ -f2)"
-        TARGET_PLATFORM_ARCH="$(printf '%s\n' "$USER_SPECIFIED_PACKAGE_SPEC" | cut -d/ -f3)"
+        TARGET_PLATFORM_NAME="$(printf '%s\n' "$USER_SPECIFIED_PACKAGE_SPEC" | cut -d: -f2)"
+        TARGET_PLATFORM_VERS="$(printf '%s\n' "$USER_SPECIFIED_PACKAGE_SPEC" | cut -d: -f3)"
+        TARGET_PLATFORM_ARCH="$(printf '%s\n' "$USER_SPECIFIED_PACKAGE_SPEC" | cut -d: -f4)"
 
-        TARGET_PLATFORM_SPEC="$TARGET_PLATFORM_NAME/$TARGET_PLATFORM_VERS/$TARGET_PLATFORM_ARCH"
+        TARGET_PLATFORM_SPEC="$TARGET_PLATFORM_NAME:$TARGET_PLATFORM_VERS:$TARGET_PLATFORM_ARCH"
 
         ##################################################################
 
         TO_BE_INSTALLED_PACKAGE_NAMES=
 
-        STACK="${USER_SPECIFIED_PACKAGE_SPEC##*/}"
+        STACK="$(printf '%s\n' "$USER_SPECIFIED_PACKAGE_SPEC" | cut -d: -f1)"
 
         while [ -n "$STACK" ]
         do
@@ -3342,7 +3343,7 @@ __install_the_given_packages() {
 
         for PACKAGE_NAME in $TO_BE_INSTALLED_PACKAGE_NAMES
         do
-            PACKAGE_SPEC="$TARGET_PLATFORM_SPEC/$PACKAGE_NAME"
+            PACKAGE_SPEC="$PACKAGE_NAME:$TARGET_PLATFORM_SPEC"
 
             if is_package_installed "$PACKAGE_SPEC" ; then
                 if [ "$LOG_LEVEL" -gt 0 ] ; then
@@ -3641,7 +3642,7 @@ EXPORT_COMPILE_COMMANDS_JSON = $EXPORT_COMPILE_COMMANDS_JSON
     step "create the working directory and change to it"
 
     PACKAGE_WORKING_DIR="$SESSION_DIR/$PACKAGE_NAME"
-    PACKAGE_INSTALL_DIR="$XCPKG_HOME/installed/$1"
+    PACKAGE_INSTALL_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$1"
 
     PACKAGE_INSTALLING_SRC_DIR="$PACKAGE_WORKING_DIR/src"
     PACKAGE_INSTALLING_FIX_DIR="$PACKAGE_WORKING_DIR/fix"
@@ -3949,7 +3950,7 @@ EOF
     [ -n "$PACKAGE_DEP_PKG" ] && {
         for DEPENDENT_PACKAGE_NAME in $RECURSIVE_DEPENDENT_PACKAGE_NAMES
         do
-            DEPENDENT_PACKAGE_INSTALL_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$TARGET_PLATFORM_SPEC/$DEPENDENT_PACKAGE_NAME"
+            DEPENDENT_PACKAGE_INSTALL_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$DEPENDENT_PACKAGE_NAME:$TARGET_PLATFORM_SPEC"
 
             if [ -z "$RECURSIVE_DEPENDENT_PACKAGE_INSTALL_DIRS" ] ; then
                 RECURSIVE_DEPENDENT_PACKAGE_INSTALL_DIRS="$DEPENDENT_PACKAGE_INSTALL_DIR"
@@ -4802,7 +4803,7 @@ EOF
     do
         DEPENDENT_PACKAGE_NAME_UNDERSCORE="$(printf '%s\n' "$DEPENDENT_PACKAGE_NAME" | tr '@+-.' '_')"
 
-        DEPENDENT_PACKAGE_INSTALL_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$TARGET_PLATFORM_SPEC/$DEPENDENT_PACKAGE_NAME"
+        DEPENDENT_PACKAGE_INSTALL_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$DEPENDENT_PACKAGE_NAME:$TARGET_PLATFORM_SPEC"
         DEPENDENT_PACKAGE_BINARY__DIR="$DEPENDENT_PACKAGE_INSTALL_DIR/bin"
         DEPENDENT_PACKAGE_INCLUDE_DIR="$DEPENDENT_PACKAGE_INSTALL_DIR/include"
         DEPENDENT_PACKAGE_LIBRARY_DIR="$DEPENDENT_PACKAGE_INSTALL_DIR/lib"
