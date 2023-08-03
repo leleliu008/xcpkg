@@ -2092,7 +2092,7 @@ __show_packages_depended_by_the_given_package() {
                     OUTPUT_FILEPATH="$1"
                 fi
                 ;;
-            *)  abort 1 "$_0 depends <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>] [--keep-packing-dir], unrecognized option: $1"
+            *)  abort 1 "$_0 depends <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>] [--keep-working-dir], unrecognized option: $1"
         esac
         shift
     done
@@ -2494,7 +2494,7 @@ __fetch_resources_of_the_given_package() {
 # {{{ xcpkg pack
 
 # examples:
-# __pack_the_given_installed_package <PACKAGE-NAME|PACKAGE-SPEC> [-t <zip|tar.gz|tar.xz|tar.lz|tar.bz2>] [-o <OUTPUT-PATH>] [--keep-packing-dir]
+# __pack_the_given_installed_package <PACKAGE-NAME|PACKAGE-SPEC> [-t <zip|tar.gz|tar.xz|tar.lz|tar.bz2>] [-o <OUTPUT-PATH>] [--keep-working-dir]
 # __pack_the_given_installed_package    autoconf     -t tar.xz
   __pack_the_given_installed_package() {
     XCODE_SUPPORT_PLATFORM_NAMES='MacOSX DriverKit WatchOS WatchSimulator iPhoneOS iPhoneSimulator AppleTVOS AppleTVSimulator'
@@ -2526,8 +2526,8 @@ __fetch_resources_of_the_given_package() {
     while [ -n "$1" ]
     do
         case $1 in
-            --keep-packing-dir)
-                KEEP_PACKING_DIR=yes
+            --keep-working-dir)
+                KEEP_WORKING_DIR=yes
                 ;;
             -t) shift
 
@@ -2549,7 +2549,7 @@ __fetch_resources_of_the_given_package() {
                     OUTPUT_FILEPATH="$1"
                 fi
                 ;;
-            *)  abort 1 "$_0 pack <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>] [--keep-packing-dir], unrecognized option: $1"
+            *)  abort 1 "$_0 pack <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>] [--keep-working-dir], unrecognized option: $1"
         esac
         shift
     done
@@ -2643,21 +2643,21 @@ __fetch_resources_of_the_given_package() {
 
     ###########################################################################################
 
-    PACKING_DIR="$XCPKG_HOME/run/$$"
+    step "create the working directory then change to it"
 
-    step "create packing directory"
-    run install -d "$PACKING_DIR"
+    WORKING_DIR="$XCPKG_HOME/run/$$"
 
-    step "change to packing directory"
-    run cd "$PACKING_DIR"
+    run rm -rf     "$WORKING_DIR"
+    run install -d "$WORKING_DIR"
+    run cd         "$WORKING_DIR"
 
     step "make link refer to installed package root dir"
     run ln -s "$PACKAGE_INSTALLED_DIR" "$PACKED_DIR_NAME"
 
     step "packing"
     case $OUTPUT_FILETYPE in
-        zip) run zip -9 -r     "$OUTPUT_FILENAME" "$PACKED_DIR_NAME" ;;
-        7z)  run 7za a -t7z -r "$OUTPUT_FILENAME" "$PACKED_DIR_NAME/*" "$PACKED_DIR_NAME/.xcpkg" ;;
+        zip) run zip -9 -r             "$OUTPUT_FILENAME" "$PACKED_DIR_NAME" ;;
+        7z)  run 7za a -t7z -r         "$OUTPUT_FILENAME" "$PACKED_DIR_NAME/*" "$PACKED_DIR_NAME/.xcpkg" ;;
         tar.xz)  run tar cv --xz    -f "$OUTPUT_FILENAME" "$PACKED_DIR_NAME/*" "$PACKED_DIR_NAME/.xcpkg" ;;
         tar.gz)  run tar cv --gzip  -f "$OUTPUT_FILENAME" "$PACKED_DIR_NAME/*" "$PACKED_DIR_NAME/.xcpkg" ;;
         tar.lz)  run tar cv --lzip  -f "$OUTPUT_FILENAME" "$PACKED_DIR_NAME/*" "$PACKED_DIR_NAME/.xcpkg" ;;
@@ -2682,12 +2682,12 @@ __fetch_resources_of_the_given_package() {
     step "copy packed file to output dir"
     run cp "$OUTPUT_FILENAME" "$OUTPUT_DIR/"
 
-    if [ "$KEEP_PACKING_DIR" = yes ] ; then
+    if [ "$KEEP_WORKING_DIR" = yes ] ; then
         printf '\n'
-        note "the work dir [$PACKING_DIR] is not deleted as --keep-packing-dir option is given."
+        note "the working directory '$WORKING_DIR' is not deleted as --keep-working-dir option is given."
     else
-        step "delete packing directory"
-        run rm -rf "$PACKING_DIR"
+        step "delete the working directory"
+        run rm -rf "$WORKING_DIR"
     fi
 }
 
@@ -2720,6 +2720,7 @@ __fetch_resources_of_the_given_package() {
 
     WORKING_DIR="$XCPKG_HOME/run/$$"
 
+    run rm -rf     "$WORKING_DIR"
     run install -d "$WORKING_DIR"
     run cd         "$WORKING_DIR"
 
@@ -2794,6 +2795,7 @@ __fetch_resources_of_the_given_package() {
 
     WORKING_DIR="$XCPKG_HOME/run/$$"
 
+    run rm -rf     "$WORKING_DIR"
     run install -d "$WORKING_DIR"
     run cd         "$WORKING_DIR"
 
@@ -3636,7 +3638,7 @@ EXPORT_COMPILE_COMMANDS_JSON = $EXPORT_COMPILE_COMMANDS_JSON
 
     #########################################################################################
 
-    step "create and change to working directory"
+    step "create the working directory and change to it"
 
     PACKAGE_WORKING_DIR="$SESSION_DIR/$PACKAGE_NAME"
     PACKAGE_INSTALL_DIR="$XCPKG_HOME/installed/$1"
@@ -5753,22 +5755,18 @@ $PACKAGE_DOBUILD_ACTIONS
 }
 
 __adjust_mach_o_files_for_the_given_target() {
-    unset BASE64_COMMAND; export BASE64_COMMAND="$(command -v base64)"
-
-    BASE64_ENCODE_STRING_COMMAND="$XCPKG_CORE_BIN_DIR/base64-encode-string"
-
     for x in bin sbin lib libexec
     do
         [ -d "$PACKAGE_INSTALL_DIR/$x" ] || continue
 
-        for BASE64_ENCODED_RELATIVE_FILEPATH in $(cd "$PACKAGE_INSTALL_DIR/$x" && find . -not -name . -type f -exec $BASE64_ENCODE_STRING_COMMAND {} \;)
+        for BASE64_ENCODED_RELATIVE_FILEPATH in $(cd "$PACKAGE_INSTALL_DIR/$x" && find . -not -name . -type f -exec base64-encode '{}' \;)
         do
-            unset BASE64_DECODED_RELATIVE_FILEPATH
-            BASE64_DECODED_RELATIVE_FILEPATH="$(printf '%s\n' "$BASE64_ENCODED_RELATIVE_FILEPATH" | base64 -d)"
+            BASE64_DECODED_RELATIVE_FILEPATH=
+            BASE64_DECODED_RELATIVE_FILEPATH="$(base64-decode "$BASE64_ENCODED_RELATIVE_FILEPATH")"
 
             FILEPATH="$PACKAGE_INSTALL_DIR/$x/${BASE64_DECODED_RELATIVE_FILEPATH#./}"
 
-            unset FILE_HEADER_ACTUAL
+            FILE_HEADER_ACTUAL=
             FILE_HEADER_ACTUAL="$(hexdump -n 16 -v -e '1/1 "%02X" ""' "$FILEPATH")"
 
             # https://github.com/aidansteele/osx-abi-macho-file-format-reference
@@ -6845,25 +6843,7 @@ __setup() {
 
     install -d "$XCPKG_CORE_BIN_DIR"
 
-    #################################################################################
-
     __setup_uppm
-
-    #################################################################################
-
-    cat > "$XCPKG_CORE_BIN_DIR/base64-encode-string" <<EOF
-#!/bin/sh
-set -e
-
-if [ -z "\$BASE64_COMMAND" ] ; then
-    BASE64_COMMAND=base64
-fi
-
-printf '%s\n' "\$@" | "\$BASE64_COMMAND" -w 0
-printf '\n'
-EOF
-
-    chmod +x "$XCPKG_CORE_BIN_DIR/base64-encode-string"
 
     success "xcpkg have been successfully setup."
 }
@@ -6890,10 +6870,11 @@ __setup_uppm() {
 
     ##################################################################################
 
-    SETUP_WORKING_DIR="$XCPKG_HOME/run/$$"
+    WORKING_DIR="$XCPKG_HOME/run/$$"
 
-    run install -d "$SETUP_WORKING_DIR"
-    run cd         "$SETUP_WORKING_DIR"
+    run rm -rf     "$WORKING_DIR"
+    run install -d "$WORKING_DIR"
+    run cd         "$WORKING_DIR"
 
     ##################################################################################
 
@@ -6923,10 +6904,10 @@ __setup_uppm() {
     ##################################################################################
 
     # https://curl.se/docs/caextract.html
-    wfetch 'https://curl.se/ca/cacert.pem' --output-dir="$SETUP_WORKING_DIR"
+    wfetch 'https://curl.se/ca/cacert.pem' --output-dir="$WORKING_DIR"
 
-    run install -d                         "$XCPKG_CORE_DIR/etc/ssl/certs"
-    run cp "$SETUP_WORKING_DIR/cacert.pem" "$XCPKG_CORE_DIR/etc/ssl/certs"
+    run install -d                   "$XCPKG_CORE_DIR/etc/ssl/certs"
+    run cp "$WORKING_DIR/cacert.pem" "$XCPKG_CORE_DIR/etc/ssl/certs"
 
     ##################################################################################
 
@@ -6938,7 +6919,7 @@ __setup_uppm() {
     UPPM_PACKAGE_EXEFIND_PATH=
     UPPM_PACKAGE_ACLOCAL_PATH=
 
-    for item in coreutils findutils gawk gsed grep gtar gzip lzip unzip zip jq yq git curl tree
+    for item in coreutils findutils easyutils gawk gsed grep gtar gzip lzip unzip zip xz bzip2 jq yq git curl tree
     do
         run "$UPPM" install "$item"
 
@@ -7130,7 +7111,7 @@ ${COLOR_GREEN}xcpkg tree <PACKAGE-SPEC> [--dirsfirst | -L N]${COLOR_OFF}
 ${COLOR_GREEN}xcpkg logs <PACKAGE-SPEC>${COLOR_OFF}
     show logs of the given installed package.
 
-${COLOR_GREEN}xcpkg pack <PACKAGE-SPEC> [--keep-packing-dir] [-t <zip|tar.gz|tar.xz|tar.lz|tar.bz2>] [-o <OUTPUT-PATH>]${COLOR_OFF}
+${COLOR_GREEN}xcpkg pack <PACKAGE-SPEC> [--keep-working-dir] [-t <zip|tar.gz|tar.xz|tar.lz|tar.bz2>] [-o <OUTPUT-PATH>]${COLOR_OFF}
     pack the given installed package.
 
     <OUTPUT-PATH> can be either the filepath or directory where the packed archive will be written to. If <OUTPUT-PATH> is an existing directory or ends with slash, then it will be treated as a directory, otherwize, it will be treated as a filepath.

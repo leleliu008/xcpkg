@@ -1,6 +1,6 @@
 #compdef xcpkg
 
-_commands=(
+_xcpkg_actions=(
     '-h:show help of this command.'
     '--help:show help of this command.'
     '-V:show version of this command.'
@@ -45,10 +45,6 @@ _commands=(
     'gen-url-transform-sample:generate url-transform sample.'
 )
 
-function _xcpkg_commands() {
-    _describe 'command' _commands
-}
-
 function _xcpkg_available_packages() {
     local -a _available_packages
     _available_packages=($(xcpkg ls-available 2>/dev/null))
@@ -72,7 +68,7 @@ function _xcpkg() {
     typeset -A opt_args
 
     _arguments \
-        '1: :_xcpkg_commands' \
+        '1: :{_describe xcpkg_actions _xcpkg_actions}' \
         '*:: :->option'
 
     case $state in
@@ -171,14 +167,14 @@ function _xcpkg() {
                     _arguments \
                         '1:package-name:_xcpkg_available_packages' \
                         '-t[set output format]:output-type:(dot box svg png)' \
-                        '-o[set output filepath or directory]:output-path:{_files}'
+                        '-o[set output filepath or directory]:output-path:_files'
                     ;;
                 pack)
                     _arguments \
                         '1:package-name:_xcpkg_installed_packages' \
                         '-t[set output type]:output-type:(zip tar.gz tar.xz tar.lz tar.bz2)' \
-                        '-o[set output filepath or directory]:output-path:{_files}' \
-                        '--keep-packing-dir[do not delete packing dir even if succesully packed]'
+                        '-o[set output filepath or directory]:output-path:_files' \
+                        '--keep-working-dir[do not delete the working directory even if successfully packed]'
                     ;;
                 tree)
                     _arguments \
@@ -197,7 +193,7 @@ function _xcpkg() {
                         '--toolchain=-[set which toolchain to use]:toolchain:(zig gcc llvm)' \
                         '--jobs=-[set the number of jobs you can run in parallel]:jobs:(1 2 3 4 5 6 7 8 9)' \
                         '--dry-run[dry-run]' \
-                        '--keep-working-dir[do not delete installing dir even if installed success]' \
+                        '--keep-working-dir[do not delete the working directory even if successfully installed]' \
                         '--build-type=-[set build type]:build-type:(debug release)' \
                         '--link-type=-[link static or shared library]:link-type:(static-only shared-only static-prefered shared-prefered)' \
                         '--export-compile-commands-json[generates compile_commands.json]' \
@@ -213,7 +209,7 @@ function _xcpkg() {
                         '--toolchain=-[set which toolchain to use]:toolchain:(zig gcc llvm)' \
                         '--jobs=-[set the number of jobs you can run in parallel]:jobs:(1 2 3 4 5 6 7 8 9)' \
                         '--dry-run[dry-run]' \
-                        '--keep-working-dir[do not delete installing dir even if installed success]' \
+                        '--keep-working-dir[do not delete the working directory even if successfully installed]' \
                         '--build-type=-[set build type]:build-type:(debug release)' \
                         '--link-type=-[link static or shared library]:link-type:(static-only shared-only static-prefered shared-prefered)' \
                         '--export-compile-commands-json[generates compile_commands.json]' \
@@ -228,7 +224,7 @@ function _xcpkg() {
                         ':package-name:_xcpkg_outdated_packages' \
                         '--jobs=-[set the number of jobs you can run in parallel]:jobs:(1 2 3 4 5 6 7 8 9)' \
                         '--dry-run[dry-run]' \
-                        '--keep-working-dir[do not delete installing dir even if installed success]' \
+                        '--keep-working-dir[do not delete the working directory even if successfully installed]' \
                         '--build-type=-[set build type]:build-type:(debug release)' \
                         '--link-type=-[link static or shared library]:link-type:(static-only shared-only static-prefered shared-prefered)' \
                         '--export-compile-commands-json[generates compile_commands.json]' \
