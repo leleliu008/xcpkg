@@ -7021,7 +7021,7 @@ ${COLOR_GREEN}xcpkg ls-outdated${COLOR_OFF}
     list all outdated  packages.
 
 
-${COLOR_GREEN}xcpkg is-available <PACKAGE-SPEC>${COLOR_OFF}
+${COLOR_GREEN}xcpkg is-available <PACKAGE-NAME>${COLOR_OFF}
     check if the given package is available.
 
 ${COLOR_GREEN}xcpkg is-installed <PACKAGE-SPEC>${COLOR_OFF}
