@@ -53,13 +53,13 @@ function _xcpkg_available_packages() {
 
 function _xcpkg_installed_packages() {
     local -a _installed_packages
-    _installed_packages=($(xcpkg ls-installed 2>/dev/null))
+    _installed_packages=($(xcpkg ls-installed 2>/dev/null | sed 's|:|\\:|g'))
     _describe 'installed-packages' _installed_packages
 }
 
 function _xcpkg_outdated_packages() {
     local -a _outdated_packages
-    _outdated_packages=($(xcpkg ls-outdated 2>/dev/null))
+    _outdated_packages=($(xcpkg ls-outdated 2>/dev/null | sed 's|:|\\:|g'))
     _describe 'outdated-packages' _outdated_packages
 }
 

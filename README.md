@@ -187,19 +187,19 @@ all relevant directories and files are located under `~/.xcpkg` directory.
 - **show receipt of the given installed package**
 
     ```bash
-    xcpkg receipt curl:iPhoneOS:9.0:armv7s
-    xcpkg receipt curl:iPhoneOS:9.0:armv7s --yaml
-    xcpkg receipt curl:iPhoneOS:9.0:armv7s --json
-    xcpkg receipt curl:iPhoneOS:9.0:armv7s --path
-    xcpkg receipt curl:iPhoneOS:9.0:armv7s version
-    xcpkg receipt curl:iPhoneOS:9.0:armv7s license
-    xcpkg receipt curl:iPhoneOS:9.0:armv7s summary
-    xcpkg receipt curl:iPhoneOS:9.0:armv7s web-url
-    xcpkg receipt curl:iPhoneOS:9.0:armv7s git-url
-    xcpkg receipt curl:iPhoneOS:9.0:armv7s git-sha
-    xcpkg receipt curl:iPhoneOS:9.0:armv7s git-ref
-    xcpkg receipt curl:iPhoneOS:9.0:armv7s src-url
-    xcpkg receipt curl:iPhoneOS:9.0:armv7s src-sha
+    xcpkg receipt curl:iPhoneOS:12.0:arm64
+    xcpkg receipt curl:iPhoneOS:12.0:arm64 --yaml
+    xcpkg receipt curl:iPhoneOS:12.0:arm64 --json
+    xcpkg receipt curl:iPhoneOS:12.0:arm64 --path
+    xcpkg receipt curl:iPhoneOS:12.0:arm64 version
+    xcpkg receipt curl:iPhoneOS:12.0:arm64 license
+    xcpkg receipt curl:iPhoneOS:12.0:arm64 summary
+    xcpkg receipt curl:iPhoneOS:12.0:arm64 web-url
+    xcpkg receipt curl:iPhoneOS:12.0:arm64 git-url
+    xcpkg receipt curl:iPhoneOS:12.0:arm64 git-sha
+    xcpkg receipt curl:iPhoneOS:12.0:arm64 git-ref
+    xcpkg receipt curl:iPhoneOS:12.0:arm64 src-url
+    xcpkg receipt curl:iPhoneOS:12.0:arm64 src-sha
     ```
 
 - **show packages that are depended by the given package**
@@ -237,21 +237,21 @@ all relevant directories and files are located under `~/.xcpkg` directory.
 
     ```bash
     xcpkg install curl
-    xcpkg install curl:iPhoneOS:9.0:armv7s
+    xcpkg install curl:iPhoneOS:12.0:arm64
     ```
 
 - **reinstall packages**
 
     ```bash
     xcpkg reinstall curl
-    xcpkg reinstall curl:iPhoneOS:9.0:armv7s
+    xcpkg reinstall curl:iPhoneOS:12.0:arm64
     ```
 
 - **uninstall packages**
 
     ```bash
     xcpkg uninstall curl
-    xcpkg uninstall curl:iPhoneOS:9.0:armv7s
+    xcpkg uninstall curl:iPhoneOS:12.0:arm64
     ```
 
 - **upgrade the outdated packages**
@@ -259,7 +259,7 @@ all relevant directories and files are located under `~/.xcpkg` directory.
     ```bash
     xcpkg upgrade
     xcpkg upgrade curl
-    xcpkg upgrade curl:iPhoneOS:9.0:armv7s
+    xcpkg upgrade curl:iPhoneOS:12.0:arm64
     ```
 
 - **upgrade this software**
@@ -326,21 +326,21 @@ all relevant directories and files are located under `~/.xcpkg` directory.
 
     ```bash
     xcpkg is-installed curl
-    xcpkg is-installed curl:iPhoneOS:9.0:armv7s
+    xcpkg is-installed curl:iPhoneOS:12.0:arm64
     ```
 
 - **check if the given package is outdated**
 
     ```bash
     xcpkg is-outdated  curl
-    xcpkg is-outdated  curl:iPhoneOS:9.0:armv7s
+    xcpkg is-outdated  curl:iPhoneOS:12.0:arm64
     ```
 
 - **list installed files of the given installed package in a tree-like format**
 
     ```bash
     xcpkg tree curl
-    xcpkg tree curl:iPhoneOS:9.0:armv7s -L 3
+    xcpkg tree curl:iPhoneOS:12.0:arm64 -L 3
     ```
 
 - **show logs of the given installed package**
@@ -348,21 +348,21 @@ all relevant directories and files are located under `~/.xcpkg` directory.
     ```bash
     xcpkg logs curl
     xcpkg logs curl:iPhoneOS/9.0/arm64
-    xcpkg logs curl:iPhoneOS:9.0:armv7s
+    xcpkg logs curl:iPhoneOS:12.0:arm64
     ```
 
 - **pack the given installed package**
 
     ```bash
     xcpkg pack curl
-    xcpkg pack curl:iPhoneOS:9.0:armv7s
-    xcpkg pack curl:iPhoneOS:9.0:armv7s -t tar.xz
-    xcpkg pack curl:iPhoneOS:9.0:armv7s -t tar.gz
-    xcpkg pack curl:iPhoneOS:9.0:armv7s -t tar.lz
-    xcpkg pack curl:iPhoneOS:9.0:armv7s -t tar.bz2
-    xcpkg pack curl:iPhoneOS:9.0:armv7s -t zip
-    xcpkg pack curl:iPhoneOS:9.0:armv7s -t zip -o a/
-    xcpkg pack curl:iPhoneOS:9.0:armv7s -o a/x.zip
+    xcpkg pack curl:iPhoneOS:12.0:arm64
+    xcpkg pack curl:iPhoneOS:12.0:arm64 -t tar.xz
+    xcpkg pack curl:iPhoneOS:12.0:arm64 -t tar.gz
+    xcpkg pack curl:iPhoneOS:12.0:arm64 -t tar.lz
+    xcpkg pack curl:iPhoneOS:12.0:arm64 -t tar.bz2
+    xcpkg pack curl:iPhoneOS:12.0:arm64 -t zip
+    xcpkg pack curl:iPhoneOS:12.0:arm64 -t zip -o a/
+    xcpkg pack curl:iPhoneOS:12.0:arm64 -o a/x.zip
     ```
 
 - **delete the unused cached files**
