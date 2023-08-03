@@ -2163,13 +2163,13 @@ __show_packages_depended_by_the_given_package() {
 
     unset DIRECTED_PATH_LIST
 
-    STACK="$PACKAGE_NAME"
+    PACKAGE_NAME_STACK="$PACKAGE_NAME"
 
-    while [ -n "$STACK" ]
+    while [ -n "$PACKAGE_NAME_STACK" ]
     do
-        case $STACK in
-            *\;*) PACKAGE_NAME="${STACK##*;}" ; STACK="${STACK%;*}" ;;
-            *)    PACKAGE_NAME="${STACK}"     ; STACK=
+        case $PACKAGE_NAME_STACK in
+            *\;*) PACKAGE_NAME="${PACKAGE_NAME_STACK##*;}" ; PACKAGE_NAME_STACK="${PACKAGE_NAME_STACK%;*}" ;;
+            *)    PACKAGE_NAME="${PACKAGE_NAME_STACK}"     ; PACKAGE_NAME_STACK=
         esac
 
         ################################################################
@@ -2243,10 +2243,10 @@ __show_packages_depended_by_the_given_package() {
 
             ############################################################
 
-            if [ -z "$STACK" ] ; then
-                STACK="$DEPENDENT_PACKAGE_NAME"
+            if [ -z "$PACKAGE_NAME_STACK" ] ; then
+                PACKAGE_NAME_STACK="$DEPENDENT_PACKAGE_NAME"
             else
-                STACK="$STACK;$DEPENDENT_PACKAGE_NAME"
+                PACKAGE_NAME_STACK="$PACKAGE_NAME_STACK;$DEPENDENT_PACKAGE_NAME"
             fi
         done
 
@@ -3252,13 +3252,13 @@ __install_the_given_packages() {
 
     for USER_SPECIFIED_PACKAGE_SPEC in $USER_SPECIFIED_PACKAGE_SPEC_LIST
     do
-        STACK="${USER_SPECIFIED_PACKAGE_SPEC##*/}"
+        PACKAGE_NAME_STACK="$(printf '%s\n' "$USER_SPECIFIED_PACKAGE_SPEC" | cut -d: -f1)"
 
-        while [ -n "$STACK" ]
+        while [ -n "$PACKAGE_NAME_STACK" ]
         do
-            case $STACK in
-                *\;*) PACKAGE_NAME="${STACK##*;}" ; STACK="${STACK%;*}" ;;
-                *)    PACKAGE_NAME="${STACK}"     ; STACK=
+            case $PACKAGE_NAME_STACK in
+                *\;*) PACKAGE_NAME="${PACKAGE_NAME_STACK##*;}" ; PACKAGE_NAME_STACK="${PACKAGE_NAME_STACK%;*}" ;;
+                *)    PACKAGE_NAME="${PACKAGE_NAME_STACK}"     ; PACKAGE_NAME_STACK=
             esac
 
             if [ -f "$SESSION_DIR/$PACKAGE_NAME.yml" ] ; then
@@ -3277,10 +3277,10 @@ __install_the_given_packages() {
                     abort 1 "package '$PACKAGE_NAME' depends itself."
                 fi
 
-                if [ -z "$STACK" ] ; then
-                    STACK="$DEPENDENT_PACKAGE_NAME"
+                if [ -z "$PACKAGE_NAME_STACK" ] ; then
+                    PACKAGE_NAME_STACK="$DEPENDENT_PACKAGE_NAME"
                 else
-                    STACK="$STACK;$DEPENDENT_PACKAGE_NAME"
+                    PACKAGE_NAME_STACK="$PACKAGE_NAME_STACK;$DEPENDENT_PACKAGE_NAME"
                 fi
             done
         done
@@ -3304,13 +3304,13 @@ __install_the_given_packages() {
 
         TO_BE_INSTALLED_PACKAGE_NAMES=
 
-        STACK="$(printf '%s\n' "$USER_SPECIFIED_PACKAGE_SPEC" | cut -d: -f1)"
+        PACKAGE_NAME_STACK="$(printf '%s\n' "$USER_SPECIFIED_PACKAGE_SPEC" | cut -d: -f1)"
 
-        while [ -n "$STACK" ]
+        while [ -n "$PACKAGE_NAME_STACK" ]
         do
-            case $STACK in
-                *\;*) PACKAGE_NAME="${STACK##*;}" ; STACK="${STACK%;*}" ;;
-                *)    PACKAGE_NAME="${STACK}"     ; STACK=
+            case $PACKAGE_NAME_STACK in
+                *\;*) PACKAGE_NAME="${PACKAGE_NAME_STACK##*;}" ; PACKAGE_NAME_STACK="${PACKAGE_NAME_STACK%;*}" ;;
+                *)    PACKAGE_NAME="${PACKAGE_NAME_STACK}"     ; PACKAGE_NAME_STACK=
             esac
 
             ##################################################################
@@ -3331,10 +3331,10 @@ __install_the_given_packages() {
 
             for item in $(eval echo \$PACKAGE_DEP_PKG_"${PACKAGE_NAME_UPPERCASE_UNDERSCORE}")
             do
-                if [ -z "$STACK" ] ; then
-                    STACK="$item"
+                if [ -z "$PACKAGE_NAME_STACK" ] ; then
+                    PACKAGE_NAME_STACK="$item"
                 else
-                    STACK="$STACK;$item"
+                    PACKAGE_NAME_STACK="$PACKAGE_NAME_STACK;$item"
                 fi
             done
         done
@@ -3898,22 +3898,22 @@ EOF
     [ -n "$PACKAGE_DEP_PKG" ] && {
         step "calculate dependency list of $1"
 
-        unset STACK
+        unset PACKAGE_NAME_STACK
 
         for item in $PACKAGE_DEP_PKG
         do
             if [ -z "$item" ] ; then
-                STACK="$item"
+                PACKAGE_NAME_STACK="$item"
             else
-                STACK="$STACK;$item"
+                PACKAGE_NAME_STACK="$PACKAGE_NAME_STACK;$item"
             fi
         done
 
-        while [ -n "$STACK" ]
+        while [ -n "$PACKAGE_NAME_STACK" ]
         do
-            case $STACK in
-                *\;*) TOPE="${STACK##*;}" ; STACK="${STACK%;*}" ;;
-                *)    TOPE="${STACK}"     ; STACK=
+            case $PACKAGE_NAME_STACK in
+                *\;*) TOPE="${PACKAGE_NAME_STACK##*;}" ; PACKAGE_NAME_STACK="${PACKAGE_NAME_STACK%;*}" ;;
+                *)    TOPE="${PACKAGE_NAME_STACK}"     ; PACKAGE_NAME_STACK=
             esac
 
             RECURSIVE_DEPENDENT_PACKAGE_NAMES2="$TOPE"
@@ -3933,9 +3933,9 @@ EOF
             for item in $(eval echo \$PACKAGE_DEP_PKG_"${TOPE_UPPERCASE_UNDERSCORE}")
             do
                 if [ -z "$item" ] ; then
-                    STACK="$item"
+                    PACKAGE_NAME_STACK="$item"
                 else
-                    STACK="$STACK;$item"
+                    PACKAGE_NAME_STACK="$PACKAGE_NAME_STACK;$item"
                 fi
             done
         done
@@ -3997,13 +3997,13 @@ EOF
 
         unset DOT_CONTENT
 
-        STACK="$PACKAGE_NAME"
+        PACKAGE_NAME_STACK="$PACKAGE_NAME"
 
-        while [ -n "$STACK" ]
+        while [ -n "$PACKAGE_NAME_STACK" ]
         do
-            case $STACK in
-                *\;*) TOPE="${STACK##*;}" ; STACK="${STACK%;*}" ;;
-                *)    TOPE="${STACK}"     ; STACK=
+            case $PACKAGE_NAME_STACK in
+                *\;*) TOPE="${PACKAGE_NAME_STACK##*;}" ; PACKAGE_NAME_STACK="${PACKAGE_NAME_STACK%;*}" ;;
+                *)    TOPE="${PACKAGE_NAME_STACK}"     ; PACKAGE_NAME_STACK=
             esac
 
             unset TOPE_UPPERCASE_UNDERSCORE
@@ -4026,9 +4026,9 @@ EOF
             do
 
                 if [ -z "$item" ] ; then
-                    STACK="$item"
+                    PACKAGE_NAME_STACK="$item"
                 else
-                    STACK="$STACK;$item"
+                    PACKAGE_NAME_STACK="$PACKAGE_NAME_STACK;$item"
                 fi
             done
         done
