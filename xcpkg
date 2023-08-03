@@ -7128,13 +7128,13 @@ ${COLOR_GREEN}xcpkg pack <PACKAGE-SPEC> [--keep-working-dir] [-t <zip|tar.gz|tar
 ======================================
 
 ${COLOR_GREEN}PACKAGE-SPEC${COLOR_OFF}
-    a formatted srting that has form: <PLATFORM-SPEC>/<PACKAGE-NAME>
+    a formatted srting that has form: <PACKAGE-NAME>:<PLATFORM-SPEC>
 
 ${COLOR_GREEN}PACKAGE-NAME${COLOR_OFF}
     must match regular expression pattern ^[A-Za-z0-9+-_.@]{1,50}$
 
 ${COLOR_GREEN}PLATFORM-SPEC${COLOR_OFF}
-    a formatted srting that has form: <PLATFORM-NAME>/<PLATFORM-VERSION>/<PLATFORM-ARCH>
+    a formatted srting that has form: <PLATFORM-NAME>:<PLATFORM-VERSION>:<PLATFORM-ARCH>
     indicates which platform would be built for or run on.
 
 ${COLOR_GREEN}PLATFORM-NAME${COLOR_OFF}
