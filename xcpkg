@@ -1530,8 +1530,6 @@ EOF
   __show_receipt_of_the_given_package() {
     [ -z "$1" ] && abort 1 "__show_receipt_of_the_given_package <PACKAGE-SPEC> [--json] [--yaml] [--path] [<KEY>], <PACKAGE-NAME> is unspecified."
 
-    XCODE_SUPPORT_PLATFORM_NAMES='MacOSX DriverKit WatchOS WatchSimulator iPhoneOS iPhoneSimulator AppleTVOS AppleTVSimulator'
-
     PACKAGE_SPEC=
     PACKAGE_SPEC="$(inspect_package_spec "$1")"
 
@@ -2522,8 +2520,6 @@ __fetch_resources_of_the_given_package() {
 # __pack_the_given_installed_package <PACKAGE-NAME|PACKAGE-SPEC> [-t <zip|tar.gz|tar.xz|tar.lz|tar.bz2>] [-o <OUTPUT-PATH>] [--keep-working-dir]
 # __pack_the_given_installed_package    autoconf     -t tar.xz
   __pack_the_given_installed_package() {
-    XCODE_SUPPORT_PLATFORM_NAMES='MacOSX DriverKit WatchOS WatchSimulator iPhoneOS iPhoneSimulator AppleTVOS AppleTVSimulator'
-
     PACKAGE_SPEC=
     PACKAGE_SPEC="$(inspect_package_spec "$1")"
 
@@ -2897,8 +2893,6 @@ __cleanup() {
 __uninstall_the_given_packages() {
     [ -z "$1" ] && abort 1 "neither package-name nor package-spec is unspecified."
 
-    XCODE_SUPPORT_PLATFORM_NAMES='MacOSX DriverKit WatchOS WatchSimulator iPhoneOS iPhoneSimulator AppleTVOS AppleTVSimulator'
-
     unset PACKAGE_SPECS
 
     for item in "$@"
@@ -3235,6 +3229,10 @@ __upgrade_packages() {
 
             TARGET_PLATFORM_NAME_IS_SUPPORTED=no
 
+            if [ -z "$XCODE_SUPPORT_PLATFORM_NAMES" ] ; then
+                XCODE_SUPPORT_PLATFORM_NAMES='MacOSX DriverKit WatchOS WatchSimulator iPhoneOS iPhoneSimulator AppleTVOS AppleTVSimulator'
+            fi
+
             for XCODE_SUPPORT_PLATFORM_NAME in $XCODE_SUPPORT_PLATFORM_NAMES
             do
                 if [ "$XCODE_SUPPORT_PLATFORM_NAME" = "$TARGET_PLATFORM_NAME" ] ; then
@@ -3288,6 +3286,10 @@ __upgrade_packages() {
 
                             TARGET_PLATFORM_NAME_IS_SUPPORTED=no
 
+                            if [ -z "$XCODE_SUPPORT_PLATFORM_NAMES" ] ; then
+                                XCODE_SUPPORT_PLATFORM_NAMES='MacOSX DriverKit WatchOS WatchSimulator iPhoneOS iPhoneSimulator AppleTVOS AppleTVSimulator'
+                            fi
+
                             for XCODE_SUPPORT_PLATFORM_NAME in $XCODE_SUPPORT_PLATFORM_NAMES
                             do
                                 if [ "$XCODE_SUPPORT_PLATFORM_NAME" = "$TARGET_PLATFORM_NAME" ] ; then
@@ -3297,21 +3299,21 @@ __upgrade_packages() {
                             done
 
                             if [ "$TARGET_PLATFORM_NAME_IS_SUPPORTED" = no ] ; then
-                                abort 1 "you have set XCPKG_DEFAULT_TARGET_PLATFORM_SPEC=$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC , but it is an invalid package spec. unrecognized platform: $TARGET_PLATFORM_NAME"
+                                abort 1 "you have set XCPKG_DEFAULT_TARGET_PLATFORM_SPEC=$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC , but it is an invalid package-spec. unrecognized platform-name: $TARGET_PLATFORM_NAME"
                             fi
 
                             if [ -z "$TARGET_PLATFORM_VERS" ] ; then
-                                abort 1 "you have set XCPKG_DEFAULT_TARGET_PLATFORM_SPEC=$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC , but it is an invalid package spec."
+                                abort 1 "you have set XCPKG_DEFAULT_TARGET_PLATFORM_SPEC=$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC , but it is an invalid package-spec."
                             fi
 
                             if [ -z "$TARGET_PLATFORM_ARCH" ] ; then
-                                abort 1 "you have set XCPKG_DEFAULT_TARGET_PLATFORM_SPEC=$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC , but it is an invalid package spec."
+                                abort 1 "you have set XCPKG_DEFAULT_TARGET_PLATFORM_SPEC=$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC , but it is an invalid package-spec."
                             fi
 
                             TARGET_PLATFORM_SPEC="$TARGET_PLATFORM_NAME/$TARGET_PLATFORM_VERS/$TARGET_PLATFORM_ARCH"
                             PACKAGE_SPEC="$1:$TARGET_PLATFORM_SPEC"
                             ;;
-                        *) abort 1 "you have set XCPKG_DEFAULT_TARGET_PLATFORM_SPEC=$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC , but it is an invalid package spec."
+                        *) abort 1 "you have set XCPKG_DEFAULT_TARGET_PLATFORM_SPEC=$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC , but it is an invalid package-spec."
                     esac
                 fi
 
