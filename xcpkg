@@ -1634,8 +1634,8 @@ is_package_available() {
         return 1
     }
 
-    X=
-    X="$(printf '%s\n' "$1" | tr ':' '%')"
+    PACKAGE_XXXX___=
+    PACKAGE_XXXX___="$(printf '%s\n' "$1" | tr ':' '%')"
 
     [ -f "$XCPKG_PACKAGE_INSTALLED_ROOT/$X/.xcpkg/manifest.txt" ] || return 13
     [ -f "$XCPKG_PACKAGE_INSTALLED_ROOT/$X/.xcpkg/receipt.yml" ]  || return 14
@@ -2457,9 +2457,8 @@ __fetch_resources_of_the_given_package() {
 # __tree_the_given_installed_package <PACKAGE-SPEC>
   __tree_the_given_installed_package() {
     is_package_installed "$1" || abort 1 "package '$1' is not installed."
-    PACKAGE_SPEC="$1"
     shift
-    run tree "$@" "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_SPEC"
+    run tree "$@" "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_XXXX___"
 }
 
 # }}}
