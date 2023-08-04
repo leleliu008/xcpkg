@@ -1462,10 +1462,10 @@ EOF
 
     #######################################################################################################
 
-    PACKAGE_XXXX___=
-    PACKAGE_XXXX___="$(printf '%s\n' "$1" | tr ':' '/')"
+    PACKAGE_XXXX=
+    PACKAGE_XXXX="$(printf '%s\n' "$1" | tr ':' '/')"
 
-    PACKAGE_INSTALLED_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_XXXX___"
+    PACKAGE_INSTALLED_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_XXXX"
     PACKAGE_RECEIPT_FILEPATH="$PACKAGE_INSTALLED_DIR/.xcpkg/receipt.yml"
 
     unset PACKAGE_RECEIPT_SIGNATURE
@@ -1637,11 +1637,11 @@ is_package_available() {
         return 1
     }
 
-    PACKAGE_XXXX___=
-    PACKAGE_XXXX___="$(printf '%s\n' "$1" | tr ':' '/')"
+    PACKAGE_XXXX=
+    PACKAGE_XXXX="$(printf '%s\n' "$1" | tr ':' '/')"
 
-    [ -f "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_XXXX___/.xcpkg/manifest.txt" ] || return 13
-    [ -f "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_XXXX___/.xcpkg/receipt.yml" ]  || return 14
+    [ -f "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_XXXX/.xcpkg/manifest.txt" ] || return 13
+    [ -f "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_XXXX/.xcpkg/receipt.yml" ]  || return 14
 }
 
 # }}}
@@ -2005,7 +2005,10 @@ EOF
             ;;
         installed-dir)
             if is_package_installed "$1" ; then
-                printf '%s\n' "$XCPKG_PACKAGE_INSTALLED_ROOT/$1"
+                PACKAGE_XXXX=
+                PACKAGE_XXXX="$(printf '%s\n' "$1" | tr ':' '/')"
+
+                printf '%s\n' "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_XXXX"
             else
                 error "package [$1] is not installed."
                 return 1
@@ -2013,6 +2016,8 @@ EOF
             ;;
         installed-files)
             if is_package_installed "$1" ; then
+                PACKAGE_XXXX=
+                PACKAGE_XXXX="$(printf '%s\n' "$1" | tr ':' '/')"
                 cut -d '|' -f3 "$XCPKG_PACKAGE_INSTALLED_ROOT/$1/.xcpkg/manifest.txt"
             else
                 error "package [$1] is not installed."
@@ -2455,7 +2460,7 @@ __fetch_resources_of_the_given_package() {
   __tree_the_given_installed_package() {
     is_package_installed "$1" || abort 1 "package '$1' is not installed."
     shift
-    run tree "$@" "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_XXXX___"
+    run tree "$@" "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_XXXX"
 }
 
 # }}}
@@ -2468,11 +2473,11 @@ __fetch_resources_of_the_given_package() {
 
     is_package_installed "$1" || abort 1 "package '$1' is not installed."
 
-    PACKAGE_XXXX___=
-    PACKAGE_XXXX___="$(printf '%s\n' "$1" | tr ':' '/')"
+    PACKAGE_XXXX=
+    PACKAGE_XXXX="$(printf '%s\n' "$1" | tr ':' '/')"
 
     FILEPATHS=
-    FILEPATHS="$(find "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_XXXX___/.xcpkg" -type f)"
+    FILEPATHS="$(find "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_XXXX/.xcpkg" -type f)"
 
     for filepath in $FILEPATHS
     do
@@ -2872,7 +2877,7 @@ __cleanup() {
 # {{{ xcpkg uninstall
 
 __uninstall_the_given_packages() {
-    [ -z "$1" ] && abort 1 "package name or spec is unspecified."
+    [ -z "$1" ] && abort 1 "neither package-name nor package-spec is unspecified."
 
     XCODE_SUPPORT_PLATFORM_NAMES='MacOSX DriverKit WatchOS WatchSimulator iPhoneOS iPhoneSimulator AppleTVOS AppleTVSimulator'
 
@@ -2892,7 +2897,11 @@ __uninstall_the_given_packages() {
 # __uninstall_the_given_package <PACKAGE-SPEC>
   __uninstall_the_given_package() {
     is_package_installed "$1" || abort 1 "$1 is not installed."
-    run rm -rf "$XCPKG_PACKAGE_INSTALLED_ROOT/$1"
+
+    PACKAGE_XXXX=
+    PACKAGE_XXXX="$(printf '%s\n' "$1" | tr ':' '/')"
+
+    run rm -rf "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_XXXX"
 }
 
 # }}}
@@ -2902,25 +2911,131 @@ __uninstall_the_given_packages() {
 __reinstall_the_given_packages() {
     inspect_install_arguments "$@"
 
-    [ -z "$USER_SPECIFIED_PACKAGE_SPEC_LIST" ] && abort 1 "package name or spec is unspecified."
+    [ -z "$USER_SPECIFIED_PACKAGE_SPEC_LIST" ] && abort 1 "neither package-name nor package-spec is unspecified."
 
-    for packageName in $USER_SPECIFIED_PACKAGE_SPEC_LIST
+    #########################################################################################
+
+    SESSION_DIR="$XCPKG_HOME/run/$$"
+
+    rm -rf     "$SESSION_DIR"
+    install -d "$SESSION_DIR"
+
+    #########################################################################################
+
+    # 1. check if has circle
+    # 2. backup formulas
+    # 3. cache variables
+
+    for USER_SPECIFIED_PACKAGE_SPEC in $USER_SPECIFIED_PACKAGE_SPEC_LIST
     do
-        is_package_available "$1" || abort 1 "$1 is not available."
-        is_package_installed "$1" || abort 1 "$1 is not installed."
+        PACKAGE_NAME_STACK="${USER_SPECIFIED_PACKAGE_SPEC%%:*}"
+
+        while [ -n "$PACKAGE_NAME_STACK" ]
+        do
+            case $PACKAGE_NAME_STACK in
+                *\;*) PACKAGE_NAME="${PACKAGE_NAME_STACK##*;}" ; PACKAGE_NAME_STACK="${PACKAGE_NAME_STACK%;*}" ;;
+                *)    PACKAGE_NAME="${PACKAGE_NAME_STACK}"     ; PACKAGE_NAME_STACK=
+            esac
+
+            if [ -f "$SESSION_DIR/$PACKAGE_NAME.yml" ] ; then
+                continue
+            fi
+
+            __load_formula_of_the_given_package "$PACKAGE_NAME"
+
+            cp "$PACKAGE_FORMULA_FILEPATH" "$SESSION_DIR/$PACKAGE_NAME.yml"
+
+            eval "PACKAGE_DEP_PKG_${PACKAGE_NAME_UPPERCASE_UNDERSCORE}='$PACKAGE_DEP_PKG'"
+
+            for DEPENDENT_PACKAGE_NAME in $PACKAGE_DEP_PKG
+            do
+                if [ "$DEPENDENT_PACKAGE_NAME" = "$PACKAGE_NAME" ] ; then
+                    abort 1 "package '$PACKAGE_NAME' depends itself."
+                fi
+
+                if [ -z "$PACKAGE_NAME_STACK" ] ; then
+                    PACKAGE_NAME_STACK="$DEPENDENT_PACKAGE_NAME"
+                else
+                    PACKAGE_NAME_STACK="$PACKAGE_NAME_STACK;$DEPENDENT_PACKAGE_NAME"
+                fi
+            done
+        done
     done
 
-    for PACKAGE_NAME in $USER_SPECIFIED_PACKAGE_SPEC_LIST
+    #########################################################################################
+
+    for USER_SPECIFIED_PACKAGE_SPEC in $USER_SPECIFIED_PACKAGE_SPEC_LIST
     do
-        [ -d "$XCPKG_BACKUP_DIR" ] || {
-            install -d "$XCPKG_BACKUP_DIR" || return 1
-        }
+        TARGET_PLATFORM_SPEC="${USER_SPECIFIED_PACKAGE_SPEC#*:}"
 
-        mv "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_NAME" "$XCPKG_BACKUP_DIR/$PACKAGE_NAME" || return 1
+        TARGET_PLATFORM_NAME=
+        TARGET_PLATFORM_VERS=
+        TARGET_PLATFORM_ARCH=
 
-        (__install_the_given_package "$PACKAGE_NAME") || return 1
+        TARGET_PLATFORM_NAME="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f1)"
+        TARGET_PLATFORM_VERS="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f2)"
+        TARGET_PLATFORM_ARCH="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f3)"
 
-        rm -rf "$XCPKG_BACKUP_DIR/$PACKAGE_NAME" || return 1
+
+        ##################################################################
+
+        TO_BE_INSTALLED_PACKAGE_NAMES=
+
+        PACKAGE_NAME_STACK="${USER_SPECIFIED_PACKAGE_SPEC%%:*}"
+
+        while [ -n "$PACKAGE_NAME_STACK" ]
+        do
+            case $PACKAGE_NAME_STACK in
+                *\;*) PACKAGE_NAME="${PACKAGE_NAME_STACK##*;}" ; PACKAGE_NAME_STACK="${PACKAGE_NAME_STACK%;*}" ;;
+                *)    PACKAGE_NAME="${PACKAGE_NAME_STACK}"     ; PACKAGE_NAME_STACK=
+            esac
+
+            ##################################################################
+
+            TO_BE_INSTALLED_PACKAGE_NAMES2="$PACKAGE_NAME"
+
+            for item in $TO_BE_INSTALLED_PACKAGE_NAMES
+            do
+                [ "$item" = "$PACKAGE_NAME" ] && continue
+                TO_BE_INSTALLED_PACKAGE_NAMES2="$TO_BE_INSTALLED_PACKAGE_NAMES2 $item"
+            done
+
+            TO_BE_INSTALLED_PACKAGE_NAMES="$TO_BE_INSTALLED_PACKAGE_NAMES2"
+
+            ##################################################################
+
+            PACKAGE_NAME_UPPERCASE_UNDERSCORE="$(printf '%s\n' "$PACKAGE_NAME" | tr a-z A-Z | tr '@+-.' '_')"
+
+            for item in $(eval echo \$PACKAGE_DEP_PKG_"${PACKAGE_NAME_UPPERCASE_UNDERSCORE}")
+            do
+                if [ -z "$PACKAGE_NAME_STACK" ] ; then
+                    PACKAGE_NAME_STACK="$item"
+                else
+                    PACKAGE_NAME_STACK="$PACKAGE_NAME_STACK;$item"
+                fi
+            done
+        done
+
+        ##################################################################
+
+        for PACKAGE_NAME in $TO_BE_INSTALLED_PACKAGE_NAMES
+        do
+            PACKAGE_SPEC="$PACKAGE_NAME:$TARGET_PLATFORM_SPEC"
+
+            PACKAGE_XXXX=
+            PACKAGE_XXXX="$(printf '%s\n' "$PACKAGE_SPEC" | tr ':' '/')"
+
+            PACKAGE_YYYY=
+            PACKAGE_YYYY="$(printf '%s\n' "$PACKAGE_SPEC" | tr '/' ':')"
+
+            [ -d "$XCPKG_BACKUP_DIR" ] || install -d "$XCPKG_BACKUP_DIR"
+
+            mv "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_XXXX" "$XCPKG_BACKUP_DIR/$PACKAGE_YYYY"
+
+            (__install_the_given_package "$PACKAGE_SPEC")
+
+            rm -rf "$XCPKG_BACKUP_DIR/$PACKAGE_YYYY"
+        done
     done
 }
 
@@ -2935,23 +3050,134 @@ __upgrade_packages() {
         USER_SPECIFIED_PACKAGE_SPEC_LIST=$(__list__outdated_packages)
     fi
 
-    for packageName in $USER_SPECIFIED_PACKAGE_SPEC_LIST
+    #########################################################################################
+
+    SESSION_DIR="$XCPKG_HOME/run/$$"
+
+    rm -rf     "$SESSION_DIR"
+    install -d "$SESSION_DIR"
+
+    #########################################################################################
+
+    # 1. check if has circle
+    # 2. backup formulas
+    # 3. cache variables
+
+    for USER_SPECIFIED_PACKAGE_SPEC in $USER_SPECIFIED_PACKAGE_SPEC_LIST
     do
-        is_package_available "$1" || abort 1 "$1 is not available."
-        is_package_installed "$1" || abort 1 "$1 is not installed."
+        PACKAGE_NAME_STACK="${USER_SPECIFIED_PACKAGE_SPEC%%:*}"
+
+        while [ -n "$PACKAGE_NAME_STACK" ]
+        do
+            case $PACKAGE_NAME_STACK in
+                *\;*) PACKAGE_NAME="${PACKAGE_NAME_STACK##*;}" ; PACKAGE_NAME_STACK="${PACKAGE_NAME_STACK%;*}" ;;
+                *)    PACKAGE_NAME="${PACKAGE_NAME_STACK}"     ; PACKAGE_NAME_STACK=
+            esac
+
+            if [ -f "$SESSION_DIR/$PACKAGE_NAME.yml" ] ; then
+                continue
+            fi
+
+            __load_formula_of_the_given_package "$PACKAGE_NAME"
+
+            cp "$PACKAGE_FORMULA_FILEPATH" "$SESSION_DIR/$PACKAGE_NAME.yml"
+
+            eval "PACKAGE_DEP_PKG_${PACKAGE_NAME_UPPERCASE_UNDERSCORE}='$PACKAGE_DEP_PKG'"
+
+            for DEPENDENT_PACKAGE_NAME in $PACKAGE_DEP_PKG
+            do
+                if [ "$DEPENDENT_PACKAGE_NAME" = "$PACKAGE_NAME" ] ; then
+                    abort 1 "package '$PACKAGE_NAME' depends itself."
+                fi
+
+                if [ -z "$PACKAGE_NAME_STACK" ] ; then
+                    PACKAGE_NAME_STACK="$DEPENDENT_PACKAGE_NAME"
+                else
+                    PACKAGE_NAME_STACK="$PACKAGE_NAME_STACK;$DEPENDENT_PACKAGE_NAME"
+                fi
+            done
+        done
     done
 
-    for PACKAGE_NAME in $USER_SPECIFIED_PACKAGE_SPEC_LIST
+    #########################################################################################
+
+    for USER_SPECIFIED_PACKAGE_SPEC in $USER_SPECIFIED_PACKAGE_SPEC_LIST
     do
-        [ -d "$XCPKG_BACKUP_DIR" ] || {
-            install -d "$XCPKG_BACKUP_DIR" || return 1
-        }
+        TARGET_PLATFORM_SPEC="${USER_SPECIFIED_PACKAGE_SPEC#*:}"
 
-        mv "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_NAME" "$XCPKG_BACKUP_DIR/$PACKAGE_NAME" || return 1
+        TARGET_PLATFORM_NAME=
+        TARGET_PLATFORM_VERS=
+        TARGET_PLATFORM_ARCH=
 
-        (__install_the_given_package "$PACKAGE_NAME") || return 1
+        TARGET_PLATFORM_NAME="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f1)"
+        TARGET_PLATFORM_VERS="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f2)"
+        TARGET_PLATFORM_ARCH="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f3)"
 
-        rm -rf "$XCPKG_BACKUP_DIR/$PACKAGE_NAME" || return 1
+
+        ##################################################################
+
+        TO_BE_INSTALLED_PACKAGE_NAMES=
+
+        PACKAGE_NAME_STACK="${USER_SPECIFIED_PACKAGE_SPEC%%:*}"
+
+        while [ -n "$PACKAGE_NAME_STACK" ]
+        do
+            case $PACKAGE_NAME_STACK in
+                *\;*) PACKAGE_NAME="${PACKAGE_NAME_STACK##*;}" ; PACKAGE_NAME_STACK="${PACKAGE_NAME_STACK%;*}" ;;
+                *)    PACKAGE_NAME="${PACKAGE_NAME_STACK}"     ; PACKAGE_NAME_STACK=
+            esac
+
+            ##################################################################
+
+            TO_BE_INSTALLED_PACKAGE_NAMES2="$PACKAGE_NAME"
+
+            for item in $TO_BE_INSTALLED_PACKAGE_NAMES
+            do
+                [ "$item" = "$PACKAGE_NAME" ] && continue
+                TO_BE_INSTALLED_PACKAGE_NAMES2="$TO_BE_INSTALLED_PACKAGE_NAMES2 $item"
+            done
+
+            TO_BE_INSTALLED_PACKAGE_NAMES="$TO_BE_INSTALLED_PACKAGE_NAMES2"
+
+            ##################################################################
+
+            PACKAGE_NAME_UPPERCASE_UNDERSCORE="$(printf '%s\n' "$PACKAGE_NAME" | tr a-z A-Z | tr '@+-.' '_')"
+
+            for item in $(eval echo \$PACKAGE_DEP_PKG_"${PACKAGE_NAME_UPPERCASE_UNDERSCORE}")
+            do
+                if [ -z "$PACKAGE_NAME_STACK" ] ; then
+                    PACKAGE_NAME_STACK="$item"
+                else
+                    PACKAGE_NAME_STACK="$PACKAGE_NAME_STACK;$item"
+                fi
+            done
+        done
+
+        ##################################################################
+
+        for PACKAGE_NAME in $TO_BE_INSTALLED_PACKAGE_NAMES
+        do
+            PACKAGE_SPEC="$PACKAGE_NAME:$TARGET_PLATFORM_SPEC"
+
+            is_package__outdated "$PACKAGE_SPEC" || {
+                note 1 "$PACKAGE_SPEC is not outdated."
+                continue
+            }
+
+            PACKAGE_XXXX=
+            PACKAGE_XXXX="$(printf '%s\n' "$PACKAGE_SPEC" | tr ':' '/')"
+
+            PACKAGE_YYYY=
+            PACKAGE_YYYY="$(printf '%s\n' "$PACKAGE_SPEC" | tr '/' ':')"
+
+            [ -d "$XCPKG_BACKUP_DIR" ] || install -d "$XCPKG_BACKUP_DIR"
+
+            mv "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_XXXX" "$XCPKG_BACKUP_DIR/$PACKAGE_YYYY"
+
+            (__install_the_given_package "$PACKAGE_SPEC")
+
+            rm -rf "$XCPKG_BACKUP_DIR/$PACKAGE_YYYY"
+        done
     done
 }
 
@@ -7079,13 +7305,13 @@ ${COLOR_GREEN}xcpkg pack <PACKAGE-SPEC> [--keep-working-dir] [-t <zip|tar.gz|tar
 ======================================
 
 ${COLOR_GREEN}PACKAGE-SPEC${COLOR_OFF}
-    a formatted srting that has form: ${COLOR_RED}<PACKAGE-NAME>:<PLATFORM-SPEC>${COLOR_OFF}
+    a formatted srting that has form ${COLOR_RED}<PACKAGE-NAME>:<PLATFORM-SPEC>${COLOR_OFF}
 
 ${COLOR_GREEN}PACKAGE-NAME${COLOR_OFF}
     must match regular expression pattern ${COLOR_RED}^[A-Za-z0-9+-_.@]{1,50}$ ${COLOR_OFF}
 
 ${COLOR_GREEN}PLATFORM-SPEC${COLOR_OFF}
-    a formatted srting that has form: ${COLOR_RED}<PLATFORM-NAME>/<PLATFORM-VERSION>/<PLATFORM-ARCH>${COLOR_OFF}
+    a formatted srting that has form ${COLOR_RED}<PLATFORM-NAME>/<PLATFORM-VERSION>/<PLATFORM-ARCH>${COLOR_OFF}
     indicates which platform would be built for or run on.
 
 ${COLOR_GREEN}PLATFORM-NAME${COLOR_OFF}
@@ -7123,7 +7349,7 @@ main() {
 
     XCPKG="$CURRENT_SCRIPT_FILEPATH"
 
-    XCPKG_VERSION=0.12.0
+    XCPKG_VERSION=0.13.0
 
     XCPKG_OFFICAL_FORMULA_REPO_URL='https://github.com/leleliu008/xcpkg-formula-repository-offical-core'
 
