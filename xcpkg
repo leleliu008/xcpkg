@@ -2965,13 +2965,13 @@ __upgrade_packages() {
 
             TARGET_PLATFORM_SPEC="${1#*:}"
 
-            unset TARGET_PLATFORM_NAME
-            unset TARGET_PLATFORM_VERS
-            unset TARGET_PLATFORM_ARCH
+            TARGET_PLATFORM_NAME=
+            TARGET_PLATFORM_VERS=
+            TARGET_PLATFORM_ARCH=
 
-            TARGET_PLATFORM_NAME=$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f1)
-            TARGET_PLATFORM_VERS=$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f2)
-            TARGET_PLATFORM_ARCH=$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f3)
+            TARGET_PLATFORM_NAME="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f1)"
+            TARGET_PLATFORM_VERS="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f2)"
+            TARGET_PLATFORM_ARCH="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f3)"
 
             if [ -z "$TARGET_PLATFORM_NAME" ] ; then
                 abort 1 "invalid package-spec: $1\nplatform-name is unspecified."
@@ -3008,6 +3008,7 @@ __upgrade_packages() {
                     TARGET_PLATFORM_NAME="$NATIVE_OS_NAME"
                     TARGET_PLATFORM_VERS="$NATIVE_OS_VERS"
                     TARGET_PLATFORM_ARCH="$NATIVE_OS_ARCH"
+
                     TARGET_PLATFORM_SPEC="$TARGET_PLATFORM_NAME/$TARGET_PLATFORM_VERS/$TARGET_PLATFORM_ARCH"
 
                     PACKAGE_SPEC="$1:$TARGET_PLATFORM_SPEC"
@@ -3017,13 +3018,13 @@ __upgrade_packages() {
                             abort 1 "you have set XCPKG_DEFAULT_TARGET_PLATFORM_SPEC=$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC , but it is an invalid package spec."
                             ;;
                         */*/*)
-                            unset TARGET_PLATFORM_NAME
-                            unset TARGET_PLATFORM_VERS
-                            unset TARGET_PLATFORM_ARCH
+                            TARGET_PLATFORM_NAME=
+                            TARGET_PLATFORM_VERS=
+                            TARGET_PLATFORM_ARCH=
 
-                            TARGET_PLATFORM_NAME=$(printf '%s\n' "$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC" | cut -d/ -f1)
-                            TARGET_PLATFORM_VERS=$(printf '%s\n' "$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC" | cut -d/ -f2)
-                            TARGET_PLATFORM_ARCH=$(printf '%s\n' "$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC" | cut -d/ -f3)
+                            TARGET_PLATFORM_NAME="$(printf '%s\n' "$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC" | cut -d/ -f1)"
+                            TARGET_PLATFORM_VERS="$(printf '%s\n' "$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC" | cut -d/ -f2)"
+                            TARGET_PLATFORM_ARCH="$(printf '%s\n' "$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC" | cut -d/ -f3)"
 
                             if [ -z "$TARGET_PLATFORM_NAME" ] ; then
                                 abort 1 "you have set XCPKG_DEFAULT_TARGET_PLATFORM_SPEC=$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC , but it is an invalid package spec."
@@ -3227,15 +3228,15 @@ __install_the_given_packages() {
 
     for USER_SPECIFIED_PACKAGE_SPEC in $USER_SPECIFIED_PACKAGE_SPEC_LIST
     do
-        unset TARGET_PLATFORM_NAME
-        unset TARGET_PLATFORM_VERS
-        unset TARGET_PLATFORM_ARCH
-
         TARGET_PLATFORM_SPEC="${USER_SPECIFIED_PACKAGE_SPEC#*:}"
 
-        TARGET_PLATFORM_NAME="$(printf '%s\n' "$USER_SPECIFIED_PACKAGE_SPEC" | cut -d/ -f1)"
-        TARGET_PLATFORM_VERS="$(printf '%s\n' "$USER_SPECIFIED_PACKAGE_SPEC" | cut -d/ -f2)"
-        TARGET_PLATFORM_ARCH="$(printf '%s\n' "$USER_SPECIFIED_PACKAGE_SPEC" | cut -d/ -f3)"
+        TARGET_PLATFORM_NAME=
+        TARGET_PLATFORM_VERS=
+        TARGET_PLATFORM_ARCH=
+
+        TARGET_PLATFORM_NAME="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f1)"
+        TARGET_PLATFORM_VERS="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f2)"
+        TARGET_PLATFORM_ARCH="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f3)"
 
 
         ##################################################################
