@@ -2004,48 +2004,66 @@ EOF
             fi
             ;;
         installed-dir)
-            if is_package_installed "$1" ; then
+            PACKAGE_SPEC=
+            PACKAGE_SPEC="$(inspect_package_spec "$1")"
+
+            if is_package_installed "$PACKAGE_SPEC" ; then
                 PACKAGE_XXXX=
                 PACKAGE_XXXX="$(printf '%s\n' "$1" | tr ':' '/')"
 
                 printf '%s\n' "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_XXXX"
             else
-                error "package [$1] is not installed."
+                error "package '$1' is not installed."
                 return 1
             fi
             ;;
         installed-files)
-            if is_package_installed "$1" ; then
+            PACKAGE_SPEC=
+            PACKAGE_SPEC="$(inspect_package_spec "$1")"
+
+            if is_package_installed "$PACKAGE_SPEC" ; then
                 PACKAGE_XXXX=
                 PACKAGE_XXXX="$(printf '%s\n' "$1" | tr ':' '/')"
-                cut -d '|' -f3 "$XCPKG_PACKAGE_INSTALLED_ROOT/$1/.xcpkg/manifest.txt"
+                cut -d '|' -f3 "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_XXXX/.xcpkg/manifest.txt"
             else
-                error "package [$1] is not installed."
+                error "package '$1' is not installed."
                 return 1
             fi
             ;;
         installed-timestamp-unix)
-            __load_receipt_of_the_given_package "$1"
+            PACKAGE_SPEC=
+            PACKAGE_SPEC="$(inspect_package_spec "$1")"
+            __load_receipt_of_the_given_package "$PACKAGE_SPEC"
             printf '%s\n' "$PACKAGE_RECEIPT_TIMESTAMP"
             ;;
         installed-timestamp-rfc-3339)
-            __load_receipt_of_the_given_package "$1"
+            PACKAGE_SPEC=
+            PACKAGE_SPEC="$(inspect_package_spec "$1")"
+            __load_receipt_of_the_given_package "$PACKAGE_SPEC"
             format_unix_timestamp "$PACKAGE_RECEIPT_TIMESTAMP" '+%Y-%m-%d %H:%M:%S%:z'
             ;;
         installed-timestamp-iso-8601)
-            __load_receipt_of_the_given_package "$1"
+            PACKAGE_SPEC=
+            PACKAGE_SPEC="$(inspect_package_spec "$1")"
+            __load_receipt_of_the_given_package "$PACKAGE_SPEC"
             format_unix_timestamp "$PACKAGE_RECEIPT_TIMESTAMP" '+%Y-%m-%dT%H:%M:%S%:z'
             ;;
         installed-timestamp-rfc-3339-utc)
-            __load_receipt_of_the_given_package "$1"
+            PACKAGE_SPEC=
+            PACKAGE_SPEC="$(inspect_package_spec "$1")"
+            __load_receipt_of_the_given_package "$PACKAGE_SPEC"
             format_unix_timestamp "$PACKAGE_RECEIPT_TIMESTAMP" '+%Y-%m-%d %H:%M:%S%:z' -u
             ;;
         installed-timestamp-iso-8601-utc)
-            __load_receipt_of_the_given_package "$1"
+            PACKAGE_SPEC=
+            PACKAGE_SPEC="$(inspect_package_spec "$1")"
+            __load_receipt_of_the_given_package "$PACKAGE_SPEC"
             format_unix_timestamp "$PACKAGE_RECEIPT_TIMESTAMP" '+%Y-%m-%dT%H:%M:%SZ' -u
             ;;
         installed-version)
-            __load_receipt_of_the_given_package "$1"
+            PACKAGE_SPEC=
+            PACKAGE_SPEC="$(inspect_package_spec "$1")"
+            __load_receipt_of_the_given_package "$PACKAGE_SPEC"
             printf '%s\n' "$RECEIPT_PACKAGE_VERSION"
             ;;
         dopatch)
