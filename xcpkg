@@ -1637,8 +1637,8 @@ is_package_available() {
     PACKAGE_XXXX___=
     PACKAGE_XXXX___="$(printf '%s\n' "$1" | tr ':' '%')"
 
-    [ -f "$XCPKG_PACKAGE_INSTALLED_ROOT/$X/.xcpkg/manifest.txt" ] || return 13
-    [ -f "$XCPKG_PACKAGE_INSTALLED_ROOT/$X/.xcpkg/receipt.yml" ]  || return 14
+    [ -f "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_XXXX___/.xcpkg/manifest.txt" ] || return 13
+    [ -f "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_XXXX___/.xcpkg/receipt.yml" ]  || return 14
 }
 
 # }}}
