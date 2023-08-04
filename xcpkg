@@ -1462,7 +1462,7 @@ EOF
 
     #######################################################################################################
 
-    PACKAGE_INSTALLED_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$1"
+    PACKAGE_INSTALLED_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$(printf '%s\n' "$1" | tr ':' '/')"
     PACKAGE_RECEIPT_FILEPATH="$PACKAGE_INSTALLED_DIR/.xcpkg/receipt.yml"
 
     unset PACKAGE_RECEIPT_SIGNATURE
@@ -1693,17 +1693,11 @@ __list_available_packages() {
 
 __list_installed_packages() {
     if [ -d "$XCPKG_PACKAGE_INSTALLED_ROOT" ] ; then
-         cd "$XCPKG_PACKAGE_INSTALLED_ROOT" 2>/dev/null || return 1
+         cd "$XCPKG_PACKAGE_INSTALLED_ROOT" || return 1
+        find . -maxdepth 6 -mindepth 6 -type f -regex '\./[^/]*/\(DriverKit\|MacOSX\|AppleTVOS\|AppleTVSimulator\|iPhoneOS\|iPhoneSimulator\|WatchOS\|WatchSimulator\)/[^/]*/[^/]*/\.xcpkg/receipt\.yml' | cut -c3- | sed 's|/\.xcpkg/receipt\.yml$||'
     else
         return 0
     fi
-
-    for packageName in $(find . -maxdepth 1 -mindepth 1 -type d -printf '%P\n')
-    do
-        if is_package_installed "$packageName" ; then
-            printf '%s\n' "$packageName"
-        fi
-    done
 }
 
 # }}}
