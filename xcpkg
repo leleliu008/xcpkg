@@ -2506,18 +2506,6 @@ __fetch_resources_of_the_given_package() {
 
     __load_receipt_of_the_given_package "$PACKAGE_SPEC"
 
-    unset TARGET_PLATFORM_NAME
-    unset TARGET_PLATFORM_VERS
-    unset TARGET_PLATFORM_ARCH
-
-    unset RECEIPT_PACKAGE_NAME
-
-    RECEIPT_PACKAGE_NAME="$(printf '%s\n' "$PACKAGE_SPEC" | cut -d: -f1)"
-
-    TARGET_PLATFORM_NAME="$(printf '%s\n' "$PACKAGE_SPEC" | cut -d: -f2)"
-    TARGET_PLATFORM_VERS="$(printf '%s\n' "$PACKAGE_SPEC" | cut -d: -f3)"
-    TARGET_PLATFORM_ARCH="$(printf '%s\n' "$PACKAGE_SPEC" | cut -d: -f4)"
-
     shift
 
     ###########################################################################################
@@ -2961,174 +2949,121 @@ __upgrade_packages() {
 
 # inspect_package_spec <PACKAGE-NAME|PACKAGE-SPEC>
   inspect_package_spec() {
-    [ -z "$1" ] && abort 1 "package name or package spec is unspecified."
+    case $1 in
+        '') abort 1 "package-name or package-spec is unspecified."
+            ;;
+        *:*)
+            PACKAGE_NAME="${1%%:*}"
 
-    if printf '%s\n' "$1" | grep -q -E '^[A-Za-z0-9+-._@]{1,50}$' ; then
-        if [ -z "$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC" ] ; then
-            PACKAGE_SPEC="$1:$NATIVE_OS_NAME:$NATIVE_OS_VERS:$NATIVE_OS_ARCH"
-        else
-            case $XCPKG_DEFAULT_TARGET_PLATFORM_SPEC in
-                *:*:*:*)
-                    abort 1 "you have set XCPKG_DEFAULT_TARGET_PLATFORM_SPEC=$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC , but it is an invalid package spec."
-                    ;;
-                *:*:*)
-                    unset TARGET_PLATFORM_NAME
-                    unset TARGET_PLATFORM_VERS
-                    unset TARGET_PLATFORM_ARCH
+            if [ -z "$PACKAGE_NAME" ] ; then
+                abort 1 "invalid package-spec: $1\npackage-name is unspecified."
+            elif printf '%s\n' "$PACKAGE_NAME" | grep -q -E '^[A-Za-z0-9+-._@]{1,50}$' ; then
+                :
+            else
+                abort 1 "invalid package-spec: $1\npackage-name does not match pattern ^[A-Za-z0-9+-._@]{1,50}$"
+            fi
 
-                    TARGET_PLATFORM_NAME=$(printf '%s\n' "$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC" | cut -d: -f1)
-                    TARGET_PLATFORM_VERS=$(printf '%s\n' "$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC" | cut -d: -f2)
-                    TARGET_PLATFORM_ARCH=$(printf '%s\n' "$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC" | cut -d: -f3)
+            TARGET_PLATFORM_SPEC="${1#*:}"
 
-                    if [ -z "$TARGET_PLATFORM_NAME" ] ; then
-                        TARGET_PLATFORM_NAME=$NATIVE_OS_NAME
-                    else
-                        TARGET_PLATFORM_NAME_IS_SUPPORTED=no
+            unset TARGET_PLATFORM_NAME
+            unset TARGET_PLATFORM_VERS
+            unset TARGET_PLATFORM_ARCH
 
-                        for XCODE_SUPPORT_PLATFORM_NAME in $XCODE_SUPPORT_PLATFORM_NAMES
-                        do
-                            if [ "$XCODE_SUPPORT_PLATFORM_NAME" = "$TARGET_PLATFORM_NAME" ] ; then
-                                TARGET_PLATFORM_NAME_IS_SUPPORTED=yes
-                                break;
+            TARGET_PLATFORM_NAME=$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f2)
+            TARGET_PLATFORM_VERS=$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f3)
+            TARGET_PLATFORM_ARCH=$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f4)
+
+            if [ -z "$TARGET_PLATFORM_NAME" ] ; then
+                abort 1 "invalid package-spec: $1\nplatform-name is unspecified."
+            fi
+
+            TARGET_PLATFORM_NAME_IS_SUPPORTED=no
+
+            for XCODE_SUPPORT_PLATFORM_NAME in $XCODE_SUPPORT_PLATFORM_NAMES
+            do
+                if [ "$XCODE_SUPPORT_PLATFORM_NAME" = "$TARGET_PLATFORM_NAME" ] ; then
+                    TARGET_PLATFORM_NAME_IS_SUPPORTED=yes
+                    break;
+                fi
+            done
+
+            if [ "$TARGET_PLATFORM_NAME_IS_SUPPORTED" = no ] ; then
+                abort 1 "invalid package-spec: $1\nunsupported-platform: $TARGET_PLATFORM_NAME"
+            fi
+
+            if [ -z "$TARGET_PLATFORM_VERS" ] ; then
+                abort 1 "invalid package-spec: $1\nplatform-version is unspecified."
+            fi
+
+            if [ -z "$TARGET_PLATFORM_ARCH" ] ; then
+                abort 1 "invalid package-spec: $1\nplatform-arch is unspecified."
+            fi
+
+            PACKAGE_SPEC="$PACKAGE_NAME:$TARGET_PLATFORM_SPEC"
+            printf '%s\n' "$PACKAGE_SPEC"
+            ;;
+        *)
+            if printf '%s\n' "$1" | grep -q -E '^[A-Za-z0-9+-._@]{1,50}$' ; then
+                if [ -z "$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC" ] ; then
+                    TARGET_PLATFORM_NAME="$NATIVE_OS_NAME"
+                    TARGET_PLATFORM_VERS="$NATIVE_OS_VERS"
+                    TARGET_PLATFORM_ARCH="$NATIVE_OS_ARCH"
+                    TARGET_PLATFORM_SPEC="$TARGET_PLATFORM_NAME/$TARGET_PLATFORM_VERS/$TARGET_PLATFORM_ARCH"
+
+                    PACKAGE_SPEC="$1:$TARGET_PLATFORM_SPEC"
+                else
+                    case $XCPKG_DEFAULT_TARGET_PLATFORM_SPEC in
+                        */*/*/*)
+                            abort 1 "you have set XCPKG_DEFAULT_TARGET_PLATFORM_SPEC=$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC , but it is an invalid package spec."
+                            ;;
+                        */*/*)
+                            unset TARGET_PLATFORM_NAME
+                            unset TARGET_PLATFORM_VERS
+                            unset TARGET_PLATFORM_ARCH
+
+                            TARGET_PLATFORM_NAME=$(printf '%s\n' "$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC" | cut -d/ -f1)
+                            TARGET_PLATFORM_VERS=$(printf '%s\n' "$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC" | cut -d/ -f2)
+                            TARGET_PLATFORM_ARCH=$(printf '%s\n' "$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC" | cut -d/ -f3)
+
+                            if [ -z "$TARGET_PLATFORM_NAME" ] ; then
+                                abort 1 "you have set XCPKG_DEFAULT_TARGET_PLATFORM_SPEC=$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC , but it is an invalid package spec."
                             fi
-                        done
 
-                        if [ "$TARGET_PLATFORM_NAME_IS_SUPPORTED" = no ] ; then
-                            abort 1 "you have set XCPKG_DEFAULT_TARGET_PLATFORM_SPEC=$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC , but it is an invalid package spec. unrecognized platform: $TARGET_PLATFORM_NAME"
-                        fi
-                    fi
+                            TARGET_PLATFORM_NAME_IS_SUPPORTED=no
 
-                    if [ -z "$TARGET_PLATFORM_VERS" ] ; then
-                        case $TARGET_PLATFORM_NAME in
-                            iPhoneOS|iPhoneSimulator)
-                                TARGET_PLATFORM_VERS=9.0
-                                ;;
-                            WatchOS|WatchSimulator)
-                                TARGET_PLATFORM_VERS=5.0
-                                ;;
-                            AppleTVOS|AppleTVSimulator)
-                                TARGET_PLATFORM_VERS=9.0
-                                ;;
-                            MacOSX)
-                                TARGET_PLATFORM_VERS=$NATIVE_OS_VERS
-                                ;;
-                        esac
-                    fi
+                            for XCODE_SUPPORT_PLATFORM_NAME in $XCODE_SUPPORT_PLATFORM_NAMES
+                            do
+                                if [ "$XCODE_SUPPORT_PLATFORM_NAME" = "$TARGET_PLATFORM_NAME" ] ; then
+                                    TARGET_PLATFORM_NAME_IS_SUPPORTED=yes
+                                    break;
+                                fi
+                            done
 
-                    if [ -z "$TARGET_PLATFORM_ARCH" ] ; then
-                        case $TARGET_PLATFORM_NAME in
-                            WatchOS)
-                                TARGET_PLATFORM_ARCH=arm64_32
-                                ;;
-                            WatchSimulator)
-                                TARGET_PLATFORM_ARCH=arm64
-                                ;;
-                            iPhoneOS|iPhoneSimulator)
-                                TARGET_PLATFORM_ARCH=arm64
-                                ;;
-                            AppleTVOS|AppleTVSimulator)
-                                TARGET_PLATFORM_ARCH=arm64
-                                ;;
-                            MacOSX)
-                                TARGET_PLATFORM_ARCH=$NATIVE_OS_ARCH
-                                ;;
-                        esac
-                    fi
+                            if [ "$TARGET_PLATFORM_NAME_IS_SUPPORTED" = no ] ; then
+                                abort 1 "you have set XCPKG_DEFAULT_TARGET_PLATFORM_SPEC=$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC , but it is an invalid package spec. unrecognized platform: $TARGET_PLATFORM_NAME"
+                            fi
 
-                    PACKAGE_SPEC="$1:$TARGET_PLATFORM_NAME:$TARGET_PLATFORM_VERS:$TARGET_PLATFORM_ARCH"
-                    ;;
-                *) abort 1 "you have set XCPKG_DEFAULT_TARGET_PLATFORM_SPEC=$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC , but it is an invalid package spec."
-            esac
-        fi
+                            if [ -z "$TARGET_PLATFORM_VERS" ] ; then
+                                abort 1 "you have set XCPKG_DEFAULT_TARGET_PLATFORM_SPEC=$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC , but it is an invalid package spec."
+                            fi
 
-        note "$1 will be treated as a package name, and it will be expanded to $PACKAGE_SPEC"
-        printf '%s\n' "$PACKAGE_SPEC"
-    else
-        case $1 in
-            *:*:*:*:*)
-                abort 1 "invalid package spec: $1"
-                ;;
-            *:*:*:*)
-                unset PACKAGE_NAME
+                            if [ -z "$TARGET_PLATFORM_ARCH" ] ; then
+                                abort 1 "you have set XCPKG_DEFAULT_TARGET_PLATFORM_SPEC=$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC , but it is an invalid package spec."
+                            fi
 
-                unset TARGET_PLATFORM_NAME
-                unset TARGET_PLATFORM_VERS
-                unset TARGET_PLATFORM_ARCH
-
-                        PACKAGE_NAME=$(printf '%s\n' "$1" | cut -d: -f1)
-                TARGET_PLATFORM_NAME=$(printf '%s\n' "$1" | cut -d: -f2)
-                TARGET_PLATFORM_VERS=$(printf '%s\n' "$1" | cut -d: -f3)
-                TARGET_PLATFORM_ARCH=$(printf '%s\n' "$1" | cut -d: -f4)
-
-                if [ -z "$PACKAGE_NAME" ] ; then
-                    abort 1 "invalid package spec: $1\npackage name is unspecified."
-                elif printf '%s\n' "$PACKAGE_NAME" | grep -q -E '^[A-Za-z0-9+-._@]{1,50}$' ; then
-                    :
-                else
-                    abort 1 "invalid package spec: $1\npackage name does not match pattern ^[A-Za-z0-9+-._@]{1,50}$"
-                fi
-
-                if [ -z "$TARGET_PLATFORM_NAME" ] ; then
-                    TARGET_PLATFORM_NAME=$NATIVE_OS_NAME
-                else
-                    TARGET_PLATFORM_NAME_IS_SUPPORTED=no
-
-                    for XCODE_SUPPORT_PLATFORM_NAME in $XCODE_SUPPORT_PLATFORM_NAMES
-                    do
-                        if [ "$XCODE_SUPPORT_PLATFORM_NAME" = "$TARGET_PLATFORM_NAME" ] ; then
-                            TARGET_PLATFORM_NAME_IS_SUPPORTED=yes
-                            break;
-                        fi
-                    done
-
-                    if [ "$TARGET_PLATFORM_NAME_IS_SUPPORTED" = no ] ; then
-                        abort 1 "invalid package spec: $1\nunsupported platform: $TARGET_PLATFORM_NAME"
-                    fi
-                fi
-
-                if [ -z "$TARGET_PLATFORM_VERS" ] ; then
-                    case $TARGET_PLATFORM_NAME in
-                        iPhoneOS|iPhoneSimulator)
-                            TARGET_PLATFORM_VERS=9.0
+                            TARGET_PLATFORM_SPEC="$TARGET_PLATFORM_NAME/$TARGET_PLATFORM_VERS/$TARGET_PLATFORM_ARCH"
+                            PACKAGE_SPEC="$1:$TARGET_PLATFORM_SPEC"
                             ;;
-                        WatchOS|WatchSimulator)
-                            TARGET_PLATFORM_VERS=5.0
-                            ;;
-                        AppleTVOS|AppleTVSimulator)
-                            TARGET_PLATFORM_VERS=9.0
-                            ;;
-                        MacOSX)
-                            TARGET_PLATFORM_VERS=$NATIVE_OS_VERS
-                            ;;
+                        *) abort 1 "you have set XCPKG_DEFAULT_TARGET_PLATFORM_SPEC=$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC , but it is an invalid package spec."
                     esac
                 fi
 
-                if [ -z "$TARGET_PLATFORM_ARCH" ] ; then
-                    case $TARGET_PLATFORM_NAME in
-                        WatchOS)
-                            TARGET_PLATFORM_ARCH=arm64_32
-                            ;;
-                        WatchSimulator)
-                            TARGET_PLATFORM_ARCH=arm64
-                            ;;
-                        iPhoneOS|iPhoneSimulator)
-                            TARGET_PLATFORM_ARCH=arm64
-                            ;;
-                        AppleTVOS|AppleTVSimulator)
-                            TARGET_PLATFORM_ARCH=arm64
-                            ;;
-                        MacOSX)
-                            TARGET_PLATFORM_ARCH=$NATIVE_OS_ARCH
-                            ;;
-                    esac
-                fi
-
-                PACKAGE_SPEC="$PACKAGE_NAME:$TARGET_PLATFORM_NAME:$TARGET_PLATFORM_VERS:$TARGET_PLATFORM_ARCH"
+                note "$1 will be treated as a package-name, and it will be expanded to $PACKAGE_SPEC"
                 printf '%s\n' "$PACKAGE_SPEC"
-                ;;
-            *)  abort 1 "invalid package spec: $1"
-        esac
-    fi
+            else
+                abort 1 "invalid package-name: $1\npackage-name does not match pattern ^[A-Za-z0-9+-._@]{1,50}$"
+            fi
+    esac
 }
 
 inspect_install_arguments() {
@@ -3254,7 +3189,7 @@ __install_the_given_packages() {
 
     for USER_SPECIFIED_PACKAGE_SPEC in $USER_SPECIFIED_PACKAGE_SPEC_LIST
     do
-        PACKAGE_NAME_STACK="$(printf '%s\n' "$USER_SPECIFIED_PACKAGE_SPEC" | cut -d: -f1)"
+        PACKAGE_NAME_STACK="${USER_SPECIFIED_PACKAGE_SPEC%%:*}"
 
         while [ -n "$PACKAGE_NAME_STACK" ]
         do
@@ -3296,18 +3231,18 @@ __install_the_given_packages() {
         unset TARGET_PLATFORM_VERS
         unset TARGET_PLATFORM_ARCH
 
-        TARGET_PLATFORM_NAME="$(printf '%s\n' "$USER_SPECIFIED_PACKAGE_SPEC" | cut -d: -f2)"
-        TARGET_PLATFORM_VERS="$(printf '%s\n' "$USER_SPECIFIED_PACKAGE_SPEC" | cut -d: -f3)"
-        TARGET_PLATFORM_ARCH="$(printf '%s\n' "$USER_SPECIFIED_PACKAGE_SPEC" | cut -d: -f4)"
+        TARGET_PLATFORM_SPEC="${USER_SPECIFIED_PACKAGE_SPEC#*:}"
 
-        TARGET_PLATFORM_SPEC="$TARGET_PLATFORM_NAME:$TARGET_PLATFORM_VERS:$TARGET_PLATFORM_ARCH"
-        TARGET_PLATFORM_XXXX="$TARGET_PLATFORM_NAME/$TARGET_PLATFORM_VERS/$TARGET_PLATFORM_ARCH"
+        TARGET_PLATFORM_NAME="$(printf '%s\n' "$USER_SPECIFIED_PACKAGE_SPEC" | cut -d/ -f2)"
+        TARGET_PLATFORM_VERS="$(printf '%s\n' "$USER_SPECIFIED_PACKAGE_SPEC" | cut -d/ -f3)"
+        TARGET_PLATFORM_ARCH="$(printf '%s\n' "$USER_SPECIFIED_PACKAGE_SPEC" | cut -d/ -f4)"
+
 
         ##################################################################
 
         TO_BE_INSTALLED_PACKAGE_NAMES=
 
-        PACKAGE_NAME_STACK="$(printf '%s\n' "$USER_SPECIFIED_PACKAGE_SPEC" | cut -d: -f1)"
+        PACKAGE_NAME_STACK="${USER_SPECIFIED_PACKAGE_SPEC%%:*}"
 
         while [ -n "$PACKAGE_NAME_STACK" ]
         do
@@ -3645,7 +3580,7 @@ EXPORT_COMPILE_COMMANDS_JSON = $EXPORT_COMPILE_COMMANDS_JSON
     step "create the working directory and change to it"
 
     PACKAGE_WORKING_DIR="$SESSION_DIR/$PACKAGE_NAME"
-    PACKAGE_INSTALL_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_NAME/$TARGET_PLATFORM_XXXX"
+    PACKAGE_INSTALL_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_NAME/$TARGET_PLATFORM_SPEC"
 
     PACKAGE_INSTALLING_SRC_DIR="$PACKAGE_WORKING_DIR/src"
     PACKAGE_INSTALLING_FIX_DIR="$PACKAGE_WORKING_DIR/fix"
@@ -3953,7 +3888,7 @@ EOF
     [ -n "$PACKAGE_DEP_PKG" ] && {
         for DEPENDENT_PACKAGE_NAME in $RECURSIVE_DEPENDENT_PACKAGE_NAMES
         do
-            DEPENDENT_PACKAGE_INSTALL_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$DEPENDENT_PACKAGE_NAME/$TARGET_PLATFORM_XXXX"
+            DEPENDENT_PACKAGE_INSTALL_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$DEPENDENT_PACKAGE_NAME/$TARGET_PLATFORM_SPEC"
 
             if [ -z "$RECURSIVE_DEPENDENT_PACKAGE_INSTALL_DIRS" ] ; then
                 RECURSIVE_DEPENDENT_PACKAGE_INSTALL_DIRS="$DEPENDENT_PACKAGE_INSTALL_DIR"
@@ -4806,7 +4741,7 @@ EOF
     do
         DEPENDENT_PACKAGE_NAME_UNDERSCORE="$(printf '%s\n' "$DEPENDENT_PACKAGE_NAME" | tr '@+-.' '_')"
 
-        DEPENDENT_PACKAGE_INSTALL_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$DEPENDENT_PACKAGE_NAME/$TARGET_PLATFORM_XXXX"
+        DEPENDENT_PACKAGE_INSTALL_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$DEPENDENT_PACKAGE_NAME/$TARGET_PLATFORM_SPEC"
         DEPENDENT_PACKAGE_BINARY__DIR="$DEPENDENT_PACKAGE_INSTALL_DIR/bin"
         DEPENDENT_PACKAGE_INCLUDE_DIR="$DEPENDENT_PACKAGE_INSTALL_DIR/include"
         DEPENDENT_PACKAGE_LIBRARY_DIR="$DEPENDENT_PACKAGE_INSTALL_DIR/lib"
