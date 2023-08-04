@@ -2009,7 +2009,7 @@ EOF
 
             if is_package_installed "$PACKAGE_SPEC" ; then
                 PACKAGE_XXXX=
-                PACKAGE_XXXX="$(printf '%s\n' "$1" | tr ':' '/')"
+                PACKAGE_XXXX="$(printf '%s\n' "$PACKAGE_SPEC" | tr ':' '/')"
 
                 printf '%s\n' "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_XXXX"
             else
@@ -2023,7 +2023,7 @@ EOF
 
             if is_package_installed "$PACKAGE_SPEC" ; then
                 PACKAGE_XXXX=
-                PACKAGE_XXXX="$(printf '%s\n' "$1" | tr ':' '/')"
+                PACKAGE_XXXX="$(printf '%s\n' "$PACKAGE_SPEC" | tr ':' '/')"
                 cut -d '|' -f3 "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_XXXX/.xcpkg/manifest.txt"
             else
                 error "package '$1' is not installed."
