@@ -7079,17 +7079,17 @@ ${COLOR_GREEN}xcpkg pack <PACKAGE-SPEC> [--keep-working-dir] [-t <zip|tar.gz|tar
 ======================================
 
 ${COLOR_GREEN}PACKAGE-SPEC${COLOR_OFF}
-    a formatted srting that has form: <PACKAGE-NAME>:<PLATFORM-SPEC>
+    a formatted srting that has form: ${COLOR_RED}<PACKAGE-NAME>:<PLATFORM-SPEC>${COLOR_OFF}
 
 ${COLOR_GREEN}PACKAGE-NAME${COLOR_OFF}
-    must match regular expression pattern ^[A-Za-z0-9+-_.@]{1,50}$
+    must match regular expression pattern ${COLOR_RED}^[A-Za-z0-9+-_.@]{1,50}$ ${COLOR_OFF}
 
 ${COLOR_GREEN}PLATFORM-SPEC${COLOR_OFF}
-    a formatted srting that has form: <PLATFORM-NAME>:<PLATFORM-VERSION>:<PLATFORM-ARCH>
+    a formatted srting that has form: ${COLOR_RED}<PLATFORM-NAME>/<PLATFORM-VERSION>/<PLATFORM-ARCH>${COLOR_OFF}
     indicates which platform would be built for or run on.
 
 ${COLOR_GREEN}PLATFORM-NAME${COLOR_OFF}
-    'xcpkg xcinfo --list-supported-platform-names' command will list the supported platform names.
+    ${COLOR_RED}xcpkg xcinfo --list-supported-platform-names${COLOR_OFF} command would list the supported platform names.
 
 ${COLOR_GREEN}PLATFORM-VERSION${COLOR_OFF}
     the minimum version of platform supported by this package. It usually matches regular expression pattern '[0-9][0-9]?.[0-9][0-9]?', e.g. 10.15, 11.0, 12.0, 12.6, etc.
