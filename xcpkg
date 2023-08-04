@@ -2969,9 +2969,9 @@ __upgrade_packages() {
             unset TARGET_PLATFORM_VERS
             unset TARGET_PLATFORM_ARCH
 
-            TARGET_PLATFORM_NAME=$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f2)
-            TARGET_PLATFORM_VERS=$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f3)
-            TARGET_PLATFORM_ARCH=$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f4)
+            TARGET_PLATFORM_NAME=$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f1)
+            TARGET_PLATFORM_VERS=$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f2)
+            TARGET_PLATFORM_ARCH=$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f3)
 
             if [ -z "$TARGET_PLATFORM_NAME" ] ; then
                 abort 1 "invalid package-spec: $1\nplatform-name is unspecified."
@@ -3233,9 +3233,9 @@ __install_the_given_packages() {
 
         TARGET_PLATFORM_SPEC="${USER_SPECIFIED_PACKAGE_SPEC#*:}"
 
-        TARGET_PLATFORM_NAME="$(printf '%s\n' "$USER_SPECIFIED_PACKAGE_SPEC" | cut -d/ -f2)"
-        TARGET_PLATFORM_VERS="$(printf '%s\n' "$USER_SPECIFIED_PACKAGE_SPEC" | cut -d/ -f3)"
-        TARGET_PLATFORM_ARCH="$(printf '%s\n' "$USER_SPECIFIED_PACKAGE_SPEC" | cut -d/ -f4)"
+        TARGET_PLATFORM_NAME="$(printf '%s\n' "$USER_SPECIFIED_PACKAGE_SPEC" | cut -d/ -f1)"
+        TARGET_PLATFORM_VERS="$(printf '%s\n' "$USER_SPECIFIED_PACKAGE_SPEC" | cut -d/ -f2)"
+        TARGET_PLATFORM_ARCH="$(printf '%s\n' "$USER_SPECIFIED_PACKAGE_SPEC" | cut -d/ -f3)"
 
 
         ##################################################################
