@@ -1648,8 +1648,8 @@ is_package_available() {
 
 # is_package__outdated <PACKAGE-SPEC>
   is_package__outdated() {
-    __load_formula_of_the_given_package "$(basename "$1")"
-    __load_receipt_of_the_given_package "$1"
+    __load_formula_of_the_given_package "${1%%:*}"
+    __load_receipt_of_the_given_package "${1}"
 
     version_match "$PACKAGE_VERSION" gt "$INSTALLED_PACKAGE_VERSION"
 }
@@ -7499,20 +7499,44 @@ EOF
     #########################################################################################
 
     case $1 in
-        xcinfo) shift ; xcinfo "$@" ;;
+        xcinfo)
+            shift
+            xcinfo "$@"
+            ;;
 
         ls-available) shift; __list_available_packages ;;
         ls-installed) shift; __list_installed_packages ;;
         ls-outdated)  shift; __list__outdated_packages ;;
 
-        is-available) shift; is_package_available "$@" ;;
-        is-installed) shift; is_package_installed "$@" ;;
-        is-outdated)  shift; is_package__outdated "$@" ;;
+        is-available)
+            shift
+            is_package_available "$1"
+            ;;
+        is-installed)
+            shift
+            PACKAGE_SPEC=
+            PACKAGE_SPEC="$(inspect_package_spec "$1")"
+            is_package_installed "$PACKAGE_SPEC"
+            ;;
+        is-outdated)
+            shift
+            PACKAGE_SPEC=
+            PACKAGE_SPEC="$(inspect_package_spec "$1")"
+            is_package__outdated "$PACKAGE_SPEC"
+            ;;
 
-        formula) shift; __show_formula_of_the_given_package "$@" ;;
-        receipt) shift; __show_receipt_of_the_given_package "$@" ;;
-
-        formula-edit) shift; __edit_formula_of_the_given_package "$@" ;;
+        receipt)
+            shift
+            __show_receipt_of_the_given_package "$@"
+            ;;
+        formula)
+            shift
+            __show_formula_of_the_given_package "$@"
+            ;;
+        formula-edit)
+            shift
+            __edit_formula_of_the_given_package "$@"
+            ;;
 
         update)            shift; __sync_available_formula_repositories "$@" ;;
         formula-repo-list) shift; __list_available_formula_repositories "$@" ;;
@@ -7528,6 +7552,7 @@ EOF
 
             __create_a_formula_repository "$@"
             ;;
+
         formula-repo-add)
             shift
 
@@ -7537,24 +7562,32 @@ EOF
 
             __create_a_formula_repository_then_sync_it "$@"
             ;;
+
         formula-repo-del)
             shift
             __delete_a_formula_repository "$@"
             ;;
 
-        cleanup) shift; __cleanup ;;
+        cleanup)
+            shift
+            __cleanup
+            ;;
 
-        search)  shift; __search_packages "$*" ;;
+        search)
+            shift
+            __search_packages "$*"
+            ;;
 
           install) shift;   __install_the_given_packages "$@" ;;
         reinstall) shift; __reinstall_the_given_packages "$@" ;;
         uninstall) shift; __uninstall_the_given_packages "$@" ;;
-
         upgrade)   shift; __upgrade_packages "$@" ;;
+
         upgrade-self)
             shift
             __upgrade_self "$XCPKG_UPGRAGE_URL" "$@"
             ;;
+
         integrate)
             shift
             case $1 in
@@ -7562,22 +7595,37 @@ EOF
                 *)   abort 1 "xcpkg integrate $1: not support."
             esac
             ;;
+
         depends)
             shift
             __show_packages_depended_by_the_given_package "$@"
             ;;
+
         fetch)
             shift
             __fetch_resources_of_the_given_package "$@"
             ;;
-        logs) shift; __logs_the_given_installed_package "$@" ;;
-        pack) shift; __pack_the_given_installed_package "$@" ;;
-        tree) shift; __tree_the_given_installed_package "$@" ;;
+
+        logs)
+            shift
+            __logs_the_given_installed_package "$@"
+            ;;
+
+        pack)
+            shift
+            __pack_the_given_installed_package "$@"
+            ;;
+
+        tree)
+            shift
+            __tree_the_given_installed_package "$@"
+            ;;
 
         info)
             shift
             __show_information_of_the_given_package "$@"
             ;;
+
         *)  abort 1 "unrecognized argument: $1"
     esac
 }
