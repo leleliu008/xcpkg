@@ -1694,7 +1694,7 @@ __list_available_packages() {
 __list_installed_packages() {
     if [ -d "$XCPKG_PACKAGE_INSTALLED_ROOT" ] ; then
          cd "$XCPKG_PACKAGE_INSTALLED_ROOT" || return 1
-        find . -maxdepth 6 -mindepth 6 -type f -regex '\./[^/]*/\(DriverKit\|MacOSX\|AppleTVOS\|AppleTVSimulator\|iPhoneOS\|iPhoneSimulator\|WatchOS\|WatchSimulator\)/[^/]*/[^/]*/\.xcpkg/receipt\.yml' | cut -c3- | sed 's|/\.xcpkg/receipt\.yml$||'
+        find . -maxdepth 6 -mindepth 6 -type f -regex '\./[^/]*/\(DriverKit\|MacOSX\|AppleTVOS\|AppleTVSimulator\|iPhoneOS\|iPhoneSimulator\|WatchOS\|WatchSimulator\)/[^/]*/[^/]*/\.xcpkg/receipt\.yml' | cut -c3- | sed 's|/\.xcpkg/receipt\.yml$||' | sed 's|/|:|'
     else
         return 0
     fi
