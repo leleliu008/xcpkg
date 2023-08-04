@@ -1407,7 +1407,7 @@ build-on:
     os-ncpu: $NATIVE_OS_NCPU
     os-euid: $NATIVE_OS_EUID
     os-egid: $NATIVE_OS_EGID
-built-for: $TARGET_PLATFORM_NAME/$TARGET_PLATFORM_VERS/$TARGET_PLATFORM_ARCH
+built-for: $TARGET_PLATFORM_SPEC
 signature: xcpkg-$XCPKG_VERSION
 timestamp: $TIMESTAMP_UNIX
 EOF
@@ -1462,7 +1462,10 @@ EOF
 
     #######################################################################################################
 
-    PACKAGE_INSTALLED_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$(printf '%s\n' "$1" | tr ':' '/')"
+    PACKAGE_XXXX___=
+    PACKAGE_XXXX___="$(printf '%s\n' "$1" | tr ':' '/')"
+
+    PACKAGE_INSTALLED_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_XXXX___"
     PACKAGE_RECEIPT_FILEPATH="$PACKAGE_INSTALLED_DIR/.xcpkg/receipt.yml"
 
     unset PACKAGE_RECEIPT_SIGNATURE
@@ -2465,8 +2468,11 @@ __fetch_resources_of_the_given_package() {
 
     is_package_installed "$1" || abort 1 "package '$1' is not installed."
 
+    PACKAGE_XXXX___=
+    PACKAGE_XXXX___="$(printf '%s\n' "$1" | tr ':' '/')"
+
     FILEPATHS=
-    FILEPATHS="$(find "$XCPKG_PACKAGE_INSTALLED_ROOT/$1/.xcpkg" -type f)"
+    FILEPATHS="$(find "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_XXXX___/.xcpkg" -type f)"
 
     for filepath in $FILEPATHS
     do
@@ -4825,7 +4831,7 @@ EOF
         fi
     done
 
-    printf '%s\n' "$XDG_DATA_DIRS" | tr : '\n'
+    printf '%s\n' "$XDG_DATA_DIRS" | tr ':' '\n'
 
     #########################################################################################
 
@@ -4847,7 +4853,7 @@ EOF
         fi
     done
 
-    printf '%s\n' "$ACLOCAL_PATH" | tr : '\n'
+    printf '%s\n' "$ACLOCAL_PATH" | tr ':' '\n'
 
     #########################################################################################
 
@@ -4855,7 +4861,7 @@ EOF
 
     PATH="$PACKAGE_INSTALLING_BIN_DIR:$PATH"
 
-    printf '%s\n' "$PATH" | tr : '\n'
+    printf '%s\n' "$PATH" | tr ':' '\n'
 
     #########################################################################################
 
