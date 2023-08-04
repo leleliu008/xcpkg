@@ -2500,6 +2500,18 @@ __fetch_resources_of_the_given_package() {
 
     __load_receipt_of_the_given_package "$PACKAGE_SPEC"
 
+    RECEIPT_PACKAGE_NAME="${1%%:*}"
+
+    TARGET_PLATFORM_SPEC="${1#*:}"
+
+    TARGET_PLATFORM_NAME=
+    TARGET_PLATFORM_VERS=
+    TARGET_PLATFORM_ARCH=
+
+    TARGET_PLATFORM_NAME="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f1)"
+    TARGET_PLATFORM_VERS="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f2)"
+    TARGET_PLATFORM_ARCH="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f3)"
+
     shift
 
     ###########################################################################################
