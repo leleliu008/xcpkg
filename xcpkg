@@ -2533,11 +2533,9 @@ __fetch_resources_of_the_given_package() {
     TARGET_PLATFORM_VERS=
     TARGET_PLATFORM_ARCH=
 
-    TARGET_PLATFORM_NAME="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f1)"
-    TARGET_PLATFORM_VERS="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f2)"
-    TARGET_PLATFORM_ARCH="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f3)"
-
-    TARGET_PLATFORM_XXXX="$TARGET_PLATFORM_NAME:$TARGET_PLATFORM_VERS:$TARGET_PLATFORM_ARCH"
+    TARGET_PLATFORM_NAME="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d: -f1)"
+    TARGET_PLATFORM_VERS="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d: -f2)"
+    TARGET_PLATFORM_ARCH="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d: -f3)"
 
     shift
 
@@ -2987,11 +2985,9 @@ __reinstall_the_given_packages() {
         TARGET_PLATFORM_VERS=
         TARGET_PLATFORM_ARCH=
 
-        TARGET_PLATFORM_NAME="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f1)"
-        TARGET_PLATFORM_VERS="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f2)"
-        TARGET_PLATFORM_ARCH="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f3)"
-
-        TARGET_PLATFORM_XXXX="$TARGET_PLATFORM_NAME:$TARGET_PLATFORM_VERS:$TARGET_PLATFORM_ARCH"
+        TARGET_PLATFORM_NAME="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d: -f1)"
+        TARGET_PLATFORM_VERS="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d: -f2)"
+        TARGET_PLATFORM_ARCH="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d: -f3)"
 
         ##################################################################
 
@@ -3119,11 +3115,9 @@ __upgrade_packages() {
         TARGET_PLATFORM_VERS=
         TARGET_PLATFORM_ARCH=
 
-        TARGET_PLATFORM_NAME="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f1)"
-        TARGET_PLATFORM_VERS="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f2)"
-        TARGET_PLATFORM_ARCH="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f3)"
-
-        TARGET_PLATFORM_XXXX="$TARGET_PLATFORM_NAME:$TARGET_PLATFORM_VERS:$TARGET_PLATFORM_ARCH"
+        TARGET_PLATFORM_NAME="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d: -f1)"
+        TARGET_PLATFORM_VERS="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d: -f2)"
+        TARGET_PLATFORM_ARCH="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d: -f3)"
 
         ##################################################################
 
@@ -3212,9 +3206,9 @@ __upgrade_packages() {
             TARGET_PLATFORM_VERS=
             TARGET_PLATFORM_ARCH=
 
-            TARGET_PLATFORM_NAME="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f1)"
-            TARGET_PLATFORM_VERS="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f2)"
-            TARGET_PLATFORM_ARCH="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f3)"
+            TARGET_PLATFORM_NAME="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d: -f1)"
+            TARGET_PLATFORM_VERS="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d: -f2)"
+            TARGET_PLATFORM_ARCH="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d: -f3)"
 
             if [ -z "$TARGET_PLATFORM_NAME" ] ; then
                 abort 1 "invalid package-spec: $1\nplatform-name is unspecified."
@@ -3261,17 +3255,17 @@ __upgrade_packages() {
                     PACKAGE_SPEC="$1:$TARGET_PLATFORM_SPEC"
                 else
                     case $XCPKG_DEFAULT_TARGET_PLATFORM_SPEC in
-                        */*/*/*)
+                        *:*:*:*)
                             abort 1 "you have set XCPKG_DEFAULT_TARGET_PLATFORM_SPEC=$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC , but it is an invalid package spec."
                             ;;
-                        */*/*)
+                        *:*:*)
                             TARGET_PLATFORM_NAME=
                             TARGET_PLATFORM_VERS=
                             TARGET_PLATFORM_ARCH=
 
-                            TARGET_PLATFORM_NAME="$(printf '%s\n' "$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC" | cut -d/ -f1)"
-                            TARGET_PLATFORM_VERS="$(printf '%s\n' "$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC" | cut -d/ -f2)"
-                            TARGET_PLATFORM_ARCH="$(printf '%s\n' "$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC" | cut -d/ -f3)"
+                            TARGET_PLATFORM_NAME="$(printf '%s\n' "$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC" | cut -d: -f1)"
+                            TARGET_PLATFORM_VERS="$(printf '%s\n' "$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC" | cut -d: -f2)"
+                            TARGET_PLATFORM_ARCH="$(printf '%s\n' "$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC" | cut -d: -f3)"
 
                             if [ -z "$TARGET_PLATFORM_NAME" ] ; then
                                 abort 1 "you have set XCPKG_DEFAULT_TARGET_PLATFORM_SPEC=$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC , but it is an invalid package spec."
@@ -3485,11 +3479,9 @@ __install_the_given_packages() {
         TARGET_PLATFORM_VERS=
         TARGET_PLATFORM_ARCH=
 
-        TARGET_PLATFORM_NAME="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f1)"
-        TARGET_PLATFORM_VERS="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f2)"
-        TARGET_PLATFORM_ARCH="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f3)"
-
-        TARGET_PLATFORM_XXXX="$TARGET_PLATFORM_NAME:$TARGET_PLATFORM_VERS:$TARGET_PLATFORM_ARCH"
+        TARGET_PLATFORM_NAME="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d: -f1)"
+        TARGET_PLATFORM_VERS="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d: -f2)"
+        TARGET_PLATFORM_ARCH="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d: -f3)"
 
         ##################################################################
 
@@ -3830,12 +3822,12 @@ EXPORT_COMPILE_COMMANDS_JSON = $EXPORT_COMPILE_COMMANDS_JSON
 
     #########################################################################################
 
-    PACKAGE_INSTALL_TS=
-    PACKAGE_INSTALL_TS="$(date +%s)"
+    PACKAGE_INSTALL_UTS=
+    PACKAGE_INSTALL_UTS="$(date +%s)"
 
-    PACKAGE_INSTALL_ID=
-    PACKAGE_INSTALL_ID="$(sha256sum <<EOF
-$PACKAGE_NAME/$TARGET_PLATFORM_SPEC/$$/$PACKAGE_INSTALL_TS
+    PACKAGE_INSTALL_SHA=
+    PACKAGE_INSTALL_SHA="$(sha256sum <<EOF
+$PACKAGE_NAME/$TARGET_PLATFORM_SPEC/$$/$PACKAGE_INSTALL_UTS
 EOF
 )"
 
@@ -3844,7 +3836,7 @@ EOF
     step "create the working directory and change to it"
 
     PACKAGE_WORKING_DIR="$SESSION_DIR/$PACKAGE_NAME"
-    PACKAGE_INSTALL_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_INSTALL_ID"
+    PACKAGE_INSTALL_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_INSTALL_SHA"
 
     PACKAGE_INSTALLING_SRC_DIR="$PACKAGE_WORKING_DIR/src"
     PACKAGE_INSTALLING_FIX_DIR="$PACKAGE_WORKING_DIR/fix"
@@ -4152,7 +4144,7 @@ EOF
     [ -n "$PACKAGE_DEP_PKG" ] && {
         for DEPENDENT_PACKAGE_NAME in $RECURSIVE_DEPENDENT_PACKAGE_NAMES
         do
-            DEPENDENT_PACKAGE_INSTALL_REF="$XCPKG_HOME/refs/$DEPENDENT_PACKAGE_NAME:$TARGET_PLATFORM_XXXX"
+            DEPENDENT_PACKAGE_INSTALL_REF="$XCPKG_HOME/refs/$DEPENDENT_PACKAGE_NAME:$TARGET_PLATFORM_SPEC"
             DEPENDENT_PACKAGE_INSTALL_SHA="$(cat "$DEPENDENT_PACKAGE_INSTALL_REF")"
             DEPENDENT_PACKAGE_INSTALL_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$DEPENDENT_PACKAGE_INSTALL_SHA"
 
@@ -5007,7 +4999,7 @@ EOF
     do
         DEPENDENT_PACKAGE_NAME_UNDERSCORE="$(printf '%s\n' "$DEPENDENT_PACKAGE_NAME" | tr '@+-.' '_')"
 
-        DEPENDENT_PACKAGE_INSTALL_REF="$XCPKG_HOME/refs/$DEPENDENT_PACKAGE_NAME:$TARGET_PLATFORM_XXXX"
+        DEPENDENT_PACKAGE_INSTALL_REF="$XCPKG_HOME/refs/$DEPENDENT_PACKAGE_NAME:$TARGET_PLATFORM_SPEC"
         DEPENDENT_PACKAGE_INSTALL_SHA="$(cat "$DEPENDENT_PACKAGE_INSTALL_REF")"
         DEPENDENT_PACKAGE_INSTALL_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$DEPENDENT_PACKAGE_INSTALL_SHA"
         DEPENDENT_PACKAGE_BINARY__DIR="$DEPENDENT_PACKAGE_INSTALL_DIR/bin"
@@ -5945,7 +5937,7 @@ $PACKAGE_DOBUILD_ACTIONS
 
     install -d "$XCPKG_HOME/refs"
 
-    printf '%s\n' "$PACKAGE_INSTALL_ID" > "$XCPKG_HOME/refs/$PACKAGE_NAME:$TARGET_PLATFORM_XXXX"
+    printf '%s\n' "$PACKAGE_INSTALL_SHA" > "$XCPKG_HOME/refs/$PACKAGE_SPEC"
 
     #########################################################################################
 
@@ -7348,7 +7340,7 @@ ${COLOR_GREEN}PACKAGE-NAME${COLOR_OFF}
     must match regular expression pattern ${COLOR_RED}^[A-Za-z0-9+-_.@]{1,50}$ ${COLOR_OFF}
 
 ${COLOR_GREEN}PLATFORM-SPEC${COLOR_OFF}
-    a formatted srting that has form ${COLOR_RED}<PLATFORM-NAME>/<PLATFORM-VERSION>/<PLATFORM-ARCH>${COLOR_OFF}
+    a formatted srting that has form ${COLOR_RED}<PLATFORM-NAME>:<PLATFORM-VERSION>:<PLATFORM-ARCH>${COLOR_OFF}
     indicates which platform would be built for or run on.
 
 ${COLOR_GREEN}PLATFORM-NAME${COLOR_OFF}
