@@ -3826,10 +3826,12 @@ EXPORT_COMPILE_COMMANDS_JSON = $EXPORT_COMPILE_COMMANDS_JSON
     PACKAGE_INSTALL_UTS="$(date +%s)"
 
     PACKAGE_INSTALL_SHA=
-    PACKAGE_INSTALL_SHA="$(sha256sum <<EOF
+    PACKAGE_INSTALL_SHA="$(
+{
+    sha256sum <<EOF
 $PACKAGE_NAME/$TARGET_PLATFORM_SPEC/$$/$PACKAGE_INSTALL_UTS
 EOF
-)"
+} | cut -d ' ' -f1)"
 
     #########################################################################################
 
