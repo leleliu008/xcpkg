@@ -1462,10 +1462,9 @@ EOF
 
     #######################################################################################################
 
-    PACKAGE_XXXX=
-    PACKAGE_XXXX="$(printf '%s\n' "$1" | tr ':' '/')"
+    PACKAGE_INSTALLED_SHA="$(cat "$XCPKG_HOME/refs/$1")"
+    PACKAGE_INSTALLED_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_INSTALLED_SHA"
 
-    PACKAGE_INSTALLED_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_XXXX"
     PACKAGE_RECEIPT_FILEPATH="$PACKAGE_INSTALLED_DIR/.xcpkg/receipt.yml"
 
     unset PACKAGE_RECEIPT_SIGNATURE
@@ -1630,16 +1629,15 @@ is_package_available() {
 
 # is_package_installed <PACKAGE-SPEC>
   is_package_installed() {
-    [ -z "$1" ] && {
-        error "is_package_installed <PACKAGE-SPEC>, <PACKAGE-SPEC> is unspecified."
-        return 1
-    }
+    [ -z "$1" ] && abort 1 "is_package_installed <PACKAGE-SPEC>, <PACKAGE-SPEC> is unspecified."
 
-    PACKAGE_XXXX=
-    PACKAGE_XXXX="$(printf '%s\n' "$1" | tr ':' '/')"
+    (
+        PACKAGE_INSTALL_SHA="$(cat "$XCPKG_HOME/refs/$1")"
+        PACKAGE_INSTALL_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_INSTALL_SHA"
 
-    [ -f "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_XXXX/.xcpkg/manifest.txt" ] || return 13
-    [ -f "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_XXXX/.xcpkg/receipt.yml" ]  || return 14
+        [ -f "$PACKAGE_INSTALL_DIR/.xcpkg/manifest.txt" ] || exit 13
+        [ -f "$PACKAGE_INSTALL_DIR/.xcpkg/receipt.yml" ]  || exit 14
+    )
 }
 
 # }}}
@@ -1693,9 +1691,9 @@ __list_available_packages() {
 # {{{ xcpkg ls-installed
 
 __list_installed_packages() {
-    if [ -d "$XCPKG_PACKAGE_INSTALLED_ROOT" ] ; then
-         cd "$XCPKG_PACKAGE_INSTALLED_ROOT" || return 1
-        find . -maxdepth 6 -mindepth 6 -type f -regex '\./[^/]*/\(DriverKit\|MacOSX\|AppleTVOS\|AppleTVSimulator\|iPhoneOS\|iPhoneSimulator\|WatchOS\|WatchSimulator\)/[^/]*/[^/]*/\.xcpkg/receipt\.yml' | cut -c3- | sed 's|/\.xcpkg/receipt\.yml$||' | sed 's|/|:|'
+    if [ -d "$XCPKG_HOME/refs" ] ; then
+         cd "$XCPKG_HOME/refs" || return 1
+        find . -maxdepth 1 -mindepth 1 -type f -regex '\./[^/]*:\(DriverKit\|MacOSX\|AppleTVOS\|AppleTVSimulator\|iPhoneOS\|iPhoneSimulator\|WatchOS\|WatchSimulator\):[^/]*:[^/]*' -printf '%P\n'
     else
         return 0
     fi
@@ -1712,12 +1710,12 @@ __list__outdated_packages() {
         return 0
     fi
 
-    for packageName in $(find . -maxdepth 1 -mindepth 1 -type d -printf '%P\n')
+    for PACKAGE_SPEC in $(__list_installed_packages)
     do
-        is_package_available "$packageName" || continue
-        is_package_installed "$packageName" || continue
-        is_package__outdated "$packageName" || continue
-        printf '%s\n' "$packageName"
+        is_package_installed "${PACKAGE_SPEC}"    || continue
+        is_package_available "${PACKAGE_SPEC%%:}" || continue
+        is_package__outdated "${PACKAGE_SPEC}"    || continue
+        printf '%s\n' "$PACKAGE_SPEC"
     done
 }
 
@@ -2006,10 +2004,9 @@ EOF
             PACKAGE_SPEC="$(inspect_package_spec "$1")"
 
             if is_package_installed "$PACKAGE_SPEC" ; then
-                PACKAGE_XXXX=
-                PACKAGE_XXXX="$(printf '%s\n' "$PACKAGE_SPEC" | tr ':' '/')"
-
-                printf '%s\n' "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_XXXX"
+                PACKAGE_INSTALL_SHA="$(cat "$XCPKG_HOME/refs/$PACKAGE_SPEC")"
+                PACKAGE_INSTALL_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_INSTALL_SHA"
+                printf '%s\n' "$PACKAGE_INSTALL_DIR"
             else
                 error "package '$1' is not installed."
                 return 1
@@ -2020,9 +2017,9 @@ EOF
             PACKAGE_SPEC="$(inspect_package_spec "$1")"
 
             if is_package_installed "$PACKAGE_SPEC" ; then
-                PACKAGE_XXXX=
-                PACKAGE_XXXX="$(printf '%s\n' "$PACKAGE_SPEC" | tr ':' '/')"
-                cut -d '|' -f3 "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_XXXX/.xcpkg/manifest.txt"
+                PACKAGE_INSTALL_SHA="$(cat "$XCPKG_HOME/refs/$PACKAGE_SPEC")"
+                PACKAGE_INSTALL_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_INSTALL_SHA"
+                cut -d '|' -f3 "$PACKAGE_INSTALL_DIR/.xcpkg/manifest.txt"
             else
                 error "package '$1' is not installed."
                 return 1
@@ -2487,13 +2484,16 @@ __fetch_resources_of_the_given_package() {
   __logs_the_given_installed_package() {
     [ -z "$1" ] && abort 1 "$_0 logs <PACKAGE-SPEC>, <PACKAGE-SPEC> is unspecified."
 
-    is_package_installed "$1" || abort 1 "package '$1' is not installed."
+    PACKAGE_SPEC=
+    PACKAGE_SPEC="$(inspect_package_spec "$1")"
 
-    PACKAGE_XXXX=
-    PACKAGE_XXXX="$(printf '%s\n' "$1" | tr ':' '/')"
+    is_package_installed "$PACKAGE_SPEC" || abort 1 "package '$PACKAGE_SPEC' is not installed."
+
+    PACKAGE_INSTALL_SHA="$(cat "$XCPKG_HOME/refs/$PACKAGE_SPEC")"
+    PACKAGE_INSTALL_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_INSTALL_SHA"
 
     FILEPATHS=
-    FILEPATHS="$(find "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_XXXX/.xcpkg" -type f)"
+    FILEPATHS="$(find "$PACKAGE_INSTALL_DIR/.xcpkg" -type f)"
 
     for filepath in $FILEPATHS
     do
@@ -2536,6 +2536,8 @@ __fetch_resources_of_the_given_package() {
     TARGET_PLATFORM_NAME="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f1)"
     TARGET_PLATFORM_VERS="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f2)"
     TARGET_PLATFORM_ARCH="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f3)"
+
+    TARGET_PLATFORM_XXXX="$TARGET_PLATFORM_NAME:$TARGET_PLATFORM_VERS:$TARGET_PLATFORM_ARCH"
 
     shift
 
@@ -2910,10 +2912,11 @@ __uninstall_the_given_packages() {
   __uninstall_the_given_package() {
     is_package_installed "$1" || abort 1 "$1 is not installed."
 
-    PACKAGE_XXXX=
-    PACKAGE_XXXX="$(printf '%s\n' "$1" | tr ':' '/')"
+    PACKAGE_INSTALL_SHA="$(cat "$XCPKG_HOME/refs/$1")"
+    PACKAGE_INSTALL_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_INSTALL_SHA"
 
-    run rm -rf "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_XXXX"
+    run rm  -f "$XCPKG_HOME/refs/$1"
+    run rm -rf "$PACKAGE_INSTALL_DIR"
 }
 
 # }}}
@@ -2988,6 +2991,7 @@ __reinstall_the_given_packages() {
         TARGET_PLATFORM_VERS="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f2)"
         TARGET_PLATFORM_ARCH="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f3)"
 
+        TARGET_PLATFORM_XXXX="$TARGET_PLATFORM_NAME:$TARGET_PLATFORM_VERS:$TARGET_PLATFORM_ARCH"
 
         ##################################################################
 
@@ -3034,19 +3038,13 @@ __reinstall_the_given_packages() {
         do
             PACKAGE_SPEC="$PACKAGE_NAME:$TARGET_PLATFORM_SPEC"
 
-            PACKAGE_XXXX=
-            PACKAGE_XXXX="$(printf '%s\n' "$PACKAGE_SPEC" | tr ':' '/')"
-
-            PACKAGE_YYYY=
-            PACKAGE_YYYY="$(printf '%s\n' "$PACKAGE_SPEC" | tr '/' ':')"
-
             [ -d "$XCPKG_BACKUP_DIR" ] || install -d "$XCPKG_BACKUP_DIR"
 
-            mv "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_XXXX" "$XCPKG_BACKUP_DIR/$PACKAGE_YYYY"
+            mv "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_SPEC" "$XCPKG_BACKUP_DIR/$PACKAGE_SPEC"
 
             (__install_the_given_package "$PACKAGE_SPEC")
 
-            rm -rf "$XCPKG_BACKUP_DIR/$PACKAGE_YYYY"
+            rm -rf "$XCPKG_BACKUP_DIR/$PACKAGE_SPEC"
         done
     done
 }
@@ -3125,6 +3123,7 @@ __upgrade_packages() {
         TARGET_PLATFORM_VERS="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f2)"
         TARGET_PLATFORM_ARCH="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f3)"
 
+        TARGET_PLATFORM_XXXX="$TARGET_PLATFORM_NAME:$TARGET_PLATFORM_VERS:$TARGET_PLATFORM_ARCH"
 
         ##################################################################
 
@@ -3176,19 +3175,13 @@ __upgrade_packages() {
                 continue
             }
 
-            PACKAGE_XXXX=
-            PACKAGE_XXXX="$(printf '%s\n' "$PACKAGE_SPEC" | tr ':' '/')"
-
-            PACKAGE_YYYY=
-            PACKAGE_YYYY="$(printf '%s\n' "$PACKAGE_SPEC" | tr '/' ':')"
-
             [ -d "$XCPKG_BACKUP_DIR" ] || install -d "$XCPKG_BACKUP_DIR"
 
-            mv "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_XXXX" "$XCPKG_BACKUP_DIR/$PACKAGE_YYYY"
+            mv "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_SPEC" "$XCPKG_BACKUP_DIR/$PACKAGE_SPEC"
 
             (__install_the_given_package "$PACKAGE_SPEC")
 
-            rm -rf "$XCPKG_BACKUP_DIR/$PACKAGE_YYYY"
+            rm -rf "$XCPKG_BACKUP_DIR/$PACKAGE_SPEC"
         done
     done
 }
@@ -3496,6 +3489,7 @@ __install_the_given_packages() {
         TARGET_PLATFORM_VERS="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f2)"
         TARGET_PLATFORM_ARCH="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d/ -f3)"
 
+        TARGET_PLATFORM_XXXX="$TARGET_PLATFORM_NAME:$TARGET_PLATFORM_VERS:$TARGET_PLATFORM_ARCH"
 
         ##################################################################
 
@@ -3836,10 +3830,21 @@ EXPORT_COMPILE_COMMANDS_JSON = $EXPORT_COMPILE_COMMANDS_JSON
 
     #########################################################################################
 
+    PACKAGE_INSTALL_TS=
+    PACKAGE_INSTALL_TS="$(date +%s)"
+
+    PACKAGE_INSTALL_ID=
+    PACKAGE_INSTALL_ID="$(sha256sum <<EOF
+$PACKAGE_NAME/$TARGET_PLATFORM_SPEC/$$/$PACKAGE_INSTALL_TS
+EOF
+)"
+
+    #########################################################################################
+
     step "create the working directory and change to it"
 
     PACKAGE_WORKING_DIR="$SESSION_DIR/$PACKAGE_NAME"
-    PACKAGE_INSTALL_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_NAME/$TARGET_PLATFORM_SPEC"
+    PACKAGE_INSTALL_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_INSTALL_ID"
 
     PACKAGE_INSTALLING_SRC_DIR="$PACKAGE_WORKING_DIR/src"
     PACKAGE_INSTALLING_FIX_DIR="$PACKAGE_WORKING_DIR/fix"
@@ -4147,7 +4152,9 @@ EOF
     [ -n "$PACKAGE_DEP_PKG" ] && {
         for DEPENDENT_PACKAGE_NAME in $RECURSIVE_DEPENDENT_PACKAGE_NAMES
         do
-            DEPENDENT_PACKAGE_INSTALL_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$DEPENDENT_PACKAGE_NAME/$TARGET_PLATFORM_SPEC"
+            DEPENDENT_PACKAGE_INSTALL_REF="$XCPKG_HOME/refs/$DEPENDENT_PACKAGE_NAME:$TARGET_PLATFORM_XXXX"
+            DEPENDENT_PACKAGE_INSTALL_SHA="$(cat "$DEPENDENT_PACKAGE_INSTALL_REF")"
+            DEPENDENT_PACKAGE_INSTALL_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$DEPENDENT_PACKAGE_INSTALL_SHA"
 
             if [ -z "$RECURSIVE_DEPENDENT_PACKAGE_INSTALL_DIRS" ] ; then
                 RECURSIVE_DEPENDENT_PACKAGE_INSTALL_DIRS="$DEPENDENT_PACKAGE_INSTALL_DIR"
@@ -5000,7 +5007,9 @@ EOF
     do
         DEPENDENT_PACKAGE_NAME_UNDERSCORE="$(printf '%s\n' "$DEPENDENT_PACKAGE_NAME" | tr '@+-.' '_')"
 
-        DEPENDENT_PACKAGE_INSTALL_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$DEPENDENT_PACKAGE_NAME/$TARGET_PLATFORM_SPEC"
+        DEPENDENT_PACKAGE_INSTALL_REF="$XCPKG_HOME/refs/$DEPENDENT_PACKAGE_NAME:$TARGET_PLATFORM_XXXX"
+        DEPENDENT_PACKAGE_INSTALL_SHA="$(cat "$DEPENDENT_PACKAGE_INSTALL_REF")"
+        DEPENDENT_PACKAGE_INSTALL_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$DEPENDENT_PACKAGE_INSTALL_SHA"
         DEPENDENT_PACKAGE_BINARY__DIR="$DEPENDENT_PACKAGE_INSTALL_DIR/bin"
         DEPENDENT_PACKAGE_INCLUDE_DIR="$DEPENDENT_PACKAGE_INSTALL_DIR/include"
         DEPENDENT_PACKAGE_LIBRARY_DIR="$DEPENDENT_PACKAGE_INSTALL_DIR/lib"
@@ -5932,6 +5941,14 @@ $PACKAGE_DOBUILD_ACTIONS
 
     #########################################################################################
 
+    step "generate ref for $PACKAGE_SPEC"
+
+    install -d "$XCPKG_HOME/refs"
+
+    printf '%s\n' "$PACKAGE_INSTALL_ID" > "$XCPKG_HOME/refs/$PACKAGE_NAME:$TARGET_PLATFORM_XXXX"
+
+    #########################################################################################
+
     [ "$CCACHE_ENABLED" = yes ] && {
         step "show ccache statistics summary"
         note "Before Build:"
@@ -5949,7 +5966,7 @@ $PACKAGE_DOBUILD_ACTIONS
     success "$1 have been successfully installed."
 
     step "show installed files in tree-like format"
-    __tree_the_given_installed_package "$1" --dirsfirst -a
+    run tree --dirsfirst -a "$PACKAGE_INSTALL_DIR"
 }
 
 __adjust_mach_o_files_for_the_given_target() {
