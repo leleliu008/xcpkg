@@ -1471,7 +1471,7 @@ EOF
     unset PACKAGE_RECEIPT_BUILT_FOR_PLATFORM_VERS
     unset PACKAGE_RECEIPT_BUILT_FOR_PLATFORM_ARCH
 
-    for key in pkgname summary web-url git-url git-sha git-ref shallow src-url src-uri src-sha fix-url fix-sha res-url res-sha dep-pkg dep-upp dep-pym dep-plm license version bsystem bscript binbstd ccflags xxflags ppflags ldflags dopatch install symlink parallel signature timestamp built-for
+    for key in pkgname summary web-url git-url git-sha git-ref shallow src-url src-uri src-sha fix-url fix-sha res-url res-sha dep-pkg dep-upp dep-pym dep-plm license version bsystem bscript binbstd ccflags xxflags ppflags ldflags symlink parallel signature timestamp built-for
     do
         unset __KEY_UPPERCASE_UNDERSCORE__
         unset __VALUE__
@@ -2484,19 +2484,7 @@ __fetch_resources_of_the_given_package() {
   __pack_the_given_installed_package() {
     __load_receipt_of_the_given_package "$1"
 
-    TARGET_PLATFORM_SPEC="${PACKAGE_SPEC#*:}"
-
-    TARGET_PLATFORM_NAME=
-    TARGET_PLATFORM_VERS=
-    TARGET_PLATFORM_ARCH=
-
-    TARGET_PLATFORM_NAME="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d: -f1)"
-    TARGET_PLATFORM_VERS="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d: -f2)"
-    TARGET_PLATFORM_ARCH="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d: -f3)"
-
     shift
-
-    ###########################################################################################
 
     unset OUTPUT_DIR
     unset OUTPUT_FILETYPE
@@ -2533,32 +2521,32 @@ __fetch_resources_of_the_given_package() {
         shift
     done
 
-    case $TARGET_PLATFORM_NAME in
+    case $PACKAGE_RECEIPT_BUILT_FOR_PLATFORM_NAME in
         iPhoneOS)
-            TARGET_PLATFORM_NAME_CANONICAL_NAME=ios
+            TARGET_PLATFORM_CANONICAL_NAME=ios
             ;;
         iPhoneSimulator)
-            TARGET_PLATFORM_NAME_CANONICAL_NAME=iosSimulator
+            TARGET_PLATFORM_CANONICAL_NAME=iosSimulator
             ;;
         WatchOS)
-            TARGET_PLATFORM_NAME_CANONICAL_NAME=watchos
+            TARGET_PLATFORM_CANONICAL_NAME=watchos
             ;;
         WatchSimulator)
-            TARGET_PLATFORM_NAME_CANONICAL_NAME=watchosSimulator
+            TARGET_PLATFORM_CANONICAL_NAME=watchosSimulator
             ;;
         AppleTVOS)
-            TARGET_PLATFORM_NAME_CANONICAL_NAME=tvos
+            TARGET_PLATFORM_CANONICAL_NAME=tvos
             ;;
         AppleTVSimulator)
-            TARGET_PLATFORM_NAME_CANONICAL_NAME=tvosSimulator
+            TARGET_PLATFORM_CANONICAL_NAME=tvosSimulator
             ;;
         MacOSX)
-            TARGET_PLATFORM_NAME_CANONICAL_NAME=macos
+            TARGET_PLATFORM_CANONICAL_NAME=macos
             ;;
-        *)  TARGET_PLATFORM_NAME_CANONICAL_NAME="$TARGET_PLATFORM_NAME"
+        *)  TARGET_PLATFORM_CANONICAL_NAME="$PACKAGE_RECEIPT_BUILT_FOR_PLATFORM_NAME"
     esac
 
-    PACKED_DIR_NAME="$PACKAGE_RECEIPT_PKGNAME-$PACKAGE_RECEIPT_VERSION-$TARGET_PLATFORM_NAME_CANONICAL_NAME$TARGET_PLATFORM_VERS-$TARGET_PLATFORM_ARCH"
+    PACKED_DIR_NAME="$PACKAGE_RECEIPT_PKGNAME-$PACKAGE_RECEIPT_VERSION-$TARGET_PLATFORM_CANONICAL_NAME$PACKAGE_RECEIPT_BUILT_FOR_PLATFORM_VERS-$PACKAGE_RECEIPT_BUILT_FOR_PLATFORM_ARCH"
 
     ###########################################################################################
 
