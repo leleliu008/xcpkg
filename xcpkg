@@ -1353,51 +1353,51 @@ filetype_from_url() {
         return 1
     }
 
-    run cp "$PACKAGE_FORMULA_FILEPATH" "$PACKAGE_RECEIPT_FILEPATH"
+    run cp "$PACKAGE_FORMULA_FILEPATH" "$PACKAGE_INSTALLED_METADATA_FILEPATH"
 
-    sed_in_place '/^#src-url: dir:/d' "$PACKAGE_RECEIPT_FILEPATH"
+    sed_in_place '/^#src-url: dir:/d' "$PACKAGE_INSTALLED_METADATA_FILEPATH"
 
-    sed_in_place "1i pkgname: $PACKAGE_NAME" "$PACKAGE_RECEIPT_FILEPATH"
+    sed_in_place "1i pkgname: $PACKAGE_NAME" "$PACKAGE_INSTALLED_METADATA_FILEPATH"
 
-    grep -q '^version: ' "$PACKAGE_RECEIPT_FILEPATH" || {
-        sed_in_place "2i version: $PACKAGE_VERSION" "$PACKAGE_RECEIPT_FILEPATH"
+    grep -q '^version: ' "$PACKAGE_INSTALLED_METADATA_FILEPATH" || {
+        sed_in_place "2i version: $PACKAGE_VERSION" "$PACKAGE_INSTALLED_METADATA_FILEPATH"
     }
 
-    grep -q '^web-url: ' "$PACKAGE_RECEIPT_FILEPATH" || {
-        sed_in_place "/^git-url:/i web-url: $PACKAGE_GIT_URL" "$PACKAGE_RECEIPT_FILEPATH"
+    grep -q '^web-url: ' "$PACKAGE_INSTALLED_METADATA_FILEPATH" || {
+        sed_in_place "/^git-url:/i web-url: $PACKAGE_GIT_URL" "$PACKAGE_INSTALLED_METADATA_FILEPATH"
     }
 
-    grep -q '^bsystem: ' "$PACKAGE_RECEIPT_FILEPATH" || {
-        sed_in_place "/^install:/i bsystem: $PACKAGE_BSYSTEM" "$PACKAGE_RECEIPT_FILEPATH"
+    grep -q '^bsystem: ' "$PACKAGE_INSTALLED_METADATA_FILEPATH" || {
+        sed_in_place "/^install:/i bsystem: $PACKAGE_BSYSTEM" "$PACKAGE_INSTALLED_METADATA_FILEPATH"
     }
 
-    grep -q '^binbstd: ' "$PACKAGE_RECEIPT_FILEPATH" || {
-        sed_in_place "/^bsystem:/a binbstd: $PACKAGE_BINBSTD" "$PACKAGE_RECEIPT_FILEPATH"
+    grep -q '^binbstd: ' "$PACKAGE_INSTALLED_METADATA_FILEPATH" || {
+        sed_in_place "/^bsystem:/a binbstd: $PACKAGE_BINBSTD" "$PACKAGE_INSTALLED_METADATA_FILEPATH"
     }
 
-    grep -q '^parallel: ' "$PACKAGE_RECEIPT_FILEPATH" || {
-        sed_in_place "\$a parallel: $PACKAGE_PARALLEL" "$PACKAGE_RECEIPT_FILEPATH"
+    grep -q '^parallel: ' "$PACKAGE_INSTALLED_METADATA_FILEPATH" || {
+        sed_in_place "\$a parallel: $PACKAGE_PARALLEL" "$PACKAGE_INSTALLED_METADATA_FILEPATH"
     }
 
     [ -n "$PACKAGE_GIT_SHA" ] && {
-        grep -q '^git-sha: ' "$PACKAGE_RECEIPT_FILEPATH" || {
-            sed_in_place "/^git-url:/a git-sha: $PACKAGE_GIT_SHA" "$PACKAGE_RECEIPT_FILEPATH"
+        grep -q '^git-sha: ' "$PACKAGE_INSTALLED_METADATA_FILEPATH" || {
+            sed_in_place "/^git-url:/a git-sha: $PACKAGE_GIT_SHA" "$PACKAGE_INSTALLED_METADATA_FILEPATH"
         }
 
-        grep -q '^git-sha: ' "$PACKAGE_RECEIPT_FILEPATH" || {
-            sed_in_place "3i git-sha: $PACKAGE_GIT_SHA" "$PACKAGE_RECEIPT_FILEPATH"
+        grep -q '^git-sha: ' "$PACKAGE_INSTALLED_METADATA_FILEPATH" || {
+            sed_in_place "3i git-sha: $PACKAGE_GIT_SHA" "$PACKAGE_INSTALLED_METADATA_FILEPATH"
         }
     }
 
     [ -n "$PACKAGE_DEP_UPP" ] && {
-        if grep -q '^dep-upp: ' "$PACKAGE_RECEIPT_FILEPATH" ; then
-            sed_in_place "/^dep-upp: /c dep-upp: $PACKAGE_DEP_UPP" "$PACKAGE_RECEIPT_FILEPATH"
+        if grep -q '^dep-upp: ' "$PACKAGE_INSTALLED_METADATA_FILEPATH" ; then
+            sed_in_place "/^dep-upp: /c dep-upp: $PACKAGE_DEP_UPP" "$PACKAGE_INSTALLED_METADATA_FILEPATH"
         else
-            sed_in_place "/^bsystem: /i dep-upp: $PACKAGE_DEP_UPP" "$PACKAGE_RECEIPT_FILEPATH"
+            sed_in_place "/^bsystem: /i dep-upp: $PACKAGE_DEP_UPP" "$PACKAGE_INSTALLED_METADATA_FILEPATH"
         fi
     }
 
-    cat >> "$PACKAGE_RECEIPT_FILEPATH" <<EOF
+    cat >> "$PACKAGE_INSTALLED_METADATA_FILEPATH" <<EOF
 build-on:
     os-arch: $NATIVE_OS_ARCH
     os-kind: $NATIVE_OS_KIND
@@ -1424,6 +1424,10 @@ EOF
         error "package [$1] is not installed."
         return 1
     }
+
+    PACKAGE_INSTALLED_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$1"
+
+    PACKAGE_INSTALLED_METADATA_FILEPATH="$PACKAGE_INSTALLED_DIR/.xcpkg/METADATA.yml"
 
     unset RECEIPT_PACKAGE_SUMMARY
     unset RECEIPT_PACKAGE_VERSION
@@ -1462,24 +1466,19 @@ EOF
 
     #######################################################################################################
 
-    PACKAGE_INSTALLED_SHA="$(cat "$XCPKG_HOME/refs/$1")"
-    PACKAGE_INSTALLED_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_INSTALLED_SHA"
-
-    PACKAGE_RECEIPT_FILEPATH="$PACKAGE_INSTALLED_DIR/.xcpkg/receipt.yml"
-
     unset PACKAGE_RECEIPT_SIGNATURE
     unset PACKAGE_RECEIPT_TIMESTAMP
 
-    PACKAGE_RECEIPT_SIGNATURE="$(yq .signature "$PACKAGE_RECEIPT_FILEPATH")"
-    PACKAGE_RECEIPT_TIMESTAMP="$(yq .timestamp "$PACKAGE_RECEIPT_FILEPATH")"
+    PACKAGE_RECEIPT_SIGNATURE="$(yq .signature "$PACKAGE_INSTALLED_METADATA_FILEPATH")"
+    PACKAGE_RECEIPT_TIMESTAMP="$(yq .timestamp "$PACKAGE_INSTALLED_METADATA_FILEPATH")"
 
     if [ -z "$PACKAGE_RECEIPT_SIGNATURE" ] ; then
-        error "$PACKAGE_RECEIPT_FILEPATH is broken. value of PACKAGE_RECEIPT_SIGNATURE must be non-empty."
+        error "$PACKAGE_INSTALLED_METADATA_FILEPATH is broken. value of PACKAGE_RECEIPT_SIGNATURE must be non-empty."
         return 1
     fi
 
     if [ -z "$PACKAGE_RECEIPT_TIMESTAMP" ] ; then
-        error "$PACKAGE_RECEIPT_FILEPATH is broken. value of PACKAGE_RECEIPT_TIMESTAMP must be non-empty."
+        error "$PACKAGE_INSTALLED_METADATA_FILEPATH is broken. value of PACKAGE_RECEIPT_TIMESTAMP must be non-empty."
         return 1
     fi
 
@@ -1491,7 +1490,7 @@ EOF
         unset __VALUE__
 
         __KEY_UPPERCASE_UNDERSCORE__="$(printf '%s\n' "$key" | tr '-' '_' | tr a-z A-Z)"
-        __VALUE__="$(yq ".$key" "$PACKAGE_RECEIPT_FILEPATH")"
+        __VALUE__="$(yq ".$key" "$PACKAGE_INSTALLED_METADATA_FILEPATH")"
 
         if [ "$__VALUE__" = null ] ; then
                 __VALUE__=
@@ -1501,22 +1500,22 @@ EOF
     done
 
     if [ -z "$RECEIPT_PACKAGE_VERSION" ] ; then
-        error "$PACKAGE_RECEIPT_FILEPATH is broken. value of RECEIPT_PACKAGE_VERSION must be non-empty."
+        error "$PACKAGE_INSTALLED_METADATA_FILEPATH is broken. value of RECEIPT_PACKAGE_VERSION must be non-empty."
         return 1
     fi
 
     if [ -z "$RECEIPT_PACKAGE_SUMMARY" ] ; then
-        error "$PACKAGE_RECEIPT_FILEPATH is broken. value of RECEIPT_PACKAGE_SUMMARY must be non-empty."
+        error "$PACKAGE_INSTALLED_METADATA_FILEPATH is broken. value of RECEIPT_PACKAGE_SUMMARY must be non-empty."
         return 1
     fi
 
     if [ -z "$RECEIPT_PACKAGE_WEB_URL" ] ; then
-        error "$PACKAGE_RECEIPT_FILEPATH is broken. value of RECEIPT_PACKAGE_WEB_URL must be non-empty."
+        error "$PACKAGE_INSTALLED_METADATA_FILEPATH is broken. value of RECEIPT_PACKAGE_WEB_URL must be non-empty."
         return 1
     fi
 
     if [ "${#PACKAGE_RECEIPT_TIMESTAMP}" -ne 10 ] ; then
-        error "$PACKAGE_RECEIPT_FILEPATH is broken. length of \$PACKAGE_RECEIPT_TIMESTAMP must be 10."
+        error "$PACKAGE_INSTALLED_METADATA_FILEPATH is broken. length of \$PACKAGE_RECEIPT_TIMESTAMP must be 10."
         return 1
     fi
 }
@@ -1537,18 +1536,18 @@ EOF
     case $2 in
         --yaml|'')
             if [ -t 1 ] ; then
-                yq  "$PACKAGE_RECEIPT_FILEPATH"
+                yq  "$PACKAGE_INSTALLED_METADATA_FILEPATH"
             else
-                cat "$PACKAGE_RECEIPT_FILEPATH"
+                cat "$PACKAGE_INSTALLED_METADATA_FILEPATH"
             fi
             ;;
         --json)
-            yq -o=json "$PACKAGE_RECEIPT_FILEPATH"
+            yq -o=json "$PACKAGE_INSTALLED_METADATA_FILEPATH"
             ;;
         --path)
-            printf '%s\n' "$PACKAGE_RECEIPT_FILEPATH"
+            printf '%s\n' "$PACKAGE_INSTALLED_METADATA_FILEPATH"
             ;;
-        *)  yq ".$2 | select(. != null)" "$PACKAGE_RECEIPT_FILEPATH"
+        *)  yq ".$2 | select(. != null)" "$PACKAGE_INSTALLED_METADATA_FILEPATH"
     esac
 }
 
@@ -1562,7 +1561,7 @@ EOF
     export IFS='
 '
 
-    exec 7> "$PACKAGE_MANIFEST_FILEPATH"
+    exec 7> "$PACKAGE_INSTALLED_MANIFEST_FILEPATH"
 
     for dirname in $(find -mindepth 1 -maxdepth 1 -type d -not -name .xcpkg -printf '%P\n')
     do
@@ -1629,14 +1628,13 @@ is_package_available() {
 
 # is_package_installed <PACKAGE-SPEC>
   is_package_installed() {
-    [ -z "$1" ] && abort 1 "is_package_installed <PACKAGE-SPEC>, <PACKAGE-SPEC> is unspecified."
-
     (
-        PACKAGE_INSTALL_SHA="$(cat "$XCPKG_HOME/refs/$1")"
-        PACKAGE_INSTALL_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_INSTALL_SHA"
+        PACKAGE_INSTALL_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$1"
 
-        [ -f "$PACKAGE_INSTALL_DIR/.xcpkg/manifest.txt" ] || exit 13
-        [ -f "$PACKAGE_INSTALL_DIR/.xcpkg/receipt.yml" ]  || exit 14
+        [ -L "$PACKAGE_INSTALL_DIR" ] || exit 11
+        [ -d "$PACKAGE_INSTALL_DIR" ] || exit 12
+        [ -f "$PACKAGE_INSTALL_DIR/.xcpkg/MANIFEST.txt" ] || exit 14
+        [ -f "$PACKAGE_INSTALL_DIR/.xcpkg/METADATA.yml" ] || exit 15
     )
 }
 
@@ -1646,10 +1644,9 @@ is_package_available() {
 
 # is_package__outdated <PACKAGE-SPEC>
   is_package__outdated() {
+    __load_receipt_of_the_given_package "$1"
     __load_formula_of_the_given_package "${1%%:*}"
-    __load_receipt_of_the_given_package "${1}"
-
-    version_match "$PACKAGE_VERSION" gt "$INSTALLED_PACKAGE_VERSION"
+    version_match "$PACKAGE_VERSION" gt "$RECEIPT_PACKAGE_VERSION"
 }
 
 # }}}
@@ -1691,9 +1688,9 @@ __list_available_packages() {
 # {{{ xcpkg ls-installed
 
 __list_installed_packages() {
-    if [ -d "$XCPKG_HOME/refs" ] ; then
-         cd "$XCPKG_HOME/refs" || return 1
-        find . -maxdepth 1 -mindepth 1 -type f -regex '\./[^/]*:\(DriverKit\|MacOSX\|AppleTVOS\|AppleTVSimulator\|iPhoneOS\|iPhoneSimulator\|WatchOS\|WatchSimulator\):[^/]*:[^/]*' -printf '%P\n'
+    if [ -d "$XCPKG_PACKAGE_INSTALLED_ROOT" ] ; then
+         cd "$XCPKG_PACKAGE_INSTALLED_ROOT" || return 1
+        find . -maxdepth 1 -mindepth 1 -type l -regex '\./[^:]*:\(DriverKit\|MacOSX\|AppleTVOS\|AppleTVSimulator\|iPhoneOS\|iPhoneSimulator\|WatchOS\|WatchSimulator\):[^:]*:[^:]*' -printf '%P\n'
     else
         return 0
     fi
@@ -1704,18 +1701,11 @@ __list_installed_packages() {
 # {{{ xcpkg ls-outdated
 
 __list__outdated_packages() {
-    if [ -d "$XCPKG_PACKAGE_INSTALLED_ROOT" ] ; then
-         cd "$XCPKG_PACKAGE_INSTALLED_ROOT" 2>/dev/null || return 1
-    else
-        return 0
-    fi
-
     for PACKAGE_SPEC in $(__list_installed_packages)
     do
-        is_package_installed "${PACKAGE_SPEC}"    || continue
-        is_package_available "${PACKAGE_SPEC%%:}" || continue
-        is_package__outdated "${PACKAGE_SPEC}"    || continue
-        printf '%s\n' "$PACKAGE_SPEC"
+        if is_package__outdated "$PACKAGE_SPEC" ; then
+            printf '%s\n' "$PACKAGE_SPEC"
+        fi
     done
 }
 
@@ -2000,30 +1990,11 @@ EOF
             fi
             ;;
         installed-dir)
-            PACKAGE_SPEC=
-            PACKAGE_SPEC="$(inspect_package_spec "$1")"
-
-            if is_package_installed "$PACKAGE_SPEC" ; then
-                PACKAGE_INSTALL_SHA="$(cat "$XCPKG_HOME/refs/$PACKAGE_SPEC")"
-                PACKAGE_INSTALL_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_INSTALL_SHA"
-                printf '%s\n' "$PACKAGE_INSTALL_DIR"
-            else
-                error "package '$1' is not installed."
-                return 1
-            fi
+            peel_installed_root_dir_for_the_given_package "$1"
             ;;
         installed-files)
-            PACKAGE_SPEC=
-            PACKAGE_SPEC="$(inspect_package_spec "$1")"
-
-            if is_package_installed "$PACKAGE_SPEC" ; then
-                PACKAGE_INSTALL_SHA="$(cat "$XCPKG_HOME/refs/$PACKAGE_SPEC")"
-                PACKAGE_INSTALL_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_INSTALL_SHA"
-                cut -d '|' -f3 "$PACKAGE_INSTALL_DIR/.xcpkg/manifest.txt"
-            else
-                error "package '$1' is not installed."
-                return 1
-            fi
+            PACKAGE_INSTALL_DIR="$(peel_installed_root_dir_for_the_given_package "$1")"
+            cut -d '|' -f3 "$PACKAGE_INSTALL_DIR/.xcpkg/MANIFEST.txt"
             ;;
         installed-timestamp-unix)
             PACKAGE_SPEC=
@@ -2471,9 +2442,11 @@ __fetch_resources_of_the_given_package() {
 
 # __tree_the_given_installed_package <PACKAGE-SPEC>
   __tree_the_given_installed_package() {
-    is_package_installed "$1" || abort 1 "package '$1' is not installed."
+    PACKAGE_INSTALL_DIR="$(peel_installed_root_dir_for_the_given_package "$1")"
+
     shift
-    run tree "$@" "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_XXXX"
+
+    run tree "$@" "$PACKAGE_INSTALL_DIR"
 }
 
 # }}}
@@ -2482,15 +2455,7 @@ __fetch_resources_of_the_given_package() {
 
 # __logs_the_given_installed_package <PACKAGE-SPEC>
   __logs_the_given_installed_package() {
-    [ -z "$1" ] && abort 1 "$_0 logs <PACKAGE-SPEC>, <PACKAGE-SPEC> is unspecified."
-
-    PACKAGE_SPEC=
-    PACKAGE_SPEC="$(inspect_package_spec "$1")"
-
-    is_package_installed "$PACKAGE_SPEC" || abort 1 "package '$PACKAGE_SPEC' is not installed."
-
-    PACKAGE_INSTALL_SHA="$(cat "$XCPKG_HOME/refs/$PACKAGE_SPEC")"
-    PACKAGE_INSTALL_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_INSTALL_SHA"
+    PACKAGE_INSTALL_DIR="$(peel_installed_root_dir_for_the_given_package "$1")"
 
     FILEPATHS=
     FILEPATHS="$(find "$PACKAGE_INSTALL_DIR/.xcpkg" -type f)"
@@ -2891,7 +2856,7 @@ __cleanup() {
 # {{{ xcpkg uninstall
 
 __uninstall_the_given_packages() {
-    [ -z "$1" ] && abort 1 "neither package-name nor package-spec is unspecified."
+    [ -z "$1" ] && abort 1 "neither package-name nor package-spec is specified."
 
     unset PACKAGE_SPECS
 
@@ -2902,19 +2867,27 @@ __uninstall_the_given_packages() {
 
     for PACKAGE_SPEC in $PACKAGE_SPECS
     do
-        __uninstall_the_given_package "$PACKAGE_SPEC" || return 1
+        PACKAGE_INSTALLED_LINK_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_SPEC"
+
+        [ -e "$PACKAGE_INSTALLED_LINK_DIR" ] || abort 10 "package '$PACKAGE_SPEC' is not installed."
+        [ -L "$PACKAGE_INSTALLED_LINK_DIR" ] || abort 11 "$PACKAGE_INSTALLED_LINK_DIR was expected a symlink, but it was not."
+        [ -d "$PACKAGE_INSTALLED_LINK_DIR" ] || abort 12 "$PACKAGE_INSTALLED_LINK_DIR was expected a symlink refer to a directory, but it was not."
+
+        PACKAGE_INSTALLED_REAL_DIR="$(readlink -f "$PACKAGE_INSTALLED_LINK_DIR")"
+
+        [ -d "$PACKAGE_INSTALLED_REAL_DIR" ] || abort 13 "directory $PACKAGE_INSTALLED_REAL_DIR was expected exists, but it was not."
+
+        PACKAGE_INSTALLED_MANIFEST_FILEPATH="$PACKAGE_INSTALLED_REAL_DIR/.xcpkg/MANIFEST.txt"
+
+        [ -f "$PACKAGE_INSTALLED_MANIFEST_FILEPATH" ] || abort 13 "$PACKAGE_INSTALLED_MANIFEST_FILEPATH file was expected exist, but it was not."
+
+        PACKAGE_METADATA_FILEPATH="$PACKAGE_INSTALLED_REAL_DIR/.xcpkg/METADATA.yml"
+
+        [ -f "$PACKAGE_METADATA_FILEPATH" ] || abort 14 "$PACKAGE_METADATA_FILEPATH file was expected exist, but it was not."
+
+        run rm -ff "$PACKAGE_INSTALLED_LINK_DIR"
+        run rm -rf "$PACKAGE_INSTALLED_REAL_DIR"
     done
-}
-
-# __uninstall_the_given_package <PACKAGE-SPEC>
-  __uninstall_the_given_package() {
-    is_package_installed "$1" || abort 1 "$1 is not installed."
-
-    PACKAGE_INSTALL_SHA="$(cat "$XCPKG_HOME/refs/$1")"
-    PACKAGE_INSTALL_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_INSTALL_SHA"
-
-    run rm  -f "$XCPKG_HOME/refs/$1"
-    run rm -rf "$PACKAGE_INSTALL_DIR"
 }
 
 # }}}
@@ -2924,7 +2897,7 @@ __uninstall_the_given_packages() {
 __reinstall_the_given_packages() {
     inspect_install_arguments "$@"
 
-    [ -z "$USER_SPECIFIED_PACKAGE_SPEC_LIST" ] && abort 1 "neither package-name nor package-spec is unspecified."
+    [ -z "$USER_SPECIFIED_PACKAGE_SPEC_LIST" ] && abort 1 "neither package-name nor package-spec is specified."
 
     #########################################################################################
 
@@ -3179,6 +3152,21 @@ __upgrade_packages() {
         done
     done
 }
+
+# peel_installed_root_dir_for_the_given_package <PACKAGE-NAME|PACKAGE-SPEC>
+  peel_installed_root_dir_for_the_given_package() {
+    PACKAGE_SPEC=
+    PACKAGE_SPEC="$(inspect_package_spec "$1")"
+
+    if is_package_installed "$PACKAGE_SPEC" ; then
+        PACKAGE_INSTALLED_LINK_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_SPEC"
+        PACKAGE_INSTALLED_REAL_DIR="$(readlink -f "$PACKAGE_INSTALLED_LINK_DIR")"
+        printf '%s\n' "$PACKAGE_INSTALLED_REAL_DIR"
+    else
+        abort 1 "package '$PACKAGE_SPEC' is not installed."
+    fi
+}
+
 
 # }}}
 ##############################################################################
@@ -3829,7 +3817,7 @@ EXPORT_COMPILE_COMMANDS_JSON = $EXPORT_COMPILE_COMMANDS_JSON
     PACKAGE_INSTALL_SHA="$(
 {
     sha256sum <<EOF
-$PACKAGE_NAME/$TARGET_PLATFORM_SPEC/$$/$PACKAGE_INSTALL_UTS
+$PACKAGE_SPEC:$$:$PACKAGE_INSTALL_UTS
 EOF
 } | cut -d ' ' -f1)"
 
@@ -4146,8 +4134,8 @@ EOF
     [ -n "$PACKAGE_DEP_PKG" ] && {
         for DEPENDENT_PACKAGE_NAME in $RECURSIVE_DEPENDENT_PACKAGE_NAMES
         do
-            DEPENDENT_PACKAGE_INSTALL_REF="$XCPKG_HOME/refs/$DEPENDENT_PACKAGE_NAME:$TARGET_PLATFORM_SPEC"
-            DEPENDENT_PACKAGE_INSTALL_SHA="$(cat "$DEPENDENT_PACKAGE_INSTALL_REF")"
+            DEPENDENT_PACKAGE_INSTALL_REF="$XCPKG_PACKAGE_INSTALLED_ROOT/$DEPENDENT_PACKAGE_NAME:$TARGET_PLATFORM_SPEC"
+            DEPENDENT_PACKAGE_INSTALL_SHA="$(readlink -f "$DEPENDENT_PACKAGE_INSTALL_REF")"
             DEPENDENT_PACKAGE_INSTALL_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$DEPENDENT_PACKAGE_INSTALL_SHA"
 
             if [ -z "$RECURSIVE_DEPENDENT_PACKAGE_INSTALL_DIRS" ] ; then
@@ -5001,8 +4989,8 @@ EOF
     do
         DEPENDENT_PACKAGE_NAME_UNDERSCORE="$(printf '%s\n' "$DEPENDENT_PACKAGE_NAME" | tr '@+-.' '_')"
 
-        DEPENDENT_PACKAGE_INSTALL_REF="$XCPKG_HOME/refs/$DEPENDENT_PACKAGE_NAME:$TARGET_PLATFORM_SPEC"
-        DEPENDENT_PACKAGE_INSTALL_SHA="$(cat "$DEPENDENT_PACKAGE_INSTALL_REF")"
+        DEPENDENT_PACKAGE_INSTALL_REF="$XCPKG_PACKAGE_INSTALLED_ROOT/$DEPENDENT_PACKAGE_NAME:$TARGET_PLATFORM_SPEC"
+        DEPENDENT_PACKAGE_INSTALL_SHA="$(readlink -f "$DEPENDENT_PACKAGE_INSTALL_REF")"
         DEPENDENT_PACKAGE_INSTALL_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$DEPENDENT_PACKAGE_INSTALL_SHA"
         DEPENDENT_PACKAGE_BINARY__DIR="$DEPENDENT_PACKAGE_INSTALL_DIR/bin"
         DEPENDENT_PACKAGE_INCLUDE_DIR="$DEPENDENT_PACKAGE_INSTALL_DIR/include"
@@ -5706,12 +5694,12 @@ $PACKAGE_DOBUILD_ACTIONS
 
     #########################################################################################
 
-    PACKAGE_METAINF_DIR="$PACKAGE_INSTALL_DIR/.xcpkg"
+    PACKAGE_INSTALLED_METAINFO_DIR="$PACKAGE_INSTALL_DIR/.xcpkg"
 
-    PACKAGE_MANIFEST_FILEPATH="$PACKAGE_METAINF_DIR/manifest.txt"
-    PACKAGE_RECEIPT_FILEPATH="$PACKAGE_METAINF_DIR/receipt.yml"
+    PACKAGE_INSTALLED_MANIFEST_FILEPATH="$PACKAGE_INSTALLED_METAINFO_DIR/MANIFEST.txt"
+    PACKAGE_INSTALLED_METADATA_FILEPATH="$PACKAGE_INSTALLED_METAINFO_DIR/METADATA.yml"
 
-    install -d "$PACKAGE_METAINF_DIR"
+    install -d "$PACKAGE_INSTALLED_METAINFO_DIR"
 
     #########################################################################################
 
@@ -5723,7 +5711,7 @@ $PACKAGE_DOBUILD_ACTIONS
     do
         if [ -f "$item" ] ; then
             COPYING_FOUND=1
-            install -v -m 644 "$item" "$PACKAGE_METAINF_DIR/"
+            install -v -m 644 "$item" "$PACKAGE_INSTALLED_METAINFO_DIR/"
         fi
     done
 
@@ -5736,7 +5724,7 @@ $PACKAGE_DOBUILD_ACTIONS
     step "install LICENSE"
 
     if [ -f "$PACKAGE_INSTALLING_SRC_DIR/LICENSE" ] ; then
-        install -v -m 644 "$PACKAGE_INSTALLING_SRC_DIR/LICENSE" "$PACKAGE_METAINF_DIR/"
+        install -v -m 644 "$PACKAGE_INSTALLING_SRC_DIR/LICENSE" "$PACKAGE_INSTALLED_METAINFO_DIR/"
     else
         note "'LICENSE' named file was not found, skipped."
     fi
@@ -5746,7 +5734,7 @@ $PACKAGE_DOBUILD_ACTIONS
     step "install AUTHORS"
 
     if [ -f "$PACKAGE_INSTALLING_SRC_DIR/AUTHORS" ] ; then
-        install -v -m 644 "$PACKAGE_INSTALLING_SRC_DIR/AUTHORS" "$PACKAGE_METAINF_DIR/"
+        install -v -m 644 "$PACKAGE_INSTALLING_SRC_DIR/AUTHORS" "$PACKAGE_INSTALLED_METAINFO_DIR/"
     else
         note "'AUTHORS' named file was not found, skipped."
     fi
@@ -5761,7 +5749,7 @@ $PACKAGE_DOBUILD_ACTIONS
     do
         if [ -f "$PACKAGE_INSTALLING_SRC_DIR/$item" ] ; then
             CONTRIBUTORS_FOUND=1
-            install -v -m 644 "$PACKAGE_INSTALLING_SRC_DIR/$item" "$PACKAGE_METAINF_DIR/"
+            install -v -m 644 "$PACKAGE_INSTALLING_SRC_DIR/$item" "$PACKAGE_INSTALLED_METAINFO_DIR/"
         fi
     done
 
@@ -5779,7 +5767,7 @@ $PACKAGE_DOBUILD_ACTIONS
     do
         if [ -f "$PACKAGE_INSTALLING_SRC_DIR/$item" ] ; then
             README_FOUND=1
-            install -v -m 644 "$PACKAGE_INSTALLING_SRC_DIR/$item" "$PACKAGE_METAINF_DIR/"
+            install -v -m 644 "$PACKAGE_INSTALLING_SRC_DIR/$item" "$PACKAGE_INSTALLED_METAINFO_DIR/"
         fi
     done
 
@@ -5797,7 +5785,7 @@ $PACKAGE_DOBUILD_ACTIONS
     do
         if [ -f "$PACKAGE_INSTALLING_SRC_DIR/$item" ] ; then
             CONTRIBUTING_FOUND=1
-            install -v -m 644 "$PACKAGE_INSTALLING_SRC_DIR/$item" "$PACKAGE_METAINF_DIR/"
+            install -v -m 644 "$PACKAGE_INSTALLING_SRC_DIR/$item" "$PACKAGE_INSTALLED_METAINFO_DIR/"
         fi
     done
 
@@ -5814,7 +5802,7 @@ $PACKAGE_DOBUILD_ACTIONS
     for item in CHANGELOG CHANGELOG.md CHANGES
     do
         if [ -f "$PACKAGE_INSTALLING_SRC_DIR/$item" ] ; then
-            install -v -m 644 "$PACKAGE_INSTALLING_SRC_DIR/$item" "$PACKAGE_METAINF_DIR/"
+            install -v -m 644 "$PACKAGE_INSTALLING_SRC_DIR/$item" "$PACKAGE_INSTALLED_METAINFO_DIR/"
             CHANGELOG_FOUND=1
             break;
         fi
@@ -5829,7 +5817,7 @@ $PACKAGE_DOBUILD_ACTIONS
     step "install NEWS"
 
     if [ -f "$PACKAGE_INSTALLING_SRC_DIR/NEWS" ] ; then
-        install -v -m 644 "$PACKAGE_INSTALLING_SRC_DIR/NEWS" "$PACKAGE_METAINF_DIR/"
+        install -v -m 644 "$PACKAGE_INSTALLING_SRC_DIR/NEWS" "$PACKAGE_INSTALLED_METAINFO_DIR/"
     else
         note "'NEWS' named file was not found, skipped."
     fi
@@ -5839,7 +5827,7 @@ $PACKAGE_DOBUILD_ACTIONS
     step "install TODO"
 
     if [ -f "$PACKAGE_INSTALLING_SRC_DIR/TODO" ] ; then
-        install -v -m 644 "$PACKAGE_INSTALLING_SRC_DIR/TODO" "$PACKAGE_METAINF_DIR/"
+        install -v -m 644 "$PACKAGE_INSTALLING_SRC_DIR/TODO" "$PACKAGE_INSTALLED_METAINFO_DIR/"
     else
         note "'TODO' named file was not found, skipped."
     fi
@@ -5849,7 +5837,7 @@ $PACKAGE_DOBUILD_ACTIONS
     step "install FAQ"
 
     if [ -f "$PACKAGE_INSTALLING_SRC_DIR/FAQ" ] ; then
-        install -v -m 644 "$PACKAGE_INSTALLING_SRC_DIR/FAQ" "$PACKAGE_METAINF_DIR/"
+        install -v -m 644 "$PACKAGE_INSTALLING_SRC_DIR/FAQ" "$PACKAGE_INSTALLED_METAINFO_DIR/"
     else
         note "'FAQ' named file was not found, skipped."
     fi
@@ -5859,7 +5847,7 @@ $PACKAGE_DOBUILD_ACTIONS
     step "install THANKS"
 
     if [ -f "$PACKAGE_INSTALLING_SRC_DIR/THANKS" ] ; then
-        install -v -m 644 "$PACKAGE_INSTALLING_SRC_DIR/THANKS" "$PACKAGE_METAINF_DIR/"
+        install -v -m 644 "$PACKAGE_INSTALLING_SRC_DIR/THANKS" "$PACKAGE_INSTALLED_METAINFO_DIR/"
     else
         note "'THANKS' named file was not found, skipped."
     fi
@@ -5871,7 +5859,7 @@ $PACKAGE_DOBUILD_ACTIONS
     for dir in "$PACKAGE_BCACHED_DIR" "$PACKAGE_BSCRIPT_DIR"
     do
         if [ -f "$dir/config.log" ] ; then
-            install -v -m 644 "$dir/config.log" "$PACKAGE_METAINF_DIR"
+            install -v -m 644 "$dir/config.log" "$PACKAGE_INSTALLED_METAINFO_DIR"
         fi
     done
 
@@ -5882,7 +5870,7 @@ $PACKAGE_DOBUILD_ACTIONS
     for dir in "$PACKAGE_BCACHED_DIR" "$PACKAGE_BSCRIPT_DIR"
     do
         if [ -f "$dir/compile_commands.json" ] ; then
-            install -v -m 644 "$dir/compile_commands.json" "$PACKAGE_METAINF_DIR"
+            install -v -m 644 "$dir/compile_commands.json" "$PACKAGE_INSTALLED_METAINFO_DIR"
         fi
     done
 
@@ -5890,18 +5878,18 @@ $PACKAGE_DOBUILD_ACTIONS
 
     step "install dependency graph files"
 
-    find "$PACKAGE_WORKING_DIR" -mindepth 1 -maxdepth 1 \( -name dependencies.dot -o -name dependencies.box -o -name dependencies.svg -o -name dependencies.png \) -exec install -v -m 644 {} "$PACKAGE_METAINF_DIR" \;
+    find "$PACKAGE_WORKING_DIR" -mindepth 1 -maxdepth 1 \( -name dependencies.dot -o -name dependencies.box -o -name dependencies.svg -o -name dependencies.png \) -exec install -v -m 644 {} "$PACKAGE_INSTALLED_METAINFO_DIR" \;
 
     #########################################################################################
 
     [ -n "$PACKAGE_DEP_PKG" ] && {
         step "install dependency formulas"
 
-        install -v -d "$PACKAGE_METAINF_DIR/formula"
+        install -v -d "$PACKAGE_INSTALLED_METAINFO_DIR/formula"
 
         for DEPENDENT_PACKAGE_NAME in $RECURSIVE_DEPENDENT_PACKAGE_NAMES
         do
-            install -v -m 644 "$SESSION_DIR/$DEPENDENT_PACKAGE_NAME.yml" "$PACKAGE_METAINF_DIR/formula"
+            install -v -m 644 "$SESSION_DIR/$DEPENDENT_PACKAGE_NAME.yml" "$PACKAGE_INSTALLED_METAINFO_DIR/formula"
         done
     }
 
@@ -5922,10 +5910,10 @@ $PACKAGE_DOBUILD_ACTIONS
 
     #########################################################################################
 
-    step "generate manifest.txt"
+    step "generate MANIFEST.txt"
     __generate_manifest_of_the_given_package "$1"
 
-    step "generate receipt.yml"
+    step "generate METADATA.yml"
     __generate_receipt_of_the_given_package "$1"
 
     [ "$PACKAGE_SYMLINK" = yes ] && {
@@ -5937,9 +5925,7 @@ $PACKAGE_DOBUILD_ACTIONS
 
     step "generate ref for $PACKAGE_SPEC"
 
-    install -d "$XCPKG_HOME/refs"
-
-    printf '%s\n' "$PACKAGE_INSTALL_SHA" > "$XCPKG_HOME/refs/$PACKAGE_SPEC"
+    run ln -sr "$PACKAGE_INSTALL_DIR" "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_SPEC"
 
     #########################################################################################
 
@@ -6230,7 +6216,7 @@ install_pc_file() {
     #                     fi
     #             esac
     #     esac
-    # done < "$PACKAGE_MANIFEST_FILEPATH"
+    # done < "$PACKAGE_INSTALLED_MANIFEST_FILEPATH"
 
     # ############################################################################
 
@@ -6257,7 +6243,7 @@ install_pc_file() {
                         printf '%s\n' "$Y" >&7
                 esac
         esac
-    done < "$PACKAGE_MANIFEST_FILEPATH"
+    done < "$PACKAGE_INSTALLED_MANIFEST_FILEPATH"
 
     exec 7>&-
 }
@@ -7380,7 +7366,7 @@ main() {
 
     XCPKG="$CURRENT_SCRIPT_FILEPATH"
 
-    XCPKG_VERSION=0.13.0
+    XCPKG_VERSION=0.13.1
 
     XCPKG_OFFICAL_FORMULA_REPO_URL='https://github.com/leleliu008/xcpkg-formula-repository-offical-core'
 
@@ -7418,6 +7404,7 @@ main() {
     unset IPHONEOS_DEPLOYMENT_TARGET
     unset  WATCHOS_DEPLOYMENT_TARGET
 
+    XCPKG_ACTION="$1"
 
     case $1 in
         ''|--help|-h)
