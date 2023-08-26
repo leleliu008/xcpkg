@@ -2532,7 +2532,7 @@ __fetch_resources_of_the_given_package() {
             OUTPUT_FILETYPE='tar.xz'
         fi
 
-        OUTPUT_DIR="$XCPKG_HOME/packed"
+        OUTPUT_DIR="$PWD"
         OUTPUT_FILENAME="$PACKED_DIR_NAME.$OUTPUT_FILETYPE"
     else
         if [ -d "$OUTPUT_FILEPATH" ] ; then
@@ -2623,8 +2623,8 @@ __fetch_resources_of_the_given_package() {
         run install -d "$OUTPUT_DIR"
     fi
 
-    step "copy packed file to output dir"
-    run cp "$OUTPUT_FILENAME" "$OUTPUT_DIR/"
+    step "move packed file to output dir"
+    run mv "$OUTPUT_FILENAME" "$OUTPUT_DIR/"
 
     if [ "$KEEP_WORKING_DIR" = yes ] ; then
         printf '\n'
@@ -7376,17 +7376,22 @@ ${COLOR_GREEN}xcpkg tree <PACKAGE-SPEC> [--dirsfirst | -L N]${COLOR_OFF}
 ${COLOR_GREEN}xcpkg logs <PACKAGE-SPEC>${COLOR_OFF}
     show logs of the given installed package.
 
-${COLOR_GREEN}xcpkg pack <PACKAGE-SPEC> [--keep-working-dir] [-t <zip|tar.gz|tar.xz|tar.lz|tar.bz2>] [-o <OUTPUT-PATH>]${COLOR_OFF}
+${COLOR_GREEN}xcpkg pack <PACKAGE-SPEC> [--keep-working-dir] [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>]${COLOR_OFF}
     pack the given installed package.
 
-    <OUTPUT-PATH> can be either the filepath or directory where the packed archive will be written to. If <OUTPUT-PATH> is an existing directory or ends with slash, then it will be treated as a directory, otherwize, it will be treated as a filepath.
+    <OUTPUT-TYPE> must ends with one of tar.gz tar.xz tar.lz tar.bz2 zip
 
-    If -t <OUTPUT-TYPE> option is not given but -o <OUTPUT-PATH> option is given, if <OUTPUT-PATH> is treated as a filepath, then <OUTPUT-PATH> must ends with one of .tar.gz|.tar.xz|.tar.lz|.tar.bz2|.tgz|.txz|.tlz|.tbz2|zip
+    <OUTPUT-PATH> can be either the filepath or directory which indicates where the packed archive file would be written to.
 
-    If -t <OUTPUT-TYPE> option is not given but -o <OUTPUT-PATH> option is given, if <OUTPUT-PATH> is treated as a directory, then <OUTPUT-TYPE> will be .tar.xz, OUTPUT-PATH will be expanded to <OUTPUT-PATH>/\$XCPKG_HOME/packed/\$PACKAGE_NAME-\$PACKAGE_VERSION-\$TARGET_PLATFORM_NAME-\$TARGET_PLATFORM_ARCH.tar.xz
+    If <OUTPUT-PATH> is an existing directory or ends with slash, then it would be treated as a directory, otherwize, it would be treated as a filepath.
 
-    If -t <OUTPUT-TYPE> and -o <OUTPUT-PATH> options both are not given, <OUTPUT-TYPE> will be .tar.xz, OUTPUT-PATH will be \$XCPKG_HOME/packed/\$PACKAGE_NAME-\$PACKAGE_VERSION-\$TARGET_PLATFORM_NAME-\$TARGET_PLATFORM_ARCH.tar.xz
+    If <OUTPUT-PATH> is treated as a filepath, then it must ends with one of .tar.gz .tar.xz .tar.lz .tar.bz2 .tgz .txz .tlz .tbz2 .zip , in this case, -t <OUTPUT-TYPE> option would be ignored if it also is specified.
 
+    If <OUTPUT-PATH> is treated as a directory, then it would be expanded to <OUTPUT-PATH>/<PACKAGE-NAME>-<PACKAGE-VERSION>-<TARGET-PLATFORM-NAME>-<TARGET-PLATFORM-ARCH><OUTPUT-TYPE>
+
+    If -o <OUTPUT-PATH> option is unspecified, <OUTPUT-PATH> would be assigned to ./<PACKAGE-NAME>-<PACKAGE-VERSION>-<TARGET-PLATFORM-NAME>-<TARGET-PLATFORM-ARCH><OUTPUT-TYPE>
+
+    If -t <OUTPUT-TYPE> option is unspecified, <OUTPUT-TYPE> would be assigned to .tar.xz
 
 
 ======================================
