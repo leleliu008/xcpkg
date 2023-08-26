@@ -3197,7 +3197,7 @@ __upgrade_packages() {
                     TARGET_PLATFORM_VERS="$NATIVE_OS_VERS"
                     TARGET_PLATFORM_ARCH="$NATIVE_OS_ARCH"
 
-                    TARGET_PLATFORM_SPEC="$TARGET_PLATFORM_NAME/$TARGET_PLATFORM_VERS/$TARGET_PLATFORM_ARCH"
+                    TARGET_PLATFORM_SPEC="$TARGET_PLATFORM_NAME:$TARGET_PLATFORM_VERS:$TARGET_PLATFORM_ARCH"
 
                     PACKAGE_SPEC="$1:$TARGET_PLATFORM_SPEC"
                 else
@@ -3244,7 +3244,7 @@ __upgrade_packages() {
                                 abort 1 "you have set XCPKG_DEFAULT_TARGET_PLATFORM_SPEC=$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC , but it is an invalid package-spec."
                             fi
 
-                            TARGET_PLATFORM_SPEC="$TARGET_PLATFORM_NAME/$TARGET_PLATFORM_VERS/$TARGET_PLATFORM_ARCH"
+                            TARGET_PLATFORM_SPEC="$TARGET_PLATFORM_NAME:$TARGET_PLATFORM_VERS:$TARGET_PLATFORM_ARCH"
                             PACKAGE_SPEC="$1:$TARGET_PLATFORM_SPEC"
                             ;;
                         *) abort 1 "you have set XCPKG_DEFAULT_TARGET_PLATFORM_SPEC=$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC , but it is an invalid package-spec."
