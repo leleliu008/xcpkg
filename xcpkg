@@ -3974,7 +3974,7 @@ EOF
     for TOOL in PROXIED_CC PROXIED_OBJC PROXIED_CXX CC OBJC CXX CPP AS AR RANLIB LD NM STRIP SIZE STRINGS OBJDUMP SYSROOT
     do
         export "${TOOL}_FOR_BUILD"
-        printf "%17s = %s\n" "${TOOL}_FOR_BUILD" "$(eval echo \$"${TOOL}_FOR_BUILD")"
+        printf "%22s = %s\n" "${TOOL}_FOR_BUILD" "$(eval echo \$"${TOOL}_FOR_BUILD")"
     done
 
     #########################################################################################
@@ -4763,7 +4763,7 @@ $PACKAGE_BUILD0_ACTIONS
     for TOOL in PROXIED_CC PROXIED_OBJC PROXIED_CXX CC OBJC CXX CPP AS AR RANLIB LD NM STRIP SIZE STRINGS OBJDUMP SYSROOT
     do
         export "$TOOL"
-        printf "%7s = %s\n" "${TOOL}" "$(eval echo \$"${TOOL}")"
+        printf "%12s = %s\n" "${TOOL}" "$(eval echo \$"${TOOL}")"
     done
 
     #########################################################################################
