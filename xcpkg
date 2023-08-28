@@ -543,21 +543,17 @@ version_match() {
 
     XCPKG_FORMULA_REPO_PATH="$XCPKG_HOME/repos.d/$XCPKG_FORMULA_REPO_NAME"
 
-    [ -d "$XCPKG_FORMULA_REPO_PATH" ] && abort 1 "'$XCPKG_FORMULA_REPO_NAME' formula repository already exists."
+    if [ -d "$XCPKG_FORMULA_REPO_PATH" ] ; then
+        abort 1 "$XCPKG_FORMULA_REPO_NAME named formula repository already exists."
+    fi
 
     printf '%b\n' "${COLOR_PURPLE}==> Adding formula repository${COLOR_OFF} ${COLOR_GREEN}$XCPKG_FORMULA_REPO_NAME${COLOR_OFF}"
 
-    run install -d "$XCPKG_FORMULA_REPO_PATH"
+    WORKING_DIR="$XCPKG_HOME/run/$$/$XCPKG_FORMULA_REPO_NAME"
 
-    __create_a_formula_repository_then_sync_it_onexit() {
-        if [ ! -f  "$XCPKG_FORMULA_REPO_PATH/.xcpkg-formula-repo.yml" ] ; then
-            rm -rf "$XCPKG_FORMULA_REPO_PATH/"
-        fi
-    }
-
-    trap __create_a_formula_repository_then_sync_it_onexit EXIT
-
-    run cd "$XCPKG_FORMULA_REPO_PATH"
+    run rm -rf     "$WORKING_DIR"
+    run install -d "$WORKING_DIR"
+    run cd         "$WORKING_DIR"
 
     run git -c init.defaultBranch=master init
     run git remote add origin "$GIT_FETCH_URL"
@@ -571,6 +567,9 @@ pinned: $XCPKG_FORMULA_REPO_PINNED
 enabled: $XCPKG_FORMULA_REPO_ENABLED
 timestamp-created: $TIMESTAMP_UNIX
 EOF
+
+    run install -d        "$XCPKG_FORMULA_REPO_ROOT"
+    run mv "$WORKING_DIR" "$XCPKG_FORMULA_REPO_ROOT/"
 }
 
 # }}}
@@ -625,13 +624,17 @@ EOF
 
     XCPKG_FORMULA_REPO_PATH="$XCPKG_HOME/repos.d/$XCPKG_FORMULA_REPO_NAME"
 
-    [ -d "$XCPKG_FORMULA_REPO_PATH" ] && abort 1 "'$XCPKG_FORMULA_REPO_NAME' formula repository already exists."
+    if [ -d "$XCPKG_FORMULA_REPO_PATH" ] ; then
+        abort 1 "$XCPKG_FORMULA_REPO_NAME named formula repository already exists."
+    fi
 
     printf '%b\n' "${COLOR_PURPLE}==> Creating formula repository${COLOR_OFF} ${COLOR_GREEN}$XCPKG_FORMULA_REPO_NAME${COLOR_OFF}"
 
-    run install -d "$XCPKG_FORMULA_REPO_PATH"
+    WORKING_DIR="$XCPKG_HOME/run/$$/$XCPKG_FORMULA_REPO_NAME"
 
-    run cd "$XCPKG_FORMULA_REPO_PATH"
+    run rm -rf     "$WORKING_DIR"
+    run install -d "$WORKING_DIR"
+    run cd         "$WORKING_DIR"
 
     run git -c init.defaultBranch=master init
     run git remote add origin "$XCPKG_FORMULA_REPO_URL"
@@ -643,6 +646,9 @@ pinned: $XCPKG_FORMULA_REPO_PINNED
 enabled: $XCPKG_FORMULA_REPO_ENABLED
 timestamp-created: $TIMESTAMP_UNIX
 EOF
+
+    run install -d        "$XCPKG_FORMULA_REPO_ROOT"
+    run mv "$WORKING_DIR" "$XCPKG_FORMULA_REPO_ROOT/"
 }
 
 # }}}
@@ -2673,17 +2679,15 @@ __fetch_resources_of_the_given_package() {
 
     wfetch "$1" --output-filename=self
 
-    __upgrade_self_exit() {
-        if [ -w "$CURRENT_SCRIPT_REALPATH" ] ; then
-            run      install -m 755 self "$CURRENT_SCRIPT_REALPATH"
-        else
-            run sudo install -m 755 self "$CURRENT_SCRIPT_REALPATH"
-        fi
+    run chmod 755 self
 
-        run rm -rf "$WORKING_DIR"
-    }
+    if [ -w "$CURRENT_SCRIPT_REALPATH" ] ; then
+        run      mv self "$CURRENT_SCRIPT_REALPATH"
+    else
+        run sudo mv self "$CURRENT_SCRIPT_REALPATH"
+    fi
 
-    trap __upgrade_self_exit EXIT
+    run rm -rf "$WORKING_DIR"
 }
 
 # }}}
@@ -7548,7 +7552,7 @@ main() {
 
     XCPKG="$CURRENT_SCRIPT_FILEPATH"
 
-    XCPKG_VERSION=0.13.5
+    XCPKG_VERSION=0.13.6
 
     XCPKG_OFFICAL_FORMULA_REPO_URL='https://github.com/leleliu008/xcpkg-formula-repository-offical-core'
 
