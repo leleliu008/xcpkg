@@ -254,7 +254,10 @@ wfetch() {
     done
 
     if [ -z "$FETCH_URI" ] ; then
-        FETCH_URI="$FETCH_URL"
+        # remove query params
+        FETCH_URL__="${FETCH_URL%%'?'*}"
+
+        FETCH_URI="https://fossies.org/linux/misc/${FETCH_URL__##*/}"
     fi
 
     if [ -z "$FETCH_OUTPUT_FILEPATH" ] ; then
@@ -7545,7 +7548,7 @@ main() {
 
     XCPKG="$CURRENT_SCRIPT_FILEPATH"
 
-    XCPKG_VERSION=0.13.4
+    XCPKG_VERSION=0.13.5
 
     XCPKG_OFFICAL_FORMULA_REPO_URL='https://github.com/leleliu008/xcpkg-formula-repository-offical-core'
 
