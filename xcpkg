@@ -3919,13 +3919,21 @@ EOF
 
 __install_the_given_package_onexit() {
     if [ "$DRYRUN" != yes ] ; then
-        is_package_installed "$PACKAGE_SPEC" || abort 1 "package installation failure: $PACKAGE_SPEC\n    you would probably want to figure out want had happeded, please change to the working directory: $PACKAGE_WORKING_DIR"
+        is_package_installed "$PACKAGE_SPEC" || {
+            abort 1 "package installation failure: $PACKAGE_SPEC\n"
+
+            if [ -n "$PACKAGE_WORKING_DIR"] ; then
+                printf '%b\n' "${COLOR_RED}you would probably want to figure out want had happeded, please change to the working directory: $PACKAGE_WORKING_DIR${COLOR_OFF}"
+            fi
+        }
     fi
 }
 
 # Note: this function must run in a subshell
 __install_the_given_package() {
     printf '%b\n' "${COLOR_PURPLE}=============== Installing ${COLOR_OFF}${COLOR_GREEN}${1}${COLOR_OFF}${COLOR_PURPLE} ===============${COLOR_OFF}"
+
+    unset PACKAGE_WORKING_DIR
 
     trap  __install_the_given_package_onexit EXIT
 
@@ -7573,7 +7581,7 @@ main() {
 
     XCPKG="$CURRENT_SCRIPT_FILEPATH"
 
-    XCPKG_VERSION=0.13.8
+    XCPKG_VERSION=0.13.9
 
     XCPKG_OFFICAL_FORMULA_REPO_URL='https://github.com/leleliu008/xcpkg-formula-repository-offical-core'
 
