@@ -171,7 +171,7 @@ function _xcpkg() {
                         '1:package-name:_xcpkg_installed_packages' \
                         '-t[set output type]:output-type:(zip tar.gz tar.xz tar.lz tar.bz2)' \
                         '-o[set output filepath or directory]:output-path:_files' \
-                        '--keep-working-dir[do not delete the working directory even if successfully packed]'
+                        '--keep-session-dir[do not delete the session directory even if successfully packed]'
                     ;;
                 tree)
                     _arguments \
@@ -190,7 +190,7 @@ function _xcpkg() {
                         '--toolchain=-[set which toolchain to use]:toolchain:(zig gcc llvm)' \
                         '--jobs=-[set the number of jobs you can run in parallel]:jobs:(1 2 3 4 5 6 7 8 9)' \
                         '--dry-run[dry-run]' \
-                        '--keep-working-dir[do not delete the working directory even if successfully installed]' \
+                        '--keep-session-dir[do not delete the session directory even if successfully installed]' \
                         '--build-type=-[set build type]:build-type:(debug release)' \
                         '--link-type=-[link static or shared library]:link-type:(static-only shared-only static-prefered shared-prefered)' \
                         '--export-compile-commands-json[generates compile_commands.json]' \
@@ -206,7 +206,7 @@ function _xcpkg() {
                         '--toolchain=-[set which toolchain to use]:toolchain:(zig gcc llvm)' \
                         '--jobs=-[set the number of jobs you can run in parallel]:jobs:(1 2 3 4 5 6 7 8 9)' \
                         '--dry-run[dry-run]' \
-                        '--keep-working-dir[do not delete the working directory even if successfully installed]' \
+                        '--keep-session-dir[do not delete the session directory even if successfully installed]' \
                         '--build-type=-[set build type]:build-type:(debug release)' \
                         '--link-type=-[link static or shared library]:link-type:(static-only shared-only static-prefered shared-prefered)' \
                         '--export-compile-commands-json[generates compile_commands.json]' \
@@ -221,7 +221,7 @@ function _xcpkg() {
                         ':package-name:_xcpkg_outdated_packages' \
                         '--jobs=-[set the number of jobs you can run in parallel]:jobs:(1 2 3 4 5 6 7 8 9)' \
                         '--dry-run[dry-run]' \
-                        '--keep-working-dir[do not delete the working directory even if successfully installed]' \
+                        '--keep-session-dir[do not delete the session directory even if successfully installed]' \
                         '--build-type=-[set build type]:build-type:(debug release)' \
                         '--link-type=-[link static or shared library]:link-type:(static-only shared-only static-prefered shared-prefered)' \
                         '--export-compile-commands-json[generates compile_commands.json]' \

@@ -210,10 +210,7 @@ wfetch() {
                 ;;
             --uri=*)
                 FETCH_URI="${1#*=}"
-                if [ -z "$FETCH_URI" ] ; then
-                    abort 1 "wfetch <URL> --uri=<URL-MIRROR> , <URL-MIRROR> must be non-empty."
-                fi
-                if [ -n "$XCPKG_URL_TRANSFORM" ] ; then
+                if [ -n "$FETCH_URI" ] && [ -n "$XCPKG_URL_TRANSFORM" ] ; then
                     FETCH_URI="$("$XCPKG_URL_TRANSFORM" "$FETCH_URI")" || return 1
                 fi
                 ;;
@@ -549,11 +546,11 @@ version_match() {
 
     printf '%b\n' "${COLOR_PURPLE}==> Adding formula repository${COLOR_OFF} ${COLOR_GREEN}$XCPKG_FORMULA_REPO_NAME${COLOR_OFF}"
 
-    WORKING_DIR="$XCPKG_HOME/run/$$/$XCPKG_FORMULA_REPO_NAME"
+    SESSION_DIR="$XCPKG_HOME/run/$$/$XCPKG_FORMULA_REPO_NAME"
 
-    run rm -rf     "$WORKING_DIR"
-    run install -d "$WORKING_DIR"
-    run cd         "$WORKING_DIR"
+    run rm -rf     "$SESSION_DIR"
+    run install -d "$SESSION_DIR"
+    run cd         "$SESSION_DIR"
 
     run git -c init.defaultBranch=master init
     run git remote add origin "$GIT_FETCH_URL"
@@ -569,7 +566,7 @@ timestamp-created: $TIMESTAMP_UNIX
 EOF
 
     run install -d        "$XCPKG_FORMULA_REPO_ROOT"
-    run mv "$WORKING_DIR" "$XCPKG_FORMULA_REPO_ROOT/"
+    run mv "$SESSION_DIR" "$XCPKG_FORMULA_REPO_ROOT/"
 }
 
 # }}}
@@ -630,11 +627,11 @@ EOF
 
     printf '%b\n' "${COLOR_PURPLE}==> Creating formula repository${COLOR_OFF} ${COLOR_GREEN}$XCPKG_FORMULA_REPO_NAME${COLOR_OFF}"
 
-    WORKING_DIR="$XCPKG_HOME/run/$$/$XCPKG_FORMULA_REPO_NAME"
+    SESSION_DIR="$XCPKG_HOME/run/$$/$XCPKG_FORMULA_REPO_NAME"
 
-    run rm -rf     "$WORKING_DIR"
-    run install -d "$WORKING_DIR"
-    run cd         "$WORKING_DIR"
+    run rm -rf     "$SESSION_DIR"
+    run install -d "$SESSION_DIR"
+    run cd         "$SESSION_DIR"
 
     run git -c init.defaultBranch=master init
     run git remote add origin "$XCPKG_FORMULA_REPO_URL"
@@ -648,7 +645,7 @@ timestamp-created: $TIMESTAMP_UNIX
 EOF
 
     run install -d        "$XCPKG_FORMULA_REPO_ROOT"
-    run mv "$WORKING_DIR" "$XCPKG_FORMULA_REPO_ROOT/"
+    run mv "$SESSION_DIR" "$XCPKG_FORMULA_REPO_ROOT/"
 }
 
 # }}}
@@ -919,8 +916,6 @@ filetype_from_url() {
     unset PACKAGE_GIT_REF
     unset PACKAGE_GIT_NTH
 
-    unset PACKAGE_SVN_URL
-
     unset PACKAGE_SRC_URL
     unset PACKAGE_SRC_URI
     unset PACKAGE_SRC_SHA
@@ -929,12 +924,14 @@ filetype_from_url() {
     unset PACKAGE_SRC_FILEPATH
 
     unset PACKAGE_FIX_URL
+    unset PACKAGE_FIX_URI
     unset PACKAGE_FIX_SHA
     unset PACKAGE_FIX_FILENAME
     unset PACKAGE_FIX_FILETYPE
     unset PACKAGE_FIX_FILEPATH
 
     unset PACKAGE_RES_URL
+    unset PACKAGE_RES_URI
     unset PACKAGE_RES_SHA
     unset PACKAGE_RES_FILENAME
     unset PACKAGE_RES_FILETYPE
@@ -952,8 +949,6 @@ filetype_from_url() {
 
     unset PACKAGE_BSYSTEM
 
-    unset PACKAGE_SYMLINK
-
     unset PACKAGE_BUILD_SYSTEM
     unset PACKAGE_BUILD_SYSTEM_GO
     unset PACKAGE_BUILD_SYSTEM_RAKE
@@ -966,9 +961,10 @@ filetype_from_url() {
     unset PACKAGE_BUILD_SYSTEM_AUTOGENSH
     unset PACKAGE_BUILD_SYSTEM_AUTOTOOLS
     unset PACKAGE_BUILD_SYSTEM_CONFIGURE
-    unset PACKAGE_BUILD_SYSTEM_NDK_BUILD
 
-    # dir relative to $PACKAGE_WORKING_DIR, which contains build script such as autogen.sh, configure, Makefile, CMakeLists.txt, meson.build, Cargo.toml, xmake.lua, etc.
+    unset PACKAGE_SYMLINK
+
+    # dir relative to $PACKAGE_WORKING_DIR/src, which contains build script such as autogen.sh, configure, Makefile, CMakeLists.txt, meson.build, Cargo.toml, xmake.lua, etc.
     unset PACKAGE_BSCRIPT
 
     # if build in build script dir, otherwise build in build dir
@@ -991,15 +987,14 @@ filetype_from_url() {
     # space-separated   xcpkg packages that are depended by this package when installing and/or runtime, which will be installed via xcpkg
     unset PACKAGE_DEP_PKG
 
+    unset PACKAGE_PPFLAGS
     unset PACKAGE_CCFLAGS
     unset PACKAGE_XXFLAGS
-    unset PACKAGE_PPFLAGS
     unset PACKAGE_LDFLAGS
 
-    unset PACKAGE_FORMULA_FILEPATH
-
-    unset -f dopatch
-    unset -f dobuild
+    unset PACKAGE_DONATIVE_ACTIONS
+    unset PACKAGE_DOPATCH_ACTIONS
+    unset PACKAGE_DOBUILD_ACTIONS
 
     #########################################################################################
 
@@ -1009,34 +1004,57 @@ filetype_from_url() {
         PACKAGE_FORMULA_FILEPATH="$2"
     fi
 
-    [ -z "$PACKAGE_FORMULA_FILEPATH" ] && abort 1 "package '$1' is not available."
+    if [ -z "$PACKAGE_FORMULA_FILEPATH" ] ; then
+        abort 1 "package '$1' is not available."
+    fi
 
     #########################################################################################
 
-    for key in summary web-url git-url git-sha git-ref git-nth src-url src-uri src-sha fix-url fix-uri fix-sha res-url res-uri res-sha dep-pkg dep-upp dep-pym dep-plm license version bsystem bscript binbstd ccflags xxflags ppflags ldflags parallel symlink
-    do
-        unset __KEY_UPPERCASE_UNDERSCORE__
-        unset __VALUE__
+    PACKAGE_SUMMARY="$(yq '.summary | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
+    PACKAGE_LICENSE="$(yq '.license | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
+    PACKAGE_VERSION="$(yq '.version | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
 
-        __KEY_UPPERCASE_UNDERSCORE__="$(printf '%s\n' "$key" | tr '-' '_' | tr a-z A-Z)"
-        __VALUE__="$(yq ".$key" "$PACKAGE_FORMULA_FILEPATH")"
+    PACKAGE_WEB_URL="$(yq '.web-url | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
 
-        if [ "$__VALUE__" = null ] ; then
-               __VALUE__=
-        fi
+    PACKAGE_GIT_URL="$(yq '.git-url | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
+    PACKAGE_GIT_SHA="$(yq '.git-sha | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
+    PACKAGE_GIT_REF="$(yq '.git-ref | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
+    PACKAGE_GIT_NTH="$(yq '.git-nth | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
 
-        eval "PACKAGE_$__KEY_UPPERCASE_UNDERSCORE__='$__VALUE__'"
-    done
+    PACKAGE_SRC_URL="$(yq '.src-url | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
+    PACKAGE_SRC_URI="$(yq '.src-uri | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
+    PACKAGE_SRC_SHA="$(yq '.src-sha | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
 
-    #########################################################################################
+    PACKAGE_FIX_URL="$(yq '.fix-url | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
+    PACKAGE_FIX_URI="$(yq '.fix-uri | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
+    PACKAGE_FIX_SHA="$(yq '.fix-sha | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
 
-    PACKAGE_BUILD0_ACTIONS=
-    PACKAGE_BUILD0_ACTIONS="$(yq '.build0   | select(. != null)'  "$PACKAGE_FORMULA_FILEPATH")"
+    PACKAGE_RES_URL="$(yq '.res-url | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
+    PACKAGE_RES_URI="$(yq '.res-uri | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
+    PACKAGE_RES_SHA="$(yq '.res-sha | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
 
-    PACKAGE_DOPATCH_ACTIONS=
+    PACKAGE_DEP_PKG="$(yq '.dep-pkg | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
+    PACKAGE_DEP_UPP="$(yq '.dep-upp | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
+    PACKAGE_DEP_PYM="$(yq '.dep-pym | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
+    PACKAGE_DEP_PLM="$(yq '.dep-plm | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
+
+    PACKAGE_BSYSTEM="$(yq '.bsystem | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
+    PACKAGE_BSCRIPT="$(yq '.bscript | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
+    PACKAGE_BINBSTD="$(yq '.binbstd | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
+
+    PACKAGE_CCFLAGS="$(yq '.ccflags | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
+    PACKAGE_XXFLAGS="$(yq '.xxflags | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
+    PACKAGE_PPFLAGS="$(yq '.ppflags | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
+    PACKAGE_LDFLAGS="$(yq '.ldflags | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
+
+    PACKAGE_SYMLINK="$(yq '.symlink | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
+
+    PACKAGE_PARALLEL="$(yq '.parallel | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
+
+    PACKAGE_DEVELOPER="$(yq '.developer | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
+
+    PACKAGE_DONATIVE_ACTIONS="$(yq '.build0 | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
     PACKAGE_DOPATCH_ACTIONS="$(yq '.dopatch | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
-
-    PACKAGE_DOBUILD_ACTIONS=
     PACKAGE_DOBUILD_ACTIONS="$(yq '.install | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
 
     if [ -z "$PACKAGE_BSYSTEM" ] && [ -n "$PACKAGE_DOBUILD_ACTIONS" ] ; then
@@ -1447,17 +1465,18 @@ EOF
     unset PACKAGE_RECEIPT_GIT_URL
     unset PACKAGE_RECEIPT_GIT_SHA
     unset PACKAGE_RECEIPT_GIT_REF
-
-    unset PACKAGE_RECEIPT_SVN_URL
+    unset PACKAGE_RECEIPT_GIT_NTH
 
     unset PACKAGE_RECEIPT_SRC_URL
     unset PACKAGE_RECEIPT_SRC_URI
     unset PACKAGE_RECEIPT_SRC_SHA
 
     unset PACKAGE_RECEIPT_FIX_URL
+    unset PACKAGE_RECEIPT_FIX_URI
     unset PACKAGE_RECEIPT_FIX_SHA
 
     unset PACKAGE_RECEIPT_RES_URL
+    unset PACKAGE_RECEIPT_RES_URI
     unset PACKAGE_RECEIPT_RES_SHA
 
     unset PACKAGE_RECEIPT_DEP_PKG
@@ -1948,12 +1967,17 @@ EOF
     done <<EOF
 PACKAGE_NAME
 PACKAGE_SUMMARY
+PACKAGE_LICENSE
+PACKAGE_VERSION
+PACKAGE_VERSION_MAJOR
+PACKAGE_VERSION_MINOR
+PACKAGE_VERSION_PATCH
+PACKAGE_VERSION_TWEAK
 PACKAGE_WEB_URL
 PACKAGE_GIT_URL
 PACKAGE_GIT_SHA
 PACKAGE_GIT_REF
 PACKAGE_GIT_NTH
-PACKAGE_SVN_URL
 PACKAGE_SRC_URL
 PACKAGE_SRC_URI
 PACKAGE_SRC_SHA
@@ -1972,13 +1996,6 @@ PACKAGE_RES_SHA
 PACKAGE_RES_FILETYPE
 PACKAGE_RES_FILENAME
 PACKAGE_RES_FILEPATH
-PACKAGE_VERSION
-PACKAGE_VERSION_MAJOR
-PACKAGE_VERSION_MINOR
-PACKAGE_VERSION_PATCH
-PACKAGE_VERSION_TWEAK
-PACKAGE_DEVELOPER
-PACKAGE_LICENSE
 PACKAGE_BSCRIPT
 PACKAGE_BSYSTEM
 PACKAGE_BINBSTD
@@ -1997,11 +2014,15 @@ PACKAGE_BUILD_SYSTEM_CONFIGURE
 PACKAGE_BUILD_IN_BSCRIPT_DIR
 PACKAGE_BUILD_IN_PARALLEL
 PACKAGE_DEP_PKG
+PACKAGE_DEP_UPP
+PACKAGE_DEP_PYM
+PACKAGE_DEP_PLM
 PACKAGE_CCFLAGS
 PACKAGE_XXFLAGS
 PACKAGE_PPFLAGS
 PACKAGE_LDFLAGS
 PACKAGE_FORMULA_FILEPATH
+PACKAGE_DEVELOPER
 EOF
 }
 
@@ -2110,7 +2131,7 @@ __show_packages_depended_by_the_given_package() {
                     OUTPUT_FILEPATH="$1"
                 fi
                 ;;
-            *)  abort 1 "$_0 depends <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>] [--keep-working-dir], unrecognized option: $1"
+            *)  abort 1 "$_0 depends <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>] [--keep-session-dir], unrecognized option: $1"
         esac
         shift
     done
@@ -2287,59 +2308,84 @@ $DOT_CONTENT
             if [ -z "$OUTPUT_FILEPATH" ] ; then
                 printf '%s\n' "$DOT_CONTENT"
             else
-                printf '%s\n' "$DOT_CONTENT" > "$OUTPUT_FILEPATH"
+                SESSION_DIR="$XCPKG_HOME/run/$$"
+
+                rm -rf     "$SESSION_DIR"
+                install -d "$SESSION_DIR"
+                cd         "$SESSION_DIR"
+
+                printf '%s\n' "$DOT_CONTENT" > dependencies.dot
+
+                mv dependencies.dot "$OUTPUT_FILEPATH"
+
+                rm -rf "$SESSION_DIR"
             fi
             ;;
         box)
             if [ -z "$OUTPUT_FILEPATH" ] ; then
-                CURL_OPTS=
+                # https://github.com/ggerganov/dot-to-ascii
+                curl \
+                    -s \
+                    -G \
+                    --data-urlencode "boxart=1" \
+                    --data-urlencode "src=$DOT_CONTENT" \
+                    'https://dot-to-ascii.ggerganov.com/dot-to-ascii.php'
             else
-                CURL_OPTS="-o dependencies.box"
-            fi
+                SESSION_DIR="$XCPKG_HOME/run/$$"
 
-            # https://github.com/ggerganov/dot-to-ascii
-            curl $CURL_OPTS \
-                -s \
-                -G \
-                --data-urlencode "boxart=1" \
-                --data-urlencode "src=$DOT_CONTENT" \
-                "https://dot-to-ascii.ggerganov.com/dot-to-ascii.php"
+                rm -rf     "$SESSION_DIR"
+                install -d "$SESSION_DIR"
+                cd         "$SESSION_DIR"
 
-            if [ -n "$OUTPUT_FILEPATH" ] ; then
-                run mv dependencies.box "$OUTPUT_FILEPATH"
+                # https://github.com/ggerganov/dot-to-ascii
+                curl \
+                    -s \
+                    -G \
+                    -o dependencies.box \
+                    --data-urlencode "boxart=1" \
+                    --data-urlencode "src=$DOT_CONTENT" \
+                    'https://dot-to-ascii.ggerganov.com/dot-to-ascii.php'
+
+                mv dependencies.box "$OUTPUT_FILEPATH"
+
+                rm -rf "$SESSION_DIR"
             fi
             ;;
         svg)
-            WORKING_DIR="$XCPKG_HOME/run/$$"
+            SESSION_DIR="$XCPKG_HOME/run/$$"
 
-            rm -rf     "$WORKING_DIR"
-            install -d "$WORKING_DIR"
-            cd         "$WORKING_DIR"
+            rm -rf     "$SESSION_DIR"
+            install -d "$SESSION_DIR"
+            cd         "$SESSION_DIR"
 
             printf '%s\n' "$DOT_CONTENT" > dependencies.dot
 
             if [ -z "$OUTPUT_FILEPATH" ] ; then
-                run dot -Tsvg dependencies.dot
+                dot -Tsvg dependencies.dot
             else
-                run dot -Tsvg -o dependencies.svg dependencies.dot
-                run mv dependencies.svg "$OUTPUT_FILEPATH"
+                dot -Tsvg -o dependencies.svg dependencies.dot
+                mv dependencies.svg "$OUTPUT_FILEPATH"
             fi
+
+            rm -rf "$SESSION_DIR"
             ;;
         png)
-            WORKING_DIR="$XCPKG_HOME/run/$$"
+            SESSION_DIR="$XCPKG_HOME/run/$$"
 
-            rm -rf     "$WORKING_DIR"
-            install -d "$WORKING_DIR"
-            cd         "$WORKING_DIR"
+            rm -rf     "$SESSION_DIR"
+            install -d "$SESSION_DIR"
+            cd         "$SESSION_DIR"
 
             printf '%s\n' "$DOT_CONTENT" > dependencies.dot
 
             if [ -z "$OUTPUT_FILEPATH" ] ; then
-                run dot -Tpng dependencies.dot
+                dot -Tpng dependencies.dot
             else
-                run dot -Tpng -o dependencies.png dependencies.dot
-                run mv dependencies.png "$OUTPUT_FILEPATH"
+                dot -Tpng -o dependencies.png dependencies.dot
+                mv dependencies.png "$OUTPUT_FILEPATH"
             fi
+
+            rm -rf "$SESSION_DIR"
     esac
 }
 
@@ -2348,11 +2394,32 @@ $DOT_CONTENT
 ##############################################################################
 # {{{ xcpkg fetch
 
-# fetch source code if needed
-__fetch_sources_of_the_given_package() {
-    case $PACKAGE_SRC_FILETYPE in
-        .dir) note "$PACKAGE_SRC_URL is local path, no need to fetch." ;;
-        .git)
+__fetch_resources_of_the_given_package() {
+    if [ -z "$1" ] ; then
+        abort 1 "__fetch_resources_of_the_given_package <PACKAGE-NAME>, <PACKAGE-NAME> is unspecified."
+    fi
+
+    if [ "$1" = '@all' ] ; then
+        shift
+
+        unset STEP_NUM
+
+        for PKG in $(__list_available_packages)
+        do
+            step "fetching resources for package : $PKG"
+            __fetch_resources_of_the_given_package "$PKG"
+        done
+    else
+        __load_formula_of_the_given_package "$1"
+
+        if [ "$PACKAGE_SRC_FILETYPE" = '.dir' ] ; then
+            note "$PACKAGE_SRC_URL is local path, no need to fetch."
+            return 0
+        fi
+
+        SESSION_DIR="$XCPKG_HOME/run/$$/$1"
+
+        if [ -z "$PACKAGE_SRC_URL" ] ; then
             unset GIT_FETCH_URL
 
             if [ -z "$XCPKG_URL_TRANSFORM" ] ; then
@@ -2374,10 +2441,6 @@ __fetch_sources_of_the_given_package() {
                 GIT_REF_SPEC="+$PACKAGE_GIT_SHA:refs/remotes/origin/master"
             fi
 
-            if [ -z "$PACKAGE_GIT_NTH" ] ; then
-                PACKAGE_GIT_NTH=1
-            fi
-
             if [ "$PACKAGE_GIT_NTH" -eq 0 ] ; then
                 if [ -f "$PACKAGE_SRC_FILEPATH/.git/shallow" ] ; then
                     GIT_FETCH_EXTRA_OPTIONS='--unshallow'
@@ -2388,64 +2451,30 @@ __fetch_sources_of_the_given_package() {
                 GIT_FETCH_EXTRA_OPTIONS="--depth=$PACKAGE_GIT_NTH"
             fi
 
-            if [ -d "$PACKAGE_SRC_FILEPATH" ] ; then
-                if git -C "$PACKAGE_SRC_FILEPATH" rev-parse HEAD > /dev/null 2>&1 ; then
-                    if [ -n "$PACKAGE_GIT_SHA" ] && [ "$PACKAGE_GIT_SHA" = "$(git -C "$PACKAGE_SRC_FILEPATH" rev-parse HEAD)" ] ; then
-                        success "$PACKAGE_SRC_FILEPATH already have been fetched."
-                        return 0
-                    fi
-                else
-                    run rm -rf     "$PACKAGE_SRC_FILEPATH" || return 1
-                    run install -d "$PACKAGE_SRC_FILEPATH" || return 1
-                    run git -C     "$PACKAGE_SRC_FILEPATH" -c init.defaultBranch=master init || return 1
-                    run git -C     "$PACKAGE_SRC_FILEPATH" remote add origin "$GIT_FETCH_URL" || return 1
-                fi
-            else
-                run install -d "$PACKAGE_SRC_FILEPATH" || return 1
-                run git -C     "$PACKAGE_SRC_FILEPATH" -c init.defaultBranch=master init || return 1
-                run git -C     "$PACKAGE_SRC_FILEPATH" remote add origin "$GIT_FETCH_URL" || return 1
-            fi
+            run rm -rf     "$SESSION_DIR"
+            run install -d "$SESSION_DIR"
+            run cd         "$SESSION_DIR"
+            run git -c init.defaultBranch=master init
+            run git remote add origin "$GIT_FETCH_URL"
+            run git -c protocol.version=2 fetch --progress $GIT_FETCH_EXTRA_OPTIONS origin "$GIT_REF_SPEC"
+            run git checkout --progress --force -B "$GIT_BRANCH_NAME" "refs/remotes/origin/$GIT_BRANCH_NAME"
+            run git submodule update --init
+        else
+            wfetch "$PACKAGE_SRC_URL" --sha256="$PACKAGE_SRC_SHA" --buffer-dir="$SESSION_DIR" --output-filepath="$PACKAGE_SRC_FILEPATH" --uri="$PACKAGE_SRC_URI"
+        fi
 
-            run git -C "$PACKAGE_SRC_FILEPATH" -c protocol.version=2 fetch --progress $GIT_FETCH_EXTRA_OPTIONS origin "$GIT_REF_SPEC" || return 1
-            run git -C "$PACKAGE_SRC_FILEPATH" checkout --progress --force -B "$GIT_BRANCH_NAME" "refs/remotes/origin/$GIT_BRANCH_NAME" || return 1
-            run git -C "$PACKAGE_SRC_FILEPATH" submodule update --init || return 1
-            ;;
-        *)  if [ -z    "$PACKAGE_SRC_URI" ] ; then
-                wfetch "$PACKAGE_SRC_URL" --sha256="$PACKAGE_SRC_SHA" --buffer-dir="$PACKAGE_WORKING_DIR" --output-filepath="$PACKAGE_SRC_FILEPATH"
-            else
-                wfetch "$PACKAGE_SRC_URL" --sha256="$PACKAGE_SRC_SHA" --buffer-dir="$PACKAGE_WORKING_DIR" --output-filepath="$PACKAGE_SRC_FILEPATH" --uri="$PACKAGE_SRC_URI"
-            fi
-    esac
-}
+        if [ -n    "$PACKAGE_FIX_URL" ] ; then
+            wfetch "$PACKAGE_FIX_URL" --sha256="$PACKAGE_FIX_SHA" --buffer-dir="$SESSION_DIR" --output-filepath="$PACKAGE_FIX_FILEPATH" --uri="$PACKAGE_FIX_URI"
+        fi
 
-__fetch_patches_of_the_given_package() {
-    if [ -n    "$PACKAGE_FIX_URL" ] ; then
-        wfetch "$PACKAGE_FIX_URL" --sha256="$PACKAGE_FIX_SHA" --buffer-dir="$PACKAGE_WORKING_DIR" --output-filepath="$PACKAGE_FIX_FILEPATH"
+        if [ -n    "$PACKAGE_RES_URL" ] ; then
+            wfetch "$PACKAGE_RES_URL" --sha256="$PACKAGE_RES_SHA" --buffer-dir="$SESSION_DIR" --output-filepath="$PACKAGE_RES_FILEPATH" --uri="$PACKAGE_RES_URI"
+        fi
+
+        if [    -d "$SESSION_DIR" ] ; then
+            rm -rf "$SESSION_DIR"
+        fi
     fi
-    if [ -n    "$PACKAGE_RES_URL" ] ; then
-        wfetch "$PACKAGE_RES_URL" --sha256="$PACKAGE_RES_SHA" --buffer-dir="$PACKAGE_WORKING_DIR" --output-filepath="$PACKAGE_RES_FILEPATH"
-    fi
-}
-
-__fetch_resources_of_the_given_package() {
-    case $1 in
-        '') abort 1 "__fetch_resources_of_the_given_package <PACKAGE-NAME>, <PACKAGE-NAME> is unspecified."
-            ;;
-        @all)
-            shift
-            unset STEP_NUM
-            for PKG in $(__list_available_packages)
-            do
-                step "fetching resources for package : $PKG"
-                __fetch_resources_of_the_given_package "$PKG"
-            done
-            ;;
-        *)
-            PACKAGE_WORKING_DIR="$XCPKG_HOME/run/$$"
-             __load_formula_of_the_given_package "$1"
-            __fetch_sources_of_the_given_package "$@"
-            __fetch_patches_of_the_given_package "$@"
-    esac
 }
 
 # }}}
@@ -2494,7 +2523,7 @@ __fetch_resources_of_the_given_package() {
 # {{{ xcpkg pack
 
 # examples:
-# __pack_the_given_installed_package <PACKAGE-NAME|PACKAGE-SPEC> [-t <zip|tar.gz|tar.xz|tar.lz|tar.bz2>] [-o <OUTPUT-PATH>] [--keep-working-dir]
+# __pack_the_given_installed_package <PACKAGE-NAME|PACKAGE-SPEC> [-t <zip|tar.gz|tar.xz|tar.lz|tar.bz2>] [-o <OUTPUT-PATH>] [--keep-session-dir]
 # __pack_the_given_installed_package    autoconf     -t tar.xz
   __pack_the_given_installed_package() {
     __load_receipt_of_the_given_package "$1"
@@ -2508,8 +2537,8 @@ __fetch_resources_of_the_given_package() {
     while [ -n "$1" ]
     do
         case $1 in
-            --keep-working-dir)
-                KEEP_WORKING_DIR=yes
+            --keep-session-dir)
+                KEEP_SESSION_DIR=yes
                 ;;
             -t) shift
 
@@ -2531,7 +2560,7 @@ __fetch_resources_of_the_given_package() {
                     OUTPUT_FILEPATH="$1"
                 fi
                 ;;
-            *)  abort 1 "$_0 pack <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>] [--keep-working-dir], unrecognized option: $1"
+            *)  abort 1 "$_0 pack <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>] [--keep-session-dir], unrecognized option: $1"
         esac
         shift
     done
@@ -2625,13 +2654,13 @@ __fetch_resources_of_the_given_package() {
 
     ###########################################################################################
 
-    step "create the working directory then change to it"
+    step "create the session directory then change to it"
 
-    WORKING_DIR="$XCPKG_HOME/run/$$"
+    SESSION_DIR="$XCPKG_HOME/run/$$"
 
-    run rm -rf     "$WORKING_DIR"
-    run install -d "$WORKING_DIR"
-    run cd         "$WORKING_DIR"
+    run rm -rf     "$SESSION_DIR"
+    run install -d "$SESSION_DIR"
+    run cd         "$SESSION_DIR"
 
     step "make link refer to installed package root dir"
     run ln -s "$PACKAGE_INSTALLED_DIR" "$PACKED_DIR_NAME"
@@ -2664,12 +2693,12 @@ __fetch_resources_of_the_given_package() {
     step "move packed file to output dir"
     run mv "$OUTPUT_FILENAME" "$OUTPUT_DIR/"
 
-    if [ "$KEEP_WORKING_DIR" = yes ] ; then
+    if [ "$KEEP_SESSION_DIR" = yes ] ; then
         printf '\n'
-        note "the working directory '$WORKING_DIR' is not deleted as --keep-working-dir option is given."
+        note "the session directory '$SESSION_DIR' is not deleted as --keep-session-dir option is given."
     else
-        step "delete the working directory"
-        run rm -rf "$WORKING_DIR"
+        step "delete the session directory"
+        run rm -rf "$SESSION_DIR"
     fi
 }
 
@@ -2702,9 +2731,9 @@ __fetch_resources_of_the_given_package() {
 
     WORKING_DIR="$XCPKG_HOME/run/$$"
 
-    run rm -rf     "$WORKING_DIR"
-    run install -d "$WORKING_DIR"
-    run cd         "$WORKING_DIR"
+    run rm -rf     "$SESSION_DIR"
+    run install -d "$SESSION_DIR"
+    run cd         "$SESSION_DIR"
 
     wfetch "$1" --output-filename=self
 
@@ -2716,7 +2745,7 @@ __fetch_resources_of_the_given_package() {
         run sudo mv self "$CURRENT_SCRIPT_REALPATH"
     fi
 
-    run rm -rf "$WORKING_DIR"
+    run rm -rf "$SESSION_DIR"
 }
 
 # }}}
@@ -2775,34 +2804,38 @@ __fetch_resources_of_the_given_package() {
 
     WORKING_DIR="$XCPKG_HOME/run/$$"
 
-    run rm -rf     "$WORKING_DIR"
-    run install -d "$WORKING_DIR"
-    run cd         "$WORKING_DIR"
+    run rm -rf     "$SESSION_DIR"
+    run install -d "$SESSION_DIR"
+    run cd         "$SESSION_DIR"
 
-    wfetch "$ZSH_COMPLETIONS_SCRIPT_URL" --output-filename="$ZSH_COMPLETIONS_SCRIPT_FILENAME"
+    wfetch "$ZSH_COMPLETIONS_SCRIPT_URL" --output-filename=_xcpkg
+
+    run chmod 644 _xcpkg
 
     if [ -f "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH" ] ; then
         if [ -w "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH" ] ; then
-            run      install -m 644 "$ZSH_COMPLETIONS_SCRIPT_FILENAME" "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH"
+            run      mv _xcpkg "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH"
         else
-            run sudo install -m 644 "$ZSH_COMPLETIONS_SCRIPT_FILENAME" "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH"
+            run sudo mv _xcpkg "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH"
         fi
     else
         ZSH_COMPLETIONS_SCRIPT_OUT_DIR="$(dirname "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH")"
+
         if [ ! -d "$ZSH_COMPLETIONS_SCRIPT_OUT_DIR" ] ; then
             run install -d "$ZSH_COMPLETIONS_SCRIPT_OUT_DIR" || run sudo install -d "$ZSH_COMPLETIONS_SCRIPT_OUT_DIR"
         fi
+
         if [ -w "$ZSH_COMPLETIONS_SCRIPT_OUT_DIR" ] ; then
-            run      install -m 644 "$ZSH_COMPLETIONS_SCRIPT_FILENAME" "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH"
+            run      mv _xcpkg "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH"
         else
-            run sudo install -m 644 "$ZSH_COMPLETIONS_SCRIPT_FILENAME" "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH"
+            run sudo mv _xcpkg "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH"
         fi
     fi
 
-    run rm -rf "$WORKING_DIR"
+    run rm -rf "$SESSION_DIR"
 
     printf '\n'
-    note "${COLOR_YELLOW}you need to run command${COLOR_RED} ${COLOR_GREEN}autoload -U compinit && compinit${COLOR_OFF} ${COLOR_YELLOW}in zsh to make it work.${COLOR_OFF}"
+    note "${COLOR_YELLOW}you may need to run command${COLOR_RED} ${COLOR_GREEN}autoload -U compinit && compinit${COLOR_OFF} ${COLOR_YELLOW}in zsh to make it work.${COLOR_OFF}"
 }
 
 # }}}
@@ -2810,14 +2843,15 @@ __fetch_resources_of_the_given_package() {
 # {{{ xcpkg gen-url-transform-sample
 
 __gen_url_transform_sample() {
-    install -d "$XCPKG_HOME"
+    SESSION_DIR="$XCPKG_HOME/run/$$"
 
-    FILEPATH="$XCPKG_HOME/url-transform.sample"
+    rm -rf     "$SESSION_DIR"
+    install -d "$SESSION_DIR"
+    cd         "$SESSION_DIR"
 
-    cat > "$FILEPATH" <<EOF
+    cat > url-transform.sample <<EOF
 #!/bin/sh
 
-# https://ghproxy.com/
 case \$1 in
     *githubusercontent.com/*)
         printf 'https://ghproxy.com/%s\n' "\$1"
@@ -2825,12 +2859,18 @@ case \$1 in
     https://github.com/*)
         printf 'https://ghproxy.com/%s\n' "\$1"
         ;;
-    '') printf '%s\n' "\$0 <URL>, <URL> is unspecified." >&2 ;;
+    '') printf '%s\n' "\$0 <URL>, <URL> is unspecified." >&2 ; exit 1 ;;
     *)  printf '%s\n' "\$1"
 esac
 EOF
 
-    chmod +x "$FILEPATH"
+    chmod +x url-transform.sample
+
+    install -d "$XCPKG_HOME"
+
+    mv url-transform.sample "$XCPKG_HOME/"
+
+    rm -rf "$SESSION_DIR"
 
     success "url-transform sample has been written into $XCPKG_HOME/url-transform.sample"
     note "You can rename url-transform.sample to url-transform then edit it to meet your needs. To apply this, you should run 'export XCPKG_URL_TRANSFORM=$XCPKG_HOME/url-transform' in your terminal."
@@ -3010,6 +3050,12 @@ __reinstall_the_given_packages() {
             rm -rf "$PACKAGE_INSTALLED_REAL_DIR"
         done
     done
+
+    #########################################################################################
+
+    if [ "$KEEP_SESSION_DIR" != yes ] ; then
+        rm -rf "$SESSION_DIR"
+    fi
 }
 
 # }}}
@@ -3146,6 +3192,12 @@ __upgrade_packages() {
             rm -rf "$PACKAGE_INSTALLED_REAL_DIR"
         done
     done
+
+    #########################################################################################
+
+    if [ "$KEEP_SESSION_DIR" != yes ] ; then
+        rm -rf "$SESSION_DIR"
+    fi
 }
 
 # peel_installed_root_dir_for_the_given_package <PACKAGE-NAME|PACKAGE-SPEC>
@@ -3322,7 +3374,7 @@ inspect_install_arguments() {
 
     INSTALL_LIB=static
 
-    KEEP_WORKING_DIR=no
+    KEEP_SESSION_DIR=no
 
     EXPORT_COMPILE_COMMANDS_JSON=no
 
@@ -3344,8 +3396,8 @@ inspect_install_arguments() {
             --dry-run)
                 DRYRUN=yes
                 ;;
-            --keep-working-dir)
-                KEEP_WORKING_DIR=yes
+            --keep-session-dir)
+                KEEP_SESSION_DIR=yes
                 ;;
             --export-compile-commands-json)
                 EXPORT_COMPILE_COMMANDS_JSON=yes
@@ -3520,6 +3572,12 @@ __install_the_given_packages() {
             fi
         done
     done
+
+    #########################################################################################
+
+    if [ "$KEEP_SESSION_DIR" != yes ] ; then
+        rm -rf "$SESSION_DIR"
+    fi
 }
 
 # this function must run in subshell
@@ -3857,7 +3915,7 @@ EOF
 
 __install_the_given_package_onexit() {
     if [ "$DRYRUN" != yes ] ; then
-        is_package_installed "$PACKAGE_SPEC" || abort 1 "package installation failure: $PACKAGE_SPEC"
+        is_package_installed "$PACKAGE_SPEC" || abort 1 "package installation failure: $PACKAGE_SPEC\n    you would probably want to figure out want had happeded, please change to the working directory: $PACKAGE_WORKING_DIR"
     fi
 }
 
@@ -3866,12 +3924,6 @@ __install_the_given_package() {
     printf '%b\n' "${COLOR_PURPLE}=============== Installing ${COLOR_OFF}${COLOR_GREEN}${1}${COLOR_OFF}${COLOR_PURPLE} ===============${COLOR_OFF}"
 
     trap  __install_the_given_package_onexit EXIT
-
-    # Error: The current work directory doesn't exist, cannot proceed.
-    # beacuse previous package's work direcotory is deleted.
-    cd "$HOME"
-
-    #########################################################################################
 
     STATIC_LIBRARY_SUFFIX=.a
     SHARED_LIBRARY_SUFFIX=.dylib
@@ -3882,11 +3934,9 @@ __install_the_given_package() {
         CROSS_COMPILING=yes
     fi
 
-    TARGET_PLATFORM_NAME_LOWER_CASE="$(printf "$TARGET_PLATFORM_NAME" | tr A-Z a-z)"
-
     #########################################################################################
 
-    printf '%s\n' "
+    cat <<EOF
      TIMESTAMP_UNIX = $TIMESTAMP_UNIX
 
      NATIVE_OS_KIND = $NATIVE_OS_KIND
@@ -3910,9 +3960,33 @@ XCPKG_URL_TRANSFORM = $XCPKG_URL_TRANSFORM
              DRYRUN = ${DRYRUN:-no}
      CCACHE_ENABLED = $CCACHE_ENABLED
     CROSS_COMPILING = $CROSS_COMPILING
-   KEEP_WORKING_DIR = $KEEP_WORKING_DIR
+   KEEP_SESSION_DIR = $KEEP_SESSION_DIR
 EXPORT_COMPILE_COMMANDS_JSON = $EXPORT_COMPILE_COMMANDS_JSON
-    "
+EOF
+
+    #########################################################################################
+
+    step "create the working directory and change to it"
+
+    PACKAGE_WORKING_DIR="$SESSION_DIR/$PACKAGE_NAME"
+    PACKAGE_BCACHED_DIR="$PACKAGE_WORKING_DIR/src/_"
+
+    PACKAGE_INSTALLING_SRC_DIR="$PACKAGE_WORKING_DIR/src"
+    PACKAGE_INSTALLING_FIX_DIR="$PACKAGE_WORKING_DIR/fix"
+    PACKAGE_INSTALLING_RES_DIR="$PACKAGE_WORKING_DIR/res"
+    PACKAGE_INSTALLING_BIN_DIR="$PACKAGE_WORKING_DIR/bin"
+    PACKAGE_INSTALLING_LIB_DIR="$PACKAGE_WORKING_DIR/lib"
+    PACKAGE_INSTALLING_INC_DIR="$PACKAGE_WORKING_DIR/include"
+
+    install -d "$PACKAGE_INSTALLING_SRC_DIR"
+    install -d "$PACKAGE_INSTALLING_FIX_DIR"
+    install -d "$PACKAGE_INSTALLING_RES_DIR"
+    install -d "$PACKAGE_INSTALLING_BIN_DIR"
+    install -d "$PACKAGE_INSTALLING_INC_DIR"
+    install -d "$PACKAGE_INSTALLING_LIB_DIR"
+    install -d "$PACKAGE_BCACHED_DIR"
+
+    run cd "$PACKAGE_WORKING_DIR"
 
     #########################################################################################
 
@@ -3927,39 +4001,15 @@ $PACKAGE_SPEC:$$:$PACKAGE_INSTALL_UTS
 EOF
 } | cut -d ' ' -f1)"
 
-    #########################################################################################
-
-    step "create the working directory and change to it"
-
-    PACKAGE_WORKING_DIR="$SESSION_DIR/$PACKAGE_NAME"
     PACKAGE_INSTALL_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_INSTALL_SHA"
 
-    PACKAGE_INSTALLING_SRC_DIR="$PACKAGE_WORKING_DIR/src"
-    PACKAGE_INSTALLING_FIX_DIR="$PACKAGE_WORKING_DIR/fix"
-    PACKAGE_INSTALLING_RES_DIR="$PACKAGE_WORKING_DIR/res"
-    PACKAGE_INSTALLING_BIN_DIR="$PACKAGE_WORKING_DIR/bin"
-    PACKAGE_INSTALLING_LIB_DIR="$PACKAGE_WORKING_DIR/lib"
-    PACKAGE_INSTALLING_INC_DIR="$PACKAGE_WORKING_DIR/include"
-
-    PACKAGE_BCACHED_DIR="$PACKAGE_WORKING_DIR/src/_"
-
-    rm -rf     "$PACKAGE_WORKING_DIR"
-
-    install -d "$PACKAGE_INSTALLING_SRC_DIR"
-    install -d "$PACKAGE_INSTALLING_FIX_DIR"
-    install -d "$PACKAGE_INSTALLING_RES_DIR"
-    install -d "$PACKAGE_INSTALLING_BIN_DIR"
-    install -d "$PACKAGE_INSTALLING_INC_DIR"
-    install -d "$PACKAGE_INSTALLING_LIB_DIR"
-    install -d "$PACKAGE_BCACHED_DIR"
+    #########################################################################################
 
     cat <<EOF
 PACKAGE_WORKING_DIR = $PACKAGE_WORKING_DIR
 PACKAGE_BCACHED_DIR = $PACKAGE_BCACHED_DIR
 PACKAGE_INSTALL_DIR = $PACKAGE_INSTALL_DIR
 EOF
-
-    run cd "$PACKAGE_WORKING_DIR"
 
     #########################################################################################
 
@@ -4571,8 +4621,58 @@ $DOT_CONTENT
     #########################################################################################
 
     step "fetch source/patches/resources from server"
-    __fetch_sources_of_the_given_package "$1"
-    __fetch_patches_of_the_given_package "$1"
+
+    if [ "$PACKAGE_SRC_FILETYPE" = '.dir' ] ; then
+        note "$PACKAGE_SRC_URL is local path, no need to fetch."
+    elif [ -z "$PACKAGE_SRC_URL" ] ; then
+        unset GIT_FETCH_URL
+
+        if [ -z "$XCPKG_URL_TRANSFORM" ] ; then
+            GIT_FETCH_URL="$PACKAGE_GIT_URL"
+        else
+            GIT_FETCH_URL="$("$XCPKG_URL_TRANSFORM" "$PACKAGE_GIT_URL")" || return 1
+        fi
+
+        if [ -z "$PACKAGE_GIT_SHA" ] ; then
+            if [ -z "$PACKAGE_GIT_REF" ] ; then
+                GIT_BRANCH_NAME=master
+                GIT_REF_SPEC="+HEAD:refs/remotes/origin/master"
+            else
+                GIT_BRANCH_NAME="$(basename "$PACKAGE_GIT_REF")"
+                GIT_REF_SPEC="+$PACKAGE_GIT_REF:refs/remotes/origin/$GIT_BRANCH_NAME"
+            fi
+        else
+            GIT_BRANCH_NAME=master
+            GIT_REF_SPEC="+$PACKAGE_GIT_SHA:refs/remotes/origin/master"
+        fi
+
+        if [ "$PACKAGE_GIT_NTH" -eq 0 ] ; then
+            if [ -f "$PACKAGE_SRC_FILEPATH/.git/shallow" ] ; then
+                GIT_FETCH_EXTRA_OPTIONS='--unshallow'
+            else
+                GIT_FETCH_EXTRA_OPTIONS=
+            fi
+        else
+            GIT_FETCH_EXTRA_OPTIONS="--depth=$PACKAGE_GIT_NTH"
+        fi
+
+        run cd "$PACKAGE_INSTALLING_SRC_DIR"
+        run git -c init.defaultBranch=master init
+        run git remote add origin "$GIT_FETCH_URL"
+        run git -c protocol.version=2 fetch --progress $GIT_FETCH_EXTRA_OPTIONS origin "$GIT_REF_SPEC"
+        run git checkout --progress --force -B "$GIT_BRANCH_NAME" "refs/remotes/origin/$GIT_BRANCH_NAME"
+        run git submodule update --init
+    else
+        wfetch "$PACKAGE_SRC_URL" --sha256="$PACKAGE_SRC_SHA" --buffer-dir="$PACKAGE_WORKING_DIR" --output-filepath="$PACKAGE_SRC_FILEPATH" --uri="$PACKAGE_SRC_URI"
+    fi
+
+    if [ -n    "$PACKAGE_FIX_URL" ] ; then
+        wfetch "$PACKAGE_FIX_URL" --sha256="$PACKAGE_FIX_SHA" --buffer-dir="$PACKAGE_WORKING_DIR" --output-filepath="$PACKAGE_FIX_FILEPATH" --uri="$PACKAGE_FIX_URI"
+    fi
+
+    if [ -n    "$PACKAGE_RES_URL" ] ; then
+        wfetch "$PACKAGE_RES_URL" --sha256="$PACKAGE_RES_SHA" --buffer-dir="$PACKAGE_WORKING_DIR" --output-filepath="$PACKAGE_RES_FILEPATH" --uri="$PACKAGE_RES_URI"
+    fi
 
     #########################################################################################
 
@@ -4592,10 +4692,8 @@ $DOT_CONTENT
             ;;
         .git)
             if [ -z "$PACKAGE_GIT_SHA" ] ; then
-                PACKAGE_GIT_SHA=$(git -C "$PACKAGE_SRC_FILEPATH" rev-parse HEAD || true)
+                PACKAGE_GIT_SHA="$(git rev-parse HEAD)"
             fi
-            step "copy source files to the installing src directory"
-            run cp -r "$PACKAGE_SRC_FILEPATH/." "$PACKAGE_INSTALLING_SRC_DIR"
             ;;
         .zip)
             step "uncompressed source file to the installing src directory"
@@ -4609,7 +4707,7 @@ $DOT_CONTENT
             run cp     "$PACKAGE_SRC_FILEPATH"    "$PACKAGE_INSTALLING_SRC_DIR"
     esac
 
-    if [ -n "$PACKAGE_FIX_FILEPATH" ] ; then
+    if [ -n "$PACKAGE_FIX_FILETYPE" ] ; then
         case $PACKAGE_FIX_FILETYPE in
             .zip)
                 step "uncompressed patch file to the installing fix directory"
@@ -4624,7 +4722,7 @@ $DOT_CONTENT
         esac
     fi
 
-    if [ -n "$PACKAGE_RES_FILEPATH" ] ; then
+    if [ -n "$PACKAGE_RES_FILETYPE" ] ; then
         case $PACKAGE_RES_FILETYPE in
             .zip)
                 step "uncompressed res file to the installing res directory"
@@ -4635,7 +4733,7 @@ $DOT_CONTENT
                 run tar xf "$PACKAGE_RES_FILEPATH" -C "$PACKAGE_INSTALLING_RES_DIR" --strip-components 1 --no-same-owner
                 ;;
             *)  step "copy res file to the installing res directory"
-                run cp     "$PACKAGE_RES_FILEPATH"   "$PACKAGE_INSTALLING_RES_DIR"
+                run cp    "$PACKAGE_RES_FILEPATH"   "$PACKAGE_INSTALLING_RES_DIR"
         esac
     fi
 
@@ -4676,15 +4774,17 @@ $DOT_CONTENT
     } && {
         for FILENAME in config.sub config.guess
         do
-            wfetch "http://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=$FILENAME;hb=HEAD" --output-filename="$FILENAME"
+            FILEPATH="$SESSION_DIR/$FILENAME"
 
-            run chmod a+x "$FILENAME"
+            wfetch "http://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=$FILENAME;hb=HEAD" --output-filepath="$FILEPATH"
+
+            run chmod a+x "$FILEPATH"
 
             if [ "$FILENAME" = 'config.sub' ] ; then
-                sed_in_place 's/arm64-*/arm64-*|arm64e-*/g' "$FILENAME"
+                sed_in_place 's/arm64-*/arm64-*|arm64e-*/g' "$FILEPATH"
             fi
 
-            find "$PACKAGE_BSCRIPT_DIR" -name "$FILENAME" -exec cp -vf "$FILENAME" {} \;
+            find "$PACKAGE_BSCRIPT_DIR" -name "$FILENAME" -exec cp -vf "$FILEPATH" {} \;
         done
     }
 
@@ -4694,7 +4794,7 @@ $DOT_CONTENT
 
     if [ "$CROSS_COMPILING" = no ] ; then
         note "not cross compiling, skipped."
-    elif [ -z "$PACKAGE_BUILD0_ACTIONS" ] ; then
+    elif [ -z "$PACKAGE_DONATIVE_ACTIONS" ] ; then
         note "build0 mapping was not found in formula, skipped."
     else
         NATIVE_BCACHED_DIR="$PACKAGE_WORKING_DIR/src/-"
@@ -4706,20 +4806,24 @@ NATIVE_INSTALL_DIR = $NATIVE_INSTALL_DIR
 EOF
 
         eval "
-build0() {
-$PACKAGE_BUILD0_ACTIONS
+do_build_for_native() {
+$PACKAGE_DONATIVE_ACTIONS
 }"
 
-        if [ -f "$NATIVE_PACKAGE_INSTALLED_ROOT/$PACKAGE_NAME/version.txt" ] ; then
-            if [ "$(cat "$NATIVE_PACKAGE_INSTALLED_ROOT/$PACKAGE_NAME/version.txt")" != "$PACKAGE_VERSION" ] ; then
-                note "build for native already have been done, but not same version. I will remove it then rebuild it."
-                run rm -rf "$NATIVE_INSTALL_DIR"
+        NATIVE_INSTALL_NEEDED=yes
+
+        NATIVE_INSTALLED_VERSION_TXT_FILEPATH="$NATIVE_PACKAGE_INSTALLED_ROOT/$PACKAGE_NAME/version.txt"
+
+        if [ -f "$NATIVE_INSTALLED_VERSION_TXT_FILEPATH" ] ; then
+            if [ "$(cat "$NATIVE_INSTALLED_VERSION_TXT_FILEPATH")" = "$PACKAGE_VERSION" ] ; then
+                NATIVE_INSTALL_NEEDED=no
+                note "build for native already have been done, skipped."
+            else
+                note "build for native already have been done, but not the same version, rebuild it."
             fi
         fi
 
-        if [ -f "$NATIVE_INSTALL_DIR/version.txt" ] ; then
-            note "build for native already have been done, skipped."
-        else
+        if [ "$NATIVE_INSTALL_NEEDED" = yes ] ; then
             run install -d "$NATIVE_BCACHED_DIR"
 
             if [ "$PACKAGE_BUILD_IN_BSCRIPT_DIR" = yes ] ; then
@@ -4730,7 +4834,7 @@ $PACKAGE_BUILD0_ACTIONS
                     run cd "$NATIVE_BCACHED_DIR"
             fi
 
-            run build0
+            run do_build_for_native
 
             [ -d "$NATIVE_INSTALL_DIR" ] && {
                 printf '%s\n' "$PACKAGE_VERSION" > "$NATIVE_INSTALL_DIR/version.txt"
@@ -4770,6 +4874,8 @@ $PACKAGE_BUILD0_ACTIONS
     unset STRINGS
     unset OBJDUMP
     unset SYSROOT
+
+    TARGET_PLATFORM_NAME_LOWER_CASE="$(printf "$TARGET_PLATFORM_NAME" | tr A-Z a-z)"
 
          CC="$(xcrun --sdk "$TARGET_PLATFORM_NAME_LOWER_CASE" --find clang)"
        OBJC="$(xcrun --sdk "$TARGET_PLATFORM_NAME_LOWER_CASE" --find clang)"
@@ -5610,193 +5716,45 @@ $PACKAGE_DOBUILD_ACTIONS
 
     #########################################################################################
 
-    step "install COPYING"
+    find "$PACKAGE_INSTALLING_SRC_DIR" -mindepth 1 -maxdepth 1 -iname 'FAQ*'     -exec mv {} "$PACKAGE_METAINFO_DIR/" \;
+    find "$PACKAGE_INSTALLING_SRC_DIR" -mindepth 1 -maxdepth 1 -iname 'TODO*'    -exec mv {} "$PACKAGE_METAINFO_DIR/" \;
+    find "$PACKAGE_INSTALLING_SRC_DIR" -mindepth 1 -maxdepth 1 -iname 'NEWS*'    -exec mv {} "$PACKAGE_METAINFO_DIR/" \;
+    find "$PACKAGE_INSTALLING_SRC_DIR" -mindepth 1 -maxdepth 1 -iname 'THANKS*'  -exec mv {} "$PACKAGE_METAINFO_DIR/" \;
+    find "$PACKAGE_INSTALLING_SRC_DIR" -mindepth 1 -maxdepth 1 -iname 'README*'  -exec mv {} "$PACKAGE_METAINFO_DIR/" \;
+    find "$PACKAGE_INSTALLING_SRC_DIR" -mindepth 1 -maxdepth 1 -iname 'COPYING*' -exec mv {} "$PACKAGE_METAINFO_DIR/" \;
+    find "$PACKAGE_INSTALLING_SRC_DIR" -mindepth 1 -maxdepth 1 -iname 'LICENSE*' -exec mv {} "$PACKAGE_METAINFO_DIR/" \;
+    find "$PACKAGE_INSTALLING_SRC_DIR" -mindepth 1 -maxdepth 1 -iname 'AUTHORS*' -exec mv {} "$PACKAGE_METAINFO_DIR/" \;
+    find "$PACKAGE_INSTALLING_SRC_DIR" -mindepth 1 -maxdepth 1 -iname 'CHANGES*' -exec mv {} "$PACKAGE_METAINFO_DIR/" \;
+    find "$PACKAGE_INSTALLING_SRC_DIR" -mindepth 1 -maxdepth 1 -iname 'CHANGELOG*' -exec mv {} "$PACKAGE_METAINFO_DIR/" \;
+    find "$PACKAGE_INSTALLING_SRC_DIR" -mindepth 1 -maxdepth 1 -iname 'CONTRIBUTORS*' -exec mv {} "$PACKAGE_METAINFO_DIR/" \;
+    find "$PACKAGE_INSTALLING_SRC_DIR" -mindepth 1 -maxdepth 1 -iname 'CONTRIBUTING*' -exec mv {} "$PACKAGE_METAINFO_DIR/" \;
 
-    COPYING_FOUND=0
-
-    for item in $(find "$PACKAGE_INSTALLING_SRC_DIR" -mindepth 1 -maxdepth 1 -name "COPYING*")
-    do
-        if [ -f "$item" ] ; then
-            COPYING_FOUND=1
-            install -v -m 644 "$item" "$PACKAGE_METAINFO_DIR/"
-        fi
-    done
-
-    if [ "$COPYING_FOUND" = 0 ] ; then
-        note "'COPYING' named file was not found, skipped."
-    fi
-
-    #########################################################################################
-
-    step "install LICENSE"
-
-    if [ -f "$PACKAGE_INSTALLING_SRC_DIR/LICENSE" ] ; then
-        install -v -m 644 "$PACKAGE_INSTALLING_SRC_DIR/LICENSE" "$PACKAGE_METAINFO_DIR/"
-    else
-        note "'LICENSE' named file was not found, skipped."
-    fi
-
-    #########################################################################################
-
-    step "install AUTHORS"
-
-    if [ -f "$PACKAGE_INSTALLING_SRC_DIR/AUTHORS" ] ; then
-        install -v -m 644 "$PACKAGE_INSTALLING_SRC_DIR/AUTHORS" "$PACKAGE_METAINFO_DIR/"
-    else
-        note "'AUTHORS' named file was not found, skipped."
-    fi
-
-    #########################################################################################
-
-    step "install CONTRIBUTORS"
-
-    CONTRIBUTORS_FOUND=0
-
-    for item in CONTRIBUTORS CONTRIBUTORS.md CONTRIBUTORS.rst
-    do
-        if [ -f "$PACKAGE_INSTALLING_SRC_DIR/$item" ] ; then
-            CONTRIBUTORS_FOUND=1
-            install -v -m 644 "$PACKAGE_INSTALLING_SRC_DIR/$item" "$PACKAGE_METAINFO_DIR/"
-        fi
-    done
-
-    if [ "$CONTRIBUTORS_FOUND" = 0 ] ; then
-        note "none of 'CONTRIBUTORS' 'CONTRIBUTORS.md' 'CONTRIBUTORS.rst' named files was found, skipped."
-    fi
-
-    #########################################################################################
-
-    step "install README"
-
-    README_FOUND=0
-
-    for item in README README.md README.rst
-    do
-        if [ -f "$PACKAGE_INSTALLING_SRC_DIR/$item" ] ; then
-            README_FOUND=1
-            install -v -m 644 "$PACKAGE_INSTALLING_SRC_DIR/$item" "$PACKAGE_METAINFO_DIR/"
-        fi
-    done
-
-    if [ "$README_FOUND" = 0 ] ; then
-        note "none of 'README' 'README.md' 'README.rst' named files was found, skipped."
-    fi
-
-    #########################################################################################
-
-    step "install CONTRIBUTING"
-
-    CONTRIBUTING_FOUND=0
-
-    for item in CONTRIBUTING CONTRIBUTING.md CONTRIBUTING.rst
-    do
-        if [ -f "$PACKAGE_INSTALLING_SRC_DIR/$item" ] ; then
-            CONTRIBUTING_FOUND=1
-            install -v -m 644 "$PACKAGE_INSTALLING_SRC_DIR/$item" "$PACKAGE_METAINFO_DIR/"
-        fi
-    done
-
-    if [ "$CONTRIBUTING_FOUND" = 0 ] ; then
-        note "none of 'CONTRIBUTING' 'CONTRIBUTING.md' 'CONTRIBUTING.rst' named files was found, skipped."
-    fi
-
-    #########################################################################################
-
-    step "install CHANGELOG"
-
-    CHANGELOG_FOUND=0
-
-    for item in CHANGELOG CHANGELOG.md CHANGES
-    do
-        if [ -f "$PACKAGE_INSTALLING_SRC_DIR/$item" ] ; then
-            install -v -m 644 "$PACKAGE_INSTALLING_SRC_DIR/$item" "$PACKAGE_METAINFO_DIR/"
-            CHANGELOG_FOUND=1
-            break;
-        fi
-    done
-
-    if [ "$CHANGELOG_FOUND" = 0 ] ; then
-        note "none of 'CHANGELOG' 'CHANGELOG.md' 'CHANGES' named files was found, skipped."
-    fi
-
-    #########################################################################################
-
-    step "install NEWS"
-
-    if [ -f "$PACKAGE_INSTALLING_SRC_DIR/NEWS" ] ; then
-        install -v -m 644 "$PACKAGE_INSTALLING_SRC_DIR/NEWS" "$PACKAGE_METAINFO_DIR/"
-    else
-        note "'NEWS' named file was not found, skipped."
-    fi
-
-    #########################################################################################
-
-    step "install TODO"
-
-    if [ -f "$PACKAGE_INSTALLING_SRC_DIR/TODO" ] ; then
-        install -v -m 644 "$PACKAGE_INSTALLING_SRC_DIR/TODO" "$PACKAGE_METAINFO_DIR/"
-    else
-        note "'TODO' named file was not found, skipped."
-    fi
-
-    #########################################################################################
-
-    step "install FAQ"
-
-    if [ -f "$PACKAGE_INSTALLING_SRC_DIR/FAQ" ] ; then
-        install -v -m 644 "$PACKAGE_INSTALLING_SRC_DIR/FAQ" "$PACKAGE_METAINFO_DIR/"
-    else
-        note "'FAQ' named file was not found, skipped."
-    fi
-
-    #########################################################################################
-
-    step "install THANKS"
-
-    if [ -f "$PACKAGE_INSTALLING_SRC_DIR/THANKS" ] ; then
-        install -v -m 644 "$PACKAGE_INSTALLING_SRC_DIR/THANKS" "$PACKAGE_METAINFO_DIR/"
-    else
-        note "'THANKS' named file was not found, skipped."
-    fi
-
-    #########################################################################################
-
-    step "install config.log"
+    find "$PACKAGE_WORKING_DIR"        -mindepth 1 -maxdepth 1 -name 'dependencies.*' -exec mv {} "$PACKAGE_METAINFO_DIR/" \;
 
     for dir in "$PACKAGE_BCACHED_DIR" "$PACKAGE_BSCRIPT_DIR"
     do
         if [ -f "$dir/config.log" ] ; then
-            install -v -m 644 "$dir/config.log" "$PACKAGE_METAINFO_DIR"
+            mv  "$dir/config.log" "$PACKAGE_METAINFO_DIR"
         fi
     done
-
-    #########################################################################################
-
-    step "install compile_commands.json"
 
     for dir in "$PACKAGE_BCACHED_DIR" "$PACKAGE_BSCRIPT_DIR"
     do
         if [ -f "$dir/compile_commands.json" ] ; then
-            install -v -m 644 "$dir/compile_commands.json" "$PACKAGE_METAINFO_DIR"
+            mv  "$dir/compile_commands.json" "$PACKAGE_METAINFO_DIR"
         fi
     done
-
-    #########################################################################################
-
-    step "install dependency graph files"
-
-    find "$PACKAGE_WORKING_DIR" -mindepth 1 -maxdepth 1 \( -name dependencies.dot -o -name dependencies.box -o -name dependencies.svg -o -name dependencies.png \) -exec install -v -m 644 {} "$PACKAGE_METAINFO_DIR" \;
 
     #########################################################################################
 
     [ -n "$PACKAGE_DEP_PKG" ] && {
         step "install dependency formulas"
 
-        install -v -d "$PACKAGE_METAINFO_DIR/formula"
+        install -d "$PACKAGE_METAINFO_DIR/formula"
 
         for DEPENDENT_PACKAGE_NAME in $RECURSIVE_DEPENDENT_PACKAGE_NAMES
         do
-            install -v -m 644 "$SESSION_DIR/$DEPENDENT_PACKAGE_NAME.yml" "$PACKAGE_METAINFO_DIR/formula"
+            cp "$SESSION_DIR/$DEPENDENT_PACKAGE_NAME.yml" "$PACKAGE_METAINFO_DIR/formula/"
         done
     }
 
@@ -5831,8 +5789,7 @@ $PACKAGE_DOBUILD_ACTIONS
     #########################################################################################
 
     step "generate ref for $PACKAGE_SPEC"
-
-    run ln -sr "$PACKAGE_INSTALL_DIR" "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_SPEC"
+    run ln -s -r -f -T "$PACKAGE_INSTALL_DIR" "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_SPEC"
 
     #########################################################################################
 
@@ -5844,13 +5801,10 @@ $PACKAGE_DOBUILD_ACTIONS
         run  ccache -s
     }
 
-    [ "$KEEP_INSTALLING_DIR" != yes ] && {
-        step "delete the installing directory"
+    [ "$KEEP_SESSION_DIR" != yes ] && {
+        step "delete the working directory"
         run rm -rf "$PACKAGE_WORKING_DIR"
     }
-
-    printf '\n'
-    success "$1 have been successfully installed."
 
     step "show installed files in tree-like format"
     run tree --dirsfirst -a "$PACKAGE_INSTALL_DIR"
@@ -6965,11 +6919,11 @@ __setup_uppm() {
 
     ##################################################################################
 
-    WORKING_DIR="$XCPKG_HOME/run/$$/core"
+    SESSION_DIR="$XCPKG_HOME/run/$$/core"
 
-    run rm -rf     "$WORKING_DIR"
-    run install -d "$WORKING_DIR"
-    run cd         "$WORKING_DIR"
+    run rm -rf     "$SESSION_DIR"
+    run install -d "$SESSION_DIR"
+    run cd         "$SESSION_DIR"
 
     ##################################################################################
 
@@ -7001,11 +6955,11 @@ __setup_uppm() {
     ##################################################################################
 
     # https://curl.se/docs/caextract.html
-    wfetch 'https://curl.se/ca/cacert.pem' --output-dir=etc/ssl/certs
+    wfetch 'https://curl.se/ca/cacert.pem' --output-dir=etc
 
     ##################################################################################
 
-    export SSL_CERT_FILE="$PWD/etc/ssl/certs/cacert.pem"
+    export SSL_CERT_FILE="$PWD/etc/cacert.pem"
 
     run bin/uppm env
     run bin/uppm update
@@ -7035,7 +6989,7 @@ __setup_uppm() {
     UPPM_PACKAGE_EXEFIND_PATH="${UPPM_PACKAGE_EXEFIND_PATH#':'}"
     UPPM_PACKAGE_ACLOCAL_PATH="${UPPM_PACKAGE_ACLOCAL_PATH#':'}"
 
-    cat > env <<EOF
+    cat > etc/profile <<EOF
 export ACLOCAL_PATH="$UPPM_PACKAGE_ACLOCAL_PATH:\$ACLOCAL_PATH"
 export PATH="$UPPM_PACKAGE_EXEFIND_PATH:\$PATH"
 
@@ -7356,7 +7310,7 @@ EOF
         run rm -rf "$XCPKG_CORE_DIR"
     fi
 
-    run mv "$WORKING_DIR" "$XCPKG_HOME/"
+    run mv "$SESSION_DIR" "$XCPKG_HOME/"
 }
 
 # }}}
@@ -7488,24 +7442,54 @@ ${COLOR_GREEN}xcpkg depends <PACKAGE-NAME> [-t <dot|box|svg|png>] [-o <OUTPUT-PA
 
 
 ${COLOR_GREEN}xcpkg fetch <PACKAGE-NAME>${COLOR_OFF}
-    download formula resources of the given package to the local cache.
+    download all the resources of the given package to the local cache.
 
 ${COLOR_GREEN}xcpkg fetch @all${COLOR_OFF}
-    download formula resources of all the available packages to the local cache.
+    download all the resources of all the available packages to the local cache.
 
 
-${COLOR_GREEN}xcpkg install   <PACKAGE-SPEC>... [--jobs=N -v -vv -q --dry-run --keep-working-dir]${COLOR_OFF}
+${COLOR_GREEN}xcpkg install <PACKAGE-SPEC>... [INSTALL-OPTIONS]${COLOR_OFF}
     install the given packages.
 
-${COLOR_GREEN}xcpkg reinstall <PACKAGE-SPEC>... [--jobs=N -v -vv -q --dry-run --keep-working-dir]${COLOR_OFF}
+    INSTALL-OPTIONS:
+        ${COLOR_BLUE}--jobs=N${COLOR_OFF}
+            set the number of jobs you can run in parallel.
+
+        ${COLOR_BLUE}-q${COLOR_OFF}
+            silent mode. no any messages will be output to terminal.
+
+        ${COLOR_BLUE}-v${COLOR_OFF}
+            verbose mode. many messages will be output to terminal.
+
+        ${COLOR_BLUE}-vv${COLOR_OFF}
+            very verbose mode. many many messages will be output to terminal.
+
+        ${COLOR_BLUE}--build-type=<debug|release>${COLOR_OFF}
+            set build type.
+
+        ${COLOR_BLUE}--link-type=<shared-only|static-prefered|shared-prefered>${COLOR_OFF}
+            link static or shared library.
+
+        ${COLOR_BLUE}--disable-ccache${COLOR_OFF}
+            do not use ccache.
+
+        ${COLOR_BLUE}--export-compile-commands-json${COLOR_OFF}
+            generates compile_commands.json
+
+        ${COLOR_BLUE}--dry-run${COLOR_OFF}
+            do not actually install the package.
+
+        ${COLOR_BLUE}--keep-session-dir${COLOR_OFF}
+            do not delete the session directory even if this package is successfully installed.
+
+${COLOR_GREEN}xcpkg reinstall <PACKAGE-SPEC>... [INSTALL-OPTIONS]${COLOR_OFF}
     reinstall the given packages.
 
-${COLOR_GREEN}xcpkg upgrade   [PACKAGE-SPEC]... [--jobs=N -v -vv -q --dry-run --keep-working-dir]${COLOR_OFF}
-    upgrade the given outdated packages.
+${COLOR_GREEN}xcpkg upgrade   <PACKAGE-SPEC>... [INSTALL-OPTIONS]${COLOR_OFF}
+    upgrade the given packages or all outdated packages.
 
-${COLOR_GREEN}xcpkg uninstall <PACKAGE-SPEC>...${COLOR_OFF}
+${COLOR_GREEN}xcpkg uninstall <PACKAGE_SPEC>...${COLOR_OFF}
     uninstall the given packages.
-
 
 ${COLOR_GREEN}xcpkg receipt <PACKAGE-SPEC> [--path] [--yaml] [--json] [<KEY>]${COLOR_OFF}
     show receipt of the given installed package.
@@ -7516,7 +7500,7 @@ ${COLOR_GREEN}xcpkg tree <PACKAGE-SPEC> [--dirsfirst | -L N]${COLOR_OFF}
 ${COLOR_GREEN}xcpkg logs <PACKAGE-SPEC>${COLOR_OFF}
     show logs of the given installed package.
 
-${COLOR_GREEN}xcpkg pack <PACKAGE-SPEC> [--keep-working-dir] [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>]${COLOR_OFF}
+${COLOR_GREEN}xcpkg pack <PACKAGE-SPEC> [--keep-session-dir] [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>]${COLOR_OFF}
     pack the given installed package.
 
     <OUTPUT-TYPE> must ends with one of tar.gz tar.xz tar.lz tar.bz2 zip
@@ -7581,7 +7565,7 @@ main() {
 
     XCPKG="$CURRENT_SCRIPT_FILEPATH"
 
-    XCPKG_VERSION=0.13.7
+    XCPKG_VERSION=0.13.8
 
     XCPKG_OFFICAL_FORMULA_REPO_URL='https://github.com/leleliu008/xcpkg-formula-repository-offical-core'
 
@@ -7615,11 +7599,16 @@ main() {
 
     NATIVE_PACKAGE_INSTALLED_ROOT="$XCPKG_HOME/native"
 
-    # DO NOT use this environment variable
+    # DO NOT use these environment variables
     # https://cmake.org/cmake/help/latest/envvar/MACOSX_DEPLOYMENT_TARGET.html
     unset   MACOSX_DEPLOYMENT_TARGET
     unset IPHONEOS_DEPLOYMENT_TARGET
     unset  WATCHOS_DEPLOYMENT_TARGET
+
+    # https://www.openssl.org/docs/man1.1.1/man3/SSL_CTX_set_default_verify_paths.html
+    if [ -f "$XCPKG_CORE_DIR/etc/cacert.pem" ] ; then
+        export SSL_CERT_FILE="$XCPKG_CORE_DIR/etc/cacert.pem"
+    fi
 
     XCPKG_ACTION="$1"
 
@@ -7640,7 +7629,7 @@ xcpkg.exepath : $XCPKG
 xcpkg.website : https://github.com/leleliu008/xcpkg
 
 EOF
-            if [ -f "$XCPKG_CORE_DIR/env" ] && [ -f "$UPPM" ] ; then
+            if [ -f "$UPPM" ] ; then
                 "$UPPM" env
             fi
             return 0
@@ -7689,8 +7678,8 @@ EOF
 
     #########################################################################################
 
-    if [ -f "$XCPKG_CORE_DIR/env" ] ; then
-        .   "$XCPKG_CORE_DIR/env"
+    if [ -f "$XCPKG_CORE_DIR/etc/profile" ] ; then
+        .   "$XCPKG_CORE_DIR/etc/profile"
     else
         abort 1 "please run ${COLOR_GREEN}$_0 setup${COLOR_OFF} command first, then try again."
     fi
@@ -7702,11 +7691,6 @@ EOF
         export ACLOCAL_PATH="$XCPKG_CORE_DIR/share/aclocal"
     else
         export ACLOCAL_PATH="$XCPKG_CORE_DIR/share/aclocal:$ACLOCAL_PATH"
-    fi
-
-    # https://www.openssl.org/docs/man1.1.1/man3/SSL_CTX_set_default_verify_paths.html
-    if [ -f "$XCPKG_CORE_DIR/etc/ssl/certs/cacert.pem" ] ; then
-        export SSL_CERT_FILE="$XCPKG_CORE_DIR/etc/ssl/certs/cacert.pem"
     fi
 
     bppend_to_PATH "$XCPKG_CORE_BIN_DIR"
