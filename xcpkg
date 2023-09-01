@@ -2441,6 +2441,10 @@ __fetch_resources_of_the_given_package() {
                 GIT_REF_SPEC="+$PACKAGE_GIT_SHA:refs/remotes/origin/master"
             fi
 
+            if [ -z "$PACKAGE_GIT_NTH" ] ; then
+                PACKAGE_GIT_NTH=1
+            fi
+
             if [ "$PACKAGE_GIT_NTH" -eq 0 ] ; then
                 if [ -f "$PACKAGE_SRC_FILEPATH/.git/shallow" ] ; then
                     GIT_FETCH_EXTRA_OPTIONS='--unshallow'
@@ -4644,6 +4648,10 @@ $DOT_CONTENT
         else
             GIT_BRANCH_NAME=master
             GIT_REF_SPEC="+$PACKAGE_GIT_SHA:refs/remotes/origin/master"
+        fi
+
+        if [ -z "$PACKAGE_GIT_NTH" ] ; then
+            PACKAGE_GIT_NTH=1
         fi
 
         if [ "$PACKAGE_GIT_NTH" -eq 0 ] ; then
