@@ -3047,8 +3047,6 @@ __reinstall_the_given_packages() {
             PACKAGE_INSTALLED_LINK_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_SPEC"
             PACKAGE_INSTALLED_REAL_DIR="$(readlink -f "$PACKAGE_INSTALLED_LINK_DIR")"
 
-            mv "$PACKAGE_INSTALLED_LINK_DIR" "$SESSION_DIR/$PACKAGE_SPEC"
-
             (__install_the_given_package "$PACKAGE_SPEC")
 
             rm -rf "$PACKAGE_INSTALLED_REAL_DIR"
@@ -3188,8 +3186,6 @@ __upgrade_packages() {
 
             PACKAGE_INSTALLED_LINK_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_SPEC"
             PACKAGE_INSTALLED_REAL_DIR="$(readlink -f "$PACKAGE_INSTALLED_LINK_DIR")"
-
-            mv "$PACKAGE_INSTALLED_LINK_DIR" "$SESSION_DIR/$PACKAGE_SPEC"
 
             (__install_the_given_package "$PACKAGE_SPEC")
 
