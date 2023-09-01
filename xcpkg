@@ -2729,7 +2729,7 @@ __fetch_resources_of_the_given_package() {
         CURRENT_SCRIPT_REALPATH="$CURRENT_SCRIPT_FILEPATH"
     fi
 
-    WORKING_DIR="$XCPKG_HOME/run/$$"
+    SESSION_DIR="$XCPKG_HOME/run/$$"
 
     run rm -rf     "$SESSION_DIR"
     run install -d "$SESSION_DIR"
@@ -2802,7 +2802,7 @@ __fetch_resources_of_the_given_package() {
         fi
     fi
 
-    WORKING_DIR="$XCPKG_HOME/run/$$"
+    SESSION_DIR="$XCPKG_HOME/run/$$"
 
     run rm -rf     "$SESSION_DIR"
     run install -d "$SESSION_DIR"
