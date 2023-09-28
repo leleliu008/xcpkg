@@ -3602,10 +3602,10 @@ __install_the_given_packages() {
             ;;
         libbz2)
             NATIVE_PACKAGE_SRC_URL='https://github.com/leleliu008/bzip2/archive/refs/tags/1.0.8.tar.gz'
-            NATIVE_PACKAGE_SRC_SHA='0100da0b55f552134d732acdd0325e84a0ef731a305c15f6a2ea24308de09759'
+            NATIVE_PACKAGE_SRC_SHA='96a2e42fbde6f59fce10bcbcda62aa90b9514bd9295914f7470e98c54eac38f2'
             NATIVE_PACKAGE_DEPENDENCIES=
             NATIVE_PACKAGE_BUILD_SYSTEM_NAME='cmake'
-            NATIVE_PACKAGE_BUILD_CONFIG_ARGS='-DINSTALL_EXECUTABLES=OFF -DINSTALL_LIBRARIES=ON'
+            NATIVE_PACKAGE_BUILD_CONFIG_ARGS='-DINSTALL_EXECUTABLES=OFF -DINSTALL_LIBRARIES=ON -DBUILD_STATIC_LIBS=ON -DBUILD_SHARED_LIBS=OFF'
             ;;
         perl)
             NATIVE_PACKAGE_SRC_URL='https://cpan.metacpan.org/authors/id/R/RJ/RJBS/perl-5.36.0.tar.xz'
@@ -4450,14 +4450,12 @@ $DOT_CONTENT
     [ -n "$PACKAGE_DEP_PYM" ] && {
         step "install needed python packages via pip3"
 
-        run pip3 --version
-        run pip3 install --upgrade pip setuptools wheel
-        run pip3 --version
+        PIP3="$(command -v pip3)"
 
-        for item in $PACKAGE_DEP_PYM
-        do
-            run pip3 install "$item" --upgrade
-        done
+        run "$PIP3" --version
+        run "$PIP3" install --upgrade pip setuptools wheel
+        run "$PIP3" --version
+        run "$PIP3" install --upgrade "$PACKAGE_DEP_PYM"
     }
 
     #########################################################################################
@@ -4468,22 +4466,32 @@ $DOT_CONTENT
     [ -n "$PACKAGE_DEP_PLM" ] && {
         step "install needed perl modules via cpan"
 
+        unset PACKAGE_DEP_PLM_T1
+        unset PACKAGE_DEP_PLM_T2
+
         for item in $PACKAGE_DEP_PLM
         do
-            if perl -M"$item" -le 'print "installed"' > /dev/null 2>&1 ; then
-                note "perl module $item has been already installed."
-                continue
-            fi
-
             if [ "$item" = 'XML::Parser' ] ; then
-                __install_native_package perl-XML-Parser
+                PACKAGE_DEP_PLM_T1='XML::Parser'
             else
-                # Would you like to configure as much as possible automatically? [yes]
-                # https://perldoc.perl.org/cpan#PERL_MM_USE_DEFAULT
-                export PERL_MM_USE_DEFAULT=1
-                run cpan "$item"
+                PACKAGE_DEP_PLM_T2="$PACKAGE_DEP_PLM_T2 $item"
             fi
         done
+
+        if [ -n "$PACKAGE_DEP_PLM_T1" ] ; then
+            __install_native_package perl-XML-Parser
+        fi
+
+        if [ -n "$PACKAGE_DEP_PLM_T2" ] ; then
+            PACKAGE_DEP_PLM_T2="${PACKAGE_DEP_PLM_T2# }"
+        fi
+
+        if [ -n "$PACKAGE_DEP_PLM_T2" ] ; then
+            # Would you like to configure as much as possible automatically? [yes]
+            # https://perldoc.perl.org/cpan#PERL_MM_USE_DEFAULT
+            export PERL_MM_USE_DEFAULT=1
+            run cpan "$PACKAGE_DEP_PLM_T2"
+        fi
 
         if [ -d "$HOME/perl5/bin" ] ; then
             # cpan install to default local location
@@ -7598,7 +7606,7 @@ main() {
 
     XCPKG="$CURRENT_SCRIPT_FILEPATH"
 
-    XCPKG_VERSION=0.13.10
+    XCPKG_VERSION=0.13.11
 
     XCPKG_OFFICAL_FORMULA_REPO_URL='https://github.com/leleliu008/xcpkg-formula-repository-offical-core'
 
