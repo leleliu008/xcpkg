@@ -4908,9 +4908,9 @@ $PACKAGE_DONATIVE_ACTIONS
     PROXIED_CXX="$CXX"
     PROXIED_OBJC="$OBJC"
 
-    #CC="$XCPKG_CORE_LIBEXEC_DIR/wrapper-target-cc"
-    #CXX="$XCPKG_CORE_LIBEXEC_DIR/wrapper-target-c++"
-    #OBJC="$XCPKG_CORE_LIBEXEC_DIR/wrapper-target-objc"
+    CC="$XCPKG_CORE_LIBEXEC_DIR/wrapper-target-cc"
+    CXX="$XCPKG_CORE_LIBEXEC_DIR/wrapper-target-c++"
+    OBJC="$XCPKG_CORE_LIBEXEC_DIR/wrapper-target-objc"
     CPP="$CC -E"
 
     for TOOL in PROXIED_CC PROXIED_OBJC PROXIED_CXX CC OBJC CXX CPP AS AR RANLIB LD NM STRIP SIZE STRINGS OBJDUMP SYSROOT
@@ -7312,7 +7312,7 @@ EOF
     run cc -std=c99 -o libexec/wrapper-native-objc wrapper-native-objc.c
 
     run cc -std=c99 -o libexec/wrapper-target-cc   wrapper-target-cc.c
-    run cc -std=c99 -o libexec/wrapper-target-c++  wrapper-target-cc.c
+    run cc -std=c99 -o libexec/wrapper-target-c++  wrapper-target-c++.c
     run cc -std=c99 -o libexec/wrapper-target-objc wrapper-target-objc.c
 
     #################################################################################
