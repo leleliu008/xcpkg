@@ -5820,10 +5820,10 @@ $PACKAGE_DOBUILD_ACTIONS
     step "generate RECEIPT.yml"
     __generate_receipt_of_the_given_package "$1"
 
-    [ "$PACKAGE_SYMLINK" = 1 ] && {
+    if [ "$CROSS_COMPILING" = 0 ] && [ "$PACKAGE_SYMLINK" = 1 ] ; then
         step "symlink installed files to $XCPKG_PACKAGE_SYMLINKED_ROOT"
         __symlink_installed_files_of_the_given_package "$1"
-    }
+    fi
 
     #########################################################################################
 
@@ -5950,7 +5950,7 @@ __adjust_la_files_for_the_given_target() {
     for lafile in $LA_FILES
     do
         sed_in_place 's|-Wl,--strip-debug||g'      "$lafile"
-        sed_in_place "s|-L$XCPKG_HOME[^' ]*||g"    "$lafile"
+        sed_in_place "s|-L${XCPKG_HOME}[^' ]*||g"   "$lafile"
         sed_in_place "s|-R[^' ]*||g"               "$lafile"
         #sed_in_place "s|-L$SYSTEM_LIBRARY_DIR||g"  "$lafile"
         #sed_in_place "s|--sysroot $SYSROOT||g"     "$lafile"
@@ -5975,8 +5975,10 @@ __adjust_pc_files_for_the_given_target() {
     do
         sed_in_place "s|$PACKAGE_INSTALL_DIR|\${pcfiledir}/../..|g" "$pcfile"
         sed_in_place 's|-Wl,--strip-debug||g'      "$pcfile"
-        sed_in_place "s|-L$XCPKG_HOME[^' ]*||g"    "$pcfile"
+        sed_in_place "s|-L${XCPKG_HOME}[^' ]*||g"   "$pcfile"
+        sed_in_place "s|${XCPKG_HOME}/.*/lib.*\.a||g" "$pcfile"
         sed_in_place "s|-R[^' ]*||g"               "$pcfile"
+        sed_in_place "s|-pthread|-lpthread|g"      "$pcfile"
         #sed_in_place "s|-L$SYSTEM_LIBRARY_DIR||g"  "$pcfile"
         #sed_in_place "s|--sysroot $SYSROOT||"      "$pcfile"
 
@@ -6002,43 +6004,29 @@ __adjust_pc_files_for_the_given_target() {
     done
 }
 
-
-__install_pc_file_if_needed_for_the_given_target() {
-    if [ -d "$PACKAGE_INSTALL_DIR/lib" ] ; then
-        if [ ! -d "$PACKAGE_INSTALL_DIR/lib/pkgconfig" ] ; then
-            cat > "$PACKAGE_BCACHED_DIR/$1.pc" << EOF
-EOF
-            run install_pcfs "$PACKAGE_BCACHED_DIR/$1.pc"
-        fi
-    fi
-}
-
+# install_incs [:sub-dir] <FILE>...
 install_incs() {
+    unset X
+
+    case $1 in
+        :*) X="${1#:}"; shift
+    esac
+
     while [ -n "$1" ]
     do
-        unset X1
-        unset X2
-        X1=$(printf '%s\n' "$1" | cut -d: -f1)
-        X2=$(printf '%s\n' "$1" | cut -d: -f2)
-
-        if [ "$X1" = "$X2" ] ; then
-            unset X2
-        fi
-
-        install -v -d         "$PACKAGE_INSTALL_DIR/include/$X2" || return 1
-        install -v -m 644 $X1 "$PACKAGE_INSTALL_DIR/include/$X2" || return 1
-
+        install -v -d          "$PACKAGE_INSTALL_DIR/include/$X/"
+        install -v -m 644 "$1" "$PACKAGE_INSTALL_DIR/include/$X/"
         shift
     done
 }
 
 install_libs() {
-    install -v -d "$PACKAGE_INSTALL_DIR/lib" || return 1
+    install -v -d "$PACKAGE_INSTALL_DIR/lib"
     for item in "$@"
     do
         case $item in
-            *.a) install -v -m 644 "$item" "$PACKAGE_INSTALL_DIR/lib" || return 1 ;;
-            *)   install -v -m 755 "$item" "$PACKAGE_INSTALL_DIR/lib" || return 1 ;;
+            *.a) install -v -m 644 "$item" "$PACKAGE_INSTALL_DIR/lib" ;;
+            *)   install -v -m 755 "$item" "$PACKAGE_INSTALL_DIR/lib" ;;
         esac
     done
 }
@@ -6062,13 +6050,13 @@ install_mans() {
     for item in "$@"
     do
         unset NUMBER
-        NUMBER=$(printf '%s\n' "$item" | cut -c ${#item}-${#item})
+        NUMBER=$(echo "$item" | cut -c ${#item}-${#item})
         case $NUMBER in
             [1-8]);;
             *)    abort 1 "$item: not a manpage."
         esac
-        install -v -d           "$PACKAGE_INSTALL_DIR/share/man/man$NUMBER" &&
-        install -v -m 644 $item "$PACKAGE_INSTALL_DIR/share/man/man$NUMBER"
+        install -v -d             "$PACKAGE_INSTALL_DIR/share/man/man$NUMBER" &&
+        install -v -m 644 "$item" "$PACKAGE_INSTALL_DIR/share/man/man$NUMBER"
     done
 }
 
@@ -6089,11 +6077,6 @@ install_mans() {
             ;;
         *)  abort 1 "install_completion unsupported shell: $1"
     esac
-}
-
-install_pc_file() {
-    install -v -d "$PACKAGE_INSTALL_DIR/lib/pkgconfig" &&
-    cat >         "$PACKAGE_INSTALL_DIR/lib/pkgconfig/$1.pc"
 }
 
 # __symlink_installed_files_of_the_given_package <PACKAGE-NAME>
@@ -7648,7 +7631,7 @@ main() {
 
     XCPKG="$CURRENT_SCRIPT_FILEPATH"
 
-    XCPKG_VERSION=0.15.1
+    XCPKG_VERSION=0.15.2
 
     XCPKG_OFFICAL_FORMULA_REPO_URL='https://github.com/leleliu008/xcpkg-formula-repository-offical-core'
 
