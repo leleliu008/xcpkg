@@ -436,12 +436,12 @@ all relevant directories and files are located under `~/.xcpkg` directory.
 
     some commands need `<PACKAGE-SPEC>` to be specified. `<PACKAGE-SPEC>` has the form `<TARGET>/<PACKAGE-NAME>`. To simplify the usage, `xcpkg` allows omitting `<TARGET>/`. If `<TARGET>/` is omitted, this environment variable will be used, if this environment variable is not set, then will retrive your current running system's information.
 
-    `<TARGET>` has the form `<TARGET-PLATFORM-NAME>:<TARGET-PLATFORM-VERSION>:<TARGET-PLATFORM-ARCH>`
+    `<TARGET>` has the form `<TARGET-PLATFORM-NAME>-<TARGET-PLATFORM-VERSION>-<TARGET-PLATFORM-ARCH>`
 
     example:
 
     ```bash
-    export XCPKG_DEFAULT_TARGET=MacOSX:10.15:x86_64
+    export XCPKG_DEFAULT_TARGET=MacOSX-10.15-x86_64
     ```
 
 **Note:** some commonly used environment variables are override by this software, these are `CC`, `CXX`, `CPP`, `AS`, `AR`, `LD`, `CFLAGS`, `CPPFLAGS`, `LDFLAGS`, `PKG_CONFIG_LIBDIR`, `PKG_CONFIG_PATH`, `ACLOCAL_PATH`

@@ -21,6 +21,9 @@
 ######################################################################################
 ####################################  convention  ####################################
 # 1. The variable/function name starts with underscore "_" means that it is a private variable/function.
+# 2. 0 represents the boolean value false
+# 3. 1 represents the boolean value true
+# 4. all utilities are GNU-style
 ######################################################################################
 
 # If IFS is not set, the deault value will be <space><tab><newline>
@@ -104,12 +107,6 @@ is_integer() {
         ('')              return 1 ;;
         (*)               return 0 ;;
     esac
-}
-
-# format_unix_timestamp <TIMESTAMP-UNIX> <TO-FORMAT> [-u]
-  format_unix_timestamp() {
-   date $3 -jf "%s" "$1" "$2" 2> /dev/null ||
-   date $3 -d      "@$1" "$2"
 }
 
 bppend_to_PATH() {
@@ -776,11 +773,11 @@ url:  $XCPKG_FORMULA_REPO_URL
 branch: $XCPKG_FORMULA_REPO_BRANCH
 pinned: $XCPKG_FORMULA_REPO_PINNED
 enabled: $XCPKG_FORMULA_REPO_ENABLED
-created: $(format_unix_timestamp "$XCPKG_FORMULA_REPO_TIMESTAMP_CREATED" '+%Y-%m-%d %H:%M:%S%:z')
+created: $(date -d "@$XCPKG_FORMULA_REPO_TIMESTAMP_CREATED" '+%Y-%m-%d %H:%M:%S%:z')
 EOF
 
     if [ -n "$XCPKG_FORMULA_REPO_TIMESTAMP_UPDATED" ] ; then
-        printf 'updated: %s\n' "$(format_unix_timestamp "$XCPKG_FORMULA_REPO_TIMESTAMP_UPDATED" '+%Y-%m-%d %H:%M:%S%:z')"
+        printf 'updated: %s\n' "$(date -d "@$XCPKG_FORMULA_REPO_TIMESTAMP_UPDATED" '+%Y-%m-%d %H:%M:%S%:z')"
     fi
 }
 
@@ -1100,7 +1097,7 @@ filetype_from_url() {
         PACKAGE_SRC_FILETYPE=.git
 
         if [ -z "$PACKAGE_VERSION" ] ; then
-            PACKAGE_VERSION="$(format_unix_timestamp "$TIMESTAMP_UNIX" '+%Y.%m.%d')"
+            PACKAGE_VERSION="$(date -u -d "@$TIMESTAMP_UNIX" '+%Y.%m.%d')"
         fi
 
         PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP git"
@@ -1111,7 +1108,7 @@ filetype_from_url() {
                 PACKAGE_SRC_FILEPATH=$(printf '%s\n' "$PACKAGE_SRC_URL" | cut -c7-)
 
                 if [ -z "$PACKAGE_VERSION" ] ; then
-                    PACKAGE_VERSION="$(format_unix_timestamp "$TIMESTAMP_UNIX" '+%Y.%m.%d')"
+                    PACKAGE_VERSION="$(date -u -d "@$TIMESTAMP_UNIX" '+%Y.%m.%d')"
                 fi
                 ;;
             *)  PACKAGE_SRC_FILETYPE="$(filetype_from_url "$PACKAGE_SRC_URL")"
@@ -2041,11 +2038,25 @@ EOF
             fi
             ;;
         installed-dir)
-            peel_installed_root_dir_for_the_given_package "$1"
+            PACKAGE_SPEC=
+            PACKAGE_SPEC="$(inspect_package_spec "$1")"
+
+            if is_package_installed "$PACKAGE_SPEC" ; then
+                PACKAGE_INSTALLED_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_SPEC"
+                printf '%s\n' "$PACKAGE_INSTALLED_DIR"
+            else
+                abort 1 "package '$PACKAGE_SPEC' is not installed."
+            fi
             ;;
         installed-files)
-            PACKAGE_INSTALL_DIR="$(peel_installed_root_dir_for_the_given_package "$1")"
-            cut -d '|' -f3 "$PACKAGE_INSTALL_DIR/.xcpkg/MANIFEST.txt"
+            PACKAGE_SPEC=
+            PACKAGE_SPEC="$(inspect_package_spec "$1")"
+
+            if is_package_installed "$PACKAGE_SPEC" ; then
+                cut -d '|' -f3 "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_SPEC/.xcpkg/MANIFEST.txt"
+            else
+                abort 1 "package '$PACKAGE_SPEC' is not installed."
+            fi
             ;;
         installed-timestamp-unix)
             __load_receipt_of_the_given_package "$1"
@@ -2053,19 +2064,19 @@ EOF
             ;;
         installed-timestamp-rfc-3339)
             __load_receipt_of_the_given_package "$1"
-            format_unix_timestamp "$RECEIPT_PACKAGE_BUILTAT" '+%Y-%m-%d %H:%M:%S%:z'
+            date -d "@$RECEIPT_PACKAGE_BUILTAT" '+%Y-%m-%d %H:%M:%S%:z'
             ;;
         installed-timestamp-iso-8601)
             __load_receipt_of_the_given_package "$1"
-            format_unix_timestamp "$RECEIPT_PACKAGE_BUILTAT" '+%Y-%m-%dT%H:%M:%S%:z'
+            date -d "@$RECEIPT_PACKAGE_BUILTAT" '+%Y-%m-%dT%H:%M:%S%:z'
             ;;
         installed-timestamp-rfc-3339-utc)
             __load_receipt_of_the_given_package "$1"
-            format_unix_timestamp "$RECEIPT_PACKAGE_BUILTAT" '+%Y-%m-%d %H:%M:%S%:z' -u
+            date -u -d "@$RECEIPT_PACKAGE_BUILTAT" '+%Y-%m-%d %H:%M:%S%:z'
             ;;
         installed-timestamp-iso-8601-utc)
             __load_receipt_of_the_given_package "$1"
-            format_unix_timestamp "$RECEIPT_PACKAGE_BUILTAT" '+%Y-%m-%dT%H:%M:%SZ' -u
+            date -u -d "@$RECEIPT_PACKAGE_BUILTAT" '+%Y-%m-%dT%H:%M:%SZ'
             ;;
         installed-version)
             __load_receipt_of_the_given_package "$1"
@@ -2476,11 +2487,18 @@ __fetch_resources_of_the_given_package() {
 
 # __tree_the_given_installed_package <PACKAGE-SPEC>
   __tree_the_given_installed_package() {
-    PACKAGE_INSTALL_DIR="$(peel_installed_root_dir_for_the_given_package "$1")"
+    PACKAGE_SPEC=
+    PACKAGE_SPEC="$(inspect_package_spec "$1")"
+
+    if is_package_installed "$PACKAGE_SPEC" ; then
+        PACKAGE_INSTALLED_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_SPEC"
+    else
+        abort 1 "package '$PACKAGE_SPEC' is not installed."
+    fi
 
     shift
 
-    run tree "$@" "$PACKAGE_INSTALL_DIR"
+    run tree "$@" "$PACKAGE_INSTALLED_DIR"
 }
 
 # }}}
@@ -2489,10 +2507,17 @@ __fetch_resources_of_the_given_package() {
 
 # __logs_the_given_installed_package <PACKAGE-SPEC>
   __logs_the_given_installed_package() {
-    PACKAGE_INSTALL_DIR="$(peel_installed_root_dir_for_the_given_package "$1")"
+    PACKAGE_SPEC=
+    PACKAGE_SPEC="$(inspect_package_spec "$1")"
+
+    if is_package_installed "$PACKAGE_SPEC" ; then
+        PACKAGE_INSTALLED_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_SPEC"
+    else
+        abort 1 "package '$PACKAGE_SPEC' is not installed."
+    fi
 
     FILEPATHS=
-    FILEPATHS="$(find "$PACKAGE_INSTALL_DIR/.xcpkg" -type f)"
+    FILEPATHS="$(find "$PACKAGE_INSTALLED_DIR/.xcpkg" -type f)"
 
     for filepath in $FILEPATHS
     do
@@ -2831,12 +2856,13 @@ __gen_url_transform_sample() {
     cat > url-transform.sample <<EOF
 #!/bin/sh
 
+# https://gitmirror.com/
 case \$1 in
     *githubusercontent.com/*)
-        printf 'https://ghproxy.com/%s\n' "\$1"
+        printf '%s\n' "\$1" | sed 's|githubusercontent|gitmirror|'
         ;;
     https://github.com/*)
-        printf 'https://ghproxy.com/%s\n' "\$1"
+        printf 'https://hub.gitmirror.com/%s\n' "\$1"
         ;;
     '') printf '%s\n' "\$0 <URL>, <URL> is unspecified." >&2 ; exit 1 ;;
     *)  printf '%s\n' "\$1"
@@ -3174,21 +3200,6 @@ __upgrade_packages() {
         rm -rf "$SESSION_DIR"
     fi
 }
-
-# peel_installed_root_dir_for_the_given_package <PACKAGE-NAME|PACKAGE-SPEC>
-  peel_installed_root_dir_for_the_given_package() {
-    PACKAGE_SPEC=
-    PACKAGE_SPEC="$(inspect_package_spec "$1")"
-
-    if is_package_installed "$PACKAGE_SPEC" ; then
-        PACKAGE_INSTALLED_LINK_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_SPEC"
-        PACKAGE_INSTALLED_REAL_DIR="$(readlink -f "$PACKAGE_INSTALLED_LINK_DIR")"
-        printf '%s\n' "$PACKAGE_INSTALLED_REAL_DIR"
-    else
-        abort 1 "package '$PACKAGE_SPEC' is not installed."
-    fi
-}
-
 
 # }}}
 ##############################################################################
@@ -7637,7 +7648,7 @@ main() {
 
     XCPKG="$CURRENT_SCRIPT_FILEPATH"
 
-    XCPKG_VERSION=0.15.0
+    XCPKG_VERSION=0.15.1
 
     XCPKG_OFFICAL_FORMULA_REPO_URL='https://github.com/leleliu008/xcpkg-formula-repository-offical-core'
 
