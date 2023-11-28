@@ -69,7 +69,7 @@ warn() {
 }
 
 success() {
-    printf '%b\n' "${COLOR_GREEN}[✔] $*${COLOR_OFF}"
+    printf '%b\n' "${COLOR_GREEN}[✔] $*${COLOR_OFF}" >&2
 }
 
 error() {
@@ -413,52 +413,52 @@ version_match() {
 
 # __load_formula_repository_config <REPO-NAME> [REPO-PATH]
   __load_formula_repository_config() {
-    XCPKG_FORMULA_REPO_NAME="$1"
-    XCPKG_FORMULA_REPO_PATH="$XCPKG_HOME/repos.d/$1"
-    XCPKG_FORMULA_REPO_CONFIG_FILEPATH="$XCPKG_FORMULA_REPO_PATH/.xcpkg-formula-repo.yml"
+    FORMULA_REPO_NAME="$1"
+    FORMULA_REPO_PATH="$XCPKG_FORMULA_REPO_ROOT/$1"
+    FORMULA_REPO_CONFIG_FILEPATH="$FORMULA_REPO_PATH/.xcpkg-formula-repo.yml"
 
-    [ -d "$XCPKG_FORMULA_REPO_PATH" ] || abort 1 "'$1' formula repository does not exist."
-    [ -f "$XCPKG_FORMULA_REPO_CONFIG_FILEPATH" ] || abort 1 "$1 formula repository is broken."
+    [ -d "$FORMULA_REPO_PATH" ] || abort 1 "'$1' formula repository does not exist."
+    [ -f "$FORMULA_REPO_CONFIG_FILEPATH" ] || abort 1 "$1 formula repository is broken."
 
-    XCPKG_FORMULA_REPO_URL=
-    XCPKG_FORMULA_REPO_BRANCH=
-    XCPKG_FORMULA_REPO_PINNED=
-    XCPKG_FORMULA_REPO_ENABLED=
-    XCPKG_FORMULA_REPO_TIMESTAMP_CREATED=
-    XCPKG_FORMULA_REPO_TIMESTAMP_UPDATED=
+    FORMULA_REPO_URL=
+    FORMULA_REPO_BRANCH=
+    FORMULA_REPO_PINNED=
+    FORMULA_REPO_ENABLED=
+    FORMULA_REPO_TIMESTAMP_CREATED=
+    FORMULA_REPO_TIMESTAMP_UPDATED=
 
-    XCPKG_FORMULA_REPO_URL="$(yq .url "$XCPKG_FORMULA_REPO_CONFIG_FILEPATH")"
+    FORMULA_REPO_URL="$(yq .url "$FORMULA_REPO_CONFIG_FILEPATH")"
 
-    [ "$XCPKG_FORMULA_REPO_URL" = null ] && abort 1 "$1 formula repository is broken."
+    [ "$FORMULA_REPO_URL" = null ] && abort 1 "$1 formula repository is broken."
 
-    XCPKG_FORMULA_REPO_BRANCH="$(yq .branch "$XCPKG_FORMULA_REPO_CONFIG_FILEPATH")"
+    FORMULA_REPO_BRANCH="$(yq .branch "$FORMULA_REPO_CONFIG_FILEPATH")"
 
-    [ "$XCPKG_FORMULA_REPO_BRANCH" = null ] && abort 1 "$1 formula repository is broken."
+    [ "$FORMULA_REPO_BRANCH" = null ] && abort 1 "$1 formula repository is broken."
 
-    XCPKG_FORMULA_REPO_PINNED="$(yq .pinned "$XCPKG_FORMULA_REPO_CONFIG_FILEPATH")"
+    FORMULA_REPO_PINNED="$(yq .pinned "$FORMULA_REPO_CONFIG_FILEPATH")"
 
-    case $XCPKG_FORMULA_REPO_PINNED in
+    case $FORMULA_REPO_PINNED in
         0|1) ;;
         *)   abort 1 "$1 formula repository is broken."
     esac
 
-    XCPKG_FORMULA_REPO_ENABLED="$(yq .enabled "$XCPKG_FORMULA_REPO_CONFIG_FILEPATH")"
+    FORMULA_REPO_ENABLED="$(yq .enabled "$FORMULA_REPO_CONFIG_FILEPATH")"
 
-    case $XCPKG_FORMULA_REPO_ENABLED in
+    case $FORMULA_REPO_ENABLED in
         0|1) ;;
         *)   abort 1 "$1 formula repository is broken."
     esac
 
-    XCPKG_FORMULA_REPO_TIMESTAMP_CREATED="$(yq .created "$XCPKG_FORMULA_REPO_CONFIG_FILEPATH")"
+    FORMULA_REPO_TIMESTAMP_CREATED="$(yq .created "$FORMULA_REPO_CONFIG_FILEPATH")"
 
-    [ "${#XCPKG_FORMULA_REPO_TIMESTAMP_CREATED}" -eq 10 ] || abort 1 "$1 formula repository is broken."
+    [ "${#FORMULA_REPO_TIMESTAMP_CREATED}" -eq 10 ] || abort 1 "$1 formula repository is broken."
 
-    XCPKG_FORMULA_REPO_TIMESTAMP_UPDATED="$(yq .updated "$XCPKG_FORMULA_REPO_CONFIG_FILEPATH")"
+    FORMULA_REPO_TIMESTAMP_UPDATED="$(yq .updated "$FORMULA_REPO_CONFIG_FILEPATH")"
 
-    if [ "$XCPKG_FORMULA_REPO_TIMESTAMP_UPDATED" = null ] ; then
-           XCPKG_FORMULA_REPO_TIMESTAMP_UPDATED=
+    if [ "$FORMULA_REPO_TIMESTAMP_UPDATED" = null ] ; then
+           FORMULA_REPO_TIMESTAMP_UPDATED=
     else
-        [ "${#XCPKG_FORMULA_REPO_TIMESTAMP_UPDATED}" -eq 10 ] || abort 1 "$1 formula repository is broken."
+        [ "${#FORMULA_REPO_TIMESTAMP_UPDATED}" -eq 10 ] || abort 1 "$1 formula repository is broken."
     fi
 }
 
@@ -471,57 +471,57 @@ version_match() {
     [ -z "$1" ] && abort 1 "please specify a repository name."
     [ -z "$2" ] && abort 1 "please specify a repository url."
 
-    XCPKG_FORMULA_REPO_NAME="$1"
-    XCPKG_FORMULA_REPO_URL="$2"
+    FORMULA_REPO_NAME="$1"
+    FORMULA_REPO_URL="$2"
 
     if [ -z "$XCPKG_URL_TRANSFORM" ] ; then
-        GIT_FETCH_URL="$XCPKG_FORMULA_REPO_URL"
+        GIT_FETCH_URL="$FORMULA_REPO_URL"
     else
-        GIT_FETCH_URL="$("$XCPKG_URL_TRANSFORM" "$XCPKG_FORMULA_REPO_URL")"
+        GIT_FETCH_URL="$("$XCPKG_URL_TRANSFORM" "$FORMULA_REPO_URL")"
     fi
 
     shift 2
 
-    XCPKG_FORMULA_REPO_BRANCH=
-    XCPKG_FORMULA_REPO_PINNED=
-    XCPKG_FORMULA_REPO_ENABLED=
+    FORMULA_REPO_BRANCH=
+    FORMULA_REPO_PINNED=
+    FORMULA_REPO_ENABLED=
 
     while [ -n "$1" ]
     do
         case $1 in
             --branch=*)
-                XCPKG_FORMULA_REPO_BRANCH="${1#*=}"
+                FORMULA_REPO_BRANCH="${1#*=}"
                 ;;
             --pin)
-                XCPKG_FORMULA_REPO_PINNED=1
+                FORMULA_REPO_PINNED=1
                 ;;
             --unpin)
-                XCPKG_FORMULA_REPO_PINNED=0
+                FORMULA_REPO_PINNED=0
                 ;;
             --enable)
-                XCPKG_FORMULA_REPO_ENABLED=1
+                FORMULA_REPO_ENABLED=1
                 ;;
             --disable)
-                XCPKG_FORMULA_REPO_ENABLED=0
+                FORMULA_REPO_ENABLED=0
                 ;;
             *)  abort 1 "unrecognized argument: $1"
         esac
         shift
     done
 
-    XCPKG_FORMULA_REPO_BRANCH="${XCPKG_FORMULA_REPO_BRANCH:-master}"
-    XCPKG_FORMULA_REPO_PINNED="${XCPKG_FORMULA_REPO_PINNED:-0}"
-    XCPKG_FORMULA_REPO_ENABLED="${XCPKG_FORMULA_REPO_ENABLED:-1}"
+    FORMULA_REPO_BRANCH="${FORMULA_REPO_BRANCH:-master}"
+    FORMULA_REPO_PINNED="${FORMULA_REPO_PINNED:-0}"
+    FORMULA_REPO_ENABLED="${FORMULA_REPO_ENABLED:-1}"
 
-    XCPKG_FORMULA_REPO_PATH="$XCPKG_HOME/repos.d/$XCPKG_FORMULA_REPO_NAME"
+    FORMULA_REPO_PATH="$XCPKG_FORMULA_REPO_ROOT/$FORMULA_REPO_NAME"
 
-    if [ -d "$XCPKG_FORMULA_REPO_PATH" ] ; then
-        abort 1 "$XCPKG_FORMULA_REPO_NAME named formula repository already exists."
+    if [ -d "$FORMULA_REPO_PATH" ] ; then
+        abort 1 "$FORMULA_REPO_NAME named formula repository already exists."
     fi
 
-    printf '%b\n' "${COLOR_PURPLE}==> Adding formula repository${COLOR_OFF} ${COLOR_GREEN}$XCPKG_FORMULA_REPO_NAME${COLOR_OFF}"
+    printf '%b\n' "${COLOR_PURPLE}==> Adding formula repository${COLOR_OFF} ${COLOR_GREEN}$FORMULA_REPO_NAME${COLOR_OFF}"
 
-    SESSION_DIR="$XCPKG_HOME/run/$$/$XCPKG_FORMULA_REPO_NAME"
+    SESSION_DIR="$XCPKG_HOME/run/$$/$FORMULA_REPO_NAME"
 
     run rm -rf     "$SESSION_DIR"
     run install -d "$SESSION_DIR"
@@ -529,14 +529,14 @@ version_match() {
 
     run git -c init.defaultBranch=master init
     run git remote add origin "$GIT_FETCH_URL"
-    run git -c protocol.version=2 fetch --progress origin "+refs/heads/$XCPKG_FORMULA_REPO_BRANCH:refs/remotes/origin/$XCPKG_FORMULA_REPO_BRANCH"
-    run git checkout --progress --force -B "$XCPKG_FORMULA_REPO_BRANCH" "refs/remotes/origin/$XCPKG_FORMULA_REPO_BRANCH"
+    run git -c protocol.version=2 fetch --progress origin "+refs/heads/$FORMULA_REPO_BRANCH:refs/remotes/origin/$FORMULA_REPO_BRANCH"
+    run git checkout --progress --force -B "$FORMULA_REPO_BRANCH" "refs/remotes/origin/$FORMULA_REPO_BRANCH"
 
     cat > .xcpkg-formula-repo.yml <<EOF
-url: $XCPKG_FORMULA_REPO_URL
-branch: $XCPKG_FORMULA_REPO_BRANCH
-pinned: $XCPKG_FORMULA_REPO_PINNED
-enabled: $XCPKG_FORMULA_REPO_ENABLED
+url: $FORMULA_REPO_URL
+branch: $FORMULA_REPO_BRANCH
+pinned: $FORMULA_REPO_PINNED
+enabled: $FORMULA_REPO_ENABLED
 created: $TIMESTAMP_UNIX
 EOF
 
@@ -553,69 +553,69 @@ EOF
     [ -z "$1" ] && abort 1 "please specify a repository name."
     [ -z "$2" ] && abort 1 "please specify a repository url."
 
-    XCPKG_FORMULA_REPO_NAME="$1"
+    FORMULA_REPO_NAME="$1"
 
     if [ -z "$XCPKG_URL_TRANSFORM" ] ; then
-        XCPKG_FORMULA_REPO_URL="$2"
+        FORMULA_REPO_URL="$2"
     else
-        XCPKG_FORMULA_REPO_URL="$("$XCPKG_URL_TRANSFORM" "$2")"
+        FORMULA_REPO_URL="$("$XCPKG_URL_TRANSFORM" "$2")"
     fi
 
     shift 2
 
-    XCPKG_FORMULA_REPO_BRANCH=
-    XCPKG_FORMULA_REPO_PINNED=
-    XCPKG_FORMULA_REPO_ENABLED=
+    FORMULA_REPO_BRANCH=
+    FORMULA_REPO_PINNED=
+    FORMULA_REPO_ENABLED=
 
     while [ -n "$1" ]
     do
         case $1 in
             --branch=*)
-                XCPKG_FORMULA_REPO_BRANCH="${1#*=}"
+                FORMULA_REPO_BRANCH="${1#*=}"
                 ;;
             --pin)
-                XCPKG_FORMULA_REPO_PINNED=1
+                FORMULA_REPO_PINNED=1
                 ;;
             --unpin)
-                XCPKG_FORMULA_REPO_PINNED=0
+                FORMULA_REPO_PINNED=0
                 ;;
             --enable)
-                XCPKG_FORMULA_REPO_ENABLED=1
+                FORMULA_REPO_ENABLED=1
                 ;;
             --disable)
-                XCPKG_FORMULA_REPO_ENABLED=0
+                FORMULA_REPO_ENABLED=0
                 ;;
             *)  abort 1 "unrecognized argument: $1"
         esac
         shift
     done
 
-    XCPKG_FORMULA_REPO_BRANCH="${XCPKG_FORMULA_REPO_BRANCH:-master}"
-    XCPKG_FORMULA_REPO_PINNED="${XCPKG_FORMULA_REPO_PINNED:-1}"
-    XCPKG_FORMULA_REPO_ENABLED="${XCPKG_FORMULA_REPO_ENABLED:-1}"
+    FORMULA_REPO_BRANCH="${FORMULA_REPO_BRANCH:-master}"
+    FORMULA_REPO_PINNED="${FORMULA_REPO_PINNED:-1}"
+    FORMULA_REPO_ENABLED="${FORMULA_REPO_ENABLED:-1}"
 
-    XCPKG_FORMULA_REPO_PATH="$XCPKG_HOME/repos.d/$XCPKG_FORMULA_REPO_NAME"
+    FORMULA_REPO_PATH="$XCPKG_FORMULA_REPO_ROOT/$FORMULA_REPO_NAME"
 
-    if [ -d "$XCPKG_FORMULA_REPO_PATH" ] ; then
-        abort 1 "$XCPKG_FORMULA_REPO_NAME named formula repository already exists."
+    if [ -d "$FORMULA_REPO_PATH" ] ; then
+        abort 1 "$FORMULA_REPO_NAME named formula repository already exists."
     fi
 
-    printf '%b\n' "${COLOR_PURPLE}==> Creating formula repository${COLOR_OFF} ${COLOR_GREEN}$XCPKG_FORMULA_REPO_NAME${COLOR_OFF}"
+    printf '%b\n' "${COLOR_PURPLE}==> Creating formula repository${COLOR_OFF} ${COLOR_GREEN}$FORMULA_REPO_NAME${COLOR_OFF}"
 
-    SESSION_DIR="$XCPKG_HOME/run/$$/$XCPKG_FORMULA_REPO_NAME"
+    SESSION_DIR="$XCPKG_HOME/run/$$/$FORMULA_REPO_NAME"
 
     run rm -rf     "$SESSION_DIR"
     run install -d "$SESSION_DIR"
     run cd         "$SESSION_DIR"
 
     run git -c init.defaultBranch=master init
-    run git remote add origin "$XCPKG_FORMULA_REPO_URL"
+    run git remote add origin "$FORMULA_REPO_URL"
 
     cat > .xcpkg-formula-repo.yml <<EOF
-url: $XCPKG_FORMULA_REPO_URL
-branch: $XCPKG_FORMULA_REPO_BRANCH
-pinned: $XCPKG_FORMULA_REPO_PINNED
-enabled: $XCPKG_FORMULA_REPO_ENABLED
+url: $FORMULA_REPO_URL
+branch: $FORMULA_REPO_BRANCH
+pinned: $FORMULA_REPO_PINNED
+enabled: $FORMULA_REPO_ENABLED
 created: $TIMESTAMP_UNIX
 EOF
 
@@ -633,8 +633,8 @@ EOF
 
     [ "$1" = 'offical-core' ] && abort 1 "'offical-core' formula repository is not allowed to delete."
 
-    if [ -d    "$XCPKG_HOME/repos.d/$1" ] ; then
-        rm -rf "$XCPKG_HOME/repos.d/$1"
+    if [ -d    "$XCPKG_FORMULA_REPO_ROOT/$1" ] ; then
+        rm -rf "$XCPKG_FORMULA_REPO_ROOT/$1"
     else
         abort 1 "'$1' formula repository does not exist."
     fi
@@ -650,27 +650,27 @@ EOF
 
     __load_formula_repository_config "$1"
 
-    [ "$XCPKG_FORMULA_REPO_PINNED" = 1 ] && abort 1 "'$XCPKG_FORMULA_REPO_NAME' formula repository is pinned."
+    [ "$FORMULA_REPO_PINNED" = 1 ] && abort 1 "'$FORMULA_REPO_NAME' formula repository is pinned."
 
     if [ -z "$XCPKG_URL_TRANSFORM" ] ; then
-        GIT_FETCH_URL="$XCPKG_FORMULA_REPO_URL"
+        GIT_FETCH_URL="$FORMULA_REPO_URL"
     else
-        GIT_FETCH_URL="$("$XCPKG_URL_TRANSFORM" "$XCPKG_FORMULA_REPO_URL")"
+        GIT_FETCH_URL="$("$XCPKG_URL_TRANSFORM" "$FORMULA_REPO_URL")"
     fi
 
-    printf '%b\n' "${COLOR_PURPLE}==> Updating formula repository${COLOR_OFF} ${COLOR_GREEN}$XCPKG_FORMULA_REPO_NAME${COLOR_OFF}"
+    printf '%b\n' "${COLOR_PURPLE}==> Updating formula repository${COLOR_OFF} ${COLOR_GREEN}$FORMULA_REPO_NAME${COLOR_OFF}"
 
-    run cd "$XCPKG_FORMULA_REPO_PATH"
+    run cd "$FORMULA_REPO_PATH"
     run git remote set-url origin "$GIT_FETCH_URL"
-    run git -c protocol.version=2 fetch --progress origin "+refs/heads/$XCPKG_FORMULA_REPO_BRANCH:refs/remotes/origin/$XCPKG_FORMULA_REPO_BRANCH"
-    run git checkout --progress --force -B "$XCPKG_FORMULA_REPO_BRANCH" "refs/remotes/origin/$XCPKG_FORMULA_REPO_BRANCH"
+    run git -c protocol.version=2 fetch --progress origin "+refs/heads/$FORMULA_REPO_BRANCH:refs/remotes/origin/$FORMULA_REPO_BRANCH"
+    run git checkout --progress --force -B "$FORMULA_REPO_BRANCH" "refs/remotes/origin/$FORMULA_REPO_BRANCH"
 
     cat > .xcpkg-formula-repo.yml <<EOF
-url: $XCPKG_FORMULA_REPO_URL
-branch: $XCPKG_FORMULA_REPO_BRANCH
-pinned: $XCPKG_FORMULA_REPO_PINNED
-enabled: $XCPKG_FORMULA_REPO_ENABLED
-created: $XCPKG_FORMULA_REPO_TIMESTAMP_CREATED
+url: $FORMULA_REPO_URL
+branch: $FORMULA_REPO_BRANCH
+pinned: $FORMULA_REPO_PINNED
+enabled: $FORMULA_REPO_ENABLED
+created: $FORMULA_REPO_TIMESTAMP_CREATED
 updated: $TIMESTAMP_UNIX
 EOF
 }
@@ -697,7 +697,7 @@ EOF
                 if [ -z "$FORMULA_REPO_URL" ] ; then
                     abort 1 "--url=<VALUE> , <VALUE> should be non-empty."
                 else
-                    XCPKG_FORMULA_REPO_URL="$FORMULA_REPO_URL"
+                    FORMULA_REPO_URL="$FORMULA_REPO_URL"
                 fi
                 ;;
             --branch=*)
@@ -706,42 +706,42 @@ EOF
                 if [ -z "$FORMULA_REPO_BRANCH" ] ; then
                     abort 1 "--branch=<VALUE> , <VALUE> should be non-empty."
                 else
-                    XCPKG_FORMULA_REPO_BRANCH="$FORMULA_REPO_BRANCH"
+                    FORMULA_REPO_BRANCH="$FORMULA_REPO_BRANCH"
                 fi
                 ;;
             --pin)
-                XCPKG_FORMULA_REPO_PINNED=1
+                FORMULA_REPO_PINNED=1
                 ;;
             --unpin)
-                XCPKG_FORMULA_REPO_PINNED=0
+                FORMULA_REPO_PINNED=0
                 ;;
             --enable)
-                XCPKG_FORMULA_REPO_ENABLED=1
+                FORMULA_REPO_ENABLED=1
                 ;;
             --disable)
-                XCPKG_FORMULA_REPO_ENABLED=0
+                FORMULA_REPO_ENABLED=0
                 ;;
             *)  abort 1 "unrecognized argument: $1"
         esac
         shift
     done
 
-    if [ -z "$XCPKG_FORMULA_REPO_TIMESTAMP_UPDATED" ] ; then
-        cat > "$XCPKG_FORMULA_REPO_PATH/.xcpkg-formula-repo.yml" <<EOF
-url:  $XCPKG_FORMULA_REPO_URL
-branch: $XCPKG_FORMULA_REPO_BRANCH
-pinned: $XCPKG_FORMULA_REPO_PINNED
-enabled: $XCPKG_FORMULA_REPO_ENABLED
-created: $XCPKG_FORMULA_REPO_TIMESTAMP_CREATED
+    if [ -z "$FORMULA_REPO_TIMESTAMP_UPDATED" ] ; then
+        cat > "$FORMULA_REPO_PATH/.xcpkg-formula-repo.yml" <<EOF
+url:  $FORMULA_REPO_URL
+branch: $FORMULA_REPO_BRANCH
+pinned: $FORMULA_REPO_PINNED
+enabled: $FORMULA_REPO_ENABLED
+created: $FORMULA_REPO_TIMESTAMP_CREATED
 EOF
     else
-        cat > "$XCPKG_FORMULA_REPO_PATH/.xcpkg-formula-repo.yml" <<EOF
-url:  $XCPKG_FORMULA_REPO_URL
-branch: $XCPKG_FORMULA_REPO_BRANCH
-pinned: $XCPKG_FORMULA_REPO_PINNED
-enabled: $XCPKG_FORMULA_REPO_ENABLED
-created: $XCPKG_FORMULA_REPO_TIMESTAMP_CREATED
-updated: $XCPKG_FORMULA_REPO_TIMESTAMP_UPDATED
+        cat > "$FORMULA_REPO_PATH/.xcpkg-formula-repo.yml" <<EOF
+url:  $FORMULA_REPO_URL
+branch: $FORMULA_REPO_BRANCH
+pinned: $FORMULA_REPO_PINNED
+enabled: $FORMULA_REPO_ENABLED
+created: $FORMULA_REPO_TIMESTAMP_CREATED
+updated: $FORMULA_REPO_TIMESTAMP_UPDATED
 EOF
 fi
 }
@@ -756,28 +756,28 @@ fi
 
     __load_formula_repository_config "$1"
 
-    case $XCPKG_FORMULA_REPO_PINNED in
-        0)  XCPKG_FORMULA_REPO_PINNED=no  ;;
-        1)  XCPKG_FORMULA_REPO_PINNED=yes ;;
+    case $FORMULA_REPO_PINNED in
+        0)  FORMULA_REPO_PINNED=no  ;;
+        1)  FORMULA_REPO_PINNED=yes ;;
     esac
 
-    case $XCPKG_FORMULA_REPO_ENABLED in
-        0)  XCPKG_FORMULA_REPO_ENABLED=no  ;;
-        1)  XCPKG_FORMULA_REPO_ENABLED=yes ;;
+    case $FORMULA_REPO_ENABLED in
+        0)  FORMULA_REPO_ENABLED=no  ;;
+        1)  FORMULA_REPO_ENABLED=yes ;;
     esac
 
     cat <<EOF
-name: $XCPKG_FORMULA_REPO_NAME
-path: $XCPKG_FORMULA_REPO_PATH
-url:  $XCPKG_FORMULA_REPO_URL
-branch: $XCPKG_FORMULA_REPO_BRANCH
-pinned: $XCPKG_FORMULA_REPO_PINNED
-enabled: $XCPKG_FORMULA_REPO_ENABLED
-created: $(date -d "@$XCPKG_FORMULA_REPO_TIMESTAMP_CREATED" '+%Y-%m-%d %H:%M:%S%:z')
+name: $FORMULA_REPO_NAME
+path: $FORMULA_REPO_PATH
+url:  $FORMULA_REPO_URL
+branch: $FORMULA_REPO_BRANCH
+pinned: $FORMULA_REPO_PINNED
+enabled: $FORMULA_REPO_ENABLED
+created: $(date -d "@$FORMULA_REPO_TIMESTAMP_CREATED" '+%Y-%m-%d %H:%M:%S%:z')
 EOF
 
-    if [ -n "$XCPKG_FORMULA_REPO_TIMESTAMP_UPDATED" ] ; then
-        printf 'updated: %s\n' "$(date -d "@$XCPKG_FORMULA_REPO_TIMESTAMP_UPDATED" '+%Y-%m-%d %H:%M:%S%:z')"
+    if [ -n "$FORMULA_REPO_TIMESTAMP_UPDATED" ] ; then
+        printf 'updated: %s\n' "$(date -d "@$FORMULA_REPO_TIMESTAMP_UPDATED" '+%Y-%m-%d %H:%M:%S%:z')"
     fi
 }
 
@@ -7631,7 +7631,7 @@ main() {
 
     XCPKG="$CURRENT_SCRIPT_FILEPATH"
 
-    XCPKG_VERSION=0.15.2
+    XCPKG_VERSION=0.15.3
 
     XCPKG_OFFICAL_FORMULA_REPO_URL='https://github.com/leleliu008/xcpkg-formula-repository-offical-core'
 
