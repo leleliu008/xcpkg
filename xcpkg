@@ -1425,7 +1425,7 @@ EOF
 
     [ $? -eq 0 ] || return $?
 
-    PACKAGE_INSTALLED_DIR="$(readlink -f "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_SPEC")"
+    PACKAGE_INSTALLED_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_SPEC"
 
     PACKAGE_RECEIPT_FILEPATH="$PACKAGE_INSTALLED_DIR/.xcpkg/RECEIPT.yml"
 
@@ -1528,23 +1528,21 @@ EOF
 
     RECEIPT_PACKAGE_DEVELOPER="$(yq '.developer | select(. != null)' "$PACKAGE_RECEIPT_FILEPATH")"
 
-    if [ "${PACKAGE_SPEC%%:*}" != "$RECEIPT_PACKAGE_PKGNAME" ] ; then
-        error "$PACKAGE_RECEIPT_FILEPATH is broken. value of RECEIPT_PACKAGE_PKGNAME does not identical with your request: ${PACKAGE_SPEC%%:*}"
+    if [ "${PACKAGE_SPEC##*/}" != "$RECEIPT_PACKAGE_PKGNAME" ] ; then
+        error "$PACKAGE_RECEIPT_FILEPATH is broken. value of RECEIPT_PACKAGE_PKGNAME does not identical with your request: ${PACKAGE_SPEC##*/}"
         return 1
     fi
 
-    if [ "${PACKAGE_SPEC#*:}" != "$RECEIPT_PACKAGE_BUILTFOR" ] ; then
-        error "$PACKAGE_RECEIPT_FILEPATH is broken. value of RECEIPT_PACKAGE_BUILTFOR does not identical with your request: ${PACKAGE_SPEC#*:}"
+    if [ "${PACKAGE_SPEC%/*}" != "$RECEIPT_PACKAGE_BUILTFOR" ] ; then
+        error "$PACKAGE_RECEIPT_FILEPATH is broken. value of RECEIPT_PACKAGE_BUILTFOR does not identical with your request: ${PACKAGE_SPEC%/*}"
         return 1
     fi
 
     RECEIPT_PACKAGE_BUILTFOR_PLATFORM="$RECEIPT_PACKAGE_BUILTFOR"
 
-    RECEIPT_PACKAGE_BUILTFOR_PLATFORM_NAME="${RECEIPT_PACKAGE_BUILTFOR_PLATFORM%%:*}"
-    RECEIPT_PACKAGE_BUILTFOR_PLATFORM_ARCH="${RECEIPT_PACKAGE_BUILTFOR_PLATFORM##*:}"
-    RECEIPT_PACKAGE_BUILTFOR_PLATFORM_XXXX="${RECEIPT_PACKAGE_BUILTFOR_PLATFORM%:*}"
-    RECEIPT_PACKAGE_BUILTFOR_PLATFORM_VERS="${RECEIPT_PACKAGE_BUILTFOR_PLATFORM_XXXX#*:}"
-
+    RECEIPT_PACKAGE_BUILTFOR_PLATFORM_NAME="$(printf '%s' "$RECEIPT_PACKAGE_BUILTFOR_PLATFORM" | cut -d- -f1)"
+    RECEIPT_PACKAGE_BUILTFOR_PLATFORM_VERS="$(printf '%s' "$RECEIPT_PACKAGE_BUILTFOR_PLATFORM" | cut -d- -f2)"
+    RECEIPT_PACKAGE_BUILTFOR_PLATFORM_ARCH="$(printf '%s' "$RECEIPT_PACKAGE_BUILTFOR_PLATFORM" | cut -d- -f3)"
 
     [ -z "$RECEIPT_PACKAGE_BUILTBY" ] && abort 1 "receipt scheme error. builtby mapping was not found in $PACKAGE_RECEIPT_FILEPATH."
     [ -z "$RECEIPT_PACKAGE_BUILTAT" ] && abort 1 "receipt scheme error. builtat mapping was not found in $PACKAGE_RECEIPT_FILEPATH."
@@ -1720,7 +1718,7 @@ __list_available_packages() {
 __list_installed_packages() {
     if [ -d "$XCPKG_PACKAGE_INSTALLED_ROOT" ] ; then
          cd "$XCPKG_PACKAGE_INSTALLED_ROOT" || return 1
-        find . -maxdepth 1 -mindepth 1 -type l -regex '\./[^:]*:\(DriverKit\|MacOSX\|AppleTVOS\|AppleTVSimulator\|iPhoneOS\|iPhoneSimulator\|WatchOS\|WatchSimulator\):[^:]*:[^:]*' -printf '%P\n'
+        find . -maxdepth 2 -mindepth 2 -type l -regex '\./\(DriverKit\|MacOSX\|AppleTVOS\|AppleTVSimulator\|iPhoneOS\|iPhoneSimulator\|WatchOS\|WatchSimulator\)-[^-]*-[^-]*/.*' -printf '%P\n'
     else
         return 0
     fi
@@ -2928,7 +2926,7 @@ __reinstall_the_given_packages() {
 
     for USER_SPECIFIED_PACKAGE_SPEC in $USER_SPECIFIED_PACKAGE_SPEC_LIST
     do
-        PACKAGE_NAME_STACK="${USER_SPECIFIED_PACKAGE_SPEC%%:*}"
+        PACKAGE_NAME_STACK="${USER_SPECIFIED_PACKAGE_SPEC##*/}"
 
         while [ -n "$PACKAGE_NAME_STACK" ]
         do
@@ -2966,21 +2964,21 @@ __reinstall_the_given_packages() {
 
     for USER_SPECIFIED_PACKAGE_SPEC in $USER_SPECIFIED_PACKAGE_SPEC_LIST
     do
-        TARGET_PLATFORM_SPEC="${USER_SPECIFIED_PACKAGE_SPEC#*:}"
+        TARGET_PLATFORM_SPEC="${USER_SPECIFIED_PACKAGE_SPEC%/*}"
 
         TARGET_PLATFORM_NAME=
         TARGET_PLATFORM_VERS=
         TARGET_PLATFORM_ARCH=
 
-        TARGET_PLATFORM_NAME="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d: -f1)"
-        TARGET_PLATFORM_VERS="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d: -f2)"
-        TARGET_PLATFORM_ARCH="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d: -f3)"
+        TARGET_PLATFORM_NAME="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d- -f1)"
+        TARGET_PLATFORM_VERS="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d- -f2)"
+        TARGET_PLATFORM_ARCH="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d- -f3)"
 
         ##################################################################
 
         TO_BE_INSTALLED_PACKAGE_NAMES=
 
-        PACKAGE_NAME_STACK="${USER_SPECIFIED_PACKAGE_SPEC%%:*}"
+        PACKAGE_NAME_STACK="${USER_SPECIFIED_PACKAGE_SPEC##*/}"
 
         while [ -n "$PACKAGE_NAME_STACK" ]
         do
@@ -3019,7 +3017,7 @@ __reinstall_the_given_packages() {
 
         for PACKAGE_NAME in $TO_BE_INSTALLED_PACKAGE_NAMES
         do
-            PACKAGE_SPEC="$PACKAGE_NAME:$TARGET_PLATFORM_SPEC"
+            PACKAGE_SPEC="$TARGET_PLATFORM_SPEC/$PACKAGE_NAME"
 
             PACKAGE_INSTALLED_LINK_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_SPEC"
             PACKAGE_INSTALLED_REAL_DIR="$(readlink -f "$PACKAGE_INSTALLED_LINK_DIR")"
@@ -3063,7 +3061,7 @@ __upgrade_packages() {
 
     for USER_SPECIFIED_PACKAGE_SPEC in $USER_SPECIFIED_PACKAGE_SPEC_LIST
     do
-        PACKAGE_NAME_STACK="${USER_SPECIFIED_PACKAGE_SPEC%%:*}"
+        PACKAGE_NAME_STACK="${USER_SPECIFIED_PACKAGE_SPEC##*/}"
 
         while [ -n "$PACKAGE_NAME_STACK" ]
         do
@@ -3101,21 +3099,21 @@ __upgrade_packages() {
 
     for USER_SPECIFIED_PACKAGE_SPEC in $USER_SPECIFIED_PACKAGE_SPEC_LIST
     do
-        TARGET_PLATFORM_SPEC="${USER_SPECIFIED_PACKAGE_SPEC#*:}"
+        TARGET_PLATFORM_SPEC="${USER_SPECIFIED_PACKAGE_SPEC%/*}"
 
         TARGET_PLATFORM_NAME=
         TARGET_PLATFORM_VERS=
         TARGET_PLATFORM_ARCH=
 
-        TARGET_PLATFORM_NAME="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d: -f1)"
-        TARGET_PLATFORM_VERS="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d: -f2)"
-        TARGET_PLATFORM_ARCH="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d: -f3)"
+        TARGET_PLATFORM_NAME="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d- -f1)"
+        TARGET_PLATFORM_VERS="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d- -f2)"
+        TARGET_PLATFORM_ARCH="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d- -f3)"
 
         ##################################################################
 
         TO_BE_INSTALLED_PACKAGE_NAMES=
 
-        PACKAGE_NAME_STACK="${USER_SPECIFIED_PACKAGE_SPEC%%:*}"
+        PACKAGE_NAME_STACK="${USER_SPECIFIED_PACKAGE_SPEC##*/}"
 
         while [ -n "$PACKAGE_NAME_STACK" ]
         do
@@ -3154,7 +3152,7 @@ __upgrade_packages() {
 
         for PACKAGE_NAME in $TO_BE_INSTALLED_PACKAGE_NAMES
         do
-            PACKAGE_SPEC="$PACKAGE_NAME:$TARGET_PLATFORM_SPEC"
+            PACKAGE_SPEC="$TARGET_PLATFORM_SPEC/$PACKAGE_NAME"
 
             is_package__outdated "$PACKAGE_SPEC" || {
                 note 1 "$PACKAGE_SPEC is not outdated."
@@ -3201,8 +3199,8 @@ __upgrade_packages() {
     case $1 in
         '') abort 1 "package-name or package-spec is unspecified."
             ;;
-        *:*)
-            PACKAGE_NAME="${1%%:*}"
+        */*)
+            PACKAGE_NAME="${1##*/}"
 
             if [ -z "$PACKAGE_NAME" ] ; then
                 abort 1 "invalid package-spec: $1\npackage-name is unspecified."
@@ -3212,15 +3210,15 @@ __upgrade_packages() {
                 abort 1 "invalid package-spec: $1\npackage-name does not match pattern ^[A-Za-z0-9+-._@]{1,50}$"
             fi
 
-            TARGET_PLATFORM_SPEC="${1#*:}"
+            TARGET_PLATFORM_SPEC="${1%/*}"
 
             TARGET_PLATFORM_NAME=
             TARGET_PLATFORM_VERS=
             TARGET_PLATFORM_ARCH=
 
-            TARGET_PLATFORM_NAME="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d: -f1)"
-            TARGET_PLATFORM_VERS="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d: -f2)"
-            TARGET_PLATFORM_ARCH="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d: -f3)"
+            TARGET_PLATFORM_NAME="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d- -f1)"
+            TARGET_PLATFORM_VERS="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d- -f2)"
+            TARGET_PLATFORM_ARCH="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d- -f3)"
 
             if [ -z "$TARGET_PLATFORM_NAME" ] ; then
                 abort 1 "invalid package-spec: $1\nplatform-name is unspecified."
@@ -3252,7 +3250,7 @@ __upgrade_packages() {
                 abort 1 "invalid package-spec: $1\nplatform-arch is unspecified."
             fi
 
-            PACKAGE_SPEC="$PACKAGE_NAME:$TARGET_PLATFORM_SPEC"
+            PACKAGE_SPEC="$TARGET_PLATFORM_SPEC/$PACKAGE_NAME"
             printf '%s\n' "$PACKAGE_SPEC"
             ;;
         *)
@@ -3262,9 +3260,9 @@ __upgrade_packages() {
                     TARGET_PLATFORM_VERS="$NATIVE_OS_VERS"
                     TARGET_PLATFORM_ARCH="$NATIVE_OS_ARCH"
 
-                    TARGET_PLATFORM_SPEC="$TARGET_PLATFORM_NAME:$TARGET_PLATFORM_VERS:$TARGET_PLATFORM_ARCH"
+                    TARGET_PLATFORM_SPEC="$TARGET_PLATFORM_NAME-$TARGET_PLATFORM_VERS-$TARGET_PLATFORM_ARCH"
 
-                    PACKAGE_SPEC="$1:$TARGET_PLATFORM_SPEC"
+                    PACKAGE_SPEC="$TARGET_PLATFORM_SPEC/$1"
                 else
                     case $XCPKG_DEFAULT_TARGET in
                         *:*:*:*)
@@ -3309,8 +3307,8 @@ __upgrade_packages() {
                                 abort 1 "you have set XCPKG_DEFAULT_TARGET=$XCPKG_DEFAULT_TARGET , but it is an invalid target."
                             fi
 
-                            TARGET_PLATFORM_SPEC="$TARGET_PLATFORM_NAME:$TARGET_PLATFORM_VERS:$TARGET_PLATFORM_ARCH"
-                            PACKAGE_SPEC="$1:$TARGET_PLATFORM_SPEC"
+                            TARGET_PLATFORM_SPEC="$TARGET_PLATFORM_NAME-$TARGET_PLATFORM_VERS-$TARGET_PLATFORM_ARCH"
+                            PACKAGE_SPEC="$TARGET_PLATFORM_SPEC/$1"
                             ;;
                         *) abort 1 "you have set XCPKG_DEFAULT_TARGET=$XCPKG_DEFAULT_TARGET , but it is an invalid target."
                     esac
@@ -3447,7 +3445,7 @@ __install_the_given_packages() {
 
     for USER_SPECIFIED_PACKAGE_SPEC in $USER_SPECIFIED_PACKAGE_SPEC_LIST
     do
-        PACKAGE_NAME_STACK="${USER_SPECIFIED_PACKAGE_SPEC%%:*}"
+        PACKAGE_NAME_STACK="${USER_SPECIFIED_PACKAGE_SPEC##*/}"
 
         while [ -n "$PACKAGE_NAME_STACK" ]
         do
@@ -3485,21 +3483,21 @@ __install_the_given_packages() {
 
     for USER_SPECIFIED_PACKAGE_SPEC in $USER_SPECIFIED_PACKAGE_SPEC_LIST
     do
-        TARGET_PLATFORM_SPEC="${USER_SPECIFIED_PACKAGE_SPEC#*:}"
+        TARGET_PLATFORM_SPEC="${USER_SPECIFIED_PACKAGE_SPEC%/*}"
 
         TARGET_PLATFORM_NAME=
         TARGET_PLATFORM_VERS=
         TARGET_PLATFORM_ARCH=
 
-        TARGET_PLATFORM_NAME="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d: -f1)"
-        TARGET_PLATFORM_VERS="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d: -f2)"
-        TARGET_PLATFORM_ARCH="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d: -f3)"
+        TARGET_PLATFORM_NAME="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d- -f1)"
+        TARGET_PLATFORM_VERS="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d- -f2)"
+        TARGET_PLATFORM_ARCH="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d- -f3)"
 
         ##################################################################
 
         TO_BE_INSTALLED_PACKAGE_NAMES=
 
-        PACKAGE_NAME_STACK="${USER_SPECIFIED_PACKAGE_SPEC%%:*}"
+        PACKAGE_NAME_STACK="${USER_SPECIFIED_PACKAGE_SPEC##*/}"
 
         while [ -n "$PACKAGE_NAME_STACK" ]
         do
@@ -3538,7 +3536,7 @@ __install_the_given_packages() {
 
         for PACKAGE_NAME in $TO_BE_INSTALLED_PACKAGE_NAMES
         do
-            PACKAGE_SPEC="$PACKAGE_NAME:$TARGET_PLATFORM_SPEC"
+            PACKAGE_SPEC="$TARGET_PLATFORM_SPEC/$PACKAGE_NAME"
 
             if is_package_installed "$PACKAGE_SPEC" ; then
                 if [ "$LOG_LEVEL" -gt 0 ] ; then
@@ -4000,7 +3998,7 @@ $PACKAGE_SPEC:$$:$PACKAGE_INSTALL_UTS
 EOF
 } | cut -d ' ' -f1)"
 
-    PACKAGE_INSTALL_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_INSTALL_SHA"
+    PACKAGE_INSTALL_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$TARGET_PLATFORM_SPEC/$PACKAGE_INSTALL_SHA"
 
     #########################################################################################
 
@@ -4208,7 +4206,7 @@ EOF
     [ -n "$PACKAGE_DEP_PKG" ] && {
         for DEPENDENT_PACKAGE_NAME in $RECURSIVE_DEPENDENT_PACKAGE_NAMES
         do
-            DEPENDENT_PACKAGE_INSTALL_DIR="$(readlink -f "$XCPKG_PACKAGE_INSTALLED_ROOT/$DEPENDENT_PACKAGE_NAME:$TARGET_PLATFORM_SPEC")"
+            DEPENDENT_PACKAGE_INSTALL_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$TARGET_PLATFORM_SPEC/$DEPENDENT_PACKAGE_NAME"
 
             if [ -z "$RECURSIVE_DEPENDENT_PACKAGE_INSTALL_DIRS" ] ; then
                 RECURSIVE_DEPENDENT_PACKAGE_INSTALL_DIRS="$DEPENDENT_PACKAGE_INSTALL_DIR"
@@ -5049,14 +5047,12 @@ $PACKAGE_DONATIVE_ACTIONS
     do
         DEPENDENT_PACKAGE_NAME_UNDERSCORE="$(printf '%s\n' "$DEPENDENT_PACKAGE_NAME" | tr '@+-.' '_')"
 
-        DEPENDENT_PACKAGE_INSTALL_DIR="$(readlink -f "$XCPKG_PACKAGE_INSTALLED_ROOT/$DEPENDENT_PACKAGE_NAME:$TARGET_PLATFORM_SPEC")"
-        DEPENDENT_PACKAGE_BINARY__DIR="$DEPENDENT_PACKAGE_INSTALL_DIR/bin"
+        DEPENDENT_PACKAGE_INSTALL_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$TARGET_PLATFORM_SPEC/$DEPENDENT_PACKAGE_NAME"
         DEPENDENT_PACKAGE_INCLUDE_DIR="$DEPENDENT_PACKAGE_INSTALL_DIR/include"
         DEPENDENT_PACKAGE_LIBRARY_DIR="$DEPENDENT_PACKAGE_INSTALL_DIR/lib"
         DEPENDENT_PACKAGE_PKGCONF_DIR="$DEPENDENT_PACKAGE_INSTALL_DIR/lib/pkgconfig"
 
         eval "${DEPENDENT_PACKAGE_NAME_UNDERSCORE}_INSTALL_DIR='$DEPENDENT_PACKAGE_INSTALL_DIR'"
-        eval "${DEPENDENT_PACKAGE_NAME_UNDERSCORE}_BINARY__DIR='$DEPENDENT_PACKAGE_BINARY__DIR'"
         eval "${DEPENDENT_PACKAGE_NAME_UNDERSCORE}_INCLUDE_DIR='$DEPENDENT_PACKAGE_INCLUDE_DIR'"
         eval "${DEPENDENT_PACKAGE_NAME_UNDERSCORE}_LIBRARY_DIR='$DEPENDENT_PACKAGE_LIBRARY_DIR'"
 
@@ -7597,13 +7593,13 @@ ${COLOR_GREEN}xcpkg pack <PACKAGE-SPEC> [--keep-session-dir] [-t <OUTPUT-TYPE>] 
 ======================================
 
 ${COLOR_GREEN}PACKAGE-SPEC${COLOR_OFF}
-    a formatted srting that has form ${COLOR_RED}<PACKAGE-NAME>:<PLATFORM-SPEC>${COLOR_OFF}
+    a formatted srting that has form ${COLOR_RED}<TARGET>/<PACKAGE-NAME>${COLOR_OFF}
 
 ${COLOR_GREEN}PACKAGE-NAME${COLOR_OFF}
     must match regular expression pattern ${COLOR_RED}^[A-Za-z0-9+-_.@]{1,50}$ ${COLOR_OFF}
 
-${COLOR_GREEN}PLATFORM-SPEC${COLOR_OFF}
-    a formatted srting that has form ${COLOR_RED}<PLATFORM-NAME>:<PLATFORM-VERSION>:<PLATFORM-ARCH>${COLOR_OFF}
+${COLOR_GREEN}TARGET${COLOR_OFF}
+    a formatted srting that has form ${COLOR_RED}<PLATFORM-NAME>-<PLATFORM-VERSION>-<PLATFORM-ARCH>${COLOR_OFF}
     indicates which platform would be built for or run on.
 
 ${COLOR_GREEN}PLATFORM-NAME${COLOR_OFF}
@@ -7641,7 +7637,7 @@ main() {
 
     XCPKG="$CURRENT_SCRIPT_FILEPATH"
 
-    XCPKG_VERSION=0.14.1
+    XCPKG_VERSION=0.15.0
 
     XCPKG_OFFICAL_FORMULA_REPO_URL='https://github.com/leleliu008/xcpkg-formula-repository-offical-core'
 

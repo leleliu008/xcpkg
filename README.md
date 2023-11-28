@@ -196,19 +196,19 @@ all relevant directories and files are located under `~/.xcpkg` directory.
 - **show receipt of the given installed package**
 
     ```bash
-    xcpkg receipt curl:iPhoneOS:12.0:arm64
-    xcpkg receipt curl:iPhoneOS:12.0:arm64 --yaml
-    xcpkg receipt curl:iPhoneOS:12.0:arm64 --json
-    xcpkg receipt curl:iPhoneOS:12.0:arm64 --path
-    xcpkg receipt curl:iPhoneOS:12.0:arm64 version
-    xcpkg receipt curl:iPhoneOS:12.0:arm64 license
-    xcpkg receipt curl:iPhoneOS:12.0:arm64 summary
-    xcpkg receipt curl:iPhoneOS:12.0:arm64 web-url
-    xcpkg receipt curl:iPhoneOS:12.0:arm64 git-url
-    xcpkg receipt curl:iPhoneOS:12.0:arm64 git-sha
-    xcpkg receipt curl:iPhoneOS:12.0:arm64 git-ref
-    xcpkg receipt curl:iPhoneOS:12.0:arm64 src-url
-    xcpkg receipt curl:iPhoneOS:12.0:arm64 src-sha
+    xcpkg receipt iPhoneOS-12.0-arm64/curl
+    xcpkg receipt iPhoneOS-12.0-arm64/curl --yaml
+    xcpkg receipt iPhoneOS-12.0-arm64/curl --json
+    xcpkg receipt iPhoneOS-12.0-arm64/curl --path
+    xcpkg receipt iPhoneOS-12.0-arm64/curl version
+    xcpkg receipt iPhoneOS-12.0-arm64/curl license
+    xcpkg receipt iPhoneOS-12.0-arm64/curl summary
+    xcpkg receipt iPhoneOS-12.0-arm64/curl web-url
+    xcpkg receipt iPhoneOS-12.0-arm64/curl git-url
+    xcpkg receipt iPhoneOS-12.0-arm64/curl git-sha
+    xcpkg receipt iPhoneOS-12.0-arm64/curl git-ref
+    xcpkg receipt iPhoneOS-12.0-arm64/curl src-url
+    xcpkg receipt iPhoneOS-12.0-arm64/curl src-sha
     ```
 
 - **show packages that are depended by the given package**
@@ -246,21 +246,21 @@ all relevant directories and files are located under `~/.xcpkg` directory.
 
     ```bash
     xcpkg install curl
-    xcpkg install curl:iPhoneOS:12.0:arm64
+    xcpkg install iPhoneOS-12.0-arm64/curl
     ```
 
 - **reinstall packages**
 
     ```bash
     xcpkg reinstall curl
-    xcpkg reinstall curl:iPhoneOS:12.0:arm64
+    xcpkg reinstall iPhoneOS-12.0-arm64/curl
     ```
 
 - **uninstall packages**
 
     ```bash
     xcpkg uninstall curl
-    xcpkg uninstall curl:iPhoneOS:12.0:arm64
+    xcpkg uninstall iPhoneOS-12.0-arm64/curl
     ```
 
 - **upgrade the outdated packages**
@@ -268,7 +268,7 @@ all relevant directories and files are located under `~/.xcpkg` directory.
     ```bash
     xcpkg upgrade
     xcpkg upgrade curl
-    xcpkg upgrade curl:iPhoneOS:12.0:arm64
+    xcpkg upgrade iPhoneOS-12.0-arm64/curl
     ```
 
 - **upgrade this software**
@@ -335,42 +335,42 @@ all relevant directories and files are located under `~/.xcpkg` directory.
 
     ```bash
     xcpkg is-installed curl
-    xcpkg is-installed curl:iPhoneOS:12.0:arm64
+    xcpkg is-installed iPhoneOS-12.0-arm64/curl
     ```
 
 - **check if the given package is outdated**
 
     ```bash
     xcpkg is-outdated  curl
-    xcpkg is-outdated  curl:iPhoneOS:12.0:arm64
+    xcpkg is-outdated  iPhoneOS-12.0-arm64/curl
     ```
 
 - **list installed files of the given installed package in a tree-like format**
 
     ```bash
     xcpkg tree curl
-    xcpkg tree curl:iPhoneOS:12.0:arm64 -L 3
+    xcpkg tree iPhoneOS-12.0-arm64/curl -L 3
     ```
 
 - **show logs of the given installed package**
 
     ```bash
     xcpkg logs curl
-    xcpkg logs curl:iPhoneOS:12.0:arm64
+    xcpkg logs iPhoneOS-12.0-arm64/curl
     ```
 
 - **pack the given installed package**
 
     ```bash
     xcpkg pack curl
-    xcpkg pack curl:iPhoneOS:12.0:arm64
-    xcpkg pack curl:iPhoneOS:12.0:arm64 -t tar.xz
-    xcpkg pack curl:iPhoneOS:12.0:arm64 -t tar.gz
-    xcpkg pack curl:iPhoneOS:12.0:arm64 -t tar.lz
-    xcpkg pack curl:iPhoneOS:12.0:arm64 -t tar.bz2
-    xcpkg pack curl:iPhoneOS:12.0:arm64 -t zip
-    xcpkg pack curl:iPhoneOS:12.0:arm64 -t zip -o a/
-    xcpkg pack curl:iPhoneOS:12.0:arm64 -o a/x.zip
+    xcpkg pack iPhoneOS-12.0-arm64/curl
+    xcpkg pack iPhoneOS-12.0-arm64/curl -t tar.xz
+    xcpkg pack iPhoneOS-12.0-arm64/curl -t tar.gz
+    xcpkg pack iPhoneOS-12.0-arm64/curl -t tar.lz
+    xcpkg pack iPhoneOS-12.0-arm64/curl -t tar.bz2
+    xcpkg pack iPhoneOS-12.0-arm64/curl -t zip
+    xcpkg pack iPhoneOS-12.0-arm64/curl -t zip -o a/
+    xcpkg pack iPhoneOS-12.0-arm64/curl -o a/x.zip
     ```
 
 - **delete the unused cached files**
@@ -434,7 +434,7 @@ all relevant directories and files are located under `~/.xcpkg` directory.
 
 - **XCPKG_DEFAULT_TARGET**
 
-    some commands need `<PACKAGE-SPEC>` to be specified. `<PACKAGE-SPEC>` has the form `<PACKAGE-NAME>:<TARGET>`. To simplify the usage, `xcpkg` allows omitting `:<TARGET>`. If `:<TARGET>` is omitted, this environment variable will be used, if this environment variable is not set, then will retrive your current running system's information.
+    some commands need `<PACKAGE-SPEC>` to be specified. `<PACKAGE-SPEC>` has the form `<TARGET>/<PACKAGE-NAME>`. To simplify the usage, `xcpkg` allows omitting `<TARGET>/`. If `<TARGET>/` is omitted, this environment variable will be used, if this environment variable is not set, then will retrive your current running system's information.
 
     `<TARGET>` has the form `<TARGET-PLATFORM-NAME>:<TARGET-PLATFORM-VERSION>:<TARGET-PLATFORM-ARCH>`
 
