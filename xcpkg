@@ -3257,7 +3257,7 @@ __upgrade_packages() {
             ;;
         *)
             if printf '%s\n' "$1" | grep -q -E '^[A-Za-z0-9+-._@]{1,50}$' ; then
-                if [ -z "$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC" ] ; then
+                if [ -z "$XCPKG_DEFAULT_TARGET" ] ; then
                     TARGET_PLATFORM_NAME="$NATIVE_OS_NAME"
                     TARGET_PLATFORM_VERS="$NATIVE_OS_VERS"
                     TARGET_PLATFORM_ARCH="$NATIVE_OS_ARCH"
@@ -3266,21 +3266,21 @@ __upgrade_packages() {
 
                     PACKAGE_SPEC="$1:$TARGET_PLATFORM_SPEC"
                 else
-                    case $XCPKG_DEFAULT_TARGET_PLATFORM_SPEC in
+                    case $XCPKG_DEFAULT_TARGET in
                         *:*:*:*)
-                            abort 1 "you have set XCPKG_DEFAULT_TARGET_PLATFORM_SPEC=$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC , but it is an invalid package spec."
+                            abort 1 "you have set XCPKG_DEFAULT_TARGET=$XCPKG_DEFAULT_TARGET , but it is an invalid target."
                             ;;
                         *:*:*)
                             TARGET_PLATFORM_NAME=
                             TARGET_PLATFORM_VERS=
                             TARGET_PLATFORM_ARCH=
 
-                            TARGET_PLATFORM_NAME="$(printf '%s\n' "$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC" | cut -d: -f1)"
-                            TARGET_PLATFORM_VERS="$(printf '%s\n' "$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC" | cut -d: -f2)"
-                            TARGET_PLATFORM_ARCH="$(printf '%s\n' "$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC" | cut -d: -f3)"
+                            TARGET_PLATFORM_NAME="$(printf '%s\n' "$XCPKG_DEFAULT_TARGET" | cut -d: -f1)"
+                            TARGET_PLATFORM_VERS="$(printf '%s\n' "$XCPKG_DEFAULT_TARGET" | cut -d: -f2)"
+                            TARGET_PLATFORM_ARCH="$(printf '%s\n' "$XCPKG_DEFAULT_TARGET" | cut -d: -f3)"
 
                             if [ -z "$TARGET_PLATFORM_NAME" ] ; then
-                                abort 1 "you have set XCPKG_DEFAULT_TARGET_PLATFORM_SPEC=$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC , but it is an invalid package spec."
+                                abort 1 "you have set XCPKG_DEFAULT_TARGET=$XCPKG_DEFAULT_TARGET , but it is an invalid package spec."
                             fi
 
                             TARGET_PLATFORM_NAME_IS_SUPPORTED=0
@@ -3298,21 +3298,21 @@ __upgrade_packages() {
                             done
 
                             if [ "$TARGET_PLATFORM_NAME_IS_SUPPORTED" = 0 ] ; then
-                                abort 1 "you have set XCPKG_DEFAULT_TARGET_PLATFORM_SPEC=$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC , but it is an invalid package-spec. unrecognized platform-name: $TARGET_PLATFORM_NAME"
+                                abort 1 "you have set XCPKG_DEFAULT_TARGET=$XCPKG_DEFAULT_TARGET , but it is an invalid target. unrecognized platform-name: $TARGET_PLATFORM_NAME"
                             fi
 
                             if [ -z "$TARGET_PLATFORM_VERS" ] ; then
-                                abort 1 "you have set XCPKG_DEFAULT_TARGET_PLATFORM_SPEC=$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC , but it is an invalid package-spec."
+                                abort 1 "you have set XCPKG_DEFAULT_TARGET=$XCPKG_DEFAULT_TARGET , but it is an invalid target."
                             fi
 
                             if [ -z "$TARGET_PLATFORM_ARCH" ] ; then
-                                abort 1 "you have set XCPKG_DEFAULT_TARGET_PLATFORM_SPEC=$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC , but it is an invalid package-spec."
+                                abort 1 "you have set XCPKG_DEFAULT_TARGET=$XCPKG_DEFAULT_TARGET , but it is an invalid target."
                             fi
 
                             TARGET_PLATFORM_SPEC="$TARGET_PLATFORM_NAME:$TARGET_PLATFORM_VERS:$TARGET_PLATFORM_ARCH"
                             PACKAGE_SPEC="$1:$TARGET_PLATFORM_SPEC"
                             ;;
-                        *) abort 1 "you have set XCPKG_DEFAULT_TARGET_PLATFORM_SPEC=$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC , but it is an invalid package-spec."
+                        *) abort 1 "you have set XCPKG_DEFAULT_TARGET=$XCPKG_DEFAULT_TARGET , but it is an invalid target."
                     esac
                 fi
 
@@ -7641,7 +7641,7 @@ main() {
 
     XCPKG="$CURRENT_SCRIPT_FILEPATH"
 
-    XCPKG_VERSION=0.14.0
+    XCPKG_VERSION=0.14.1
 
     XCPKG_OFFICAL_FORMULA_REPO_URL='https://github.com/leleliu008/xcpkg-formula-repository-offical-core'
 

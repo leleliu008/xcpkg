@@ -432,16 +432,16 @@ all relevant directories and files are located under `~/.xcpkg` directory.
     export XCPKG_XTRACE=1
     ```
 
-- **XCPKG_DEFAULT_TARGET_PLATFORM_SPEC**
+- **XCPKG_DEFAULT_TARGET**
 
-    some commands need `<PACKAGE-SPEC>` to be specified. `<PACKAGE-SPEC>` has the form `<PACKAGE-NAME>:<TARGET-PLATFORM-SPEC>`. To simplify the usage, `xcpkg` allows omitting `:<TARGET-PLATFORM-SPEC>`. If `:<TARGET-PLATFORM-SPEC>` is omitted, this environment variable will be used, if this environment variable is not set, then will retrive your current running system's information.
+    some commands need `<PACKAGE-SPEC>` to be specified. `<PACKAGE-SPEC>` has the form `<PACKAGE-NAME>:<TARGET>`. To simplify the usage, `xcpkg` allows omitting `:<TARGET>`. If `:<TARGET>` is omitted, this environment variable will be used, if this environment variable is not set, then will retrive your current running system's information.
 
-    `<TARGET-PLATFORM-SPEC>` has the form `<TARGET-PLATFORM-NAME>:<TARGET-PLATFORM-VERSION>:<TARGET-PLATFORM-ARCH>`
+    `<TARGET>` has the form `<TARGET-PLATFORM-NAME>:<TARGET-PLATFORM-VERSION>:<TARGET-PLATFORM-ARCH>`
 
     example:
 
     ```bash
-    export XCPKG_DEFAULT_TARGET_PLATFORM_SPEC=MacOSX:10.15:x86_64
+    export XCPKG_DEFAULT_TARGET=MacOSX:10.15:x86_64
     ```
 
 **Note:** some commonly used environment variables are override by this software, these are `CC`, `CXX`, `CPP`, `AS`, `AR`, `LD`, `CFLAGS`, `CPPFLAGS`, `LDFLAGS`, `PKG_CONFIG_LIBDIR`, `PKG_CONFIG_PATH`, `ACLOCAL_PATH`
@@ -479,8 +479,8 @@ url: https://github.com/leleliu008/xcpkg-formula-repository-offical-core
 branch: master
 pinned: 0
 enabled: 1
-timestamp-created: 1673684639
-timestamp-updated: 1673684767
+created: 1673684639
+updated: 1673684767
 ```
 
 If a xcpkg formula repository is `pinned`, which means it would not be updated.
