@@ -87,7 +87,7 @@ step() {
 }
 
 run() {
-    if [ "$RUN_SILENT" != yes ] ; then
+    if [ "$RUN_SILENT" != 1 ] ; then
         echo "${COLOR_PURPLE}==>${COLOR_OFF} ${COLOR_GREEN}$@${COLOR_OFF}"
     fi
 
@@ -180,8 +180,8 @@ wfetch() {
     do
         case $1 in
             --silent)
-                FETCH_SILENT=yes
-                RUN_SILENT=yes
+                FETCH_SILENT=1
+                RUN_SILENT=1
                 ;;
             --sha256=*)
                 FETCH_SHA256_EXPECTED="${1#*=}"
@@ -298,7 +298,7 @@ wfetch() {
         curl)
             unset CURL_OPTIONS
 
-            if [ "$FETCH_SILENT" = yes ] ; then
+            if [ "$FETCH_SILENT" = 1 ] ; then
                 CURL_OPTIONS='--no-progress-meter'
             fi
 
@@ -452,11 +452,11 @@ version_match() {
         *)   abort 1 "$1 formula repository is broken."
     esac
 
-    XCPKG_FORMULA_REPO_TIMESTAMP_CREATED="$(yq .timestamp-created "$XCPKG_FORMULA_REPO_CONFIG_FILEPATH")"
+    XCPKG_FORMULA_REPO_TIMESTAMP_CREATED="$(yq .created "$XCPKG_FORMULA_REPO_CONFIG_FILEPATH")"
 
     [ "${#XCPKG_FORMULA_REPO_TIMESTAMP_CREATED}" -eq 10 ] || abort 1 "$1 formula repository is broken."
 
-    XCPKG_FORMULA_REPO_TIMESTAMP_UPDATED="$(yq .timestamp-updated "$XCPKG_FORMULA_REPO_CONFIG_FILEPATH")"
+    XCPKG_FORMULA_REPO_TIMESTAMP_UPDATED="$(yq .updated "$XCPKG_FORMULA_REPO_CONFIG_FILEPATH")"
 
     if [ "$XCPKG_FORMULA_REPO_TIMESTAMP_UPDATED" = null ] ; then
            XCPKG_FORMULA_REPO_TIMESTAMP_UPDATED=
@@ -540,7 +540,7 @@ url: $XCPKG_FORMULA_REPO_URL
 branch: $XCPKG_FORMULA_REPO_BRANCH
 pinned: $XCPKG_FORMULA_REPO_PINNED
 enabled: $XCPKG_FORMULA_REPO_ENABLED
-timestamp-created: $TIMESTAMP_UNIX
+created: $TIMESTAMP_UNIX
 EOF
 
     run install -d        "$XCPKG_FORMULA_REPO_ROOT"
@@ -619,7 +619,7 @@ url: $XCPKG_FORMULA_REPO_URL
 branch: $XCPKG_FORMULA_REPO_BRANCH
 pinned: $XCPKG_FORMULA_REPO_PINNED
 enabled: $XCPKG_FORMULA_REPO_ENABLED
-timestamp-created: $TIMESTAMP_UNIX
+created: $TIMESTAMP_UNIX
 EOF
 
     run install -d        "$XCPKG_FORMULA_REPO_ROOT"
@@ -673,8 +673,8 @@ url: $XCPKG_FORMULA_REPO_URL
 branch: $XCPKG_FORMULA_REPO_BRANCH
 pinned: $XCPKG_FORMULA_REPO_PINNED
 enabled: $XCPKG_FORMULA_REPO_ENABLED
-timestamp-created: $XCPKG_FORMULA_REPO_TIMESTAMP_CREATED
-timestamp-updated: $TIMESTAMP_UNIX
+created: $XCPKG_FORMULA_REPO_TIMESTAMP_CREATED
+updated: $TIMESTAMP_UNIX
 EOF
 }
 
@@ -735,7 +735,7 @@ url:  $XCPKG_FORMULA_REPO_URL
 branch: $XCPKG_FORMULA_REPO_BRANCH
 pinned: $XCPKG_FORMULA_REPO_PINNED
 enabled: $XCPKG_FORMULA_REPO_ENABLED
-timestamp-created: $XCPKG_FORMULA_REPO_TIMESTAMP_CREATED
+created: $XCPKG_FORMULA_REPO_TIMESTAMP_CREATED
 EOF
     else
         cat > "$XCPKG_FORMULA_REPO_PATH/.xcpkg-formula-repo.yml" <<EOF
@@ -743,8 +743,8 @@ url:  $XCPKG_FORMULA_REPO_URL
 branch: $XCPKG_FORMULA_REPO_BRANCH
 pinned: $XCPKG_FORMULA_REPO_PINNED
 enabled: $XCPKG_FORMULA_REPO_ENABLED
-timestamp-created: $XCPKG_FORMULA_REPO_TIMESTAMP_CREATED
-timestamp-updated: $XCPKG_FORMULA_REPO_TIMESTAMP_UPDATED
+created: $XCPKG_FORMULA_REPO_TIMESTAMP_CREATED
+updated: $XCPKG_FORMULA_REPO_TIMESTAMP_UPDATED
 EOF
 fi
 }
@@ -776,11 +776,11 @@ url:  $XCPKG_FORMULA_REPO_URL
 branch: $XCPKG_FORMULA_REPO_BRANCH
 pinned: $XCPKG_FORMULA_REPO_PINNED
 enabled: $XCPKG_FORMULA_REPO_ENABLED
-timestamp-created: $(format_unix_timestamp "$XCPKG_FORMULA_REPO_TIMESTAMP_CREATED" '+%Y-%m-%d %H:%M:%S%:z')
+created: $(format_unix_timestamp "$XCPKG_FORMULA_REPO_TIMESTAMP_CREATED" '+%Y-%m-%d %H:%M:%S%:z')
 EOF
 
     if [ -n "$XCPKG_FORMULA_REPO_TIMESTAMP_UPDATED" ] ; then
-        printf 'timestamp-updated: %s\n' "$(format_unix_timestamp "$XCPKG_FORMULA_REPO_TIMESTAMP_UPDATED" '+%Y-%m-%d %H:%M:%S%:z')"
+        printf 'updated: %s\n' "$(format_unix_timestamp "$XCPKG_FORMULA_REPO_TIMESTAMP_UPDATED" '+%Y-%m-%d %H:%M:%S%:z')"
     fi
 }
 
@@ -1062,19 +1062,19 @@ filetype_from_url() {
     fi
 
     if [ -z "$PACKAGE_SYMLINK" ] ; then
-        PACKAGE_SYMLINK=yes
+        PACKAGE_SYMLINK=1
     fi
 
     if [ -z "$PACKAGE_BINBSTD" ] ; then
-        PACKAGE_BINBSTD=no
-        PACKAGE_BUILD_IN_BSCRIPT_DIR=no
+        PACKAGE_BINBSTD=0
+        PACKAGE_BUILD_IN_BSCRIPT_DIR=0
     else
         PACKAGE_BUILD_IN_BSCRIPT_DIR=$PACKAGE_BINBSTD
     fi
 
     if [ -z "$PACKAGE_PARALLEL" ] ; then
-        PACKAGE_PARALLEL=yes
-        PACKAGE_BUILD_IN_PARALLEL=yes
+        PACKAGE_PARALLEL=1
+        PACKAGE_BUILD_IN_PARALLEL=1
     else
         PACKAGE_BUILD_IN_PARALLEL="$PACKAGE_PARALLEL"
     fi
@@ -1192,19 +1192,19 @@ filetype_from_url() {
     for item in $PACKAGE_BUILD_SYSTEM
     do
         case $item in
-            autogen)     PACKAGE_BUILD_SYSTEM_AUTOGENSH=yes ; PACKAGE_BUILD_SYSTEM_GMAKE=yes ;;
-            autotools)   PACKAGE_BUILD_SYSTEM_AUTOTOOLS=yes ; PACKAGE_BUILD_SYSTEM_GMAKE=yes ;;
-            configure)   PACKAGE_BUILD_SYSTEM_CONFIGURE=yes ; PACKAGE_BUILD_SYSTEM_GMAKE=yes ;;
-            cmake-gmake) PACKAGE_BUILD_SYSTEM_CMAKE=yes     ; PACKAGE_BUILD_SYSTEM_GMAKE=yes ;;
-            cmake-ninja) PACKAGE_BUILD_SYSTEM_CMAKE=yes     ; PACKAGE_BUILD_SYSTEM_NINJA=yes ;;
-            cmake)       PACKAGE_BUILD_SYSTEM_CMAKE=yes     ; PACKAGE_BUILD_SYSTEM_NINJA=yes ;;
-            xmake)       PACKAGE_BUILD_SYSTEM_XMAKE=yes     ;;
-            meson)       PACKAGE_BUILD_SYSTEM_MESON=yes     ; PACKAGE_BUILD_SYSTEM_NINJA=yes ;;
-            ninja)       PACKAGE_BUILD_SYSTEM_NINJA=yes     ;;
-            gmake)       PACKAGE_BUILD_SYSTEM_GMAKE=yes     ;;
-            rake)        PACKAGE_BUILD_SYSTEM_RAKE=yes      ;;
-            cargo)       PACKAGE_BUILD_SYSTEM_CARGO=yes     ;;
-            go)          PACKAGE_BUILD_SYSTEM_GO=yes        ;;
+            autogen)     PACKAGE_BUILD_SYSTEM_AUTOGENSH=1 ; PACKAGE_BUILD_SYSTEM_GMAKE=1 ;;
+            autotools)   PACKAGE_BUILD_SYSTEM_AUTOTOOLS=1 ; PACKAGE_BUILD_SYSTEM_GMAKE=1 ;;
+            configure)   PACKAGE_BUILD_SYSTEM_CONFIGURE=1 ; PACKAGE_BUILD_SYSTEM_GMAKE=1 ;;
+            cmake-gmake) PACKAGE_BUILD_SYSTEM_CMAKE=1     ; PACKAGE_BUILD_SYSTEM_GMAKE=1 ;;
+            cmake-ninja) PACKAGE_BUILD_SYSTEM_CMAKE=1     ; PACKAGE_BUILD_SYSTEM_NINJA=1 ;;
+            cmake)       PACKAGE_BUILD_SYSTEM_CMAKE=1     ; PACKAGE_BUILD_SYSTEM_NINJA=1 ;;
+            xmake)       PACKAGE_BUILD_SYSTEM_XMAKE=1     ;;
+            meson)       PACKAGE_BUILD_SYSTEM_MESON=1     ; PACKAGE_BUILD_SYSTEM_NINJA=1 ;;
+            ninja)       PACKAGE_BUILD_SYSTEM_NINJA=1     ;;
+            gmake)       PACKAGE_BUILD_SYSTEM_GMAKE=1     ;;
+            rake)        PACKAGE_BUILD_SYSTEM_RAKE=1      ;;
+            cargo)       PACKAGE_BUILD_SYSTEM_CARGO=1     ;;
+            go)          PACKAGE_BUILD_SYSTEM_GO=1        ;;
         esac
     done
 
@@ -1248,7 +1248,7 @@ filetype_from_url() {
 
     #########################################################################################
 
-    [ "$PACKAGE_BUILD_SYSTEM_MESON" = yes ] && {
+    [ "$PACKAGE_BUILD_SYSTEM_MESON" = 1 ] && {
         PACKAGE_DEP_PYM="$PACKAGE_DEP_PYM meson"
     }
 
@@ -1260,24 +1260,24 @@ filetype_from_url() {
         PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP perl"
     }
 
-    [ "$PACKAGE_BUILD_SYSTEM_GO" = yes ] && {
-        PACKAGE_BINBSTD=yes
-        PACKAGE_BUILD_IN_BSCRIPT_DIR=yes
+    [ "$PACKAGE_BUILD_SYSTEM_GO" = 1 ] && {
+        PACKAGE_BINBSTD=1
+        PACKAGE_BUILD_IN_BSCRIPT_DIR=1
     }
 
-    [ "$PACKAGE_BUILD_SYSTEM_CARGO" = yes ] && {
-        PACKAGE_BINBSTD=yes
-        PACKAGE_BUILD_IN_BSCRIPT_DIR=yes
+    [ "$PACKAGE_BUILD_SYSTEM_CARGO" = 1 ] && {
+        PACKAGE_BINBSTD=1
+        PACKAGE_BUILD_IN_BSCRIPT_DIR=1
     }
 
-    [ "$PACKAGE_BUILD_SYSTEM_XMAKE" = yes ] && {
-        PACKAGE_BINBSTD=yes
-        PACKAGE_BUILD_IN_BSCRIPT_DIR=yes
+    [ "$PACKAGE_BUILD_SYSTEM_XMAKE" = 1 ] && {
+        PACKAGE_BINBSTD=1
+        PACKAGE_BUILD_IN_BSCRIPT_DIR=1
     }
 
     PACKAGE_DEP_UPP="${PACKAGE_DEP_UPP#' '}"
 
-    PACKAGE_FORMULA_LOADED=yes
+    PACKAGE_FORMULA_LOADED=1
 }
 
 # }}}
@@ -1765,12 +1765,12 @@ __search_packages() {
 }
 
 __show_information_as_mixed_of_all_available_packages() {
-    FIRST=yes
+    FIRST=1
 
     for PACKAGE in $(__list_available_packages)
     do
-        if [ "$FIRST" = yes ] ; then
-            FIRST=no
+        if [ "$FIRST" = 1 ] ; then
+            FIRST=0
         else
             printf '%s\n' '---'
         fi
@@ -1781,12 +1781,12 @@ __show_information_as_mixed_of_all_available_packages() {
 __show_information_as_json__of_all_available_packages() {
     printf '%s\n' '['
 
-    FIRST=yes
+    FIRST=1
 
     for PACKAGE in $(__list_available_packages)
     do
-        if [ "$FIRST" = yes ] ; then
-            FIRST=no
+        if [ "$FIRST" = 1 ] ; then
+            FIRST=0
         else
             printf '%s\n' ','
         fi
@@ -1797,12 +1797,12 @@ __show_information_as_json__of_all_available_packages() {
 }
 
 __show_information_as_yaml__of_all_available_packages() {
-    FIRST=yes
+    FIRST=1
 
     for PACKAGE in $(__list_available_packages)
     do
-        if [ "$FIRST" = yes ] ; then
-            FIRST=no
+        if [ "$FIRST" = 1 ] ; then
+            FIRST=0
         else
             printf '%s\n' '---'
         fi
@@ -1811,12 +1811,12 @@ __show_information_as_yaml__of_all_available_packages() {
 }
 
 __show_information_as_shell_of_all_available_packages() {
-    FIRST=yes
+    FIRST=1
 
     for PACKAGE in $(__list_available_packages)
     do
-        if [ "$FIRST" = yes ] ; then
-            FIRST=no
+        if [ "$FIRST" = 1 ] ; then
+            FIRST=0
         else
             printf '%s\n' '#---'
         fi
@@ -2533,7 +2533,7 @@ __fetch_resources_of_the_given_package() {
     do
         case $1 in
             --keep-session-dir)
-                KEEP_SESSION_DIR=yes
+                KEEP_SESSION_DIR=1
                 ;;
             -t) shift
 
@@ -2674,7 +2674,7 @@ __fetch_resources_of_the_given_package() {
     step "move packed file to output dir"
     run mv "$OUTPUT_FILENAME" "$OUTPUT_DIR/"
 
-    if [ "$KEEP_SESSION_DIR" = yes ] ; then
+    if [ "$KEEP_SESSION_DIR" = 1 ] ; then
         printf '\n'
         note "the session directory '$SESSION_DIR' is not deleted as --keep-session-dir option is given."
     else
@@ -3032,7 +3032,7 @@ __reinstall_the_given_packages() {
 
     #########################################################################################
 
-    if [ "$KEEP_SESSION_DIR" != yes ] ; then
+    if [ "$KEEP_SESSION_DIR" != 1 ] ; then
         rm -rf "$SESSION_DIR"
     fi
 }
@@ -3172,7 +3172,7 @@ __upgrade_packages() {
 
     #########################################################################################
 
-    if [ "$KEEP_SESSION_DIR" != yes ] ; then
+    if [ "$KEEP_SESSION_DIR" != 1 ] ; then
         rm -rf "$SESSION_DIR"
     fi
 }
@@ -3226,7 +3226,7 @@ __upgrade_packages() {
                 abort 1 "invalid package-spec: $1\nplatform-name is unspecified."
             fi
 
-            TARGET_PLATFORM_NAME_IS_SUPPORTED=no
+            TARGET_PLATFORM_NAME_IS_SUPPORTED=0
 
             if [ -z "$XCODE_SUPPORT_PLATFORM_NAMES" ] ; then
                 XCODE_SUPPORT_PLATFORM_NAMES='MacOSX DriverKit WatchOS WatchSimulator iPhoneOS iPhoneSimulator AppleTVOS AppleTVSimulator'
@@ -3235,12 +3235,12 @@ __upgrade_packages() {
             for XCODE_SUPPORT_PLATFORM_NAME in $XCODE_SUPPORT_PLATFORM_NAMES
             do
                 if [ "$XCODE_SUPPORT_PLATFORM_NAME" = "$TARGET_PLATFORM_NAME" ] ; then
-                    TARGET_PLATFORM_NAME_IS_SUPPORTED=yes
+                    TARGET_PLATFORM_NAME_IS_SUPPORTED=1
                     break;
                 fi
             done
 
-            if [ "$TARGET_PLATFORM_NAME_IS_SUPPORTED" = no ] ; then
+            if [ "$TARGET_PLATFORM_NAME_IS_SUPPORTED" = 0 ] ; then
                 abort 1 "invalid package-spec: $1\nunsupported-platform: $TARGET_PLATFORM_NAME"
             fi
 
@@ -3283,7 +3283,7 @@ __upgrade_packages() {
                                 abort 1 "you have set XCPKG_DEFAULT_TARGET_PLATFORM_SPEC=$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC , but it is an invalid package spec."
                             fi
 
-                            TARGET_PLATFORM_NAME_IS_SUPPORTED=no
+                            TARGET_PLATFORM_NAME_IS_SUPPORTED=0
 
                             if [ -z "$XCODE_SUPPORT_PLATFORM_NAMES" ] ; then
                                 XCODE_SUPPORT_PLATFORM_NAMES='MacOSX DriverKit WatchOS WatchSimulator iPhoneOS iPhoneSimulator AppleTVOS AppleTVSimulator'
@@ -3292,12 +3292,12 @@ __upgrade_packages() {
                             for XCODE_SUPPORT_PLATFORM_NAME in $XCODE_SUPPORT_PLATFORM_NAMES
                             do
                                 if [ "$XCODE_SUPPORT_PLATFORM_NAME" = "$TARGET_PLATFORM_NAME" ] ; then
-                                    TARGET_PLATFORM_NAME_IS_SUPPORTED=yes
+                                    TARGET_PLATFORM_NAME_IS_SUPPORTED=1
                                     break;
                                 fi
                             done
 
-                            if [ "$TARGET_PLATFORM_NAME_IS_SUPPORTED" = no ] ; then
+                            if [ "$TARGET_PLATFORM_NAME_IS_SUPPORTED" = 0 ] ; then
                                 abort 1 "you have set XCPKG_DEFAULT_TARGET_PLATFORM_SPEC=$XCPKG_DEFAULT_TARGET_PLATFORM_SPEC , but it is an invalid package-spec. unrecognized platform-name: $TARGET_PLATFORM_NAME"
                             fi
 
@@ -3332,10 +3332,6 @@ inspect_install_arguments() {
 
     unset USER_SPECIFIED_PACKAGE_SPEC_LIST
 
-    unset DRYRUN
-
-    CCACHE_ENABLED=no
-
     LOG_LEVEL_QUIET=0
     LOG_LEVEL_NORMAL=1
     LOG_LEVEL_VERBOSE=2
@@ -3351,9 +3347,13 @@ inspect_install_arguments() {
 
     INSTALL_LIB=static
 
-    KEEP_SESSION_DIR=no
+    DRYRUN=0
 
-    EXPORT_COMPILE_COMMANDS_JSON=no
+    CCACHE_ENABLED=0
+
+    KEEP_SESSION_DIR=0
+
+    EXPORT_COMPILE_COMMANDS_JSON=0
 
     while [ -n "$1" ]
     do
@@ -3368,16 +3368,16 @@ inspect_install_arguments() {
                 LOG_LEVEL=$LOG_LEVEL_QUIET
                 ;;
             --disable-ccache)
-                CCACHE_ENABLED=no
+                CCACHE_ENABLED=0
                 ;;
             --dry-run)
-                DRYRUN=yes
+                DRYRUN=1
                 ;;
             --keep-session-dir)
-                KEEP_SESSION_DIR=yes
+                KEEP_SESSION_DIR=1
                 ;;
             --export-compile-commands-json)
-                EXPORT_COMPILE_COMMANDS_JSON=yes
+                EXPORT_COMPILE_COMMANDS_JSON=1
                 ;;
             --install-lib=*)
                 INSTALL_LIB="${1#*=}"
@@ -3552,7 +3552,7 @@ __install_the_given_packages() {
 
     #########################################################################################
 
-    if [ "$KEEP_SESSION_DIR" != yes ] ; then
+    if [ "$KEEP_SESSION_DIR" != 1 ] ; then
         rm -rf "$SESSION_DIR"
     fi
 }
@@ -3905,7 +3905,7 @@ EOF
 }
 
 __install_the_given_package_onexit() {
-    if [ "$DRYRUN" != yes ] ; then
+    if [ "$DRYRUN" != 1 ] ; then
         is_package_installed "$PACKAGE_SPEC" || {
             abort 1 "package installation failure: $PACKAGE_SPEC\n"
 
@@ -3956,7 +3956,7 @@ XCPKG_URL_TRANSFORM = $XCPKG_URL_TRANSFORM
           LINK_TYPE = $LINK_TYPE
          BUILD_TYPE = $BUILD_TYPE
 
-             DRYRUN = ${DRYRUN:-no}
+             DRYRUN = $DRYRUN
      CCACHE_ENABLED = $CCACHE_ENABLED
     CROSS_COMPILING = $CROSS_COMPILING
    KEEP_SESSION_DIR = $KEEP_SESSION_DIR
@@ -4141,7 +4141,7 @@ EOF
 
     #########################################################################################
 
-    if [ "$PACKAGE_BUILD_IN_PARALLEL" = no ] ; then
+    if [ "$PACKAGE_BUILD_IN_PARALLEL" = 0 ] ; then
         BUILD_NJOBS=1
     fi
 
@@ -4359,11 +4359,11 @@ $DOT_CONTENT
 
     #########################################################################################
 
-    if [ "$PACKAGE_BUILD_SYSTEM_GMAKE" = yes ] && [ "$EXPORT_COMPILE_COMMANDS_JSON" = yes ] && [ "$BEAR_ENABLED" = yes ] ; then
+    if [ "$PACKAGE_BUILD_SYSTEM_GMAKE" = 1 ] && [ "$EXPORT_COMPILE_COMMANDS_JSON" = 1 ] && [ "$BEAR_ENABLED" = 1 ] ; then
         PACKAGE_DEP_UPP_T1="$PACKAGE_DEP_UPP_T1 bear"
     fi
 
-    if [ "$CCACHE_ENABLED" = yes ] ; then
+    if [ "$CCACHE_ENABLED" = 1 ] ; then
         PACKAGE_DEP_UPP_T1="$PACKAGE_DEP_UPP_T1 ccache"
     fi
 
@@ -4493,7 +4493,7 @@ $DOT_CONTENT
 
     #########################################################################################
 
-    [ "$PACKAGE_BUILD_SYSTEM_CARGO" = yes ] && {
+    [ "$PACKAGE_BUILD_SYSTEM_CARGO" = 1 ] && {
         command -v rustup > /dev/null || {
             # https://www.rust-lang.org/tools/install
             note "${COLOR_GREEN}rustup cargo rustc${COLOR_OFF} ${COLOR_YELLOW}commands are required, but it was not found, let's install it.${COLOR_OFF}"
@@ -4546,8 +4546,8 @@ $DOT_CONTENT
     }
 
     {
-        [ "$PACKAGE_BUILD_SYSTEM_AUTOGENSH" = yes ] ||
-        [ "$PACKAGE_BUILD_SYSTEM_AUTOTOOLS" = yes ]
+        [ "$PACKAGE_BUILD_SYSTEM_AUTOGENSH" = 1 ] ||
+        [ "$PACKAGE_BUILD_SYSTEM_AUTOTOOLS" = 1 ]
     } && {
         AUTORECONF=$(command -v autoreconf) || abort 1 "command not found: autoreconf"
         AUTOCONF=$(command -v autoconf)     || abort 1 "command not found: autoconf"
@@ -4567,37 +4567,37 @@ $DOT_CONTENT
         printf '\n'
     }
 
-    [ "$PACKAGE_BUILD_SYSTEM_MESON" = yes ] && {
+    [ "$PACKAGE_BUILD_SYSTEM_MESON" = 1 ] && {
         MESON=$(command -v meson) || abort 1 "command not found: meson"
         run "$MESON"      --version
         printf '\n'
     }
 
-    [ "$PACKAGE_BUILD_SYSTEM_CMAKE" = yes ] && {
+    [ "$PACKAGE_BUILD_SYSTEM_CMAKE" = 1 ] && {
         CMAKE=$(command -v cmake) || abort 1 "command not found: cmake"
         run "$CMAKE"      --version
         printf '\n'
     }
 
-    [ "$PACKAGE_BUILD_SYSTEM_XMAKE" = yes ] && {
+    [ "$PACKAGE_BUILD_SYSTEM_XMAKE" = 1 ] && {
         XMAKE=$(command -v xmake) || abort 1 "command not found: xmake"
         run "$XMAKE"      --version
         printf '\n'
     }
 
-    [ "$PACKAGE_BUILD_SYSTEM_GMAKE" = yes ] && {
+    [ "$PACKAGE_BUILD_SYSTEM_GMAKE" = 1 ] && {
         GMAKE=$(command -v gmake || command -v make) || abort 1 "command not found: gmake and make"
         run "$GMAKE"      --version
         printf '\n'
     }
 
-    [ "$PACKAGE_BUILD_SYSTEM_NINJA" = yes ] && {
+    [ "$PACKAGE_BUILD_SYSTEM_NINJA" = 1 ] && {
         NINJA=$(command -v ninja) || abort 1 "command not found: ninja"
         run "$NINJA"      --version
         printf '\n'
     }
 
-    [ "$PACKAGE_BUILD_SYSTEM_CARGO" = yes ] && {
+    [ "$PACKAGE_BUILD_SYSTEM_CARGO" = 1 ] && {
         RUSTUP=$(command -v rustup) || abort 1 "command not found: rustup"
         CARGO=$(command -v cargo)   || abort 1 "command not found: cargo"
         run "$RUSTUP"     --version
@@ -4606,13 +4606,13 @@ $DOT_CONTENT
         printf '\n'
     }
 
-    [ "$PACKAGE_BUILD_SYSTEM_GO" = yes ] && {
+    [ "$PACKAGE_BUILD_SYSTEM_GO" = 1 ] && {
         GO=$(command -v go) || abort 1 "command not found: go"
         run "$GO"      version
         printf '\n'
     }
 
-    [ "$CCACHE_ENABLED" = yes ] && {
+    [ "$CCACHE_ENABLED" = 1 ] && {
         CCACHE=$(command -v ccache) || abort 1 "command not found: ccache"
         run "$CCACHE"    --version
         printf '\n'
@@ -4773,7 +4773,7 @@ $DOT_CONTENT
 
     #########################################################################################
 
-    [ "$DRYRUN" = yes ] && {
+    [ "$DRYRUN" = 1 ] && {
         [ -z "$SHELL" ] || SHELL=$(command -v zsh || command -v bash || command -v sh) || abort 1 "none of zsh|bash|sh shell found in your system."
         exec "$SHELL"
     }
@@ -4786,9 +4786,9 @@ $DOT_CONTENT
     step "replace config.sub and config.guess with the lastest version"
 
     {
-        [ "$PACKAGE_BUILD_SYSTEM_AUTOGENSH" = yes ] ||
-        [ "$PACKAGE_BUILD_SYSTEM_AUTOTOOLS" = yes ] ||
-        [ "$PACKAGE_BUILD_SYSTEM_CONFIGURE" = yes ]
+        [ "$PACKAGE_BUILD_SYSTEM_AUTOGENSH" = 1 ] ||
+        [ "$PACKAGE_BUILD_SYSTEM_AUTOTOOLS" = 1 ] ||
+        [ "$PACKAGE_BUILD_SYSTEM_CONFIGURE" = 1 ]
     } && {
         for FILENAME in config.sub config.guess
         do
@@ -4843,7 +4843,7 @@ EOF
 
                 run install -d "$PACKAGE_BCACHED_DIR"
 
-                if [ "$PACKAGE_BUILD_IN_BSCRIPT_DIR" = yes ] ; then
+                if [ "$PACKAGE_BUILD_IN_BSCRIPT_DIR" = 1 ] ; then
                     run cd "$PACKAGE_BSCRIPT_DIR"
                 else
                     run cd "$PACKAGE_BCACHED_DIR"
@@ -4953,65 +4953,65 @@ $PACKAGE_DONATIVE_ACTIONS
 
     ##############################################
 
-    _F_COMMON_OPT_IS_SET=no
+    _F_COMMON_OPT_IS_SET=0
 
     for item in $CCFLAGS
     do
         [ "$item" = '-fcommon' ] && {
-            _F_COMMON_OPT_IS_SET=yes
+            _F_COMMON_OPT_IS_SET=1
             break
         }
     done
 
-    if [ "$_F_COMMON_OPT_IS_SET" = no ] ; then
+    if [ "$_F_COMMON_OPT_IS_SET" = 0 ] ; then
         CCFLAGS="$CCFLAGS -fno-common"
     fi
 
     ##############################################
 
-    _F_COMMON_OPT_IS_SET=no
+    _F_COMMON_OPT_IS_SET=0
 
     for item in $OCFLAGS
     do
         [ "$item" = '-fcommon' ] && {
-            _F_COMMON_OPT_IS_SET=yes
+            _F_COMMON_OPT_IS_SET=1
             break
         }
     done
 
-    if [ "$_F_COMMON_OPT_IS_SET" = no ] ; then
+    if [ "$_F_COMMON_OPT_IS_SET" = 0 ] ; then
         OCFLAGS="$OCFLAGS -fno-common"
     fi
 
     ##############################################
 
-    _F_COMMON_OPT_IS_SET=no
+    _F_COMMON_OPT_IS_SET=0
 
     for item in $OXFLAGS
     do
         [ "$item" = '-fcommon' ] && {
-            _F_COMMON_OPT_IS_SET=yes
+            _F_COMMON_OPT_IS_SET=1
             break
         }
     done
 
-    if [ "$_F_COMMON_OPT_IS_SET" = no ] ; then
+    if [ "$_F_COMMON_OPT_IS_SET" = 0 ] ; then
         OXFLAGS="$OXFLAGS -fno-common"
     fi
 
     ##############################################
 
-    _F_COMMON_OPT_IS_SET=no
+    _F_COMMON_OPT_IS_SET=0
 
     for item in $XXFLAGS
     do
         [ "$item" = '-fcommon' ] && {
-            _F_COMMON_OPT_IS_SET=yes
+            _F_COMMON_OPT_IS_SET=1
             break
         }
     done
 
-    if [ "$_F_COMMON_OPT_IS_SET" = no ] ; then
+    if [ "$_F_COMMON_OPT_IS_SET" = 0 ] ; then
         XXFLAGS="$XXFLAGS -fno-common"
     fi
 
@@ -5202,12 +5202,12 @@ $PACKAGE_DONATIVE_ACTIONS
 
     export IFS=':'
 
-    FIRST=yes
+    FIRST=1
 
     for item in $(printf '%s\n' "$PKG_CONFIG_PATH")
     do
-        if [ "$FIRST" = yes ] ; then
-            FIRST=no
+        if [ "$FIRST" = 1 ] ; then
+            FIRST=0
             printf 'PKG_CONFIG_PATH     = %s\n' "$item"
         else
             printf '%s\n' "                      $item"
@@ -5218,7 +5218,7 @@ $PACKAGE_DONATIVE_ACTIONS
 
     #########################################################################################
 
-    if [ "$PACKAGE_BUILD_SYSTEM_CMAKE" = yes ] ; then
+    if [ "$PACKAGE_BUILD_SYSTEM_CMAKE" = 1 ] ; then
         step "config environment variables for cmake"
 
         # https://cmake.org/cmake/help/latest/manual/cmake-env-variables.7.html#manual:cmake-env-variables(7)
@@ -5255,14 +5255,14 @@ $PACKAGE_DONATIVE_ACTIONS
         export CMAKE_BUILD_PARALLEL_LEVEL="$BUILD_NJOBS"
 
         # https://cmake.org/cmake/help/latest/envvar/CMAKE_GENERATOR.html
-        if [ "$PACKAGE_BUILD_SYSTEM_NINJA" = yes ] ; then
+        if [ "$PACKAGE_BUILD_SYSTEM_NINJA" = 1 ] ; then
             export CMAKE_GENERATOR='Ninja'
         else
             export CMAKE_GENERATOR='Unix Makefiles'
         fi
 
         # https://cmake.org/cmake/help/latest/envvar/CMAKE_EXPORT_COMPILE_COMMANDS.html
-        if [ "$EXPORT_COMPILE_COMMANDS_JSON" = yes ] ; then
+        if [ "$EXPORT_COMPILE_COMMANDS_JSON" = 1 ] ; then
             export CMAKE_EXPORT_COMPILE_COMMANDS=ON
         else
             export CMAKE_EXPORT_COMPILE_COMMANDS=OFF
@@ -5422,7 +5422,7 @@ EOF
 
     #########################################################################################
 
-    if [ "$PACKAGE_BUILD_SYSTEM_CARGO" = yes ] ; then
+    if [ "$PACKAGE_BUILD_SYSTEM_CARGO" = 1 ] ; then
         step "config environment variables for rustc and cargo"
 
         # this environment variable is not defined by Rust, but it is widely used by third-party project.
@@ -5546,7 +5546,7 @@ EOF
 
     #########################################################################################
 
-    if [ "$PACKAGE_BUILD_SYSTEM_GO" = yes ] ; then
+    if [ "$PACKAGE_BUILD_SYSTEM_GO" = 1 ] ; then
         step "config environment variables for go"
 
         # https://golang.org/doc/install/source#environment
@@ -5587,7 +5587,7 @@ EOF
 
     step "create symbolic links named as the C/C++ compiler point to ccache"
 
-    if [ "$CCACHE_ENABLED" = yes ] ; then
+    if [ "$CCACHE_ENABLED" = 1 ] ; then
         run ln -sf "$CCACHE" "$PACKAGE_INSTALLING_BIN_DIR/$(basename "$CC")"
         run ln -sf "$CCACHE" "$PACKAGE_INSTALLING_BIN_DIR/$(basename "$CXX")"
 
@@ -5685,9 +5685,9 @@ $PACKAGE_DOPATCH_ACTIONS
 
     [ "$TARGET_PLATFORM_ARCH" = arm64e ] && {
         {
-            [ "$PACKAGE_BUILD_SYSTEM_AUTOGENSH" = yes ] ||
-            [ "$PACKAGE_BUILD_SYSTEM_AUTOTOOLS" = yes ] ||
-            [ "$PACKAGE_BUILD_SYSTEM_CONFIGURE" = yes ]
+            [ "$PACKAGE_BUILD_SYSTEM_AUTOGENSH" = 1 ] ||
+            [ "$PACKAGE_BUILD_SYSTEM_AUTOTOOLS" = 1 ] ||
+            [ "$PACKAGE_BUILD_SYSTEM_CONFIGURE" = 1 ]
         } && find . -name 'config.sub' -exec sed -i 's/arm64-*/arm64-*|arm64e-*/g' '{}' \;
     }
 
@@ -5695,7 +5695,7 @@ $PACKAGE_DOPATCH_ACTIONS
 
     step "install for target"
 
-    if [ "$PACKAGE_BUILD_IN_BSCRIPT_DIR" = yes ] ; then
+    if [ "$PACKAGE_BUILD_IN_BSCRIPT_DIR" = 1 ] ; then
         run cd "$PACKAGE_BSCRIPT_DIR"
     else
         run cd "$PACKAGE_BCACHED_DIR"
@@ -5714,7 +5714,7 @@ $PACKAGE_DOBUILD_ACTIONS
 
     #########################################################################################
 
-    [ "$PACKAGE_BUILD_SYSTEM_CARGO" = yes ] && {
+    [ "$PACKAGE_BUILD_SYSTEM_CARGO" = 1 ] && {
         rm -f "$PACKAGE_INSTALL_DIR/.crates.toml"
         rm -f "$PACKAGE_INSTALL_DIR/.crates2.json"
     }
@@ -5813,7 +5813,7 @@ $PACKAGE_DOBUILD_ACTIONS
     step "generate RECEIPT.yml"
     __generate_receipt_of_the_given_package "$1"
 
-    [ "$PACKAGE_SYMLINK" = yes ] && {
+    [ "$PACKAGE_SYMLINK" = 1 ] && {
         step "symlink installed files to $XCPKG_PACKAGE_SYMLINKED_ROOT"
         __symlink_installed_files_of_the_given_package "$1"
     }
@@ -5825,7 +5825,7 @@ $PACKAGE_DOBUILD_ACTIONS
 
     #########################################################################################
 
-    [ "$CCACHE_ENABLED" = yes ] && {
+    [ "$CCACHE_ENABLED" = 1 ] && {
         step "show ccache statistics summary"
         note "Before Build:"
         run  cat "$PACKAGE_WORKING_DIR/ccache-s.txt"
@@ -5833,7 +5833,7 @@ $PACKAGE_DOBUILD_ACTIONS
         run  ccache -s
     }
 
-    [ "$KEEP_SESSION_DIR" != yes ] && {
+    [ "$KEEP_SESSION_DIR" != 1 ] && {
         step "delete the working directory"
         run rm -rf "$PACKAGE_WORKING_DIR"
     }
@@ -6170,13 +6170,13 @@ configure_only() {
         unset TARGET_TRIPLE
 
         if [ 'arm64' = "$TARGET_PLATFORM_ARCH" ] ; then
-            if [ "$PACKAGE_IOS_IOS" = yes ] ; then
+            if [ "$PACKAGE_IOS_IOS" = 1 ] ; then
                 TARGET_TRIPLE='aarch64-apple-ios'
             else
                 TARGET_TRIPLE='aarch64-apple-darwin'
             fi
         else
-            if [ "$PACKAGE_IOS_IOS" = yes ] ; then
+            if [ "$PACKAGE_IOS_IOS" = 1 ] ; then
                 TARGET_TRIPLE="$TARGET_PLATFORM_ARCH-apple-ios"
             else
                 TARGET_TRIPLE="$TARGET_PLATFORM_ARCH-apple-darwin"
@@ -6277,7 +6277,7 @@ ninjaw() {
 # run in a subshell
 cmakew() {
     if [ "$BUILD_FOR_NATIVE" = 1 ] ; then
-        if [ "$PACKAGE_BUILD_SYSTEM_NINJA" = yes ] ; then
+        if [ "$PACKAGE_BUILD_SYSTEM_NINJA" = 1 ] ; then
             CMAKE_GENERATOR='Ninja'
         else
             CMAKE_GENERATOR='Unix Makefiles'
@@ -6313,18 +6313,18 @@ cmakew() {
         run "$CMAKE" --build   "$PACKAGE_BCACHED_DIR" -- "-j$BUILD_NJOBS" &&
         run "$CMAKE" --install "$PACKAGE_BCACHED_DIR"
     else
-        BUILD_SHARED_LIBS_IS_SPECIFIED=no
+        BUILD_SHARED_LIBS_IS_SPECIFIED=0
 
         for OPT in "$@"
         do
             case $OPT in
-                -DBUILD_SHARED_LIBS=*) BUILD_SHARED_LIBS_IS_SPECIFIED=yes; break
+                -DBUILD_SHARED_LIBS=*) BUILD_SHARED_LIBS_IS_SPECIFIED=1; break
             esac
         done
 
         CMAKE_CONFIG_OPTIONS_EXTRA=
 
-        [ "$BUILD_SHARED_LIBS_IS_SPECIFIED" = no ] && {
+        [ "$BUILD_SHARED_LIBS_IS_SPECIFIED" = 0 ] && {
             case $INSTALL_LIB in
                 static)  CMAKE_CONFIG_OPTIONS_EXTRA=-DBUILD_SHARED_LIBS=OFF ;;
                 *)       CMAKE_CONFIG_OPTIONS_EXTRA=-DBUILD_SHARED_LIBS=ON  ;;
@@ -6451,7 +6451,7 @@ c_link_args = $(to_meson_array $LDFLAGS)
 cpp_args = $(to_meson_array $CXXFLAGS $CPPFLAGS)
 cpp_link_args = $(to_meson_array $LDFLAGS)
 EOF
-    if [ "$PACKAGE_BUILD_SYSTEM_CMAKE" = yes ] ; then
+    if [ "$PACKAGE_BUILD_SYSTEM_CMAKE" = 1 ] ; then
         cat >> "$MESON_CROSS_FILE" <<EOF
 
 [properties]
@@ -6806,7 +6806,7 @@ xcinfo() {
     do
         case "$arg" in
             --list-supported-platform-names)
-                LIST_SUPPORTED_PLATFORM_NAMES=yes
+                LIST_SUPPORTED_PLATFORM_NAMES=1
                 ;;
             --developer-dir=*)
                 USER_SPECIFIED_DEVELOPER_DIR="${arg#'--developer-dir='}"
@@ -6876,7 +6876,7 @@ ${item%.platform}"
     XCODE_VERSION=
     XCODE_VERSION="$(system_profiler SPDeveloperToolsDataType | grep Version | head -n 1 | cut -d: -f2 | sed 's/^ //g')"
 
-    if [ "$LIST_SUPPORTED_PLATFORM_NAMES" = yes ] ; then
+    if [ "$LIST_SUPPORTED_PLATFORM_NAMES" = 1 ] ; then
         printf '%s\n' "$XCODE_SUPPORT_PLATFORM_NAMES"
         return 0
     fi
@@ -7641,7 +7641,7 @@ main() {
 
     XCPKG="$CURRENT_SCRIPT_FILEPATH"
 
-    XCPKG_VERSION=0.13.14
+    XCPKG_VERSION=0.14.0
 
     XCPKG_OFFICAL_FORMULA_REPO_URL='https://github.com/leleliu008/xcpkg-formula-repository-offical-core'
 
