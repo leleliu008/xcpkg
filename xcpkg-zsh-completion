@@ -163,14 +163,14 @@ function _xcpkg() {
                 depends)
                     _arguments \
                         '1:package-name:_xcpkg_available_packages' \
-                        '-t[set output format]:output-type:(dot box svg png)' \
-                        '-o[set output filepath or directory]:output-path:_files'
+                        '-t[specify output format]:output-type:(dot box svg png)' \
+                        '-o[specify output filepath or directory]:output-path:_files'
                     ;;
                 pack)
                     _arguments \
                         '1:package-name:_xcpkg_installed_packages' \
-                        '-t[set output type]:output-type:(zip tar.gz tar.xz tar.lz tar.bz2)' \
-                        '-o[set output filepath or directory]:output-path:_files' \
+                        '-t[specify output type]:output-type:(zip tar.gz tar.xz tar.lz tar.bz2)' \
+                        '-o[specify output filepath or directory]:output-path:_files' \
                         '--keep-session-dir[do not delete the session directory even if successfully packed]'
                     ;;
                 tree)
@@ -187,11 +187,12 @@ function _xcpkg() {
                 install)
                     _arguments \
                         ':package-name:(@all $(xcpkg ls-available 2>/dev/null))' \
-                        '--toolchain=-[set which toolchain to use]:toolchain:(zig gcc llvm)' \
-                        '--jobs=-[set the number of jobs you can run in parallel]:jobs:(1 2 3 4 5 6 7 8 9)' \
+                        '--target=-[specify which target to be built for]:toolchain:(zig gcc llvm)' \
+                        '--jobs=-[specify the number of jobs you can run in parallel]:jobs:(1 2 3 4 5 6 7 8 9)' \
+                        '--upgrade[upgrade if it could be]' \
                         '--dry-run[dry-run]' \
                         '--keep-session-dir[do not delete the session directory even if successfully installed]' \
-                        '--build-type=-[set build type]:build-type:(debug release)' \
+                        '--build-type=-[specify build type]:build-type:(debug release)' \
                         '--link-type=-[link static or shared library]:link-type:(static-only shared-only static-prefered shared-prefered)' \
                         '--export-compile-commands-json[generates compile_commands.json]' \
                         '--disable-ccache[do not use ccache]' \
@@ -203,11 +204,11 @@ function _xcpkg() {
                 reinstall)
                     _arguments \
                         ':package-name:_xcpkg_installed_packages' \
-                        '--toolchain=-[set which toolchain to use]:toolchain:(zig gcc llvm)' \
-                        '--jobs=-[set the number of jobs you can run in parallel]:jobs:(1 2 3 4 5 6 7 8 9)' \
+                        '--target=-[specify which target to be built for]:toolchain:(zig gcc llvm)' \
+                        '--jobs=-[specify the number of jobs you can run in parallel]:jobs:(1 2 3 4 5 6 7 8 9)' \
                         '--dry-run[dry-run]' \
                         '--keep-session-dir[do not delete the session directory even if successfully installed]' \
-                        '--build-type=-[set build type]:build-type:(debug release)' \
+                        '--build-type=-[specify build type]:build-type:(debug release)' \
                         '--link-type=-[link static or shared library]:link-type:(static-only shared-only static-prefered shared-prefered)' \
                         '--export-compile-commands-json[generates compile_commands.json]' \
                         '--disable-ccache[do not use ccache]' \
@@ -219,10 +220,11 @@ function _xcpkg() {
                 upgrade)
                     _arguments \
                         ':package-name:_xcpkg_outdated_packages' \
-                        '--jobs=-[set the number of jobs you can run in parallel]:jobs:(1 2 3 4 5 6 7 8 9)' \
+                        '--target=-[specify which target to be built for]:toolchain:(zig gcc llvm)' \
+                        '--jobs=-[specify the number of jobs you can run in parallel]:jobs:(1 2 3 4 5 6 7 8 9)' \
                         '--dry-run[dry-run]' \
                         '--keep-session-dir[do not delete the session directory even if successfully installed]' \
-                        '--build-type=-[set build type]:build-type:(debug release)' \
+                        '--build-type=-[specify build type]:build-type:(debug release)' \
                         '--link-type=-[link static or shared library]:link-type:(static-only shared-only static-prefered shared-prefered)' \
                         '--export-compile-commands-json[generates compile_commands.json]' \
                         '--disable-ccache[do not use ccache]' \

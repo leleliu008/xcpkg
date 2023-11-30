@@ -137,6 +137,54 @@ sed_in_place() {
     fi
 }
 
+# check if the given two version match the condition
+#
+# condition:
+# eq  equal
+# ne  not equal
+# gt  greater than
+# lt  less than
+# ge  greater than or equal
+# le  less than or equal
+#
+# examples:
+# version_match 1.15.3 eq 1.16.0
+# version_match 1.15.3 lt 1.16.0
+# version_match 1.15.3 gt 1.16.0
+# version_match 1.15.3 le 1.16.0
+# version_match 1.15.3 ge 1.16.0
+version_match() {
+    case $2 in
+        eq)  [ "$1"  = "$3" ] ;;
+        ne)  [ "$1" != "$3" ] ;;
+        le)
+            if [ "$1" = "$3" ] ; then
+                return 0
+            fi
+            [ "$1" = "$(printf '%s\n' "$1" "$3" | sort -V | head -n 1)" ]
+            ;;
+        ge)
+            if [ "$1" = "$3" ] ; then
+                return 0
+            fi
+            [ "$1" = "$(printf '%s\n' "$1" "$3" | sort -V | tail -n 1)" ]
+            ;;
+        lt)
+            if [ "$1" = "$3" ] ; then
+                return 1
+            fi
+            [ "$1" = "$(printf '%s\n' "$1" "$3" | sort -V | head -n 1)" ]
+            ;;
+        gt)
+            if [ "$1" = "$3" ] ; then
+                return 1
+            fi
+            [ "$1" = "$(printf '%s\n' "$1" "$3" | sort -V | tail -n 1)" ]
+            ;;
+        *)  abort 1 "version_match: unsupported operator: $2"
+    esac
+}
+
 # }}}
 ##############################################################################
 # {{{ wfetch
@@ -350,66 +398,6 @@ wfetch() {
         fi
     fi
 }
-
-# }}}
-##############################################################################
-# {{{ version
-
-version_sort() {
-    printf '%s\n' "$@" | sort -V
-}
-
-# check if match the condition
-#
-# condition:
-# eq  equal
-# ne  not equal
-# gt  greater than
-# lt  less than
-# ge  greater than or equal
-# le  less than or equal
-#
-# examples:
-# version_match 1.15.3 eq 1.16.0
-# version_match 1.15.3 lt 1.16.0
-# version_match 1.15.3 gt 1.16.0
-# version_match 1.15.3 le 1.16.0
-# version_match 1.15.3 ge 1.16.0
-version_match() {
-    case $2 in
-        eq)  [ "$1"  = "$3" ] ;;
-        ne)  [ "$1" != "$3" ] ;;
-        le)
-            if [ "$1" = "$3" ] ; then
-                return 0
-            fi
-            [ "$1" = "$(version_sort "$1" "$3" | head -n 1)" ]
-            ;;
-        ge)
-            if [ "$1" = "$3" ] ; then
-                return 0
-            fi
-            [ "$1" = "$(version_sort "$1" "$3" | tail -n 1)" ]
-            ;;
-        lt)
-            if [ "$1" = "$3" ] ; then
-                return 1
-            fi
-            [ "$1" = "$(version_sort "$1" "$3" | head -n 1)" ]
-            ;;
-        gt)
-            if [ "$1" = "$3" ] ; then
-                return 1
-            fi
-            [ "$1" = "$(version_sort "$1" "$3" | tail -n 1)" ]
-            ;;
-        *)  abort 1 "version_match: unsupported operator: $2"
-    esac
-}
-
-# }}}
-##############################################################################
-# {{{ __load_formula_repository_config
 
 # __load_formula_repository_config <REPO-NAME> [REPO-PATH]
   __load_formula_repository_config() {
@@ -783,6 +771,21 @@ EOF
 
 # }}}
 ##############################################################################
+# {{{ xcpkg formula-repo-list
+
+__list_available_formula_repositories() {
+    [ -d "$XCPKG_FORMULA_REPO_ROOT" ] || return 0
+
+    for item in $(cd "$XCPKG_FORMULA_REPO_ROOT" && ls)
+    do
+        if [ -f "$XCPKG_FORMULA_REPO_ROOT/$item/.xcpkg-formula-repo.yml" ] ; then
+            __info_the_given_formula_repository "$item"
+        fi
+    done
+}
+
+# }}}
+##############################################################################
 # {{{ xcpkg update
 
 __sync_available_formula_repositories() {
@@ -798,21 +801,6 @@ __sync_available_formula_repositories() {
     [ -d "$XCPKG_FORMULA_REPO_ROOT/offical-core" ] || {
         __create_a_formula_repository_then_sync_it offical-core "$XCPKG_OFFICAL_FORMULA_REPO_URL"
     }
-}
-
-# }}}
-##############################################################################
-# {{{ xcpkg formula-repo-list
-
-__list_available_formula_repositories() {
-    [ -d "$XCPKG_FORMULA_REPO_ROOT" ] || return 0
-
-    for item in $(cd "$XCPKG_FORMULA_REPO_ROOT" && ls)
-    do
-        if [ -f "$XCPKG_FORMULA_REPO_ROOT/$item/.xcpkg-formula-repo.yml" ] ; then
-            __info_the_given_formula_repository "$item"
-        fi
-    done
 }
 
 # __path_of_formula_of_the_given_package <PACKAGE-NAME>
@@ -2708,863 +2696,135 @@ __fetch_resources_of_the_given_package() {
 
 # }}}
 ##############################################################################
-# {{{ xcpkg upgrade-self
+# {{{ xcpkg xcinfo
 
-# __upgrade_self <URL>
-  __upgrade_self() {
-    if [ -z "$1" ] ; then
-        error "__upgrade_self <URL> , <URL> must be non-empty."
-        return 1
-    fi
-
-    unset CURRENT_SCRIPT_REALPATH
-
-    # if file exists and is a symbolic link
-    if [ -L "$CURRENT_SCRIPT_FILEPATH" ] ; then
-        # https://unix.stackexchange.com/questions/136494/whats-the-difference-between-realpath-and-readlink-f#:~:text=GNU%20coreutils%20introduced%20a%20realpath,in%20common%20with%20GNU%20readlink%20.
-        if command -v realpath > /dev/null ; then
-            CURRENT_SCRIPT_REALPATH=$(realpath "$CURRENT_SCRIPT_FILEPATH")
-        elif command -v readlink > /dev/null && readlink -f xx > /dev/null 2>&1 ; then
-            CURRENT_SCRIPT_REALPATH=$(readlink -f "$CURRENT_SCRIPT_FILEPATH")
-        else
-            CURRENT_SCRIPT_REALPATH=$(realpath "$CURRENT_SCRIPT_FILEPATH")
-        fi
-    else
-        CURRENT_SCRIPT_REALPATH="$CURRENT_SCRIPT_FILEPATH"
-    fi
-
-    SESSION_DIR="$XCPKG_HOME/run/$$"
-
-    run rm -rf     "$SESSION_DIR"
-    run install -d "$SESSION_DIR"
-    run cd         "$SESSION_DIR"
-
-    wfetch "$1" --output-filename=self
-
-    run chmod 755 self
-
-    if [ -w "$CURRENT_SCRIPT_REALPATH" ] ; then
-        run      mv self "$CURRENT_SCRIPT_REALPATH"
-    else
-        run sudo mv self "$CURRENT_SCRIPT_REALPATH"
-    fi
-
-    run rm -rf "$SESSION_DIR"
-}
-
-# }}}
-##############################################################################
-# {{{ xcpkg integrate zsh
-
-# __integrate_zsh_completions <URL> [--output-dir=<DIR>]
-  __integrate_zsh_completions() {
-    if [ -z "$1" ] ; then
-        error "__integrate_zsh_completions <URL> [--output-dir=<DIR>] , <URL> must be non-empty."
-        return 1
-    else
-        ZSH_COMPLETIONS_SCRIPT_URL="$1"
-    fi
-
-    shift
-
-    unset OUTPUT_DIR
+# xcpkg xcinfo [ --developer-dir=<DEVELOPER-DIR>
+# xcpkg xcinfo [ --developer-dir=<DEVELOPER-DIR> --list-supported-platform-names]
+  xcinfo() {
+    unset SPECIFIED_DEVELOPER_DIR
+    unset LIST_SUPPORTED_PLATFORM_NAMES
 
     for arg in "$@"
     do
-        case $arg in
-            --output-dir=*)
-                OUTPUT_DIR="${arg#*=}"
-                case $OUTPUT_DIR in
-                    '')     abort 1 "__integrate_zsh_completions <URL> [--output-dir=<DIR>] , <DIR> must be non-empty." ;;
-                    \~|\~/) OUTPUT_DIR="${HOME}" ;;
-                    \~/*)   OUTPUT_DIR="$HOME/$(printf '%s\n' "$OUTPUT_DIR" | cut -c3-)" ;;
-                esac
+        case "$arg" in
+            --list-supported-platform-names)
+                LIST_SUPPORTED_PLATFORM_NAMES=1
                 ;;
-            *)  abort 1 "__integrate_zsh_completions <URL> [--output-dir=<DIR>] , unrecognized argument: $arg"
+            --developer-dir=*)
+                SPECIFIED_DEVELOPER_DIR="${arg#'--developer-dir='}"
+                ;;
+            *)  abort 1 "unrecognized option: $arg"
         esac
     done
 
-    ZSH_COMPLETIONS_SCRIPT_FILENAME="_$CURRENT_SCRIPT_FILENAME"
-
-    if [ -n "$OUTPUT_DIR" ] ; then
-        ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH="$OUTPUT_DIR/$ZSH_COMPLETIONS_SCRIPT_FILENAME"
-    elif [ "$(uname)" = Linux ] && command -v termux-info > /dev/null && [ "$HOME" = '/data/data/com.termux/files/home' ] ; then
-        ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH="/data/data/com.termux/files/usr/share/zsh/site-functions/$ZSH_COMPLETIONS_SCRIPT_FILENAME"
-    else
-        ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH="/usr/local/share/zsh/site-functions/$ZSH_COMPLETIONS_SCRIPT_FILENAME"
-    fi
-
-    # if file exists and is a symbolic link
-    if [ -L "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH" ] ; then
-        # https://unix.stackexchange.com/questions/136494/whats-the-difference-between-realpath-and-readlink-f#:~:text=GNU%20coreutils%20introduced%20a%20realpath,in%20common%20with%20GNU%20readlink%20.
-        if command -v realpath > /dev/null ; then
-            ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH=$(realpath "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH")
-        elif command -v readlink > /dev/null && readlink -f xx > /dev/null 2>&1 ; then
-            ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH=$(readlink -f "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH")
+    if [ -z "$SPECIFIED_DEVELOPER_DIR" ] ; then
+        if [ -z "$DEVELOPER_DIR" ] ; then
+            DEVELOPER_DIR="$(xcode-select -p)"
+            [ -z "$DEVELOPER_DIR" ] && abort 1 "Xcode developer dir can't be located.\nThere're 3 ways to resolve this problem:\n1. run command 'xcode-select --switch DEVELOPER_DIR', then try again.\n2. set system-wide environment variable DEVELOPER_DIR\3. set process-wide environment variable DEVELOPER_DIR, you can run xcpkg command as 'DEVELOPER_DIR=/some/path xcpkg'"
         else
-            ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH=$(realpath "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH")
-        fi
-    fi
-
-    SESSION_DIR="$XCPKG_HOME/run/$$"
-
-    run rm -rf     "$SESSION_DIR"
-    run install -d "$SESSION_DIR"
-    run cd         "$SESSION_DIR"
-
-    wfetch "$ZSH_COMPLETIONS_SCRIPT_URL" --output-filename=_xcpkg
-
-    run chmod 644 _xcpkg
-
-    if [ -f "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH" ] ; then
-        if [ -w "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH" ] ; then
-            run      mv _xcpkg "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH"
-        else
-            run sudo mv _xcpkg "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH"
+            note "you have set DEVELOPER_DIR=$DEVELOPER_DIR, it will be used as the xcode developer directory."
         fi
     else
-        ZSH_COMPLETIONS_SCRIPT_OUT_DIR="$(dirname "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH")"
-
-        if [ ! -d "$ZSH_COMPLETIONS_SCRIPT_OUT_DIR" ] ; then
-            run install -d "$ZSH_COMPLETIONS_SCRIPT_OUT_DIR" || run sudo install -d "$ZSH_COMPLETIONS_SCRIPT_OUT_DIR"
-        fi
-
-        if [ -w "$ZSH_COMPLETIONS_SCRIPT_OUT_DIR" ] ; then
-            run      mv _xcpkg "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH"
-        else
-            run sudo mv _xcpkg "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH"
-        fi
+        DEVELOPER_DIR="$SPECIFIED_DEVELOPER_DIR"
     fi
 
-    run rm -rf "$SESSION_DIR"
+    [ -e "$DEVELOPER_DIR" ] || abort 1 "$DEVELOPER_DIR was expected to be exist, but it was not."
+    [ -d "$DEVELOPER_DIR" ] || abort 1 "$DEVELOPER_DIR was expected to be a directory, but it was not."
 
-    printf '\n'
-    note "${COLOR_YELLOW}you may need to run command${COLOR_RED} ${COLOR_GREEN}autoload -U compinit && compinit${COLOR_OFF} ${COLOR_YELLOW}in zsh to make it work.${COLOR_OFF}"
-}
+    XCODE_DEFAULT_TOOLCHAIN_BIN_DIR="$DEVELOPER_DIR/Toolchains/XcodeDefault.xctoolchain/usr/bin"
 
-# }}}
-##############################################################################
-# {{{ xcpkg gen-url-transform-sample
+    [ -e "$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR" ] || abort 1 "$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR was expected to be exist, but it was not."
+    [ -d "$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR" ] || abort 1 "$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR was expected to be a directory, but it was not."
 
-__gen_url_transform_sample() {
-    SESSION_DIR="$XCPKG_HOME/run/$$"
+    export       CC="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/clang"
+    export      CXX="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/clang++"
+    export      CPP="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/cpp"
+    export       AS="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/as"
+    export       AR="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/ar"
+    export   RANLIB="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/ranlib"
+    export       LD="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/ld"
+    export       NM="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/nm"
+    export    STRIP="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/strip"
+    export     SIZE="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/size"
+    export  STRINGS="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/strings"
+    export  OBJDUMP="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/objdump"
 
-    rm -rf     "$SESSION_DIR"
-    install -d "$SESSION_DIR"
-    cd         "$SESSION_DIR"
+    XCODE_SUPPORT_PLATFORM_NAMES=
 
-    cat > url-transform.sample <<EOF
-#!/bin/sh
+    XCODE_PLATFORMS_DIR="$DEVELOPER_DIR/Platforms"
 
-# https://gitmirror.com/
-case \$1 in
-    *githubusercontent.com/*)
-        printf '%s\n' "\$1" | sed 's|githubusercontent|gitmirror|'
-        ;;
-    https://github.com/*)
-        printf 'https://hub.gitmirror.com/%s\n' "\$1"
-        ;;
-    '') printf '%s\n' "\$0 <URL>, <URL> is unspecified." >&2 ; exit 1 ;;
-    *)  printf '%s\n' "\$1"
-esac
+    if [ -d "$XCODE_PLATFORMS_DIR" ] ; then
+        for item in $(cd "$XCODE_PLATFORMS_DIR" && ls)
+        do
+            case $item in
+                *.platform)
+                    if [ -z "$XCODE_SUPPORT_PLATFORM_NAMES" ] ; then
+                        XCODE_SUPPORT_PLATFORM_NAMES="${item%.platform}"
+                    else
+                        XCODE_SUPPORT_PLATFORM_NAMES="$XCODE_SUPPORT_PLATFORM_NAMES
+${item%.platform}"
+                    fi
+            esac
+        done
+
+        if [ -z "$XCODE_SUPPORT_PLATFORM_NAMES" ] ; then
+            abort 1 "no any platforms found in $XCODE_PLATFORMS_DIR"
+        fi
+    else
+        [ -e "$XCODE_PLATFORMS_DIR" ] || abort 1 "$XCODE_PLATFORMS_DIR was expected to be exist, but it was not."
+        [ -d "$XCODE_PLATFORMS_DIR" ] || abort 1 "$XCODE_PLATFORMS_DIR was expected to be a directory, but it was not."
+    fi
+
+    XCODE_VERSION=
+    XCODE_VERSION="$(system_profiler SPDeveloperToolsDataType | grep Version | head -n 1 | cut -d: -f2 | sed 's/^ //g')"
+
+    if [ "$LIST_SUPPORTED_PLATFORM_NAMES" = 1 ] ; then
+        printf '%s\n' "$XCODE_SUPPORT_PLATFORM_NAMES"
+        return 0
+    fi
+
+    cat <<EOF
+DEVELOPER_DIR: $DEVELOPER_DIR
+XCODE_VERSION: $XCODE_VERSION
+
+toolchains:
+    default:
+        CC:      $CC
+        CXX:     $CXX
+        CPP:     $CPP
+        AS:      $AS
+        AR:      $AR
+        RANLIB:  $RANLIB
+        LD:      $LD
+        NM:      $NM
+        SIZE:    $SIZE
+        STRIP:   $STRIP
+        STRINGS: $STRINGS
+        OBJDUMP: $OBJDUMP
+
+platforms:
 EOF
 
-    chmod +x url-transform.sample
-
-    install -d "$XCPKG_HOME"
-
-    mv url-transform.sample "$XCPKG_HOME/"
-
-    rm -rf "$SESSION_DIR"
-
-    success "url-transform sample has been written into $XCPKG_HOME/url-transform.sample"
-    note "You can rename url-transform.sample to url-transform then edit it to meet your needs. To apply this, you should run 'export XCPKG_URL_TRANSFORM=$XCPKG_HOME/url-transform' in your terminal."
-}
-
-# }}}
-##############################################################################
-# {{{ xcpkg cleanup
-
-__cleanup() {
-    success "Done."
-}
-
-# }}}
-##############################################################################
-# {{{ xcpkg uninstall
-
-__uninstall_the_given_packages() {
-    [ -z "$1" ] && abort 1 "neither package-name nor package-spec is specified."
-
-    unset PACKAGE_SPECS
-
-    for item in "$@"
+    for TARGET_PLATFORM_NAME in $XCODE_SUPPORT_PLATFORM_NAMES
     do
-        PACKAGE_SPECS="$PACKAGE_SPECS $(inspect_package_spec "$item")"
-    done
+        SDKNAME="$(printf '%s\n' "$TARGET_PLATFORM_NAME" | tr A-Z a-z)"
+        SDKROOT="$(xcrun --sdk "$SDKNAME" --show-sdk-path)"
+        SDK_SUPPORT_ARCHS="$(jq -r ".SupportedTargets.$SDKNAME.Archs | join(\" \")" "$SDKROOT/SDKSettings.json")"
+        SDK_SUPPORT_VERSIONS="$(jq -r ".SupportedTargets.$SDKNAME.ValidDeploymentTargets | reverse | join(\" \")" "$SDKROOT/SDKSettings.json")"
 
-    for PACKAGE_SPEC in $PACKAGE_SPECS
-    do
-        PACKAGE_INSTALLED_LINK_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_SPEC"
+        cat <<EOF
 
-        [ -e "$PACKAGE_INSTALLED_LINK_DIR" ] || abort 10 "package '$PACKAGE_SPEC' is not installed."
-        [ -L "$PACKAGE_INSTALLED_LINK_DIR" ] || abort 11 "$PACKAGE_INSTALLED_LINK_DIR was expected a symlink, but it was not."
-        [ -d "$PACKAGE_INSTALLED_LINK_DIR" ] || abort 12 "$PACKAGE_INSTALLED_LINK_DIR was expected a symlink refer to a directory, but it was not."
-
-        PACKAGE_INSTALLED_REAL_DIR="$(readlink -f "$PACKAGE_INSTALLED_LINK_DIR")"
-
-        [ -d "$PACKAGE_INSTALLED_REAL_DIR" ] || abort 13 "directory $PACKAGE_INSTALLED_REAL_DIR was expected exists, but it was not."
-
-        PACKAGE_MANIFEST_FILEPATH="$PACKAGE_INSTALLED_REAL_DIR/.xcpkg/MANIFEST.txt"
-
-        [ -f "$PACKAGE_MANIFEST_FILEPATH" ] || abort 13 "$PACKAGE_MANIFEST_FILEPATH file was expected exist, but it was not."
-
-        PACKAGE_RECEIPT_FILEPATH="$PACKAGE_INSTALLED_REAL_DIR/.xcpkg/RECEIPT.yml"
-
-        [ -f "$PACKAGE_RECEIPT_FILEPATH" ] || abort 14 "$PACKAGE_RECEIPT_FILEPATH file was expected exist, but it was not."
-
-        run rm -ff "$PACKAGE_INSTALLED_LINK_DIR"
-        run rm -rf "$PACKAGE_INSTALLED_REAL_DIR"
+    $TARGET_PLATFORM_NAME:
+        SDKROOT: $SDKROOT
+        supported-archs: $SDK_SUPPORT_ARCHS
+        supported-versions: $SDK_SUPPORT_VERSIONS
+EOF
     done
 }
 
 # }}}
 ##############################################################################
-# {{{ xcpkg reinstall
-
-__reinstall_the_given_packages() {
-    inspect_install_arguments "$@"
-
-    [ -z "$USER_SPECIFIED_PACKAGE_SPEC_LIST" ] && abort 1 "neither package-name nor package-spec is specified."
-
-    #########################################################################################
-
-    SESSION_DIR="$XCPKG_HOME/run/$$"
-
-    rm -rf     "$SESSION_DIR"
-    install -d "$SESSION_DIR"
-
-    #########################################################################################
-
-    # 1. check if has circle
-    # 2. backup formulas
-    # 3. cache variables
-
-    for USER_SPECIFIED_PACKAGE_SPEC in $USER_SPECIFIED_PACKAGE_SPEC_LIST
-    do
-        PACKAGE_NAME_STACK="${USER_SPECIFIED_PACKAGE_SPEC##*/}"
-
-        while [ -n "$PACKAGE_NAME_STACK" ]
-        do
-            case $PACKAGE_NAME_STACK in
-                *\;*) PACKAGE_NAME="${PACKAGE_NAME_STACK##*;}" ; PACKAGE_NAME_STACK="${PACKAGE_NAME_STACK%;*}" ;;
-                *)    PACKAGE_NAME="${PACKAGE_NAME_STACK}"     ; PACKAGE_NAME_STACK=
-            esac
-
-            if [ -f "$SESSION_DIR/$PACKAGE_NAME.yml" ] ; then
-                continue
-            fi
-
-            __load_formula_of_the_given_package "$PACKAGE_NAME"
-
-            cp "$PACKAGE_FORMULA_FILEPATH" "$SESSION_DIR/$PACKAGE_NAME.yml"
-
-            eval "PACKAGE_DEP_PKG_${PACKAGE_NAME_UPPERCASE_UNDERSCORE}='$PACKAGE_DEP_PKG'"
-
-            for DEPENDENT_PACKAGE_NAME in $PACKAGE_DEP_PKG
-            do
-                if [ "$DEPENDENT_PACKAGE_NAME" = "$PACKAGE_NAME" ] ; then
-                    abort 1 "package '$PACKAGE_NAME' depends itself."
-                fi
-
-                if [ -z "$PACKAGE_NAME_STACK" ] ; then
-                    PACKAGE_NAME_STACK="$DEPENDENT_PACKAGE_NAME"
-                else
-                    PACKAGE_NAME_STACK="$PACKAGE_NAME_STACK;$DEPENDENT_PACKAGE_NAME"
-                fi
-            done
-        done
-    done
-
-    #########################################################################################
-
-    for USER_SPECIFIED_PACKAGE_SPEC in $USER_SPECIFIED_PACKAGE_SPEC_LIST
-    do
-        TARGET_PLATFORM_SPEC="${USER_SPECIFIED_PACKAGE_SPEC%/*}"
-
-        TARGET_PLATFORM_NAME=
-        TARGET_PLATFORM_VERS=
-        TARGET_PLATFORM_ARCH=
-
-        TARGET_PLATFORM_NAME="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d- -f1)"
-        TARGET_PLATFORM_VERS="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d- -f2)"
-        TARGET_PLATFORM_ARCH="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d- -f3)"
-
-        ##################################################################
-
-        TO_BE_INSTALLED_PACKAGE_NAMES=
-
-        PACKAGE_NAME_STACK="${USER_SPECIFIED_PACKAGE_SPEC##*/}"
-
-        while [ -n "$PACKAGE_NAME_STACK" ]
-        do
-            case $PACKAGE_NAME_STACK in
-                *\;*) PACKAGE_NAME="${PACKAGE_NAME_STACK##*;}" ; PACKAGE_NAME_STACK="${PACKAGE_NAME_STACK%;*}" ;;
-                *)    PACKAGE_NAME="${PACKAGE_NAME_STACK}"     ; PACKAGE_NAME_STACK=
-            esac
-
-            ##################################################################
-
-            TO_BE_INSTALLED_PACKAGE_NAMES2="$PACKAGE_NAME"
-
-            for item in $TO_BE_INSTALLED_PACKAGE_NAMES
-            do
-                [ "$item" = "$PACKAGE_NAME" ] && continue
-                TO_BE_INSTALLED_PACKAGE_NAMES2="$TO_BE_INSTALLED_PACKAGE_NAMES2 $item"
-            done
-
-            TO_BE_INSTALLED_PACKAGE_NAMES="$TO_BE_INSTALLED_PACKAGE_NAMES2"
-
-            ##################################################################
-
-            PACKAGE_NAME_UPPERCASE_UNDERSCORE="$(printf '%s\n' "$PACKAGE_NAME" | tr a-z A-Z | tr '@+-.' '_')"
-
-            for item in $(eval echo \$PACKAGE_DEP_PKG_"${PACKAGE_NAME_UPPERCASE_UNDERSCORE}")
-            do
-                if [ -z "$PACKAGE_NAME_STACK" ] ; then
-                    PACKAGE_NAME_STACK="$item"
-                else
-                    PACKAGE_NAME_STACK="$PACKAGE_NAME_STACK;$item"
-                fi
-            done
-        done
-
-        ##################################################################
-
-        for PACKAGE_NAME in $TO_BE_INSTALLED_PACKAGE_NAMES
-        do
-            PACKAGE_SPEC="$TARGET_PLATFORM_SPEC/$PACKAGE_NAME"
-
-            PACKAGE_INSTALLED_LINK_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_SPEC"
-            PACKAGE_INSTALLED_REAL_DIR="$(readlink -f "$PACKAGE_INSTALLED_LINK_DIR")"
-
-            (__install_the_given_package "$PACKAGE_SPEC")
-
-            rm -rf "$PACKAGE_INSTALLED_REAL_DIR"
-        done
-    done
-
-    #########################################################################################
-
-    if [ "$KEEP_SESSION_DIR" != 1 ] ; then
-        rm -rf "$SESSION_DIR"
-    fi
-}
-
-# }}}
-##############################################################################
-# {{{ xcpkg upgrade
-
-__upgrade_packages() {
-    inspect_install_arguments "$@"
-
-    if [ -z "$USER_SPECIFIED_PACKAGE_SPEC_LIST" ] ; then
-        USER_SPECIFIED_PACKAGE_SPEC_LIST=$(__list__outdated_packages)
-    fi
-
-    #########################################################################################
-
-    SESSION_DIR="$XCPKG_HOME/run/$$"
-
-    rm -rf     "$SESSION_DIR"
-    install -d "$SESSION_DIR"
-
-    #########################################################################################
-
-    # 1. check if has circle
-    # 2. backup formulas
-    # 3. cache variables
-
-    for USER_SPECIFIED_PACKAGE_SPEC in $USER_SPECIFIED_PACKAGE_SPEC_LIST
-    do
-        PACKAGE_NAME_STACK="${USER_SPECIFIED_PACKAGE_SPEC##*/}"
-
-        while [ -n "$PACKAGE_NAME_STACK" ]
-        do
-            case $PACKAGE_NAME_STACK in
-                *\;*) PACKAGE_NAME="${PACKAGE_NAME_STACK##*;}" ; PACKAGE_NAME_STACK="${PACKAGE_NAME_STACK%;*}" ;;
-                *)    PACKAGE_NAME="${PACKAGE_NAME_STACK}"     ; PACKAGE_NAME_STACK=
-            esac
-
-            if [ -f "$SESSION_DIR/$PACKAGE_NAME.yml" ] ; then
-                continue
-            fi
-
-            __load_formula_of_the_given_package "$PACKAGE_NAME"
-
-            cp "$PACKAGE_FORMULA_FILEPATH" "$SESSION_DIR/$PACKAGE_NAME.yml"
-
-            eval "PACKAGE_DEP_PKG_${PACKAGE_NAME_UPPERCASE_UNDERSCORE}='$PACKAGE_DEP_PKG'"
-
-            for DEPENDENT_PACKAGE_NAME in $PACKAGE_DEP_PKG
-            do
-                if [ "$DEPENDENT_PACKAGE_NAME" = "$PACKAGE_NAME" ] ; then
-                    abort 1 "package '$PACKAGE_NAME' depends itself."
-                fi
-
-                if [ -z "$PACKAGE_NAME_STACK" ] ; then
-                    PACKAGE_NAME_STACK="$DEPENDENT_PACKAGE_NAME"
-                else
-                    PACKAGE_NAME_STACK="$PACKAGE_NAME_STACK;$DEPENDENT_PACKAGE_NAME"
-                fi
-            done
-        done
-    done
-
-    #########################################################################################
-
-    for USER_SPECIFIED_PACKAGE_SPEC in $USER_SPECIFIED_PACKAGE_SPEC_LIST
-    do
-        TARGET_PLATFORM_SPEC="${USER_SPECIFIED_PACKAGE_SPEC%/*}"
-
-        TARGET_PLATFORM_NAME=
-        TARGET_PLATFORM_VERS=
-        TARGET_PLATFORM_ARCH=
-
-        TARGET_PLATFORM_NAME="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d- -f1)"
-        TARGET_PLATFORM_VERS="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d- -f2)"
-        TARGET_PLATFORM_ARCH="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d- -f3)"
-
-        ##################################################################
-
-        TO_BE_INSTALLED_PACKAGE_NAMES=
-
-        PACKAGE_NAME_STACK="${USER_SPECIFIED_PACKAGE_SPEC##*/}"
-
-        while [ -n "$PACKAGE_NAME_STACK" ]
-        do
-            case $PACKAGE_NAME_STACK in
-                *\;*) PACKAGE_NAME="${PACKAGE_NAME_STACK##*;}" ; PACKAGE_NAME_STACK="${PACKAGE_NAME_STACK%;*}" ;;
-                *)    PACKAGE_NAME="${PACKAGE_NAME_STACK}"     ; PACKAGE_NAME_STACK=
-            esac
-
-            ##################################################################
-
-            TO_BE_INSTALLED_PACKAGE_NAMES2="$PACKAGE_NAME"
-
-            for item in $TO_BE_INSTALLED_PACKAGE_NAMES
-            do
-                [ "$item" = "$PACKAGE_NAME" ] && continue
-                TO_BE_INSTALLED_PACKAGE_NAMES2="$TO_BE_INSTALLED_PACKAGE_NAMES2 $item"
-            done
-
-            TO_BE_INSTALLED_PACKAGE_NAMES="$TO_BE_INSTALLED_PACKAGE_NAMES2"
-
-            ##################################################################
-
-            PACKAGE_NAME_UPPERCASE_UNDERSCORE="$(printf '%s\n' "$PACKAGE_NAME" | tr a-z A-Z | tr '@+-.' '_')"
-
-            for item in $(eval echo \$PACKAGE_DEP_PKG_"${PACKAGE_NAME_UPPERCASE_UNDERSCORE}")
-            do
-                if [ -z "$PACKAGE_NAME_STACK" ] ; then
-                    PACKAGE_NAME_STACK="$item"
-                else
-                    PACKAGE_NAME_STACK="$PACKAGE_NAME_STACK;$item"
-                fi
-            done
-        done
-
-        ##################################################################
-
-        for PACKAGE_NAME in $TO_BE_INSTALLED_PACKAGE_NAMES
-        do
-            PACKAGE_SPEC="$TARGET_PLATFORM_SPEC/$PACKAGE_NAME"
-
-            is_package__outdated "$PACKAGE_SPEC" || {
-                note 1 "$PACKAGE_SPEC is not outdated."
-                continue
-            }
-
-            PACKAGE_INSTALLED_LINK_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_SPEC"
-            PACKAGE_INSTALLED_REAL_DIR="$(readlink -f "$PACKAGE_INSTALLED_LINK_DIR")"
-
-            (__install_the_given_package "$PACKAGE_SPEC")
-
-            rm -rf "$PACKAGE_INSTALLED_REAL_DIR"
-        done
-    done
-
-    #########################################################################################
-
-    if [ "$KEEP_SESSION_DIR" != 1 ] ; then
-        rm -rf "$SESSION_DIR"
-    fi
-}
-
-# }}}
-##############################################################################
-# {{{ xcpkg install
-
-# inspect_package_spec <PACKAGE-NAME|PACKAGE-SPEC>
-  inspect_package_spec() {
-    case $1 in
-        '') abort 1 "package-name or package-spec is unspecified."
-            ;;
-        */*)
-            PACKAGE_NAME="${1##*/}"
-
-            if [ -z "$PACKAGE_NAME" ] ; then
-                abort 1 "invalid package-spec: $1\npackage-name is unspecified."
-            elif printf '%s\n' "$PACKAGE_NAME" | grep -q -E '^[A-Za-z0-9+-._@]{1,50}$' ; then
-                :
-            else
-                abort 1 "invalid package-spec: $1\npackage-name does not match pattern ^[A-Za-z0-9+-._@]{1,50}$"
-            fi
-
-            TARGET_PLATFORM_SPEC="${1%/*}"
-
-            TARGET_PLATFORM_NAME=
-            TARGET_PLATFORM_VERS=
-            TARGET_PLATFORM_ARCH=
-
-            TARGET_PLATFORM_NAME="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d- -f1)"
-            TARGET_PLATFORM_VERS="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d- -f2)"
-            TARGET_PLATFORM_ARCH="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d- -f3)"
-
-            if [ -z "$TARGET_PLATFORM_NAME" ] ; then
-                abort 1 "invalid package-spec: $1\nplatform-name is unspecified."
-            fi
-
-            TARGET_PLATFORM_NAME_IS_SUPPORTED=0
-
-            if [ -z "$XCODE_SUPPORT_PLATFORM_NAMES" ] ; then
-                XCODE_SUPPORT_PLATFORM_NAMES='MacOSX DriverKit WatchOS WatchSimulator iPhoneOS iPhoneSimulator AppleTVOS AppleTVSimulator'
-            fi
-
-            for XCODE_SUPPORT_PLATFORM_NAME in $XCODE_SUPPORT_PLATFORM_NAMES
-            do
-                if [ "$XCODE_SUPPORT_PLATFORM_NAME" = "$TARGET_PLATFORM_NAME" ] ; then
-                    TARGET_PLATFORM_NAME_IS_SUPPORTED=1
-                    break;
-                fi
-            done
-
-            if [ "$TARGET_PLATFORM_NAME_IS_SUPPORTED" = 0 ] ; then
-                abort 1 "invalid package-spec: $1\nunsupported-platform: $TARGET_PLATFORM_NAME"
-            fi
-
-            if [ -z "$TARGET_PLATFORM_VERS" ] ; then
-                abort 1 "invalid package-spec: $1\nplatform-version is unspecified."
-            fi
-
-            if [ -z "$TARGET_PLATFORM_ARCH" ] ; then
-                abort 1 "invalid package-spec: $1\nplatform-arch is unspecified."
-            fi
-
-            PACKAGE_SPEC="$TARGET_PLATFORM_SPEC/$PACKAGE_NAME"
-            printf '%s\n' "$PACKAGE_SPEC"
-            ;;
-        *)
-            if printf '%s\n' "$1" | grep -q -E '^[A-Za-z0-9+-._@]{1,50}$' ; then
-                if [ -z "$XCPKG_DEFAULT_TARGET" ] ; then
-                    TARGET_PLATFORM_NAME="$NATIVE_OS_NAME"
-                    TARGET_PLATFORM_VERS="$NATIVE_OS_VERS"
-                    TARGET_PLATFORM_ARCH="$NATIVE_OS_ARCH"
-
-                    TARGET_PLATFORM_SPEC="$TARGET_PLATFORM_NAME-$TARGET_PLATFORM_VERS-$TARGET_PLATFORM_ARCH"
-
-                    PACKAGE_SPEC="$TARGET_PLATFORM_SPEC/$1"
-                else
-                    case $XCPKG_DEFAULT_TARGET in
-                        *:*:*:*)
-                            abort 1 "you have set XCPKG_DEFAULT_TARGET=$XCPKG_DEFAULT_TARGET , but it is an invalid target."
-                            ;;
-                        *:*:*)
-                            TARGET_PLATFORM_NAME=
-                            TARGET_PLATFORM_VERS=
-                            TARGET_PLATFORM_ARCH=
-
-                            TARGET_PLATFORM_NAME="$(printf '%s\n' "$XCPKG_DEFAULT_TARGET" | cut -d: -f1)"
-                            TARGET_PLATFORM_VERS="$(printf '%s\n' "$XCPKG_DEFAULT_TARGET" | cut -d: -f2)"
-                            TARGET_PLATFORM_ARCH="$(printf '%s\n' "$XCPKG_DEFAULT_TARGET" | cut -d: -f3)"
-
-                            if [ -z "$TARGET_PLATFORM_NAME" ] ; then
-                                abort 1 "you have set XCPKG_DEFAULT_TARGET=$XCPKG_DEFAULT_TARGET , but it is an invalid package spec."
-                            fi
-
-                            TARGET_PLATFORM_NAME_IS_SUPPORTED=0
-
-                            if [ -z "$XCODE_SUPPORT_PLATFORM_NAMES" ] ; then
-                                XCODE_SUPPORT_PLATFORM_NAMES='MacOSX DriverKit WatchOS WatchSimulator iPhoneOS iPhoneSimulator AppleTVOS AppleTVSimulator'
-                            fi
-
-                            for XCODE_SUPPORT_PLATFORM_NAME in $XCODE_SUPPORT_PLATFORM_NAMES
-                            do
-                                if [ "$XCODE_SUPPORT_PLATFORM_NAME" = "$TARGET_PLATFORM_NAME" ] ; then
-                                    TARGET_PLATFORM_NAME_IS_SUPPORTED=1
-                                    break;
-                                fi
-                            done
-
-                            if [ "$TARGET_PLATFORM_NAME_IS_SUPPORTED" = 0 ] ; then
-                                abort 1 "you have set XCPKG_DEFAULT_TARGET=$XCPKG_DEFAULT_TARGET , but it is an invalid target. unrecognized platform-name: $TARGET_PLATFORM_NAME"
-                            fi
-
-                            if [ -z "$TARGET_PLATFORM_VERS" ] ; then
-                                abort 1 "you have set XCPKG_DEFAULT_TARGET=$XCPKG_DEFAULT_TARGET , but it is an invalid target."
-                            fi
-
-                            if [ -z "$TARGET_PLATFORM_ARCH" ] ; then
-                                abort 1 "you have set XCPKG_DEFAULT_TARGET=$XCPKG_DEFAULT_TARGET , but it is an invalid target."
-                            fi
-
-                            TARGET_PLATFORM_SPEC="$TARGET_PLATFORM_NAME-$TARGET_PLATFORM_VERS-$TARGET_PLATFORM_ARCH"
-                            PACKAGE_SPEC="$TARGET_PLATFORM_SPEC/$1"
-                            ;;
-                        *) abort 1 "you have set XCPKG_DEFAULT_TARGET=$XCPKG_DEFAULT_TARGET , but it is an invalid target."
-                    esac
-                fi
-
-                note "$1 will be treated as a package-name, and it will be expanded to $PACKAGE_SPEC"
-                printf '%s\n' "$PACKAGE_SPEC"
-            else
-                abort 1 "invalid package-name: $1\npackage-name does not match pattern ^[A-Za-z0-9+-._@]{1,50}$"
-            fi
-    esac
-}
-
-inspect_install_arguments() {
-    xcinfo
-
-    # https://stackoverflow.com/questions/18476490/what-is-purpose-of-target-arch-variable-in-makefiles
-    unset TARGET_ARCH
-
-    unset USER_SPECIFIED_PACKAGE_SPEC_LIST
-
-    LOG_LEVEL_QUIET=0
-    LOG_LEVEL_NORMAL=1
-    LOG_LEVEL_VERBOSE=2
-    LOG_LEVEL_VERY_VERBOSE=3
-
-    LOG_LEVEL=$LOG_LEVEL_NORMAL
-
-    BUILD_NJOBS=$NATIVE_OS_NCPU
-
-    BUILD_TYPE=release
-
-    LINK_TYPE=static-prefered
-
-    INSTALL_LIB=static
-
-    DRYRUN=0
-
-    CCACHE_ENABLED=0
-
-    KEEP_SESSION_DIR=0
-
-    EXPORT_COMPILE_COMMANDS_JSON=0
-
-    while [ -n "$1" ]
-    do
-        case $1 in
-            -vv)
-                LOG_LEVEL=$LOG_LEVEL_VERY_VERBOSE
-                ;;
-            -v)
-                LOG_LEVEL=$LOG_LEVEL_VERBOSE
-                ;;
-            -q)
-                LOG_LEVEL=$LOG_LEVEL_QUIET
-                ;;
-            --disable-ccache)
-                CCACHE_ENABLED=0
-                ;;
-            --dry-run)
-                DRYRUN=1
-                ;;
-            --keep-session-dir)
-                KEEP_SESSION_DIR=1
-                ;;
-            --export-compile-commands-json)
-                EXPORT_COMPILE_COMMANDS_JSON=1
-                ;;
-            --install-lib=*)
-                INSTALL_LIB="${1#*=}"
-                case $INSTALL_LIB in
-                    static|shared|both|yes|no) ;;
-                    '') abort 1 "--install-lib=<VALUE>, VALUE must be non-empty." ;;
-                    *)  abort 1 "--install-lib=<VALUE>, VALUE must be one of static|shared|both|yes|no"
-                esac
-                ;;
-            --build-type=*)
-                BUILD_TYPE="${1#*=}"
-                case $BUILD_TYPE in
-                    debug|release) ;;
-                    '') abort 1 "--build-type=<VALUE>, VALUE must be non-empty." ;;
-                    *)  abort 1 "--build-type=<VALUE>, VALUE must be one of debug|release"
-                esac
-                ;;
-            --link-type=*)
-                LINK_TYPE="${1#*=}"
-                case $LINK_TYPE in
-                    static-only|shared-only|static-prefered|shared-prefered) ;;
-                    '') abort 1 "--link-type=<VALUE>, VALUE must be non-empty." ;;
-                    *)  abort 1 "--link-type=<VALUE>, VALUE must be one of static-only|shared-only|static-prefered|shared-prefered"
-                esac
-                ;;
-            --jobs=*)
-                BUILD_NJOBS="${1#*=}"
-                is_integer "$BUILD_NJOBS" || abort 1 "--jobs=INTEGER argument's value must be an integer."
-                ;;
-            -*) abort 1 "unrecognized option: $1"
-                ;;
-            *)  PACKAGE_SPEC=
-                PACKAGE_SPEC="$(inspect_package_spec "$1")"
-
-                if [ -z "$USER_SPECIFIED_PACKAGE_SPEC_LIST" ] ; then
-                    USER_SPECIFIED_PACKAGE_SPEC_LIST="$PACKAGE_SPEC"
-                else
-                    USER_SPECIFIED_PACKAGE_SPEC_LIST="$USER_SPECIFIED_PACKAGE_SPEC_LIST $PACKAGE_SPEC"
-                fi
-        esac
-        shift
-    done
-
-    if [ "$LOG_LEVEL" -eq "$LOG_LEVEL_QUIET" ] ; then
-        exec 1>/dev/null
-        exec 2>&1
-    fi
-}
-
-__install_the_given_packages() {
-    inspect_install_arguments "$@"
-
-    [ -z "$USER_SPECIFIED_PACKAGE_SPEC_LIST" ] && abort 1 "$_0 install <PACKAGE-SPEC|PACKAGE-NAME>..., <|PACKAGE-SPEC|PACKAGE-NAME> is unspecified."
-
-    #########################################################################################
-
-    SESSION_DIR="$XCPKG_HOME/run/$$"
-
-    rm -rf     "$SESSION_DIR"
-    install -d "$SESSION_DIR"
-
-    #########################################################################################
-
-    # 1. check if has circle
-    # 2. backup formulas
-    # 3. cache variables
-
-    for USER_SPECIFIED_PACKAGE_SPEC in $USER_SPECIFIED_PACKAGE_SPEC_LIST
-    do
-        PACKAGE_NAME_STACK="${USER_SPECIFIED_PACKAGE_SPEC##*/}"
-
-        while [ -n "$PACKAGE_NAME_STACK" ]
-        do
-            case $PACKAGE_NAME_STACK in
-                *\;*) PACKAGE_NAME="${PACKAGE_NAME_STACK##*;}" ; PACKAGE_NAME_STACK="${PACKAGE_NAME_STACK%;*}" ;;
-                *)    PACKAGE_NAME="${PACKAGE_NAME_STACK}"     ; PACKAGE_NAME_STACK=
-            esac
-
-            if [ -f "$SESSION_DIR/$PACKAGE_NAME.yml" ] ; then
-                continue
-            fi
-
-            __load_formula_of_the_given_package "$PACKAGE_NAME"
-
-            cp "$PACKAGE_FORMULA_FILEPATH" "$SESSION_DIR/$PACKAGE_NAME.yml"
-
-            eval "PACKAGE_DEP_PKG_${PACKAGE_NAME_UPPERCASE_UNDERSCORE}='$PACKAGE_DEP_PKG'"
-
-            for DEPENDENT_PACKAGE_NAME in $PACKAGE_DEP_PKG
-            do
-                if [ "$DEPENDENT_PACKAGE_NAME" = "$PACKAGE_NAME" ] ; then
-                    abort 1 "package '$PACKAGE_NAME' depends itself."
-                fi
-
-                if [ -z "$PACKAGE_NAME_STACK" ] ; then
-                    PACKAGE_NAME_STACK="$DEPENDENT_PACKAGE_NAME"
-                else
-                    PACKAGE_NAME_STACK="$PACKAGE_NAME_STACK;$DEPENDENT_PACKAGE_NAME"
-                fi
-            done
-        done
-    done
-
-    #########################################################################################
-
-    for USER_SPECIFIED_PACKAGE_SPEC in $USER_SPECIFIED_PACKAGE_SPEC_LIST
-    do
-        TARGET_PLATFORM_SPEC="${USER_SPECIFIED_PACKAGE_SPEC%/*}"
-
-        TARGET_PLATFORM_NAME=
-        TARGET_PLATFORM_VERS=
-        TARGET_PLATFORM_ARCH=
-
-        TARGET_PLATFORM_NAME="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d- -f1)"
-        TARGET_PLATFORM_VERS="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d- -f2)"
-        TARGET_PLATFORM_ARCH="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d- -f3)"
-
-        ##################################################################
-
-        TO_BE_INSTALLED_PACKAGE_NAMES=
-
-        PACKAGE_NAME_STACK="${USER_SPECIFIED_PACKAGE_SPEC##*/}"
-
-        while [ -n "$PACKAGE_NAME_STACK" ]
-        do
-            case $PACKAGE_NAME_STACK in
-                *\;*) PACKAGE_NAME="${PACKAGE_NAME_STACK##*;}" ; PACKAGE_NAME_STACK="${PACKAGE_NAME_STACK%;*}" ;;
-                *)    PACKAGE_NAME="${PACKAGE_NAME_STACK}"     ; PACKAGE_NAME_STACK=
-            esac
-
-            ##################################################################
-
-            TO_BE_INSTALLED_PACKAGE_NAMES2="$PACKAGE_NAME"
-
-            for item in $TO_BE_INSTALLED_PACKAGE_NAMES
-            do
-                [ "$item" = "$PACKAGE_NAME" ] && continue
-                TO_BE_INSTALLED_PACKAGE_NAMES2="$TO_BE_INSTALLED_PACKAGE_NAMES2 $item"
-            done
-
-            TO_BE_INSTALLED_PACKAGE_NAMES="$TO_BE_INSTALLED_PACKAGE_NAMES2"
-
-            ##################################################################
-
-            PACKAGE_NAME_UPPERCASE_UNDERSCORE="$(printf '%s\n' "$PACKAGE_NAME" | tr a-z A-Z | tr '@+-.' '_')"
-
-            for item in $(eval echo \$PACKAGE_DEP_PKG_"${PACKAGE_NAME_UPPERCASE_UNDERSCORE}")
-            do
-                if [ -z "$PACKAGE_NAME_STACK" ] ; then
-                    PACKAGE_NAME_STACK="$item"
-                else
-                    PACKAGE_NAME_STACK="$PACKAGE_NAME_STACK;$item"
-                fi
-            done
-        done
-
-        ##################################################################
-
-        for PACKAGE_NAME in $TO_BE_INSTALLED_PACKAGE_NAMES
-        do
-            PACKAGE_SPEC="$TARGET_PLATFORM_SPEC/$PACKAGE_NAME"
-
-            if is_package_installed "$PACKAGE_SPEC" ; then
-                if [ "$LOG_LEVEL" -gt 0 ] ; then
-                    printf "$COLOR_GREEN%-10s$COLOR_OFF already have been installed.\n" "$PACKAGE_SPEC"
-                fi
-            else
-                (__install_the_given_package "$PACKAGE_SPEC")
-            fi
-        done
-    done
-
-    #########################################################################################
-
-    if [ "$KEEP_SESSION_DIR" != 1 ] ; then
-        rm -rf "$SESSION_DIR"
-    fi
-}
+# {{{ __install_native_package
 
 # this function must run in subshell
 # __install_native_package <PACKAGE-NAME>
@@ -3913,6 +3173,10 @@ EOF
     run ln -s -r -f -T "$NATIVE_PACKAGE_INSTALLED_ROOT/$NATIVE_PACKAGE_INSTALL_SHA" "$NATIVE_PACKAGE_INSTALLED_ROOT/$1"
 }
 
+# }}}
+##############################################################################
+# {{{ __install_the_given_package
+
 __install_the_given_package_onexit() {
     if [ "$DRYRUN" != 1 ] ; then
         is_package_installed "$PACKAGE_SPEC" || {
@@ -4144,7 +3408,7 @@ EOF
 
     step "view formula"
     run yq "$PACKAGE_FORMULA_FILEPATH"
-   
+
     step "load formula"
     __load_formula_of_the_given_package "$PACKAGE_NAME" "$PACKAGE_FORMULA_FILEPATH"
 
@@ -5432,44 +4696,42 @@ EOF
     if [ "$PACKAGE_BUILD_SYSTEM_CARGO" = 1 ] ; then
         step "config environment variables for rustc and cargo"
 
-        # this environment variable is not defined by Rust, but it is widely used by third-party project.
-        export RUST_TARGET=''
-
-        case $TARGET_PLATFORM_NAME/$TARGET_PLATFORM_ARCH in
-            MacOSX/x86_64)
-                RUST_TARGET="x86_64-apple-darwin"
-                ;;
-            *Simulator/x86_64)
-                RUST_TARGET="x86_64-apple-darwin"
-                ;;
-            MacOSX/arm64)
-                RUST_TARGET="aarch64-apple-darwin"
-                ;;
-            *Simulator/arm64)
-                RUST_TARGET="aarch64-apple-ios-sim"
-                ;;
-            */arm64*)
-                RUST_TARGET="aarch64-apple-ios"
-                ;;
-            *)  RUST_TARGET="$TARGET_PLATFORM_ARCH-apple-ios"
-        esac
-
-        export CARGO_BUILD_TARGET="$RUST_TARGET"
-
-        export CARGO_BUILD_TARGET_DIR='target'
-
-        export CARGO_BUILD_JOBS="$BUILD_NJOBS"
+        # https://docs.rs/backtrace/latest/backtrace/
+        export RUST_BACKTRACE=1
 
         #################################################################
 
         # https://doc.rust-lang.org/cargo/commands/cargo-rustc.html
         # https://doc.rust-lang.org/rustc/codegen-options/index.html#link-arg
-        export RUSTFLAGS="-Clinker=$CC"
+        export RUSTFLAGS="-Clinker=$CC -Clink-arg=-L$PACKAGE_WORKING_DIR/lib"
 
-        for LINKER_FLAG in $LDFLAGS
+        for LDFLAG in $LDFLAGS
         do
-            RUSTFLAGS="$RUSTFLAGS -Clink-arg=$LINKER_FLAG"
+            RUSTFLAGS="$RUSTFLAGS -Clink-arg=$LDFLAG"
         done
+
+        #################################################################
+
+        # RUST_TARGET environment variable is not defined by Rust, but it is widely used by lots of third-party projects.
+
+        case $TARGET_PLATFORM_NAME/$TARGET_PLATFORM_ARCH in
+            MacOSX/x86_64)
+                export RUST_TARGET='x86_64-apple-darwin'
+                ;;
+            *Simulator/x86_64)
+                export RUST_TARGET='x86_64-apple-darwin'
+                ;;
+            MacOSX/arm64)
+                export RUST_TARGET='aarch64-apple-darwin'
+                ;;
+            *Simulator/arm64)
+                export RUST_TARGET='aarch64-apple-ios-sim'
+                ;;
+            */arm64*)
+                export RUST_TARGET='aarch64-apple-ios'
+                ;;
+            *)  export RUST_TARGET="$TARGET_PLATFORM_ARCH-apple-ios"
+        esac
 
         #################################################################
 
@@ -5480,10 +4742,11 @@ EOF
         # export "CARGO_TARGET_${RUST_TARGET_UPPERCASE_UNDERSCORE}_AR"="$AR"
         # export "CARGO_TARGET_${RUST_TARGET_UPPERCASE_UNDERSCORE}_LINKER"="$CC"
 
-        #################################################################
+        export CARGO_BUILD_TARGET="$RUST_TARGET"
 
-        # https://docs.rs/backtrace/latest/backtrace/
-        export RUST_BACKTRACE=1
+        export CARGO_BUILD_TARGET_DIR='target'
+
+        export CARGO_BUILD_JOBS="$BUILD_NJOBS"
 
         #################################################################
 
@@ -5566,11 +4829,7 @@ EOF
 
         export GO111MODULE='auto'
 
-        if [ "$COUNTRY" = china ] ; then
-            export GOPROXY='https://goproxy.cn'
-        fi
-
-        export GOOS="darwin"
+        export GOOS='darwin'
 
         case $TARGET_PLATFORM_ARCH in
             armv7*)  export GOARCH=arm   ;;
@@ -6786,128 +6045,965 @@ EOF
 
 # }}}
 ##############################################################################
-# {{{ xcpkg xcinfo [ --developer-dir=<DEVELOPER_DIR> --list-supported-platform-names]
+# {{{ inspect_package_spec
 
-xcinfo() {
-    unset USER_SPECIFIED_DEVELOPER_DIR
-    unset LIST_SUPPORTED_PLATFORM_NAMES
+# inspect_package_spec <PACKAGE-NAME|PACKAGE-SPEC> [DEFAULT-TARGET]
+  inspect_package_spec() {
+    case $1 in
+        '') abort 1 "package-name or package-spec is unspecified."
+            ;;
+        */*)
+            PACKAGE_NAME="${1##*/}"
 
-    for arg in "$@"
+            if [ -z "$PACKAGE_NAME" ] ; then
+                abort 1 "invalid package-spec: $1\npackage-name is unspecified."
+            elif printf '%s\n' "$PACKAGE_NAME" | grep -q -E '^[A-Za-z0-9+-._@]{1,50}$' ; then
+                :
+            else
+                abort 1 "invalid package-spec: $1\npackage-name does not match pattern ^[A-Za-z0-9+-._@]{1,50}$"
+            fi
+
+            TARGET_PLATFORM_SPEC="${1%/*}"
+
+            TARGET_PLATFORM_NAME=
+            TARGET_PLATFORM_VERS=
+            TARGET_PLATFORM_ARCH=
+
+            TARGET_PLATFORM_NAME="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d- -f1)"
+            TARGET_PLATFORM_VERS="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d- -f2)"
+            TARGET_PLATFORM_ARCH="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d- -f3)"
+
+            if [ -z "$TARGET_PLATFORM_NAME" ] ; then
+                abort 1 "invalid package-spec: $1\nplatform-name is unspecified."
+            fi
+
+            TARGET_PLATFORM_NAME_IS_SUPPORTED=0
+
+            if [ -z "$XCODE_SUPPORT_PLATFORM_NAMES" ] ; then
+                XCODE_SUPPORT_PLATFORM_NAMES='MacOSX DriverKit WatchOS WatchSimulator iPhoneOS iPhoneSimulator AppleTVOS AppleTVSimulator'
+            fi
+
+            for XCODE_SUPPORT_PLATFORM_NAME in $XCODE_SUPPORT_PLATFORM_NAMES
+            do
+                if [ "$XCODE_SUPPORT_PLATFORM_NAME" = "$TARGET_PLATFORM_NAME" ] ; then
+                    TARGET_PLATFORM_NAME_IS_SUPPORTED=1
+                    break;
+                fi
+            done
+
+            if [ "$TARGET_PLATFORM_NAME_IS_SUPPORTED" = 0 ] ; then
+                abort 1 "invalid package-spec: $1\nunsupported-platform: $TARGET_PLATFORM_NAME"
+            fi
+
+            if [ -z "$TARGET_PLATFORM_VERS" ] ; then
+                abort 1 "invalid package-spec: $1\nplatform-version is unspecified."
+            fi
+
+            if [ -z "$TARGET_PLATFORM_ARCH" ] ; then
+                abort 1 "invalid package-spec: $1\nplatform-arch is unspecified."
+            fi
+
+            PACKAGE_SPEC="$TARGET_PLATFORM_SPEC/$PACKAGE_NAME"
+            printf '%s\n' "$PACKAGE_SPEC"
+            ;;
+        *)  if printf '%s\n' "$1" | grep -q -E '^[A-Za-z0-9+-._@]{1,50}$' ; then
+                case $2 in
+                    '') ;;
+                    *-*-*-*)
+                        abort 1 "you have specified --target=$2 , but it is an invalid target."
+                        ;;
+                    *-*-*)
+                        TARGET_PLATFORM_NAME=
+                        TARGET_PLATFORM_VERS=
+                        TARGET_PLATFORM_ARCH=
+
+                        TARGET_PLATFORM_NAME="$(printf '%s\n' "$2" | cut -d- -f1)"
+                        TARGET_PLATFORM_VERS="$(printf '%s\n' "$2" | cut -d- -f2)"
+                        TARGET_PLATFORM_ARCH="$(printf '%s\n' "$2" | cut -d- -f3)"
+
+                        if [ -z "$TARGET_PLATFORM_NAME" ] ; then
+                            abort 1 "you have specified --target=$2 , but it is an invalid target."
+                        fi
+
+                        TARGET_PLATFORM_NAME_IS_SUPPORTED=0
+
+                        if [ -z "$XCODE_SUPPORT_PLATFORM_NAMES" ] ; then
+                            XCODE_SUPPORT_PLATFORM_NAMES='MacOSX DriverKit WatchOS WatchSimulator iPhoneOS iPhoneSimulator AppleTVOS AppleTVSimulator'
+                        fi
+
+                        for XCODE_SUPPORT_PLATFORM_NAME in $XCODE_SUPPORT_PLATFORM_NAMES
+                        do
+                            if [ "$XCODE_SUPPORT_PLATFORM_NAME" = "$TARGET_PLATFORM_NAME" ] ; then
+                                TARGET_PLATFORM_NAME_IS_SUPPORTED=1
+                                break;
+                            fi
+                        done
+
+                        if [ "$TARGET_PLATFORM_NAME_IS_SUPPORTED" = 0 ] ; then
+                            abort 1 "you have specified --target=$2 , but it is an invalid target. unrecognized platform-name: $TARGET_PLATFORM_NAME"
+                        fi
+
+                        if [ -z "$TARGET_PLATFORM_VERS" ] ; then
+                            abort 1 "you have specified --target=$2 , but it is an invalid target."
+                        fi
+
+                        if [ -z "$TARGET_PLATFORM_ARCH" ] ; then
+                            abort 1 "you have specified --target=$2 , but it is an invalid target."
+                        fi
+
+                        TARGET_PLATFORM_SPEC="$TARGET_PLATFORM_NAME-$TARGET_PLATFORM_VERS-$TARGET_PLATFORM_ARCH"
+                        PACKAGE_SPEC="$TARGET_PLATFORM_SPEC/$1"
+
+                        note "$1 will be treated as a package-name, and it will be expanded to $PACKAGE_SPEC"
+                        printf '%s\n' "$PACKAGE_SPEC"
+                        return 0
+                        ;;
+                    *)  abort 1 "you have specified --target=$2 , but it is an invalid target."
+                esac
+
+                case $XCPKG_DEFAULT_TARGET in
+                    '')
+                        TARGET_PLATFORM_NAME="$NATIVE_OS_NAME"
+                        TARGET_PLATFORM_VERS="$NATIVE_OS_VERS"
+                        TARGET_PLATFORM_ARCH="$NATIVE_OS_ARCH"
+
+                        TARGET_PLATFORM_SPEC="$TARGET_PLATFORM_NAME-$TARGET_PLATFORM_VERS-$TARGET_PLATFORM_ARCH"
+
+                        PACKAGE_SPEC="$TARGET_PLATFORM_SPEC/$1"
+                        ;;
+                    *-*-*-*)
+                        abort 1 "you have set XCPKG_DEFAULT_TARGET=$XCPKG_DEFAULT_TARGET , but it is an invalid target."
+                        ;;
+                    *-*-*)
+                        TARGET_PLATFORM_NAME=
+                        TARGET_PLATFORM_VERS=
+                        TARGET_PLATFORM_ARCH=
+
+                        TARGET_PLATFORM_NAME="$(printf '%s\n' "$XCPKG_DEFAULT_TARGET" | cut -d- -f1)"
+                        TARGET_PLATFORM_VERS="$(printf '%s\n' "$XCPKG_DEFAULT_TARGET" | cut -d- -f2)"
+                        TARGET_PLATFORM_ARCH="$(printf '%s\n' "$XCPKG_DEFAULT_TARGET" | cut -d- -f3)"
+
+                        if [ -z "$TARGET_PLATFORM_NAME" ] ; then
+                            abort 1 "you have set XCPKG_DEFAULT_TARGET=$XCPKG_DEFAULT_TARGET , but it is an invalid package spec."
+                        fi
+
+                        TARGET_PLATFORM_NAME_IS_SUPPORTED=0
+
+                        if [ -z "$XCODE_SUPPORT_PLATFORM_NAMES" ] ; then
+                            XCODE_SUPPORT_PLATFORM_NAMES='MacOSX DriverKit WatchOS WatchSimulator iPhoneOS iPhoneSimulator AppleTVOS AppleTVSimulator'
+                        fi
+
+                        for XCODE_SUPPORT_PLATFORM_NAME in $XCODE_SUPPORT_PLATFORM_NAMES
+                        do
+                            if [ "$XCODE_SUPPORT_PLATFORM_NAME" = "$TARGET_PLATFORM_NAME" ] ; then
+                                TARGET_PLATFORM_NAME_IS_SUPPORTED=1
+                                break;
+                            fi
+                        done
+
+                        if [ "$TARGET_PLATFORM_NAME_IS_SUPPORTED" = 0 ] ; then
+                            abort 1 "you have set XCPKG_DEFAULT_TARGET=$XCPKG_DEFAULT_TARGET , but it is an invalid target. unrecognized platform-name: $TARGET_PLATFORM_NAME"
+                        fi
+
+                        if [ -z "$TARGET_PLATFORM_VERS" ] ; then
+                            abort 1 "you have set XCPKG_DEFAULT_TARGET=$XCPKG_DEFAULT_TARGET , but it is an invalid target."
+                        fi
+
+                        if [ -z "$TARGET_PLATFORM_ARCH" ] ; then
+                            abort 1 "you have set XCPKG_DEFAULT_TARGET=$XCPKG_DEFAULT_TARGET , but it is an invalid target."
+                        fi
+
+                        TARGET_PLATFORM_SPEC="$TARGET_PLATFORM_NAME-$TARGET_PLATFORM_VERS-$TARGET_PLATFORM_ARCH"
+                        PACKAGE_SPEC="$TARGET_PLATFORM_SPEC/$1"
+                        ;;
+                    *) abort 1 "you have set XCPKG_DEFAULT_TARGET=$XCPKG_DEFAULT_TARGET , but it is an invalid target."
+                esac
+
+                note "$1 will be treated as a package-name, and it will be expanded to $PACKAGE_SPEC"
+                printf '%s\n' "$PACKAGE_SPEC"
+            else
+                abort 1 "invalid package-name: $1\npackage-name does not match pattern ^[A-Za-z0-9+-._@]{1,50}$"
+            fi
+    esac
+}
+
+# }}}
+##############################################################################
+# {{{ inspect_install_arguments
+
+inspect_install_arguments() {
+    LOG_LEVEL_QUIET=0
+    LOG_LEVEL_NORMAL=1
+    LOG_LEVEL_VERBOSE=2
+    LOG_LEVEL_VERY_VERBOSE=3
+
+    LOG_LEVEL="$LOG_LEVEL_NORMAL"
+
+    BUILD_NJOBS="$NATIVE_OS_NCPU"
+
+    BUILD_TYPE=release
+
+    LINK_TYPE=static-prefered
+
+    INSTALL_LIB=static
+
+    UPGRAGE=0
+
+    DRYRUN=0
+
+    CCACHE_ENABLED=0
+
+    KEEP_SESSION_DIR=0
+
+    EXPORT_COMPILE_COMMANDS_JSON=0
+
+    unset SPECIFIED_TARGET
+
+    unset SPECIFIED_PACKAGE_LIST
+
+    unset SPECIFIED_DEVELOPER_DIR
+
+    while [ -n "$1" ]
     do
-        case "$arg" in
-            --list-supported-platform-names)
-                LIST_SUPPORTED_PLATFORM_NAMES=1
+        case $1 in
+            -vv)
+                LOG_LEVEL=$LOG_LEVEL_VERY_VERBOSE
+                ;;
+            -v)
+                LOG_LEVEL=$LOG_LEVEL_VERBOSE
+                ;;
+            -q)
+                LOG_LEVEL=$LOG_LEVEL_QUIET
+                ;;
+            --disable-ccache)
+                CCACHE_ENABLED=0
+                ;;
+            --dry-run)
+                DRYRUN=1
+                ;;
+            --keep-session-dir)
+                KEEP_SESSION_DIR=1
+                ;;
+            --export-compile-commands-json)
+                EXPORT_COMPILE_COMMANDS_JSON=1
+                ;;
+            --install-lib=*)
+                INSTALL_LIB="${1#*=}"
+                case $INSTALL_LIB in
+                    static|shared|both|yes|no) ;;
+                    '') abort 1 "--install-lib=<VALUE>, VALUE must be non-empty." ;;
+                    *)  abort 1 "--install-lib=<VALUE>, VALUE must be one of static|shared|both|yes|no"
+                esac
+                ;;
+            --build-type=*)
+                BUILD_TYPE="${1#*=}"
+                case $BUILD_TYPE in
+                    debug|release) ;;
+                    '') abort 1 "--build-type=<VALUE>, VALUE must be non-empty." ;;
+                    *)  abort 1 "--build-type=<VALUE>, VALUE must be one of debug|release"
+                esac
+                ;;
+            --link-type=*)
+                LINK_TYPE="${1#*=}"
+                case $LINK_TYPE in
+                    static-only|shared-only|static-prefered|shared-prefered) ;;
+                    '') abort 1 "--link-type=<VALUE>, VALUE must be non-empty." ;;
+                    *)  abort 1 "--link-type=<VALUE>, VALUE must be one of static-only|shared-only|static-prefered|shared-prefered"
+                esac
+                ;;
+            --jobs=*)
+                BUILD_NJOBS="${1#*=}"
+                is_integer "$BUILD_NJOBS" || abort 1 "--jobs=INTEGER argument's value must be an integer."
                 ;;
             --developer-dir=*)
-                USER_SPECIFIED_DEVELOPER_DIR="${arg#'--developer-dir='}"
+                SPECIFIED_DEVELOPER_DIR="${1#--developer-dir=}"
                 ;;
-            *)  abort 1 "unrecognized option: $arg"
+            --target=*)
+                SPECIFIED_TARGET="${1#--target=}"
+                ;;
+            --upgrade)
+                UPGRAGE=1
+                ;;
+            -*) abort 1 "unrecognized option: $1"
+                ;;
+            *)  SPECIFIED_PACKAGE_LIST="$SPECIFIED_PACKAGE_LIST $1"
         esac
+        shift
     done
 
-    if [ -z "$USER_SPECIFIED_DEVELOPER_DIR" ] ; then
-        if [ -z "$DEVELOPER_DIR" ] ; then
-            DEVELOPER_DIR="$(xcode-select -p)"
-            [ -z "$DEVELOPER_DIR" ] && abort 1 "Xcode developer dir can't be located.\nThere're 3 ways to resolve this problem:\n1. run command 'xcode-select --switch DEVELOPER_DIR', then try again.\n2. set system-wide environment variable DEVELOPER_DIR\3. set process-wide environment variable DEVELOPER_DIR, you can run xcpkg command as 'DEVELOPER_DIR=/some/path xcpkg'"
-        else
-            note "you have set DEVELOPER_DIR=$DEVELOPER_DIR, it will be used as the xcode developer directory."
-        fi
+    #########################################################################################
+
+    if [ -z "$SPECIFIED_DEVELOPER_DIR" ] ; then
+        xcinfo
     else
-        DEVELOPER_DIR="$USER_SPECIFIED_DEVELOPER_DIR"
+        xcinfo --developer-dir="$SPECIFIED_DEVELOPER_DIR"
     fi
 
-    [ -e "$DEVELOPER_DIR" ] || abort 1 "$DEVELOPER_DIR was expected to be exist, but it was not."
-    [ -d "$DEVELOPER_DIR" ] || abort 1 "$DEVELOPER_DIR was expected to be a directory, but it was not."
+    #########################################################################################
 
-    XCODE_DEFAULT_TOOLCHAIN_BIN_DIR="$DEVELOPER_DIR/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+    unset SPECIFIED_PACKAGE_SPEC_LIST
 
-    [ -e "$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR" ] || abort 1 "$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR was expected to be exist, but it was not."
-    [ -d "$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR" ] || abort 1 "$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR was expected to be a directory, but it was not."
+    for PACKAGE in $SPECIFIED_PACKAGE_LIST
+    do
+        PACKAGE_SPEC=
+        PACKAGE_SPEC="$(inspect_package_spec "$PACKAGE" $SPECIFIED_TARGET)"
 
-    export       CC="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/clang"
-    export      CXX="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/clang++"
-    export      CPP="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/cpp"
-    export       AS="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/as"
-    export       AR="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/ar"
-    export   RANLIB="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/ranlib"
-    export       LD="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/ld"
-    export       NM="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/nm"
-    export    STRIP="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/strip"
-    export     SIZE="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/size"
-    export  STRINGS="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/strings"
-    export  OBJDUMP="$XCODE_DEFAULT_TOOLCHAIN_BIN_DIR/objdump"
+        if [ -z "$SPECIFIED_PACKAGE_SPEC_LIST" ] ; then
+            SPECIFIED_PACKAGE_SPEC_LIST="$PACKAGE_SPEC"
+        else
+            SPECIFIED_PACKAGE_SPEC_LIST="$SPECIFIED_PACKAGE_SPEC_LIST $PACKAGE_SPEC"
+        fi
+    done
 
-    XCODE_SUPPORT_PLATFORM_NAMES=
+    #########################################################################################
 
-    XCODE_PLATFORMS_DIR="$DEVELOPER_DIR/Platforms"
+    if [ "$LOG_LEVEL" -eq "$LOG_LEVEL_QUIET" ] ; then
+        exec 1>/dev/null
+        exec 2>&1
+    fi
+}
 
-    if [ -d "$XCODE_PLATFORMS_DIR" ] ; then
-        for item in $(cd "$XCODE_PLATFORMS_DIR" && ls)
+# }}}
+##############################################################################
+# {{{ xcpkg install
+
+__install_the_given_packages() {
+    inspect_install_arguments "$@"
+
+    [ -z "$SPECIFIED_PACKAGE_SPEC_LIST" ] && abort 1 "$_0 install <PACKAGE-SPEC|PACKAGE-NAME>..., <|PACKAGE-SPEC|PACKAGE-NAME> is unspecified."
+
+    #########################################################################################
+
+    SESSION_DIR="$XCPKG_HOME/run/$$"
+
+    rm -rf     "$SESSION_DIR"
+    install -d "$SESSION_DIR"
+
+    #########################################################################################
+
+    # 1. check if has circle
+    # 2. backup formulas
+    # 3. cache variables
+
+    for SPECIFIED_PACKAGE_SPEC in $SPECIFIED_PACKAGE_SPEC_LIST
+    do
+        PACKAGE_NAME_STACK="${SPECIFIED_PACKAGE_SPEC##*/}"
+
+        while [ -n "$PACKAGE_NAME_STACK" ]
         do
-            case $item in
-                *.platform)
-                    if [ -z "$XCODE_SUPPORT_PLATFORM_NAMES" ] ; then
-                        XCODE_SUPPORT_PLATFORM_NAMES="${item%.platform}"
-                    else
-                        XCODE_SUPPORT_PLATFORM_NAMES="$XCODE_SUPPORT_PLATFORM_NAMES
-${item%.platform}"
-                    fi
+            case $PACKAGE_NAME_STACK in
+                *\;*) PACKAGE_NAME="${PACKAGE_NAME_STACK##*;}" ; PACKAGE_NAME_STACK="${PACKAGE_NAME_STACK%;*}" ;;
+                *)    PACKAGE_NAME="${PACKAGE_NAME_STACK}"     ; PACKAGE_NAME_STACK=
             esac
+
+            if [ -f "$SESSION_DIR/$PACKAGE_NAME.yml" ] ; then
+                continue
+            fi
+
+            __load_formula_of_the_given_package "$PACKAGE_NAME"
+
+            cp "$PACKAGE_FORMULA_FILEPATH" "$SESSION_DIR/$PACKAGE_NAME.yml"
+
+            eval "PACKAGE_DEP_PKG_${PACKAGE_NAME_UPPERCASE_UNDERSCORE}='$PACKAGE_DEP_PKG'"
+
+            for DEPENDENT_PACKAGE_NAME in $PACKAGE_DEP_PKG
+            do
+                if [ "$DEPENDENT_PACKAGE_NAME" = "$PACKAGE_NAME" ] ; then
+                    abort 1 "package '$PACKAGE_NAME' depends itself."
+                fi
+
+                if [ -z "$PACKAGE_NAME_STACK" ] ; then
+                    PACKAGE_NAME_STACK="$DEPENDENT_PACKAGE_NAME"
+                else
+                    PACKAGE_NAME_STACK="$PACKAGE_NAME_STACK;$DEPENDENT_PACKAGE_NAME"
+                fi
+            done
+        done
+    done
+
+    #########################################################################################
+
+    for SPECIFIED_PACKAGE_SPEC in $SPECIFIED_PACKAGE_SPEC_LIST
+    do
+        TARGET_PLATFORM_SPEC="${SPECIFIED_PACKAGE_SPEC%/*}"
+
+        TARGET_PLATFORM_NAME=
+        TARGET_PLATFORM_VERS=
+        TARGET_PLATFORM_ARCH=
+
+        TARGET_PLATFORM_NAME="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d- -f1)"
+        TARGET_PLATFORM_VERS="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d- -f2)"
+        TARGET_PLATFORM_ARCH="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d- -f3)"
+
+        ##################################################################
+
+        REQUESTED_PACKAGE_NAME_LIST=
+
+        PACKAGE_NAME_STACK="${SPECIFIED_PACKAGE_SPEC##*/}"
+
+        while [ -n "$PACKAGE_NAME_STACK" ]
+        do
+            case $PACKAGE_NAME_STACK in
+                *\;*) PACKAGE_NAME="${PACKAGE_NAME_STACK##*;}" ; PACKAGE_NAME_STACK="${PACKAGE_NAME_STACK%;*}" ;;
+                *)    PACKAGE_NAME="${PACKAGE_NAME_STACK}"     ; PACKAGE_NAME_STACK=
+            esac
+
+            ##################################################################
+
+            REQUESTED_PACKAGE_NAME_LIST2="$PACKAGE_NAME"
+
+            for item in $REQUESTED_PACKAGE_NAME_LIST
+            do
+                [ "$item" = "$PACKAGE_NAME" ] && continue
+                REQUESTED_PACKAGE_NAME_LIST2="$REQUESTED_PACKAGE_NAME_LIST2 $item"
+            done
+
+            REQUESTED_PACKAGE_NAME_LIST="$REQUESTED_PACKAGE_NAME_LIST2"
+
+            ##################################################################
+
+            PACKAGE_NAME_UPPERCASE_UNDERSCORE="$(printf '%s\n' "$PACKAGE_NAME" | tr a-z A-Z | tr '@+-.' '_')"
+
+            for item in $(eval echo \$PACKAGE_DEP_PKG_"${PACKAGE_NAME_UPPERCASE_UNDERSCORE}")
+            do
+                if [ -z "$PACKAGE_NAME_STACK" ] ; then
+                    PACKAGE_NAME_STACK="$item"
+                else
+                    PACKAGE_NAME_STACK="$PACKAGE_NAME_STACK;$item"
+                fi
+            done
         done
 
-        if [ -z "$XCODE_SUPPORT_PLATFORM_NAMES" ] ; then
-            abort 1 "no any platforms found in $XCODE_PLATFORMS_DIR"
-        fi
-    else
-        [ -e "$XCODE_PLATFORMS_DIR" ] || abort 1 "$XCODE_PLATFORMS_DIR was expected to be exist, but it was not."
-        [ -d "$XCODE_PLATFORMS_DIR" ] || abort 1 "$XCODE_PLATFORMS_DIR was expected to be a directory, but it was not."
+        ##################################################################
+
+        for PACKAGE_NAME in $REQUESTED_PACKAGE_NAME_LIST
+        do
+            PACKAGE_SPEC="$TARGET_PLATFORM_SPEC/$PACKAGE_NAME"
+
+            if is_package_installed "$PACKAGE_SPEC" ; then
+                if [ "$UPGRAGE" = 1 ] ; then
+                    if is_package__outdated "$PACKAGE_SPEC" ; then
+                        (__install_the_given_package "$PACKAGE_SPEC")
+                    else
+                        if [ "$LOG_LEVEL" -gt 0 ] ; then
+                            printf "$COLOR_GREEN%-10s$COLOR_OFF already have been installed and is up-to-date.\n" "$PACKAGE_SPEC"
+                        fi
+                    fi
+                else
+                    if [ "$LOG_LEVEL" -gt 0 ] ; then
+                        printf "$COLOR_GREEN%-10s$COLOR_OFF already have been installed.\n" "$PACKAGE_SPEC"
+                    fi
+                fi
+            else
+                (__install_the_given_package "$PACKAGE_SPEC")
+            fi
+        done
+    done
+
+    #########################################################################################
+
+    if [ "$KEEP_SESSION_DIR" != 1 ] ; then
+        rm -rf "$SESSION_DIR"
+    fi
+}
+
+# }}}
+##############################################################################
+# {{{ xcpkg reinstall
+
+__reinstall_the_given_packages() {
+    inspect_install_arguments "$@"
+
+    [ -z "$SPECIFIED_PACKAGE_SPEC_LIST" ] && abort 1 "neither package-name nor package-spec is specified."
+
+    #########################################################################################
+
+    SESSION_DIR="$XCPKG_HOME/run/$$"
+
+    rm -rf     "$SESSION_DIR"
+    install -d "$SESSION_DIR"
+
+    #########################################################################################
+
+    # 1. check if has circle
+    # 2. backup formulas
+    # 3. cache variables
+
+    for SPECIFIED_PACKAGE_SPEC in $SPECIFIED_PACKAGE_SPEC_LIST
+    do
+        PACKAGE_NAME_STACK="${SPECIFIED_PACKAGE_SPEC##*/}"
+
+        while [ -n "$PACKAGE_NAME_STACK" ]
+        do
+            case $PACKAGE_NAME_STACK in
+                *\;*) PACKAGE_NAME="${PACKAGE_NAME_STACK##*;}" ; PACKAGE_NAME_STACK="${PACKAGE_NAME_STACK%;*}" ;;
+                *)    PACKAGE_NAME="${PACKAGE_NAME_STACK}"     ; PACKAGE_NAME_STACK=
+            esac
+
+            if [ -f "$SESSION_DIR/$PACKAGE_NAME.yml" ] ; then
+                continue
+            fi
+
+            __load_formula_of_the_given_package "$PACKAGE_NAME"
+
+            cp "$PACKAGE_FORMULA_FILEPATH" "$SESSION_DIR/$PACKAGE_NAME.yml"
+
+            eval "PACKAGE_DEP_PKG_${PACKAGE_NAME_UPPERCASE_UNDERSCORE}='$PACKAGE_DEP_PKG'"
+
+            for DEPENDENT_PACKAGE_NAME in $PACKAGE_DEP_PKG
+            do
+                if [ "$DEPENDENT_PACKAGE_NAME" = "$PACKAGE_NAME" ] ; then
+                    abort 1 "package '$PACKAGE_NAME' depends itself."
+                fi
+
+                if [ -z "$PACKAGE_NAME_STACK" ] ; then
+                    PACKAGE_NAME_STACK="$DEPENDENT_PACKAGE_NAME"
+                else
+                    PACKAGE_NAME_STACK="$PACKAGE_NAME_STACK;$DEPENDENT_PACKAGE_NAME"
+                fi
+            done
+        done
+    done
+
+    #########################################################################################
+
+    for SPECIFIED_PACKAGE_SPEC in $SPECIFIED_PACKAGE_SPEC_LIST
+    do
+        TARGET_PLATFORM_SPEC="${SPECIFIED_PACKAGE_SPEC%/*}"
+
+        TARGET_PLATFORM_NAME=
+        TARGET_PLATFORM_VERS=
+        TARGET_PLATFORM_ARCH=
+
+        TARGET_PLATFORM_NAME="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d- -f1)"
+        TARGET_PLATFORM_VERS="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d- -f2)"
+        TARGET_PLATFORM_ARCH="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d- -f3)"
+
+        ##################################################################
+
+        REQUESTED_PACKAGE_NAME_LIST=
+
+        PACKAGE_NAME_STACK="${SPECIFIED_PACKAGE_SPEC##*/}"
+
+        while [ -n "$PACKAGE_NAME_STACK" ]
+        do
+            case $PACKAGE_NAME_STACK in
+                *\;*) PACKAGE_NAME="${PACKAGE_NAME_STACK##*;}" ; PACKAGE_NAME_STACK="${PACKAGE_NAME_STACK%;*}" ;;
+                *)    PACKAGE_NAME="${PACKAGE_NAME_STACK}"     ; PACKAGE_NAME_STACK=
+            esac
+
+            ##################################################################
+
+            REQUESTED_PACKAGE_NAME_LIST2="$PACKAGE_NAME"
+
+            for item in $REQUESTED_PACKAGE_NAME_LIST
+            do
+                [ "$item" = "$PACKAGE_NAME" ] && continue
+                REQUESTED_PACKAGE_NAME_LIST2="$REQUESTED_PACKAGE_NAME_LIST2 $item"
+            done
+
+            REQUESTED_PACKAGE_NAME_LIST="$REQUESTED_PACKAGE_NAME_LIST2"
+
+            ##################################################################
+
+            PACKAGE_NAME_UPPERCASE_UNDERSCORE="$(printf '%s\n' "$PACKAGE_NAME" | tr a-z A-Z | tr '@+-.' '_')"
+
+            for item in $(eval echo \$PACKAGE_DEP_PKG_"${PACKAGE_NAME_UPPERCASE_UNDERSCORE}")
+            do
+                if [ -z "$PACKAGE_NAME_STACK" ] ; then
+                    PACKAGE_NAME_STACK="$item"
+                else
+                    PACKAGE_NAME_STACK="$PACKAGE_NAME_STACK;$item"
+                fi
+            done
+        done
+
+        ##################################################################
+
+        for PACKAGE_NAME in $REQUESTED_PACKAGE_NAME_LIST
+        do
+            PACKAGE_SPEC="$TARGET_PLATFORM_SPEC/$PACKAGE_NAME"
+
+            PACKAGE_INSTALLED_LINK_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_SPEC"
+            PACKAGE_INSTALLED_REAL_DIR="$(readlink -f "$PACKAGE_INSTALLED_LINK_DIR")"
+
+            (__install_the_given_package "$PACKAGE_SPEC")
+
+            rm -rf "$PACKAGE_INSTALLED_REAL_DIR"
+        done
+    done
+
+    #########################################################################################
+
+    if [ "$KEEP_SESSION_DIR" != 1 ] ; then
+        rm -rf "$SESSION_DIR"
+    fi
+}
+
+# }}}
+##############################################################################
+# {{{ xcpkg upgrade
+
+__upgrade_packages() {
+    inspect_install_arguments "$@"
+
+    if [ -z "$SPECIFIED_PACKAGE_SPEC_LIST" ] ; then
+        SPECIFIED_PACKAGE_SPEC_LIST=$(__list__outdated_packages)
     fi
 
-    XCODE_VERSION=
-    XCODE_VERSION="$(system_profiler SPDeveloperToolsDataType | grep Version | head -n 1 | cut -d: -f2 | sed 's/^ //g')"
-
-    if [ "$LIST_SUPPORTED_PLATFORM_NAMES" = 1 ] ; then
-        printf '%s\n' "$XCODE_SUPPORT_PLATFORM_NAMES"
+    if [ -z "$SPECIFIED_PACKAGE_SPEC_LIST" ] ; then
         return 0
     fi
 
-    cat <<EOF
-DEVELOPER_DIR: $DEVELOPER_DIR
-XCODE_VERSION: $XCODE_VERSION
+    #########################################################################################
 
-toolchains:
-    default:
-        CC:      $CC
-        CXX:     $CXX
-        CPP:     $CPP
-        AS:      $AS
-        AR:      $AR
-        RANLIB:  $RANLIB
-        LD:      $LD
-        NM:      $NM
-        SIZE:    $SIZE
-        STRIP:   $STRIP
-        STRINGS: $STRINGS
-        OBJDUMP: $OBJDUMP
+    SESSION_DIR="$XCPKG_HOME/run/$$"
 
-platforms:
-EOF
+    rm -rf     "$SESSION_DIR"
+    install -d "$SESSION_DIR"
 
-    for TARGET_PLATFORM_NAME in $XCODE_SUPPORT_PLATFORM_NAMES
+    #########################################################################################
+
+    # 1. check if has circle
+    # 2. backup formulas
+    # 3. cache variables
+
+    for SPECIFIED_PACKAGE_SPEC in $SPECIFIED_PACKAGE_SPEC_LIST
     do
-        SDKNAME="$(printf '%s\n' "$TARGET_PLATFORM_NAME" | tr A-Z a-z)"
-        SDKROOT="$(xcrun --sdk "$SDKNAME" --show-sdk-path)"
-        SDK_SUPPORT_ARCHS="$(jq -r ".SupportedTargets.$SDKNAME.Archs | join(\" \")" "$SDKROOT/SDKSettings.json")"
-        SDK_SUPPORT_VERSIONS="$(jq -r ".SupportedTargets.$SDKNAME.ValidDeploymentTargets | reverse | join(\" \")" "$SDKROOT/SDKSettings.json")"
+        PACKAGE_NAME_STACK="${SPECIFIED_PACKAGE_SPEC##*/}"
 
-        cat <<EOF
+        while [ -n "$PACKAGE_NAME_STACK" ]
+        do
+            case $PACKAGE_NAME_STACK in
+                *\;*) PACKAGE_NAME="${PACKAGE_NAME_STACK##*;}" ; PACKAGE_NAME_STACK="${PACKAGE_NAME_STACK%;*}" ;;
+                *)    PACKAGE_NAME="${PACKAGE_NAME_STACK}"     ; PACKAGE_NAME_STACK=
+            esac
 
-    $TARGET_PLATFORM_NAME:
-        SDKROOT: $SDKROOT
-        supported-archs: $SDK_SUPPORT_ARCHS
-        supported-versions: $SDK_SUPPORT_VERSIONS
-EOF
+            if [ -f "$SESSION_DIR/$PACKAGE_NAME.yml" ] ; then
+                continue
+            fi
+
+            __load_formula_of_the_given_package "$PACKAGE_NAME"
+
+            cp "$PACKAGE_FORMULA_FILEPATH" "$SESSION_DIR/$PACKAGE_NAME.yml"
+
+            eval "PACKAGE_DEP_PKG_${PACKAGE_NAME_UPPERCASE_UNDERSCORE}='$PACKAGE_DEP_PKG'"
+
+            for DEPENDENT_PACKAGE_NAME in $PACKAGE_DEP_PKG
+            do
+                if [ "$DEPENDENT_PACKAGE_NAME" = "$PACKAGE_NAME" ] ; then
+                    abort 1 "package '$PACKAGE_NAME' depends itself."
+                fi
+
+                if [ -z "$PACKAGE_NAME_STACK" ] ; then
+                    PACKAGE_NAME_STACK="$DEPENDENT_PACKAGE_NAME"
+                else
+                    PACKAGE_NAME_STACK="$PACKAGE_NAME_STACK;$DEPENDENT_PACKAGE_NAME"
+                fi
+            done
+        done
     done
+
+    #########################################################################################
+
+    for SPECIFIED_PACKAGE_SPEC in $SPECIFIED_PACKAGE_SPEC_LIST
+    do
+        TARGET_PLATFORM_SPEC="${SPECIFIED_PACKAGE_SPEC%/*}"
+
+        TARGET_PLATFORM_NAME=
+        TARGET_PLATFORM_VERS=
+        TARGET_PLATFORM_ARCH=
+
+        TARGET_PLATFORM_NAME="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d- -f1)"
+        TARGET_PLATFORM_VERS="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d- -f2)"
+        TARGET_PLATFORM_ARCH="$(printf '%s\n' "$TARGET_PLATFORM_SPEC" | cut -d- -f3)"
+
+        ##################################################################
+
+        REQUESTED_PACKAGE_NAME_LIST=
+
+        PACKAGE_NAME_STACK="${SPECIFIED_PACKAGE_SPEC##*/}"
+
+        while [ -n "$PACKAGE_NAME_STACK" ]
+        do
+            case $PACKAGE_NAME_STACK in
+                *\;*) PACKAGE_NAME="${PACKAGE_NAME_STACK##*;}" ; PACKAGE_NAME_STACK="${PACKAGE_NAME_STACK%;*}" ;;
+                *)    PACKAGE_NAME="${PACKAGE_NAME_STACK}"     ; PACKAGE_NAME_STACK=
+            esac
+
+            ##################################################################
+
+            REQUESTED_PACKAGE_NAME_LIST2="$PACKAGE_NAME"
+
+            for item in $REQUESTED_PACKAGE_NAME_LIST
+            do
+                [ "$item" = "$PACKAGE_NAME" ] && continue
+                REQUESTED_PACKAGE_NAME_LIST2="$REQUESTED_PACKAGE_NAME_LIST2 $item"
+            done
+
+            REQUESTED_PACKAGE_NAME_LIST="$REQUESTED_PACKAGE_NAME_LIST2"
+
+            ##################################################################
+
+            PACKAGE_NAME_UPPERCASE_UNDERSCORE="$(printf '%s\n' "$PACKAGE_NAME" | tr a-z A-Z | tr '@+-.' '_')"
+
+            for item in $(eval echo \$PACKAGE_DEP_PKG_"${PACKAGE_NAME_UPPERCASE_UNDERSCORE}")
+            do
+                if [ -z "$PACKAGE_NAME_STACK" ] ; then
+                    PACKAGE_NAME_STACK="$item"
+                else
+                    PACKAGE_NAME_STACK="$PACKAGE_NAME_STACK;$item"
+                fi
+            done
+        done
+
+        ##################################################################
+
+        for PACKAGE_NAME in $REQUESTED_PACKAGE_NAME_LIST
+        do
+            PACKAGE_SPEC="$TARGET_PLATFORM_SPEC/$PACKAGE_NAME"
+
+            is_package__outdated "$PACKAGE_SPEC" || {
+                note 1 "$PACKAGE_SPEC is not outdated."
+                continue
+            }
+
+            PACKAGE_INSTALLED_LINK_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_SPEC"
+            PACKAGE_INSTALLED_REAL_DIR="$(readlink -f "$PACKAGE_INSTALLED_LINK_DIR")"
+
+            (__install_the_given_package "$PACKAGE_SPEC")
+
+            rm -rf "$PACKAGE_INSTALLED_REAL_DIR"
+        done
+    done
+
+    #########################################################################################
+
+    if [ "$KEEP_SESSION_DIR" != 1 ] ; then
+        rm -rf "$SESSION_DIR"
+    fi
+}
+
+# }}}
+##############################################################################
+# {{{ xcpkg uninstall
+
+__uninstall_the_given_packages() {
+    [ -z "$1" ] && abort 1 "neither package-name nor package-spec is specified."
+
+    unset PACKAGE_SPECS
+
+    for item in "$@"
+    do
+        PACKAGE_SPECS="$PACKAGE_SPECS $(inspect_package_spec "$item")"
+    done
+
+    for PACKAGE_SPEC in $PACKAGE_SPECS
+    do
+        PACKAGE_INSTALLED_LINK_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_SPEC"
+
+        [ -e "$PACKAGE_INSTALLED_LINK_DIR" ] || abort 10 "package '$PACKAGE_SPEC' is not installed."
+        [ -L "$PACKAGE_INSTALLED_LINK_DIR" ] || abort 11 "$PACKAGE_INSTALLED_LINK_DIR was expected a symlink, but it was not."
+        [ -d "$PACKAGE_INSTALLED_LINK_DIR" ] || abort 12 "$PACKAGE_INSTALLED_LINK_DIR was expected a symlink refer to a directory, but it was not."
+
+        PACKAGE_INSTALLED_REAL_DIR="$(readlink -f "$PACKAGE_INSTALLED_LINK_DIR")"
+
+        [ -d "$PACKAGE_INSTALLED_REAL_DIR" ] || abort 13 "directory $PACKAGE_INSTALLED_REAL_DIR was expected exists, but it was not."
+
+        PACKAGE_MANIFEST_FILEPATH="$PACKAGE_INSTALLED_REAL_DIR/.xcpkg/MANIFEST.txt"
+
+        [ -f "$PACKAGE_MANIFEST_FILEPATH" ] || abort 13 "$PACKAGE_MANIFEST_FILEPATH file was expected exist, but it was not."
+
+        PACKAGE_RECEIPT_FILEPATH="$PACKAGE_INSTALLED_REAL_DIR/.xcpkg/RECEIPT.yml"
+
+        [ -f "$PACKAGE_RECEIPT_FILEPATH" ] || abort 14 "$PACKAGE_RECEIPT_FILEPATH file was expected exist, but it was not."
+
+        run rm -ff "$PACKAGE_INSTALLED_LINK_DIR"
+        run rm -rf "$PACKAGE_INSTALLED_REAL_DIR"
+    done
+}
+
+# }}}
+##############################################################################
+# {{{ xcpkg upgrade-self
+
+# __upgrade_self <URL>
+  __upgrade_self() {
+    if [ -z "$1" ] ; then
+        error "__upgrade_self <URL> , <URL> must be non-empty."
+        return 1
+    fi
+
+    unset CURRENT_SCRIPT_REALPATH
+
+    # if file exists and is a symbolic link
+    if [ -L "$CURRENT_SCRIPT_FILEPATH" ] ; then
+        # https://unix.stackexchange.com/questions/136494/whats-the-difference-between-realpath-and-readlink-f#:~:text=GNU%20coreutils%20introduced%20a%20realpath,in%20common%20with%20GNU%20readlink%20.
+        if command -v realpath > /dev/null ; then
+            CURRENT_SCRIPT_REALPATH=$(realpath "$CURRENT_SCRIPT_FILEPATH")
+        elif command -v readlink > /dev/null && readlink -f xx > /dev/null 2>&1 ; then
+            CURRENT_SCRIPT_REALPATH=$(readlink -f "$CURRENT_SCRIPT_FILEPATH")
+        else
+            CURRENT_SCRIPT_REALPATH=$(realpath "$CURRENT_SCRIPT_FILEPATH")
+        fi
+    else
+        CURRENT_SCRIPT_REALPATH="$CURRENT_SCRIPT_FILEPATH"
+    fi
+
+    SESSION_DIR="$XCPKG_HOME/run/$$"
+
+    run rm -rf     "$SESSION_DIR"
+    run install -d "$SESSION_DIR"
+    run cd         "$SESSION_DIR"
+
+    wfetch "$1" --output-filename=self
+
+    run chmod 755 self
+
+    if [ -w "$CURRENT_SCRIPT_REALPATH" ] ; then
+        run      mv self "$CURRENT_SCRIPT_REALPATH"
+    else
+        run sudo mv self "$CURRENT_SCRIPT_REALPATH"
+    fi
+
+    run rm -rf "$SESSION_DIR"
+}
+
+# }}}
+##############################################################################
+# {{{ xcpkg integrate zsh
+
+# __integrate_zsh_completions <URL> [--output-dir=<DIR>]
+  __integrate_zsh_completions() {
+    if [ -z "$1" ] ; then
+        error "__integrate_zsh_completions <URL> [--output-dir=<DIR>] , <URL> must be non-empty."
+        return 1
+    else
+        ZSH_COMPLETIONS_SCRIPT_URL="$1"
+    fi
+
+    shift
+
+    unset OUTPUT_DIR
+
+    for arg in "$@"
+    do
+        case $arg in
+            --output-dir=*)
+                OUTPUT_DIR="${arg#*=}"
+                case $OUTPUT_DIR in
+                    '')     abort 1 "__integrate_zsh_completions <URL> [--output-dir=<DIR>] , <DIR> must be non-empty." ;;
+                    \~|\~/) OUTPUT_DIR="${HOME}" ;;
+                    \~/*)   OUTPUT_DIR="$HOME/$(printf '%s\n' "$OUTPUT_DIR" | cut -c3-)" ;;
+                esac
+                ;;
+            *)  abort 1 "__integrate_zsh_completions <URL> [--output-dir=<DIR>] , unrecognized argument: $arg"
+        esac
+    done
+
+    ZSH_COMPLETIONS_SCRIPT_FILENAME="_$CURRENT_SCRIPT_FILENAME"
+
+    if [ -n "$OUTPUT_DIR" ] ; then
+        ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH="$OUTPUT_DIR/$ZSH_COMPLETIONS_SCRIPT_FILENAME"
+    elif [ "$(uname)" = Linux ] && command -v termux-info > /dev/null && [ "$HOME" = '/data/data/com.termux/files/home' ] ; then
+        ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH="/data/data/com.termux/files/usr/share/zsh/site-functions/$ZSH_COMPLETIONS_SCRIPT_FILENAME"
+    else
+        ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH="/usr/local/share/zsh/site-functions/$ZSH_COMPLETIONS_SCRIPT_FILENAME"
+    fi
+
+    # if file exists and is a symbolic link
+    if [ -L "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH" ] ; then
+        # https://unix.stackexchange.com/questions/136494/whats-the-difference-between-realpath-and-readlink-f#:~:text=GNU%20coreutils%20introduced%20a%20realpath,in%20common%20with%20GNU%20readlink%20.
+        if command -v realpath > /dev/null ; then
+            ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH=$(realpath "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH")
+        elif command -v readlink > /dev/null && readlink -f xx > /dev/null 2>&1 ; then
+            ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH=$(readlink -f "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH")
+        else
+            ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH=$(realpath "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH")
+        fi
+    fi
+
+    SESSION_DIR="$XCPKG_HOME/run/$$"
+
+    run rm -rf     "$SESSION_DIR"
+    run install -d "$SESSION_DIR"
+    run cd         "$SESSION_DIR"
+
+    wfetch "$ZSH_COMPLETIONS_SCRIPT_URL" --output-filename=_xcpkg
+
+    run chmod 644 _xcpkg
+
+    if [ -f "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH" ] ; then
+        if [ -w "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH" ] ; then
+            run      mv _xcpkg "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH"
+        else
+            run sudo mv _xcpkg "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH"
+        fi
+    else
+        ZSH_COMPLETIONS_SCRIPT_OUT_DIR="$(dirname "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH")"
+
+        if [ ! -d "$ZSH_COMPLETIONS_SCRIPT_OUT_DIR" ] ; then
+            run install -d "$ZSH_COMPLETIONS_SCRIPT_OUT_DIR" || run sudo install -d "$ZSH_COMPLETIONS_SCRIPT_OUT_DIR"
+        fi
+
+        if [ -w "$ZSH_COMPLETIONS_SCRIPT_OUT_DIR" ] ; then
+            run      mv _xcpkg "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH"
+        else
+            run sudo mv _xcpkg "$ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH"
+        fi
+    fi
+
+    run rm -rf "$SESSION_DIR"
+
+    printf '\n'
+    note "${COLOR_YELLOW}you may need to run command${COLOR_RED} ${COLOR_GREEN}autoload -U compinit && compinit${COLOR_OFF} ${COLOR_YELLOW}in zsh to make it work.${COLOR_OFF}"
+}
+
+# }}}
+##############################################################################
+# {{{ xcpkg gen-url-transform-sample
+
+__gen_url_transform_sample() {
+    SESSION_DIR="$XCPKG_HOME/run/$$"
+
+    rm -rf     "$SESSION_DIR"
+    install -d "$SESSION_DIR"
+    cd         "$SESSION_DIR"
+
+    cat > url-transform.sample <<EOF
+#!/bin/sh
+
+# https://gitmirror.com/
+case \$1 in
+    *githubusercontent.com/*)
+        printf '%s\n' "\$1" | sed 's|githubusercontent|gitmirror|'
+        ;;
+    https://github.com/*)
+        printf 'https://hub.gitmirror.com/%s\n' "\$1"
+        ;;
+    '') printf '%s\n' "\$0 <URL>, <URL> is unspecified." >&2 ; exit 1 ;;
+    *)  printf '%s\n' "\$1"
+esac
+EOF
+
+    chmod +x url-transform.sample
+
+    install -d "$XCPKG_HOME"
+
+    mv url-transform.sample "$XCPKG_HOME/"
+
+    rm -rf "$SESSION_DIR"
+
+    success "url-transform sample has been written into $XCPKG_HOME/url-transform.sample"
+    note "You can rename url-transform.sample to url-transform then edit it to meet your needs. To apply this, you should run 'export XCPKG_URL_TRANSFORM=$XCPKG_HOME/url-transform' in your terminal."
+}
+
+# }}}
+##############################################################################
+# {{{ xcpkg cleanup
+
+__cleanup() {
+    success "Done."
 }
 
 # }}}
@@ -6922,8 +7018,6 @@ __setup() {
 
 # use commands: uname curl tar xz cut
 __setup_uppm() {
-    unset FETCH_TOOL
-
     for FETCH_TOOL in curl wget http lynx aria2c axel
     do
         if command -v "$FETCH_TOOL" > /dev/null ; then
@@ -7398,6 +7492,7 @@ A package manager for Xcode to build C/C++/Rust/Go project.${COLOR_OFF}
 
 ${COLOR_GREEN}xcpkg <ACTION> [ARGUMENT...]${COLOR_OFF}
 
+${COLOR_GREEN}xcpkg help${COLOR_OFF}
 ${COLOR_GREEN}xcpkg --help${COLOR_OFF}
 ${COLOR_GREEN}xcpkg -h${COLOR_OFF}
     show help of this command.
@@ -7514,10 +7609,31 @@ ${COLOR_GREEN}xcpkg fetch @all${COLOR_OFF}
     download all the resources of all the available packages to the local cache.
 
 
-${COLOR_GREEN}xcpkg install <PACKAGE-SPEC>... [INSTALL-OPTIONS]${COLOR_OFF}
+${COLOR_GREEN}xcpkg install <PACKAGE-NAME|PACKAGE-SPEC>... [INSTALL-OPTIONS]${COLOR_OFF}
     install the given packages.
 
+    <PACKAGE-NAME> must match regular expression pattern ${COLOR_RED}^[A-Za-z0-9+-_.@]{1,50}$ ${COLOR_OFF}
+
+    <PACKAGE-SPEC> is a formatted string that has form ${COLOR_RED}<TARGET>/<PACKAGE-NAME>${COLOR_OFF}
+
+    <TARGET> indicates which platform would be built for.
+
+    <TARGET> is a formatted string that has form ${COLOR_RED}<PLATFORM-NAME>-<PLATFORM-VERSION>-<PLATFORM-ARCH>${COLOR_OFF}
+
+    <PLATFORM-NAME> : ${COLOR_RED}xcpkg xcinfo --list-supported-platform-names${COLOR_OFF} command would list the supported platform names.
+
+    <PLATFORM-VERSION> : the minimum version of platform supported by this package. It usually matches regular expression pattern '[0-9][0-9]?.[0-9][0-9]?', e.g. 10.15, 11.0, 12.0, 12.6, etc.
+
+    <PLATFORM-ARCH> : e.g. x86_64, arm64, arm64e, etc
+
+    <TARGET> examples: e.g. MacOSX-10.15-x86_64, MacOSX-13.0-arm64, iPhoneOS-12.0-arm64
+
     INSTALL-OPTIONS:
+        ${COLOR_BLUE}--target=<TARGET>${COLOR_OFF}
+            specify the target to be built for.
+
+            If this option is unspecified, the environment variable ${COLOR_RED}XCPKG_DEFAULT_TARGET${COLOR_OFF} is honored, if the environment variable XCPKG_DEFAULT_TARGET is not set, <TARGET> will be same as your current running operation system.
+
         ${COLOR_BLUE}--jobs=N${COLOR_OFF}
             set the number of jobs you can run in parallel.
 
@@ -7542,6 +7658,9 @@ ${COLOR_GREEN}xcpkg install <PACKAGE-SPEC>... [INSTALL-OPTIONS]${COLOR_OFF}
         ${COLOR_BLUE}--export-compile-commands-json${COLOR_OFF}
             generates compile_commands.json
 
+        ${COLOR_BLUE}--upgrade${COLOR_OFF}
+            If this package was alreadly intsalled, then it will be upgrated if it could be.
+
         ${COLOR_BLUE}--dry-run${COLOR_OFF}
             do not actually install the package.
 
@@ -7552,7 +7671,7 @@ ${COLOR_GREEN}xcpkg reinstall <PACKAGE-SPEC>... [INSTALL-OPTIONS]${COLOR_OFF}
     reinstall the given packages.
 
 ${COLOR_GREEN}xcpkg upgrade   <PACKAGE-SPEC>... [INSTALL-OPTIONS]${COLOR_OFF}
-    upgrade the given packages or all outdated packages.
+    upgrade the given packages. If no any packages are given, all outdated packages will to be upgraded.
 
 ${COLOR_GREEN}xcpkg uninstall <PACKAGE_SPEC>...${COLOR_OFF}
     uninstall the given packages.
@@ -7582,28 +7701,6 @@ ${COLOR_GREEN}xcpkg pack <PACKAGE-SPEC> [--keep-session-dir] [-t <OUTPUT-TYPE>] 
     If -o <OUTPUT-PATH> option is unspecified, <OUTPUT-PATH> would be assigned to ./<PACKAGE-NAME>-<PACKAGE-VERSION>-<TARGET-PLATFORM-NAME>-<TARGET-PLATFORM-ARCH><OUTPUT-TYPE>
 
     If -t <OUTPUT-TYPE> option is unspecified, <OUTPUT-TYPE> would be assigned to .tar.xz
-
-
-======================================
-
-${COLOR_GREEN}PACKAGE-SPEC${COLOR_OFF}
-    a formatted srting that has form ${COLOR_RED}<TARGET>/<PACKAGE-NAME>${COLOR_OFF}
-
-${COLOR_GREEN}PACKAGE-NAME${COLOR_OFF}
-    must match regular expression pattern ${COLOR_RED}^[A-Za-z0-9+-_.@]{1,50}$ ${COLOR_OFF}
-
-${COLOR_GREEN}TARGET${COLOR_OFF}
-    a formatted srting that has form ${COLOR_RED}<PLATFORM-NAME>-<PLATFORM-VERSION>-<PLATFORM-ARCH>${COLOR_OFF}
-    indicates which platform would be built for or run on.
-
-${COLOR_GREEN}PLATFORM-NAME${COLOR_OFF}
-    ${COLOR_RED}xcpkg xcinfo --list-supported-platform-names${COLOR_OFF} command would list the supported platform names.
-
-${COLOR_GREEN}PLATFORM-VERSION${COLOR_OFF}
-    the minimum version of platform supported by this package. It usually matches regular expression pattern '[0-9][0-9]?.[0-9][0-9]?', e.g. 10.15, 11.0, 12.0, 12.6, etc.
-
-${COLOR_GREEN}PLATFORM-ARCH${COLOR_OFF}
-    indicates which ISA would be built for or can run on.
     "
 }
 
@@ -7631,7 +7728,7 @@ main() {
 
     XCPKG="$CURRENT_SCRIPT_FILEPATH"
 
-    XCPKG_VERSION=0.15.3
+    XCPKG_VERSION=0.15.4
 
     XCPKG_OFFICAL_FORMULA_REPO_URL='https://github.com/leleliu008/xcpkg-formula-repository-offical-core'
 
@@ -7671,6 +7768,9 @@ main() {
     unset IPHONEOS_DEPLOYMENT_TARGET
     unset  WATCHOS_DEPLOYMENT_TARGET
 
+    # https://stackoverflow.com/questions/18476490/what-is-purpose-of-target-arch-variable-in-makefiles
+    unset TARGET_ARCH
+
     # https://www.openssl.org/docs/man1.1.1/man3/SSL_CTX_set_default_verify_paths.html
     if [ -f "$XCPKG_CORE_DIR/etc/cacert.pem" ] ; then
         export SSL_CERT_FILE="$XCPKG_CORE_DIR/etc/cacert.pem"
@@ -7679,7 +7779,7 @@ main() {
     XCPKG_ACTION="$1"
 
     case $1 in
-        ''|--help|-h)
+        ''|--help|-h|help)
             __help
             return 0
             ;;
