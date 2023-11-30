@@ -248,6 +248,7 @@ all relevant directories and files are located under `~/.xcpkg` directory.
     xcpkg install curl
     xcpkg install curl --upgrade
     xcpkg install curl --target=iPhoneOS-12.0-arm64
+    xcpkg install curl --developer-dir=/Applications/Xcode12.app/Contents/Developer
     xcpkg install iPhoneOS-12.0-arm64/curl
     ```
 

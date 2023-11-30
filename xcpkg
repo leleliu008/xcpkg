@@ -7497,6 +7497,7 @@ ${COLOR_GREEN}xcpkg --help${COLOR_OFF}
 ${COLOR_GREEN}xcpkg -h${COLOR_OFF}
     show help of this command.
 
+${COLOR_GREEN}xcpkg version${COLOR_OFF}
 ${COLOR_GREEN}xcpkg --version${COLOR_OFF}
 ${COLOR_GREEN}xcpkg -V${COLOR_OFF}
     show version of this command.
@@ -7513,7 +7514,7 @@ ${COLOR_GREEN}xcpkg sysinfo${COLOR_OFF}
 ${COLOR_GREEN}xcpkg xcinfo [ --developer-dir=<DEVELOPER_DIR> --list-supported-platform-names]${COLOR_OFF}
     show current active Xcode information.
 
-    when --developer-dir=<DEVELOPER_DIR> option is not specified, if ${COLOR_PURPLE}DEVELOPER_DIR${COLOR_OFF} environment variable is set, xcpkg will use it, otherwize, run command ${COLOR_PURPLE}xcode-select -p${COLOR_OFF} to determine.
+    If --developer-dir=<DEVELOPER_DIR> is unspecified, the environment variable ${COLOR_RED}DEVELOPER_DIR${COLOR_OFF} is honored, if the environment variable DEVELOPER_DIR is not set, it would be determined by running command ${COLOR_PURPLE}xcode-select -p${COLOR_OFF}
 
 ${COLOR_GREEN}xcpkg integrate zsh [-v]${COLOR_OFF}
     download a zsh-completion script file to a approprivate location.
@@ -7612,7 +7613,7 @@ ${COLOR_GREEN}xcpkg fetch @all${COLOR_OFF}
 ${COLOR_GREEN}xcpkg install <PACKAGE-NAME|PACKAGE-SPEC>... [INSTALL-OPTIONS]${COLOR_OFF}
     install the given packages.
 
-    <PACKAGE-NAME> must match regular expression pattern ${COLOR_RED}^[A-Za-z0-9+-_.@]{1,50}$ ${COLOR_OFF}
+    <PACKAGE-NAME> must match the regular expression pattern ${COLOR_RED}^[A-Za-z0-9+-_.@]{1,50}$ ${COLOR_OFF}
 
     <PACKAGE-SPEC> is a formatted string that has form ${COLOR_RED}<TARGET>/<PACKAGE-NAME>${COLOR_OFF}
 
@@ -7620,9 +7621,9 @@ ${COLOR_GREEN}xcpkg install <PACKAGE-NAME|PACKAGE-SPEC>... [INSTALL-OPTIONS]${CO
 
     <TARGET> is a formatted string that has form ${COLOR_RED}<PLATFORM-NAME>-<PLATFORM-VERSION>-<PLATFORM-ARCH>${COLOR_OFF}
 
-    <PLATFORM-NAME> : ${COLOR_RED}xcpkg xcinfo --list-supported-platform-names${COLOR_OFF} command would list the supported platform names.
+    <PLATFORM-NAME> : e.g. AppleTVOS, AppleTVSimulator, DriverKit, MacOSX, WatchOS, WatchSimulator, iPhoneOS, iPhoneSimulator, etc
 
-    <PLATFORM-VERSION> : the minimum version of platform supported by this package. It usually matches regular expression pattern '[0-9][0-9]?.[0-9][0-9]?', e.g. 10.15, 11.0, 12.0, 12.6, etc.
+    <PLATFORM-VERSION> : specify the platform version to be built with. It usually matches the regular expression pattern '[0-9][0-9]?.[0-9][0-9]?', e.g. 10.15, 11.0, 12.0, 12.6, etc.
 
     <PLATFORM-ARCH> : e.g. x86_64, arm64, arm64e, etc
 
@@ -7634,8 +7635,13 @@ ${COLOR_GREEN}xcpkg install <PACKAGE-NAME|PACKAGE-SPEC>... [INSTALL-OPTIONS]${CO
 
             If this option is unspecified, the environment variable ${COLOR_RED}XCPKG_DEFAULT_TARGET${COLOR_OFF} is honored, if the environment variable XCPKG_DEFAULT_TARGET is not set, <TARGET> will be same as your current running operation system.
 
+        ${COLOR_BLUE}--developer-dir=<DEVELOPER_DIR>${COLOR_OFF}
+            specify the Xcode developer directory.
+
+            If --developer-dir=<DEVELOPER_DIR> is unspecified, the environment variable ${COLOR_RED}DEVELOPER_DIR${COLOR_OFF} is honored, if the environment variable DEVELOPER_DIR is not set, it would be determined by running command ${COLOR_PURPLE}xcode-select -p${COLOR_OFF}
+
         ${COLOR_BLUE}--jobs=N${COLOR_OFF}
-            set the number of jobs you can run in parallel.
+            specify the number of jobs you can run in parallel.
 
         ${COLOR_BLUE}-q${COLOR_OFF}
             silent mode. no any messages will be output to terminal.
@@ -7647,10 +7653,10 @@ ${COLOR_GREEN}xcpkg install <PACKAGE-NAME|PACKAGE-SPEC>... [INSTALL-OPTIONS]${CO
             very verbose mode. many many messages will be output to terminal.
 
         ${COLOR_BLUE}--build-type=<debug|release>${COLOR_OFF}
-            set build type.
+            specify the build type.
 
         ${COLOR_BLUE}--link-type=<shared-only|static-prefered|shared-prefered>${COLOR_OFF}
-            link static or shared library.
+            specify the link strategy.
 
         ${COLOR_BLUE}--disable-ccache${COLOR_OFF}
             do not use ccache.
@@ -7659,7 +7665,7 @@ ${COLOR_GREEN}xcpkg install <PACKAGE-NAME|PACKAGE-SPEC>... [INSTALL-OPTIONS]${CO
             generates compile_commands.json
 
         ${COLOR_BLUE}--upgrade${COLOR_OFF}
-            If this package was alreadly intsalled, then it will be upgrated if it could be.
+            If this package has been alreadly intsalled, then it will be upgrated if it could be.
 
         ${COLOR_BLUE}--dry-run${COLOR_OFF}
             do not actually install the package.
@@ -7728,7 +7734,7 @@ main() {
 
     XCPKG="$CURRENT_SCRIPT_FILEPATH"
 
-    XCPKG_VERSION=0.15.4
+    XCPKG_VERSION=0.15.5
 
     XCPKG_OFFICAL_FORMULA_REPO_URL='https://github.com/leleliu008/xcpkg-formula-repository-offical-core'
 
@@ -7779,11 +7785,11 @@ main() {
     XCPKG_ACTION="$1"
 
     case $1 in
-        ''|--help|-h|help)
+        ''|help|--help|-h)
             __help
             return 0
             ;;
-        --version|-V)
+        version|--version|-V)
             printf '%s\n' "$XCPKG_VERSION"
             return 0
             ;;
