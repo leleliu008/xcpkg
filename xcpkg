@@ -1267,37 +1267,6 @@ filetype_from_url() {
 
 # }}}
 ##############################################################################
-# {{{ xcpkg formula
-
-# __show_formula_of_the_given_package <PACKAGE-NAME> [--json] [--yaml] [--path] [<KEY>]
-  __show_formula_of_the_given_package() {
-    [ -z "$1" ] && abort 1 "__show_formula_of_the_given_package <PACKAGE-NAME> [--json] [--yaml] [--path] [<KEY>], <PACKAGE-NAME> is unspecified."
-
-    PACKAGE_FORMULA_FILEPATH=
-    PACKAGE_FORMULA_FILEPATH="$(__path_of_formula_of_the_given_package "$1")"
-
-    [ -z "$PACKAGE_FORMULA_FILEPATH" ] && abort 1 "package '$1' is not available."
-
-    case $2 in
-        --yaml|'')
-            if [ -t 1 ] ; then
-                yq  "$PACKAGE_FORMULA_FILEPATH"
-            else
-                cat "$PACKAGE_FORMULA_FILEPATH"
-            fi
-            ;;
-        --json)
-            yq -o=json "$PACKAGE_FORMULA_FILEPATH"
-            ;;
-        --path)
-            printf '%s\n' "$PACKAGE_FORMULA_FILEPATH"
-            ;;
-        *)  yq ".$2 | select(. != null)" "$PACKAGE_FORMULA_FILEPATH"
-    esac
-}
-
-# }}}
-##############################################################################
 # {{{ xcpkg formula-edit
 
 # __edit_formula_of_the_given_package <PACKAGE-NAME> [--editor=<EDITOR>]
@@ -1540,32 +1509,6 @@ EOF
 
 # }}}
 ##############################################################################
-# {{{ xcpkg receipt
-
-# __show_receipt_of_the_given_package <PACKAGE-SPEC> [--json] [--yaml] [--path] [<KEY>]
-  __show_receipt_of_the_given_package() {
-    __load_receipt_of_the_given_package "$1"
-
-    case $2 in
-        --yaml|'')
-            if [ -t 1 ] ; then
-                yq  "$PACKAGE_RECEIPT_FILEPATH"
-            else
-                cat "$PACKAGE_RECEIPT_FILEPATH"
-            fi
-            ;;
-        --json)
-            yq -o=json "$PACKAGE_RECEIPT_FILEPATH"
-            ;;
-        --path)
-            printf '%s\n' "$PACKAGE_RECEIPT_FILEPATH"
-            ;;
-        *)  yq ".$2 | select(. != null)" "$PACKAGE_RECEIPT_FILEPATH"
-    esac
-}
-
-# }}}
-##############################################################################
 # {{{ operations of manifest
 
 # __generate_manifest_of_the_given_package <PACKAGE-NAME>
@@ -1736,18 +1679,18 @@ __search_packages() {
 ##############################################################################
 # {{{ xcpkg info
 
-# __show_information_of_all_available_packages [--json|--yaml|--shell]
-  __show_information_of_all_available_packages() {
+# __info_all_available_packages [--json|--yaml|--shell]
+  __info_all_available_packages() {
     case $1 in
-        --json) __show_information_as_json__of_all_available_packages ;;
-        --yaml) __show_information_as_yaml__of_all_available_packages ;;
-        --shell)__show_information_as_shell_of_all_available_packages ;;
-        '')     __show_information_as_mixed_of_all_available_packages ;;
-        *)    abort 1 "__show_information_of_all_available_packages [--json|--yaml|--shell], unrecognized option: $1"
+        --json) __info_all_available_packages_as_json ;;
+        --yaml) __info_all_available_packages_as_yaml ;;
+        --shell)__info_all_available_packages_as_shell ;;
+        '')     __info_all_available_packages_as_mixed ;;
+        *)    abort 1 "__info_all_available_packages [--json|--yaml|--shell], unrecognized option: $1"
     esac
 }
 
-__show_information_as_mixed_of_all_available_packages() {
+__info_all_available_packages_as_mixed() {
     FIRST=1
 
     for PACKAGE in $(__list_available_packages)
@@ -1757,11 +1700,11 @@ __show_information_as_mixed_of_all_available_packages() {
         else
             printf '%s\n' '---'
         fi
-        __show_information_of_the_given_package "$PACKAGE"
+        __info_the_given_available_package "$PACKAGE"
     done
 }
 
-__show_information_as_json__of_all_available_packages() {
+__info_all_available_packages_as_json() {
     printf '%s\n' '['
 
     FIRST=1
@@ -1773,13 +1716,13 @@ __show_information_as_json__of_all_available_packages() {
         else
             printf '%s\n' ','
         fi
-        __show_information_as_json__of_the_given_package "$PACKAGE"
+        __info_the_given_available_package_as_json "$PACKAGE"
     done
 
     printf '%s\n' ']'
 }
 
-__show_information_as_yaml__of_all_available_packages() {
+__info_all_available_packages_as_yaml() {
     FIRST=1
 
     for PACKAGE in $(__list_available_packages)
@@ -1789,11 +1732,11 @@ __show_information_as_yaml__of_all_available_packages() {
         else
             printf '%s\n' '---'
         fi
-        __show_information_as_yaml__of_the_given_package "$PACKAGE"
+        __info_the_given_available_package_as_yaml "$PACKAGE"
     done
 }
 
-__show_information_as_shell_of_all_available_packages() {
+__info_all_available_packages_as_shell() {
     FIRST=1
 
     for PACKAGE in $(__list_available_packages)
@@ -1803,12 +1746,12 @@ __show_information_as_shell_of_all_available_packages() {
         else
             printf '%s\n' '#---'
         fi
-        __show_information_as_shell_of_the_given_package "$PACKAGE"
+        __info_the_given_available_package_as_shell "$PACKAGE"
     done
 }
 
-# __show_information_as_json__of_the_given_package <PACKAGE-NAME>
-  __show_information_as_json__of_the_given_package() {
+# __info_the_given_available_package_as_json <PACKAGE-NAME>
+  __info_the_given_available_package_as_json() {
     __load_formula_of_the_given_package "$1"
 
     if [ -z "$PACKAGE_WEB_URL" ] ; then
@@ -1882,8 +1825,8 @@ __show_information_as_shell_of_all_available_packages() {
 }' | jq 'with_entries(select(.value != ""))'
 }
 
-# __show_information_as_yaml__of_the_given_package <PACKAGE-NAME>
-  __show_information_as_yaml__of_the_given_package() {
+# __info_the_given_available_package_as_yaml <PACKAGE-NAME>
+  __info_the_given_available_package_as_yaml() {
     __load_formula_of_the_given_package "$1"
 
     if [ -z "$PACKAGE_WEB_URL" ] ; then
@@ -1931,8 +1874,8 @@ EOF
     fi
 }
 
-# __show_information_as_shell_of_the_given_package <PACKAGE-NAME>
-  __show_information_as_shell_of_the_given_package() {
+# __info_the_given_available_package_as_shell <PACKAGE-NAME>
+  __info_the_given_available_package_as_shell() {
     __load_formula_of_the_given_package "$1"
 
     while read KEY
@@ -2000,30 +1943,23 @@ PACKAGE_DEVELOPER
 EOF
 }
 
-# __show_information_of_the_given_package <PACKAGE-NAME> [--yaml] [--json] [<KEY>]
-#
-# __show_information_of_the_given_package curl
-#
-# __show_information_of_the_given_package curl version
-# __show_information_of_the_given_package curl web-url
-  __show_information_of_the_given_package() {
-    [ -z "$1" ] && abort 1 "__show_information_of_the_given_package <PACKAGE-NAME> [--yaml] [--json] [<KEY>], <PACKAGE-NAME> is unspecified."
-
-    case $1 in
-        @all) shift ; __show_information_of_all_available_packages "$@" ; return 0
-    esac
+# __info_the_given_available_package <PACKAGE-NAME> [--yaml] [--json] [<KEY>]
+# __info_the_given_available_package curl
+# __info_the_given_available_package curl version
+# __info_the_given_available_package curl web-url
+  __info_the_given_available_package() {
+    if [ "$1" = @all ] ; then
+        shift
+        __info_all_available_packages "$@"
+        return 0
+    fi
 
     case $2 in
         --yaml|'')
-            __show_information_as_yaml__of_the_given_package "$1"
+            __info_the_given_available_package_as_yaml "$1"
             ;;
         --json)
-            __show_information_as_json__of_the_given_package "$1"
-            ;;
-        symlinked-files)
-            if [ -f "$XCPKG_PACKAGE_SYMLINKED_ROOT/.registry/$1" ] ; then
-                cat "$XCPKG_PACKAGE_SYMLINKED_ROOT/.registry/$1"
-            fi
+            __info_the_given_available_package_as_json "$1"
             ;;
         installed-dir)
             PACKAGE_SPEC=
@@ -2081,6 +2017,63 @@ EOF
         *)  __load_formula_of_the_given_package "$1"
             __PACKAGE_GET__KEY__="$(printf '%s\n' "$2" | tr '+-.' '_' | tr a-z A-Z)"
             eval echo \$PACKAGE_$__PACKAGE_GET__KEY__
+    esac
+}
+
+# __info_the_given_installed_package <PACKAGE-SPEC> [<KEY>]
+# __info_the_given_installed_package curl
+# __info_the_given_installed_package curl version
+# __info_the_given_installed_package curl web-url
+  __info_the_given_installed_package() {
+    case $2 in
+        installed-dir)
+            PACKAGE_SPEC=
+            PACKAGE_SPEC="$(inspect_package_spec "$1")"
+
+            if is_package_installed "$PACKAGE_SPEC" ; then
+                PACKAGE_INSTALLED_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_SPEC"
+                printf '%s\n' "$PACKAGE_INSTALLED_DIR"
+            else
+                abort 1 "package '$PACKAGE_SPEC' is not installed."
+            fi
+            ;;
+        installed-files)
+            PACKAGE_SPEC=
+            PACKAGE_SPEC="$(inspect_package_spec "$1")"
+
+            if is_package_installed "$PACKAGE_SPEC" ; then
+                cut -d '|' -f3 "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_SPEC/.xcpkg/MANIFEST.txt"
+            else
+                abort 1 "package '$PACKAGE_SPEC' is not installed."
+            fi
+            ;;
+        installed-timestamp-unix)
+            __load_receipt_of_the_given_package "$1"
+            printf '%s\n' "$RECEIPT_PACKAGE_BUILTAT"
+            ;;
+        installed-timestamp-rfc-3339)
+            __load_receipt_of_the_given_package "$1"
+            date -d "@$RECEIPT_PACKAGE_BUILTAT" '+%Y-%m-%d %H:%M:%S%:z'
+            ;;
+        installed-timestamp-iso-8601)
+            __load_receipt_of_the_given_package "$1"
+            date -d "@$RECEIPT_PACKAGE_BUILTAT" '+%Y-%m-%dT%H:%M:%S%:z'
+            ;;
+        installed-timestamp-rfc-3339-utc)
+            __load_receipt_of_the_given_package "$1"
+            date -u -d "@$RECEIPT_PACKAGE_BUILTAT" '+%Y-%m-%d %H:%M:%S%:z'
+            ;;
+        installed-timestamp-iso-8601-utc)
+            __load_receipt_of_the_given_package "$1"
+            date -u -d "@$RECEIPT_PACKAGE_BUILTAT" '+%Y-%m-%dT%H:%M:%SZ'
+            ;;
+        installed-version)
+            __load_receipt_of_the_given_package "$1"
+            printf '%s\n' "$RECEIPT_PACKAGE_VERSION"
+            ;;
+        *)  __load_receipt_of_the_given_package "$1"
+            __PACKAGE_GET__KEY__="$(printf '%s\n' "$2" | tr '+-.' '_' | tr a-z A-Z)"
+            eval echo \$RECEIPT_PACKAGE_$__PACKAGE_GET__KEY__
     esac
 }
 
@@ -7734,7 +7727,7 @@ main() {
 
     XCPKG="$CURRENT_SCRIPT_FILEPATH"
 
-    XCPKG_VERSION=0.15.5
+    XCPKG_VERSION=0.15.6
 
     XCPKG_OFFICAL_FORMULA_REPO_URL='https://github.com/leleliu008/xcpkg-formula-repository-offical-core'
 
@@ -7896,14 +7889,6 @@ EOF
             is_package__outdated "$PACKAGE_SPEC"
             ;;
 
-        receipt)
-            shift
-            __show_receipt_of_the_given_package "$@"
-            ;;
-        formula)
-            shift
-            __show_formula_of_the_given_package "$@"
-            ;;
         formula-edit)
             shift
             __edit_formula_of_the_given_package "$@"
@@ -7994,7 +7979,14 @@ EOF
 
         info)
             shift
-            __show_information_of_the_given_package "$@"
+            case $1 in
+                '') abort 1 "_0 info <PACKAGE-NAME|PACKAGE-SPEC> [--yaml] [--json] [<KEY>], <PACKAGE-NAME|PACKAGE-SPEC> is unspecified."
+                    ;;
+                */*)
+                    __info_the_given_installed_package "$@"
+                    ;;
+                *)  __info_the_given_available_package "$@"
+            esac
             ;;
 
         *)  abort 1 "unrecognized argument: $1"

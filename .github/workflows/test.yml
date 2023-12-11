@@ -63,20 +63,6 @@ jobs:
       - run: ./xcpkg info uctags src-sha
 
 
-      - run: ./xcpkg formula uctags
-      - run: ./xcpkg formula uctags --yaml
-      - run: ./xcpkg formula uctags --json
-      - run: ./xcpkg formula uctags version
-      - run: ./xcpkg formula uctags license
-      - run: ./xcpkg formula uctags summary
-      - run: ./xcpkg formula uctags web-url
-      - run: ./xcpkg formula uctags git-url
-      - run: ./xcpkg formula uctags git-sha
-      - run: ./xcpkg formula uctags git-ref
-      - run: ./xcpkg formula uctags src-url
-      - run: ./xcpkg formula uctags src-sha
-
-
       - run: ./xcpkg depends uctags
       - run: ./xcpkg depends uctags -t dot
       - run: ./xcpkg depends uctags -t box
@@ -87,28 +73,25 @@ jobs:
       - run: ./xcpkg install ${{ matrix.target-platform }}/uctags
 
 
-      - run: ./xcpkg receipt ${{ matrix.target-platform }}/uctags
-      - run: ./xcpkg receipt ${{ matrix.target-platform }}/uctags --yaml
-      - run: ./xcpkg receipt ${{ matrix.target-platform }}/uctags --json
-      - run: ./xcpkg receipt ${{ matrix.target-platform }}/uctags version
-      - run: ./xcpkg receipt ${{ matrix.target-platform }}/uctags license
-      - run: ./xcpkg receipt ${{ matrix.target-platform }}/uctags summary
-      - run: ./xcpkg receipt ${{ matrix.target-platform }}/uctags web-url
-      - run: ./xcpkg receipt ${{ matrix.target-platform }}/uctags git-url
-      - run: ./xcpkg receipt ${{ matrix.target-platform }}/uctags git-sha
-      - run: ./xcpkg receipt ${{ matrix.target-platform }}/uctags git-ref
-      - run: ./xcpkg receipt ${{ matrix.target-platform }}/uctags src-url
-      - run: ./xcpkg receipt ${{ matrix.target-platform }}/uctags src-sha
-
-
+      - run: ./xcpkg info ${{ matrix.target-platform }}/uctags
+      - run: ./xcpkg info ${{ matrix.target-platform }}/uctags --yaml
+      - run: ./xcpkg info ${{ matrix.target-platform }}/uctags --json
+      - run: ./xcpkg info ${{ matrix.target-platform }}/uctags version
+      - run: ./xcpkg info ${{ matrix.target-platform }}/uctags license
+      - run: ./xcpkg info ${{ matrix.target-platform }}/uctags summary
+      - run: ./xcpkg info ${{ matrix.target-platform }}/uctags web-url
+      - run: ./xcpkg info ${{ matrix.target-platform }}/uctags git-url
+      - run: ./xcpkg info ${{ matrix.target-platform }}/uctags git-sha
+      - run: ./xcpkg info ${{ matrix.target-platform }}/uctags git-ref
+      - run: ./xcpkg info ${{ matrix.target-platform }}/uctags src-url
+      - run: ./xcpkg info ${{ matrix.target-platform }}/uctags src-sha
+      - run: ./xcpkg info ${{ matrix.target-platform }}/uctags builtat
+      - run: ./xcpkg info ${{ matrix.target-platform }}/uctags builtat-iso-8601
+      - run: ./xcpkg info ${{ matrix.target-platform }}/uctags builtat-rfc-3339
+      - run: ./xcpkg info ${{ matrix.target-platform }}/uctags builtat-iso-8601-utc
+      - run: ./xcpkg info ${{ matrix.target-platform }}/uctags builtat-rfc-3339-utc
       - run: ./xcpkg info ${{ matrix.target-platform }}/uctags installed-dir
       - run: ./xcpkg info ${{ matrix.target-platform }}/uctags installed-files
-      - run: ./xcpkg info ${{ matrix.target-platform }}/uctags installed-version
-      - run: ./xcpkg info ${{ matrix.target-platform }}/uctags installed-timestamp-unix
-      - run: ./xcpkg info ${{ matrix.target-platform }}/uctags installed-timestamp-iso-8601
-      - run: ./xcpkg info ${{ matrix.target-platform }}/uctags installed-timestamp-rfc-3339
-      - run: ./xcpkg info ${{ matrix.target-platform }}/uctags installed-timestamp-iso-8601-utc
-      - run: ./xcpkg info ${{ matrix.target-platform }}/uctags installed-timestamp-rfc-3339-utc
 
 
       - run: ./xcpkg tree ${{ matrix.target-platform }}/uctags
