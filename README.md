@@ -186,15 +186,13 @@ all relevant directories and files are located under `~/.xcpkg` directory.
     xcpkg info iPhoneOS-12.0-arm64/curl git-ref
     xcpkg info iPhoneOS-12.0-arm64/curl src-url
     xcpkg info iPhoneOS-12.0-arm64/curl src-sha
-
+    xcpkg info iPhoneOS-12.0-arm64/curl builtat
+    xcpkg info iPhoneOS-12.0-arm64/curl builtat-iso-8601
+    xcpkg info iPhoneOS-12.0-arm64/curl builtat-rfc-3339
+    xcpkg info iPhoneOS-12.0-arm64/curl builtat-iso-8601-utc
+    xcpkg info iPhoneOS-12.0-arm64/curl builtat-rfc-3339-utc
     xcpkg info iPhoneOS-12.0-arm64/curl installed-dir
     xcpkg info iPhoneOS-12.0-arm64/curl installed-files
-    xcpkg info iPhoneOS-12.0-arm64/curl installed-version
-    xcpkg info iPhoneOS-12.0-arm64/curl installed-timestamp-unix
-    xcpkg info iPhoneOS-12.0-arm64/curl installed-timestamp-iso-8601
-    xcpkg info iPhoneOS-12.0-arm64/curl installed-timestamp-rfc-3339
-    xcpkg info iPhoneOS-12.0-arm64/curl installed-timestamp-iso-8601-utc
-    xcpkg info iPhoneOS-12.0-arm64/curl installed-timestamp-rfc-3339-utc
     ```
 
 - **show packages that are depended by the given package**
@@ -296,24 +294,6 @@ all relevant directories and files are located under `~/.xcpkg` directory.
     xcpkg formula-repo-del my_repo
     ```
 
-- **list all available packages**
-
-    ```bash
-    xcpkg ls-available
-    ```
-
-- **list all installed packages**
-
-    ```bash
-    xcpkg ls-installed
-    ```
-
-- **list all outdated packages**
-
-    ```bash
-    xcpkg ls-outdated
-    ```
-
 - **check if the given package is available**
 
     ```bash
@@ -332,6 +312,31 @@ all relevant directories and files are located under `~/.xcpkg` directory.
     ```bash
     xcpkg is-outdated  curl
     xcpkg is-outdated  iPhoneOS-12.0-arm64/curl
+    ```
+
+- **list all available packages**
+
+    ```bash
+    xcpkg ls-available
+    ```
+
+- **list all installed packages**
+
+    ```bash
+    xcpkg ls-installed
+    ```
+
+- **list all outdated packages**
+
+    ```bash
+    xcpkg ls-outdated
+    ```
+
+- **list installed files of the given installed package**
+
+    ```bash
+    xcpkg list curl
+    xcpkg list iPhoneOS-12.0-arm64/curl -L 3
     ```
 
 - **list installed files of the given installed package in a tree-like format**

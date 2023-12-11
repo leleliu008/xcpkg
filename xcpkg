@@ -7972,6 +7972,11 @@ EOF
             __pack_the_given_installed_package "$@"
             ;;
 
+        list)
+            shift
+            __info_the_given_installed_package "$1" installed-files
+            ;;
+
         tree)
             shift
             __tree_the_given_installed_package "$@"

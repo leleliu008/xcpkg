@@ -157,6 +157,10 @@ function _xcpkg() {
                         '--dirsfirst[list directories before files]' \
                         '-L[level]:level:(3)'
                     ;;
+                list)
+                    _arguments \
+                        '1:package-name:_xcpkg_installed_packages'
+                    ;;
                 logs)
                     _arguments \
                         '1:package-name:_xcpkg_installed_packages'
