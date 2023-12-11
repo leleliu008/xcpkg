@@ -176,7 +176,6 @@ all relevant directories and files are located under `~/.xcpkg` directory.
     xcpkg info iPhoneOS-12.0-arm64/curl
     xcpkg info iPhoneOS-12.0-arm64/curl --yaml
     xcpkg info iPhoneOS-12.0-arm64/curl --json
-    xcpkg info iPhoneOS-12.0-arm64/curl --path
     xcpkg info iPhoneOS-12.0-arm64/curl version
     xcpkg info iPhoneOS-12.0-arm64/curl license
     xcpkg info iPhoneOS-12.0-arm64/curl summary
@@ -264,15 +263,6 @@ all relevant directories and files are located under `~/.xcpkg` directory.
     xcpkg upgrade-self
     xcpkg upgrade-self -v
     ```
-
-- **edit the formula of the given package**
-
-    ```bash
-    xcpkg formula-edit curl
-    xcpkg formula-edit curl --editor=/usr/local/bin/vim
-    ```
-
-    **Note**: xcpkg do NOT save your changes, which means that your changes may be lost after the formula repository is updated!
 
 - **list all avaliable formula repositories**
 

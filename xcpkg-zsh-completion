@@ -12,7 +12,6 @@ _xcpkg_actions=(
     'is-available:is the given package available.'
     'is-installed:is the given package installed.'
     'is-outdated:is the given package outdated.'
-    'tree:list files of the given installed package in a tree-like format.'
     'info:show infomation of the given package or all available packages.'
     'formula-edit:edit the formula of the given package.'
     'formula-repo-init:create a new empty formula repository.'
@@ -35,8 +34,10 @@ _xcpkg_actions=(
     'xcinfo:show your current actived xcode information.'
     'env:show system and current actived xcode information.'
     'depends:show depends of the given package.'
-    'pack:pack all the installed files of the given installed package to a single archive file.'
+    'list:list installed files of the given installed package.'
+    'tree:list installed files of the given installed package in a tree-like format.'
     'logs:show logs of the given installed package.'
+    'pack:pack all the installed files of the given installed package to a single archive file.'
     'gen-url-transform-sample:generate url-transform sample.'
 )
 

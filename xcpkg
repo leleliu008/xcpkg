@@ -1267,40 +1267,6 @@ filetype_from_url() {
 
 # }}}
 ##############################################################################
-# {{{ xcpkg formula-edit
-
-# __edit_formula_of_the_given_package <PACKAGE-NAME> [--editor=<EDITOR>]
-  __edit_formula_of_the_given_package() {
-    [ -z "$1" ] && abort 1 "__edit_formula_of_the_given_package <PACKAGE-NAME>, <PACKAGE-NAME> is unspecified."
-
-    unset  PACKAGE_FORMULA_FILEPATH; PACKAGE_FORMULA_FILEPATH="$(__path_of_formula_of_the_given_package "$1")"
-
-    [ -z "$PACKAGE_FORMULA_FILEPATH" ] && abort 1 "package '$1' is not available."
-
-    shift
-
-    EDITOR=
-
-    while [ -n "$1" ]
-    do
-        case $1 in
-            --editor=*)
-                EDITOR="${1#*=}"
-                ;;
-            *)  abort 1 "unrecognized option: $1"
-        esac
-        shift
-    done
-
-    [ -z "$EDITOR" ] && {
-        EDITOR=$(command -v nvim || command -v vim || command -v vi || command -v open) || abort 1 "please sepecify editor via [--editor=<EDITOR> option."
-    }
-
-    "$EDITOR" "$PACKAGE_FORMULA_FILEPATH"
-}
-
-# }}}
-##############################################################################
 # {{{ operations of receipt
 
 # __generate_receipt_of_the_given_package <PACKAGE-NAME>
@@ -1955,7 +1921,9 @@ EOF
     fi
 
     case $2 in
-        --yaml|'')
+        '') __info_the_given_available_package_as_yaml "$1"
+            ;;
+        --yaml)
             __info_the_given_available_package_as_yaml "$1"
             ;;
         --json)
@@ -1982,29 +1950,25 @@ EOF
                 abort 1 "package '$PACKAGE_SPEC' is not installed."
             fi
             ;;
-        installed-timestamp-unix)
+        builtat)
             __load_receipt_of_the_given_package "$1"
             printf '%s\n' "$RECEIPT_PACKAGE_BUILTAT"
             ;;
-        installed-timestamp-rfc-3339)
+        builtat-rfc-3339)
             __load_receipt_of_the_given_package "$1"
             date -d "@$RECEIPT_PACKAGE_BUILTAT" '+%Y-%m-%d %H:%M:%S%:z'
             ;;
-        installed-timestamp-iso-8601)
+        builtat-iso-8601)
             __load_receipt_of_the_given_package "$1"
             date -d "@$RECEIPT_PACKAGE_BUILTAT" '+%Y-%m-%dT%H:%M:%S%:z'
             ;;
-        installed-timestamp-rfc-3339-utc)
+        builtat-rfc-3339-utc)
             __load_receipt_of_the_given_package "$1"
             date -u -d "@$RECEIPT_PACKAGE_BUILTAT" '+%Y-%m-%d %H:%M:%S%:z'
             ;;
-        installed-timestamp-iso-8601-utc)
+        builtat-iso-8601-utc)
             __load_receipt_of_the_given_package "$1"
             date -u -d "@$RECEIPT_PACKAGE_BUILTAT" '+%Y-%m-%dT%H:%M:%SZ'
-            ;;
-        installed-version)
-            __load_receipt_of_the_given_package "$1"
-            printf '%s\n' "$RECEIPT_PACKAGE_VERSION"
             ;;
         dopatch)
             __load_formula_of_the_given_package "$1"
@@ -2013,6 +1977,46 @@ EOF
         install)
             __load_formula_of_the_given_package "$1"
             printf '%s\n' "$PACKAGE_DOBUILD_ACTIONS"
+            ;;
+        developer)
+            __load_formula_of_the_given_package "$1"
+            printf '%s\n' "$PACKAGE_DEVELOPER"
+            ;;
+        src-ft)
+            __load_formula_of_the_given_package "$1"
+            if [ -n "$PACKAGE_SRC_FILETYPE" ] ; then
+                printf '%s\n' "$PACKAGE_SRC_FILETYPE"
+            fi
+            ;;
+        src-fp)
+            __load_formula_of_the_given_package "$1"
+            if [ -n "$PACKAGE_SRC_FILEPATH" ] ; then
+                printf '%s\n' "$PACKAGE_SRC_FILEPATH"
+            fi
+            ;;
+        fix-ft)
+            __load_formula_of_the_given_package "$1"
+            if [ -n "$PACKAGE_FIX_FILETYPE" ] ; then
+                printf '%s\n' "$PACKAGE_FIX_FILETYPE"
+            fi
+            ;;
+        fix-fp)
+            __load_formula_of_the_given_package "$1"
+            if [ -n "$PACKAGE_FIX_FILEPATH" ] ; then
+                printf '%s\n' "$PACKAGE_FIX_FILEPATH"
+            fi
+            ;;
+        res-ft)
+            __load_formula_of_the_given_package "$1"
+            if [ -n "$PACKAGE_RES_FILETYPE" ] ; then
+                printf '%s\n' "$PACKAGE_RES_FILETYPE"
+            fi
+            ;;
+        res-fp)
+            __load_formula_of_the_given_package "$1"
+            if [ -n "$PACKAGE_RES_FILEPATH" ] ; then
+                printf '%s\n' "$PACKAGE_RES_FILEPATH"
+            fi
             ;;
         *)  __load_formula_of_the_given_package "$1"
             __PACKAGE_GET__KEY__="$(printf '%s\n' "$2" | tr '+-.' '_' | tr a-z A-Z)"
@@ -2047,29 +2051,25 @@ EOF
                 abort 1 "package '$PACKAGE_SPEC' is not installed."
             fi
             ;;
-        installed-timestamp-unix)
+        builtat)
             __load_receipt_of_the_given_package "$1"
             printf '%s\n' "$RECEIPT_PACKAGE_BUILTAT"
             ;;
-        installed-timestamp-rfc-3339)
+        builtat-rfc-3339)
             __load_receipt_of_the_given_package "$1"
             date -d "@$RECEIPT_PACKAGE_BUILTAT" '+%Y-%m-%d %H:%M:%S%:z'
             ;;
-        installed-timestamp-iso-8601)
+        builtat-iso-8601)
             __load_receipt_of_the_given_package "$1"
             date -d "@$RECEIPT_PACKAGE_BUILTAT" '+%Y-%m-%dT%H:%M:%S%:z'
             ;;
-        installed-timestamp-rfc-3339-utc)
+        builtat-rfc-3339-utc)
             __load_receipt_of_the_given_package "$1"
             date -u -d "@$RECEIPT_PACKAGE_BUILTAT" '+%Y-%m-%d %H:%M:%S%:z'
             ;;
-        installed-timestamp-iso-8601-utc)
+        builtat-iso-8601-utc)
             __load_receipt_of_the_given_package "$1"
             date -u -d "@$RECEIPT_PACKAGE_BUILTAT" '+%Y-%m-%dT%H:%M:%SZ'
-            ;;
-        installed-version)
-            __load_receipt_of_the_given_package "$1"
-            printf '%s\n' "$RECEIPT_PACKAGE_VERSION"
             ;;
         *)  __load_receipt_of_the_given_package "$1"
             __PACKAGE_GET__KEY__="$(printf '%s\n' "$2" | tr '+-.' '_' | tr a-z A-Z)"
@@ -7571,13 +7571,6 @@ ${COLOR_GREEN}xcpkg search <REGULAR-EXPRESSION-PATTERN>${COLOR_OFF}
     search all available packages whose name matches the given regular expression pattern.
 
 
-${COLOR_GREEN}xcpkg formula-edit <PACKAGE-NAME> --editor=<EDITOR>${COLOR_OFF}
-    edit the formula of the given package.
-
-${COLOR_GREEN}xcpkg formula <PACKAGE-NAME> [--path] [--yaml] [--json] [<KEY>]${COLOR_OFF}
-    show formula of the given available package.
-
-
 ${COLOR_GREEN}xcpkg info <PACKAGE-NAME> [--json] [--yaml] [<KEY>]${COLOR_OFF}
     show information of the given package.
 
@@ -7672,11 +7665,9 @@ ${COLOR_GREEN}xcpkg reinstall <PACKAGE-SPEC>... [INSTALL-OPTIONS]${COLOR_OFF}
 ${COLOR_GREEN}xcpkg upgrade   <PACKAGE-SPEC>... [INSTALL-OPTIONS]${COLOR_OFF}
     upgrade the given packages. If no any packages are given, all outdated packages will to be upgraded.
 
-${COLOR_GREEN}xcpkg uninstall <PACKAGE_SPEC>...${COLOR_OFF}
+${COLOR_GREEN}xcpkg uninstall <PACKAGE-SPEC>...${COLOR_OFF}
     uninstall the given packages.
 
-${COLOR_GREEN}xcpkg receipt <PACKAGE-SPEC> [--path] [--yaml] [--json] [<KEY>]${COLOR_OFF}
-    show receipt of the given installed package.
 
 ${COLOR_GREEN}xcpkg tree <PACKAGE-SPEC> [--dirsfirst | -L N]${COLOR_OFF}
     list installed files of the given installed package in a tree-like format.
@@ -7727,7 +7718,7 @@ main() {
 
     XCPKG="$CURRENT_SCRIPT_FILEPATH"
 
-    XCPKG_VERSION=0.15.6
+    XCPKG_VERSION=0.15.7
 
     XCPKG_OFFICAL_FORMULA_REPO_URL='https://github.com/leleliu008/xcpkg-formula-repository-offical-core'
 
@@ -7887,11 +7878,6 @@ EOF
             PACKAGE_SPEC=
             PACKAGE_SPEC="$(inspect_package_spec "$1")"
             is_package__outdated "$PACKAGE_SPEC"
-            ;;
-
-        formula-edit)
-            shift
-            __edit_formula_of_the_given_package "$@"
             ;;
 
         update)            shift; __sync_available_formula_repositories "$@" ;;
