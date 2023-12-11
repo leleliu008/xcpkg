@@ -22,8 +22,6 @@ _xcpkg_actions=(
     'formula-repo-conf:change the config of the given formula repository.'
     'formula-repo-info:show infomation of the given formula repository.'
     'formula-repo-list:list all available formula repositories.'
-    'formula:show formula of the given package.'
-    'receipt:show receipt of the given package.'
     'install:install packages.'
     'reinstall:reinstall packages.'
     'uninstall:uninstall packages.'
@@ -37,7 +35,7 @@ _xcpkg_actions=(
     'xcinfo:show your current actived xcode information.'
     'env:show system and current actived xcode information.'
     'depends:show depends of the given package.'
-    'pack:pack all the installed files of the given installed package to a archive file.'
+    'pack:pack all the installed files of the given installed package to a single archive file.'
     'logs:show logs of the given installed package.'
     'gen-url-transform-sample:generate url-transform sample.'
 )
