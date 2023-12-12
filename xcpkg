@@ -7571,11 +7571,15 @@ ${COLOR_GREEN}xcpkg search <REGULAR-EXPRESSION-PATTERN>${COLOR_OFF}
     search all available packages whose name matches the given regular expression pattern.
 
 
-${COLOR_GREEN}xcpkg info <PACKAGE-NAME> [--json] [--yaml] [<KEY>]${COLOR_OFF}
-    show information of the given package.
-
-${COLOR_GREEN}xcpkg info @all [--json] [--yaml] [--shell]${COLOR_OFF}
+${COLOR_GREEN}xcpkg info @all [--json | --yaml | --shell]${COLOR_OFF}
     show information of all the available packages.
+
+${COLOR_GREEN}xcpkg info <PACKAGE-NAME> [--json | --yaml | <KEY>]${COLOR_OFF}
+    show information of the given available package.
+
+${COLOR_GREEN}xcpkg info <PACKAGE-SPEC> [--json | --yaml | <KEY>]${COLOR_OFF}
+    show information of the given installed package.
+
 
 ${COLOR_GREEN}xcpkg depends <PACKAGE-NAME> [-t <dot|box|svg|png>] [-o <OUTPUT-PATH>]${COLOR_OFF}
     show the packages that are depended by the given package.

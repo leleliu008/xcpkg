@@ -326,7 +326,7 @@ all relevant directories and files are located under `~/.xcpkg` directory.
 
     ```bash
     xcpkg list curl
-    xcpkg list iPhoneOS-12.0-arm64/curl -L 3
+    xcpkg list iPhoneOS-12.0-arm64/curl
     ```
 
 - **list installed files of the given installed package in a tree-like format**
@@ -418,7 +418,7 @@ all relevant directories and files are located under `~/.xcpkg` directory.
 
 - **XCPKG_DEFAULT_TARGET**
 
-    some commands need `<PACKAGE-SPEC>` to be specified. `<PACKAGE-SPEC>` has the form `<TARGET>/<PACKAGE-NAME>`. To simplify the usage, `xcpkg` allows omitting `<TARGET>/`. If `<TARGET>/` is omitted, this environment variable will be used, if this environment variable is not set, then will retrive your current running system's information.
+    some commands need `<PACKAGE-SPEC>` to be specified. `<PACKAGE-SPEC>` has the form `<TARGET>/<PACKAGE-NAME>`. To simplify the usage, `xcpkg` allows omitting `<TARGET>/`. If `<TARGET>/` is omitted, this environment variable will be used, if this environment variable is not set, then will retrive your current running os's information.
 
     `<TARGET>` has the form `<TARGET-PLATFORM-NAME>-<TARGET-PLATFORM-VERSION>-<TARGET-PLATFORM-ARCH>`
 
@@ -513,16 +513,18 @@ a uppm formula's file content only has one level mapping and shall has following
 |-|-|
 |`TIMESTAMP_UNIX`|the unix timestamp of this action.|
 |||
-|`NATIVE_OS_KIND`|current running machine os kind.|
-|`NATIVE_OS_TYPE`|current running machine os type.|
-|`NATIVE_OS_NAME`|current running machine os name.|
-|`NATIVE_OS_VERS`|current running machine os version.|
-|`NATIVE_OS_ARCH`|current running machine os arch.|
-|`NATIVE_OS_NCPU`|current running machine os's cpu core count.|
+|`NATIVE_OS_KIND`|current running os kind. value shall be `darwin`|
+|`NATIVE_OS_TYPE`|current running os type. value shall be `macos`|
+|`NATIVE_OS_NAME`|current running os name. value shall be `MacOSX`|
+|`NATIVE_OS_VERS`|current running os version.|
+|`NATIVE_OS_ARCH`|current running os arch. value might be any one of `x86_64`, `arm64`, etc|
+|`NATIVE_OS_NCPU`|current running os's cpu core count.|
+|`NATIVE_OS_EUID`|current running os's effective user ID.|
+|`NATIVE_OS_EGID`|current running os's effective group ID.|
 |||
-|`TARGET_PLATFORM_NAME`|target platform name that is built for.|
+|`TARGET_PLATFORM_NAME`|target platform name that is built for. value shall be any one of `AppleTVOS` `AppleTVSimulator` `DriverKit` `MacOSX` `WatchOS` `WatchSimulator` `iPhoneOS` `iPhoneSimulator`|
 |`TARGET_PLATFORM_VERS`|target platform version that is built with.|
-|`TARGET_PLATFORM_ARCH`|target platform arch that is built for.|
+|`TARGET_PLATFORM_ARCH`|target platform arch that is built for. value might be any one of `x86_64`, `arm64`, etc|
 |||
 |`CROSS_COMPILING`|value shall be 0 or 1. indicates whether is cross-compiling.|
 |||

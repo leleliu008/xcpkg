@@ -5,15 +5,19 @@ _xcpkg_actions=(
     '--help:show help of this command.'
     '-V:show version of this command.'
     '--version:show version of this command.'
-    'search:search packages can be installed.'
+    'gen-url-transform-sample:generate url-transform sample.'
+    'setup:install essential tools.'
+    'env:show system and current actived xcode information.'
+    'sysinfo:show your system information.'
+    'xcinfo:show your current actived xcode information.'
+    'integrate:integrate zsh completions.'
+    'cleanup:delete the unused cached files.'
     'ls-available:list the available packages.'
     'ls-installed:list the installed packages.'
     'ls-outdated:list the installed packages which can be upgraded.'
     'is-available:is the given package available.'
     'is-installed:is the given package installed.'
     'is-outdated:is the given package outdated.'
-    'info:show infomation of the given package or all available packages.'
-    'formula-edit:edit the formula of the given package.'
     'formula-repo-init:create a new empty formula repository.'
     'formula-repo-add:create a new empty formula repository then sync with server.'
     'formula-repo-del:delete the given formula repository from your local cache.'
@@ -21,24 +25,20 @@ _xcpkg_actions=(
     'formula-repo-conf:change the config of the given formula repository.'
     'formula-repo-info:show infomation of the given formula repository.'
     'formula-repo-list:list all available formula repositories.'
+    'search:search packages can be installed.'
+    'info:show infomation of the given package or all available packages.'
+    'depends:show depends of the given package.'
+    'fetch:download formula resources of the given package to the cache.'
     'install:install packages.'
     'reinstall:reinstall packages.'
     'uninstall:uninstall packages.'
-    'cleanup:delete the unused cached files.'
     'update:update the formula repository.'
     'upgrade:upgrade the outdated packages.'
     'upgrade-self:upgrade this software.'
-    'fetch:download formula resources of the given package to the cache.'
-    'integrate:integrate zsh completions.'
-    'sysinfo:show your system information.'
-    'xcinfo:show your current actived xcode information.'
-    'env:show system and current actived xcode information.'
-    'depends:show depends of the given package.'
     'list:list installed files of the given installed package.'
     'tree:list installed files of the given installed package in a tree-like format.'
     'logs:show logs of the given installed package.'
     'pack:pack all the installed files of the given installed package to a single archive file.'
-    'gen-url-transform-sample:generate url-transform sample.'
 )
 
 function _xcpkg_available_packages() {
@@ -77,11 +77,6 @@ function _xcpkg() {
                     _arguments \
                         ':platform:($(xcpkg ls-target-platform-names))' \
                         ':bit:(64bit 32bit all)'
-                    ;;
-                formula-edit)
-                    _arguments \
-                        '1:package-name:_xcpkg_available_packages' \
-                        '--editor=-[specify editor]'
                     ;;
                 formula-repo-add)
                     _arguments \
