@@ -7048,7 +7048,7 @@ __setup_uppm() {
 
     run tar xvf "$UPPM_LATEST_RELEASE_ARCHIVE_FILENAME" --strip-components=1 --no-same-owner
 
-    run bin/uppm .
+    run mv bin/uppm .
 
     ##################################################################################
 
