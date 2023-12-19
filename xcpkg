@@ -7048,6 +7048,8 @@ __setup_uppm() {
 
     run tar xvf "$UPPM_LATEST_RELEASE_ARCHIVE_FILENAME" --strip-components=1 --no-same-owner
 
+    run bin/uppm .
+
     ##################################################################################
 
     # https://curl.se/docs/caextract.html
@@ -7057,17 +7059,17 @@ __setup_uppm() {
 
     export SSL_CERT_FILE="$PWD/cacert.pem"
 
-    run bin/uppm env
-    run bin/uppm update
+    run ./uppm env
+    run ./uppm update
 
     unset UPPM_PACKAGE_EXEFIND_PATH
     unset UPPM_PACKAGE_ACLOCAL_PATH
 
     for item in bash coreutils findutils easyutils gawk gsed grep bsdtar jq yq git curl tree
     do
-        run bin/uppm install "$item"
+        run ./uppm install "$item"
 
-        UPPM_PACKAGE_INSTALLED_DIR="$(bin/uppm info "$item" installed-dir)"
+        UPPM_PACKAGE_INSTALLED_DIR="$(./uppm info "$item" installed-dir)"
 
         if [ -d "$UPPM_PACKAGE_INSTALLED_DIR/bin" ] ; then
             UPPM_PACKAGE_EXEFIND_PATH="$UPPM_PACKAGE_EXEFIND_PATH:$UPPM_PACKAGE_INSTALLED_DIR/bin"
@@ -7713,7 +7715,7 @@ main() {
 
     XCPKG="$CURRENT_SCRIPT_FILEPATH"
 
-    XCPKG_VERSION=0.15.9
+    XCPKG_VERSION=0.15.10
 
     XCPKG_OFFICAL_FORMULA_REPO_URL='https://github.com/leleliu008/xcpkg-formula-repository-offical-core'
 
@@ -7739,9 +7741,8 @@ main() {
     XCPKG_DOWNLOADS_DIR="$XCPKG_HOME/downloads"
 
     XCPKG_CORE_DIR="$XCPKG_HOME/core"
-    XCPKG_CORE_BIN_DIR="$XCPKG_CORE_DIR/bin"
 
-    UPPM="$XCPKG_CORE_BIN_DIR/uppm"
+    UPPM="$XCPKG_CORE_DIR/uppm"
 
     NATIVE_PACKAGE_INSTALLED_ROOT="$XCPKG_HOME/native"
 
@@ -7836,13 +7837,15 @@ EOF
     #########################################################################################
 
     # https://www.gnu.org/software/automake/manual/html_node/Macro-Search-Path.html
-    if [ -z "$ACLOCAL_PATH" ] ; then
+    if [ -z  "$ACLOCAL_PATH" ] ; then
         export ACLOCAL_PATH="$XCPKG_CORE_DIR/share/aclocal"
     else
         export ACLOCAL_PATH="$XCPKG_CORE_DIR/share/aclocal:$ACLOCAL_PATH"
     fi
 
-    bppend_to_PATH "$XCPKG_CORE_BIN_DIR"
+    if [ -d         "$XCPKG_CORE_DIR/bin" ] ; then
+        export PATH="$XCPKG_CORE_DIR/bin:$PATH"
+    fi
 
     #########################################################################################
 
