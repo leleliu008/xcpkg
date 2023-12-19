@@ -133,7 +133,7 @@ sed_in_place() {
 
         export SED
 
-        "$XCPKG_CORE_DIR/libexec/sed-in-place" "$@"
+        "$XCPKG_CORE_DIR/sed-in-place" "$@"
     fi
 }
 
@@ -189,25 +189,32 @@ version_match() {
 ##############################################################################
 # {{{ wfetch
 
-# wfetch <URL> [--uri=URL-MIRROR] [--silent] [--sha256=SHA256] [--buffer-dir=DIR] <--output-filepath=PATH>
-# wfetch <URL> [--uri=URL-MIRROR] [--silent] [--sha256=SHA256] [--buffer-dir=DIR] <--output-dir=DIR> <--output-filename=NAME>
-# wfetch <URL> [--uri=URL-MIRROR] [--silent] [--sha256=SHA256] [--buffer-dir=DIR] <--output-dir=DIR> [--output-filename=NAME]
-# wfetch <URL> [--uri=URL-MIRROR] [--silent] [--sha256=SHA256] [--buffer-dir=DIR] [--output-dir=DIR] <--output-filename=NAME>
-
+# wfetch <URL> [--uri=<URL-MIRROR>] [--sha256=<SHA256>] [-o <OUTPUT-PATH>] [-q]
+#
+# If -o <OUTPUT-PATH> option is specified, the result will be written to file, otherwize, the result will be written to stdout.
+#
+# If <OUTPUT-PATH> is . .. ./ ../ or ends with slash(/), then it will be treated as a directory, otherwize, it will be treated as a filepath.
+#
+# If <OUTPUT-PATH> is treated as a directory, then it will be expanded to <OUTPUT-PATH>/$(basename <URL>)
+#
 # influential environment variable:
 # XCPKG_URL_TRANSFORM
 wfetch() {
+    unset FETCH_UTS
+    unset FETCH_SHA
+
     unset FETCH_URL
     unset FETCH_URI
 
-    unset FETCH_SHA256_EXPECTED
-
-    unset FETCH_BUFFER_DIR
-    unset FETCH_BUFFER_FILEPATH
+    unset FETCH_PATH
 
     unset FETCH_OUTPUT_DIR
-    unset FETCH_OUTPUT_FILENAME
     unset FETCH_OUTPUT_FILEPATH
+    unset FETCH_OUTPUT_FILENAME
+
+    unset FETCH_BUFFER_FILEPATH
+
+    unset FETCH_SHA256_EXPECTED
 
     unset FETCH_SILENT
 
@@ -224,86 +231,60 @@ wfetch() {
     while [ -n "$1" ]
     do
         case $1 in
-            --silent)
-                FETCH_SILENT=1
-                RUN_SILENT=1
+            --uri=*)
+                FETCH_URI="${1#*=}"
                 ;;
             --sha256=*)
                 FETCH_SHA256_EXPECTED="${1#*=}"
                 ;;
-            --uri=*)
-                FETCH_URI="${1#*=}"
-                if [ -n "$FETCH_URI" ] && [ -n "$XCPKG_URL_TRANSFORM" ] ; then
-                    FETCH_URI="$("$XCPKG_URL_TRANSFORM" "$FETCH_URI")" || return 1
+            -o) shift
+                if [ -z "$1" ] ; then
+                    abort 1 "wfetch <URL> -o <PATH> , <PATH> must be non-empty."
+                else
+                    FETCH_PATH="$1"
                 fi
                 ;;
-            --buffer-dir=*)
-                FETCH_BUFFER_DIR="${1#*=}"
-                if [ -z "$FETCH_BUFFER_DIR" ] ; then
-                    abort 1 "wfetch <URL> --buffer-dir=<DIR> , <DIR> must be non-empty."
-                fi
+            -q)
+                FETCH_SILENT=1
+                RUN_SILENT=1
                 ;;
-            --output-dir=*)
-                FETCH_OUTPUT_DIR="${1#*=}"
-                if [ -z "$FETCH_OUTPUT_DIR" ] ; then
-                    abort 1 "wfetch <URL> --output-dir=<DIR> , <DIR> must be non-empty."
-                fi
-                ;;
-            --output-filename=*)
-                FETCH_OUTPUT_FILENAME="${1#*=}"
-                if [ -z "$FETCH_OUTPUT_FILENAME" ] ; then
-                    abort 1 "wfetch <URL> --output-filename=<NAME> , <NAME> must be non-empty."
-                fi
-                ;;
-            --output-filepath=*)
-                FETCH_OUTPUT_FILEPATH="${1#*=}"
-                if [ -z "$FETCH_OUTPUT_FILEPATH" ] ; then
-                    abort 1 "wfetch <URL> --output-filepath=<FILEPATH> , <FILEPATH> must be non-empty."
-                fi
-                ;;
-            *)  abort 1 "wfetch <URL> [OPTION]..., unrecognized option: $1
-
-    wfetch command usage:
-
-    wfetch <URL> [--url-mirror=URL2] [--silent] [--sha256=SHA256] [--buffer-dir=DIR] <--output-filepath=PATH>
-    wfetch <URL> [--url-mirror=URL2] [--silent] [--sha256=SHA256] [--buffer-dir=DIR] <--output-dir=DIR> <--output-filename=NAME>
-    wfetch <URL> [--url-mirror=URL2] [--silent] [--sha256=SHA256] [--buffer-dir=DIR] <--output-dir=DIR> [--output-filename=NAME]
-    wfetch <URL> [--url-mirror=URL2] [--silent] [--sha256=SHA256] [--buffer-dir=DIR] [--output-dir=DIR] <--output-filename=NAME>"
+            *)  abort 1 "wfetch <URL> [--uri=<URL-MIRROR>] [--sha256=<SHA256>] [-o <PATH>] [-q] , unrecognized option: $1"
         esac
         shift
     done
 
     if [ -z "$FETCH_URI" ] ; then
         # remove query params
-        FETCH_URL__="${FETCH_URL%%'?'*}"
-
-        FETCH_URI="https://fossies.org/linux/misc/${FETCH_URL__##*/}"
-    fi
-
-    if [ -z "$FETCH_OUTPUT_FILEPATH" ] ; then
-        if [ -z "$FETCH_OUTPUT_DIR" ] && [ -z "$FETCH_OUTPUT_FILENAME" ] ; then
-            FETCH_BUFFER_FILEPATH='-'
-            FETCH_OUTPUT_FILEPATH='-'
-        else
-            if [ -z "$FETCH_OUTPUT_DIR" ] ; then
-                FETCH_OUTPUT_DIR="$PWD"
-            fi
-
-            if [ -z "$FETCH_OUTPUT_FILENAME" ] ; then
-                FETCH_OUTPUT_FILENAME=$(basename "$FETCH_URL")
-            fi
-
-            FETCH_OUTPUT_FILEPATH="$FETCH_OUTPUT_DIR/$FETCH_OUTPUT_FILENAME"
-        fi
-    elif [ "$FETCH_OUTPUT_FILEPATH" = '-' ] ; then
-        unset FETCH_OUTPUT_DIR
-        unset FETCH_OUTPUT_FILENAME
+        FETCH_URI="${FETCH_URL%%'?'*}"
+        FETCH_URI="https://fossies.org/linux/misc/${FETCH_URI##*/}"
     else
-        FETCH_OUTPUT_DIR="$(dirname "$FETCH_OUTPUT_FILEPATH")"
-        FETCH_OUTPUT_FILENAME="$(basename "$FETCH_OUTPUT_FILEPATH")"
+        if [ -n "$XCPKG_URL_TRANSFORM" ] ; then
+            FETCH_URI="$("$XCPKG_URL_TRANSFORM" "$FETCH_URI")" || return 1
+        fi
     fi
 
-    if [ "$FETCH_OUTPUT_FILEPATH" != '-' ] ; then
+    case $FETCH_PATH in
+        '')
+            FETCH_BUFFER_FILEPATH='-'
+            ;;
+        .)
+            FETCH_OUTPUT_DIR='.'
+            FETCH_OUTPUT_FILEPATH="$FETCH_OUTPUT_DIR/${FETCH_URL##*/}"
+            ;;
+        ..)
+            FETCH_OUTPUT_DIR='..'
+            FETCH_OUTPUT_FILEPATH="$FETCH_OUTPUT_DIR/${FETCH_URL##*/}"
+            ;;
+        */)
+            FETCH_OUTPUT_DIR="${FETCH_PATH%/}"
+            FETCH_OUTPUT_FILEPATH="$FETCH_OUTPUT_DIR/${FETCH_URL##*/}"
+            ;;
+        *)
+            FETCH_OUTPUT_DIR="$(dirname "$FETCH_PATH")"
+            FETCH_OUTPUT_FILEPATH="$FETCH_PATH"
+    esac
+
+    if [ -n "$FETCH_OUTPUT_FILEPATH" ] ; then
         if [ -f "$FETCH_OUTPUT_FILEPATH" ] ; then
             if [ -n "$FETCH_SHA256_EXPECTED" ] ; then
                 if [ "$(sha256sum "$FETCH_OUTPUT_FILEPATH" | cut -d ' ' -f1)" = "$FETCH_SHA256_EXPECTED" ] ; then
@@ -313,13 +294,11 @@ wfetch() {
             fi
         fi
 
-        if [ -z "$FETCH_BUFFER_DIR" ] ; then
-            FETCH_BUFFER_DIR="$FETCH_OUTPUT_DIR"
-        fi
+        FETCH_UTS="$(date +%s)"
 
-        if [ -z "$FETCH_BUFFER_FILEPATH" ] ; then
-            FETCH_BUFFER_FILEPATH="$FETCH_BUFFER_DIR/$FETCH_OUTPUT_FILENAME"
-        fi
+        FETCH_SHA="$(printf '%s\n' "$FETCH_URL:$$:$FETCH_UTS" | sha256sum | cut -d ' ' -f1)"
+
+        FETCH_BUFFER_FILEPATH="$FETCH_OUTPUT_DIR/$FETCH_SHA.tmp"
     fi
 
     for FETCH_TOOL in curl wget http lynx aria2c axel
@@ -335,8 +314,10 @@ wfetch() {
         abort 1 "no fetch tool found, please install one of curl wget http lynx aria2c axel, then try again."
     fi
 
-    if [ !          -d "$FETCH_BUFFER_DIR" ] ; then
-        run install -d "$FETCH_BUFFER_DIR" || return 1
+    if [                -n "$FETCH_OUTPUT_DIR" ] ; then
+        if [ !          -d "$FETCH_OUTPUT_DIR" ] ; then
+            run install -d "$FETCH_OUTPUT_DIR" || return 1
+        fi
     fi
 
     case $FETCH_TOOL in
@@ -367,8 +348,8 @@ wfetch() {
             run "lynx -source '$FETCH_URI' > '$FETCH_BUFFER_FILEPATH'"
             ;;
         aria2c)
-            run "aria2c -d '$FETCH_BUFFER_DIR' -o '$FETCH_OUTPUT_FILENAME' '$FETCH_URL'" ||
-            run "aria2c -d '$FETCH_BUFFER_DIR' -o '$FETCH_OUTPUT_FILENAME' '$FETCH_URI'"
+            run "aria2c -d '$FETCH_OUTPUT_DIR' -o '$FETCH_OUTPUT_FILENAME' '$FETCH_URL'" ||
+            run "aria2c -d '$FETCH_OUTPUT_DIR' -o '$FETCH_OUTPUT_FILENAME' '$FETCH_URI'"
             ;;
         axel)
             run "axel -o '$FETCH_BUFFER_FILEPATH' '$FETCH_URL'" ||
@@ -380,7 +361,7 @@ wfetch() {
 
     [ $? -eq 0 ] || return 1
 
-    if [ "$FETCH_OUTPUT_FILEPATH" != '-' ] ; then
+    if [ -n "$FETCH_OUTPUT_FILEPATH" ] ; then
         if [ -n "$FETCH_SHA256_EXPECTED" ] ; then
             FETCH_SHA256_ACTUAL="$(sha256sum "$FETCH_BUFFER_FILEPATH" | cut -d ' ' -f1)"
 
@@ -389,13 +370,7 @@ wfetch() {
             fi
         fi
 
-        if [ "$FETCH_BUFFER_DIR" != "$FETCH_OUTPUT_DIR" ] ; then
-            if [ !          -d "$FETCH_OUTPUT_DIR" ] ; then
-                run install -d "$FETCH_OUTPUT_DIR" || return 1
-            fi
-
-            run mv "$FETCH_BUFFER_FILEPATH" "$FETCH_OUTPUT_DIR/"
-        fi
+        run mv "$FETCH_BUFFER_FILEPATH" "$FETCH_OUTPUT_FILEPATH"
     fi
 }
 
@@ -2445,15 +2420,15 @@ __fetch_resources_of_the_given_package() {
             run git checkout --progress --force -B "$GIT_BRANCH_NAME" "refs/remotes/origin/$GIT_BRANCH_NAME"
             run git submodule update --init
         else
-            wfetch "$PACKAGE_SRC_URL" --sha256="$PACKAGE_SRC_SHA" --buffer-dir="$SESSION_DIR" --output-filepath="$PACKAGE_SRC_FILEPATH" --uri="$PACKAGE_SRC_URI"
+            wfetch "$PACKAGE_SRC_URL" --uri="$PACKAGE_SRC_URI" --sha256="$PACKAGE_SRC_SHA" -o "$PACKAGE_SRC_FILEPATH"
         fi
 
         if [ -n    "$PACKAGE_FIX_URL" ] ; then
-            wfetch "$PACKAGE_FIX_URL" --sha256="$PACKAGE_FIX_SHA" --buffer-dir="$SESSION_DIR" --output-filepath="$PACKAGE_FIX_FILEPATH" --uri="$PACKAGE_FIX_URI"
+            wfetch "$PACKAGE_FIX_URL" --uri="$PACKAGE_FIX_URI" --sha256="$PACKAGE_FIX_SHA" -o "$PACKAGE_FIX_FILEPATH"
         fi
 
         if [ -n    "$PACKAGE_RES_URL" ] ; then
-            wfetch "$PACKAGE_RES_URL" --sha256="$PACKAGE_RES_SHA" --buffer-dir="$SESSION_DIR" --output-filepath="$PACKAGE_RES_FILEPATH" --uri="$PACKAGE_RES_URI"
+            wfetch "$PACKAGE_RES_URL" --uri="$PACKAGE_RES_URI" --sha256="$PACKAGE_RES_SHA" -o "$PACKAGE_RES_FILEPATH"
         fi
 
         if [    -d "$SESSION_DIR" ] ; then
@@ -3012,6 +2987,7 @@ EOF
 
     NATIVE_PACKAGE_SRC_FILETYPE="$(filetype_from_url "$NATIVE_PACKAGE_SRC_URL")"
     NATIVE_PACKAGE_SRC_FILENAME="$NATIVE_PACKAGE_SRC_SHA$NATIVE_PACKAGE_SRC_FILETYPE"
+    NATIVE_PACKAGE_SRC_FILEPATH="$XCPKG_DOWNLOADS_DIR/$NATIVE_PACKAGE_SRC_FILENAME"
 
     NATIVE_PACKAGE_WORKING_DIR="$PACKAGE_WORKING_DIR/native/$1"
 
@@ -3092,7 +3068,7 @@ EOF
     run install -d "$NATIVE_PACKAGE_WORKING_DIR/src"
     run cd         "$NATIVE_PACKAGE_WORKING_DIR"
 
-    wfetch "$NATIVE_PACKAGE_SRC_URL" --sha256="$NATIVE_PACKAGE_SRC_SHA" --buffer-dir="$NATIVE_PACKAGE_WORKING_DIR" --output-dir="$XCPKG_DOWNLOADS_DIR" --output-filename="$NATIVE_PACKAGE_SRC_FILENAME"
+    wfetch "$NATIVE_PACKAGE_SRC_URL" --sha256="$NATIVE_PACKAGE_SRC_SHA" -o "$NATIVE_PACKAGE_SRC_FILEPATH"
 
     run bsdtar xvf "$XCPKG_DOWNLOADS_DIR/$NATIVE_PACKAGE_SRC_FILENAME" --strip-components=1 --no-same-owner -C src
 
@@ -3317,9 +3293,9 @@ EOF
     PROXIED_CXX_FOR_BUILD="$CXX_FOR_BUILD"
     PROXIED_OBJC_FOR_BUILD="$OBJC_FOR_BUILD"
 
-    CC_FOR_BUILD="$XCPKG_CORE_LIBEXEC_DIR/wrapper-native-cc"
-    CXX_FOR_BUILD="$XCPKG_CORE_LIBEXEC_DIR/wrapper-native-c++"
-    OBJC_FOR_BUILD="$XCPKG_CORE_LIBEXEC_DIR/wrapper-native-objc"
+    CC_FOR_BUILD="$XCPKG_CORE_DIR/wrapper-native-cc"
+    CXX_FOR_BUILD="$XCPKG_CORE_DIR/wrapper-native-c++"
+    OBJC_FOR_BUILD="$XCPKG_CORE_DIR/wrapper-native-objc"
     CPP_FOR_BUILD="$CC_FOR_BUILD -E"
 
     for TOOL in PROXIED_CC PROXIED_OBJC PROXIED_CXX CC OBJC CXX CPP AS AR RANLIB LD NM STRIP SIZE STRINGS OBJDUMP SYSROOT
@@ -3766,7 +3742,7 @@ $DOT_CONTENT
 
             RUST_INIT_SH_FILEPATH="$PACKAGE_WORKING_DIR/rustup-init.sh"
 
-            wfetch 'https://sh.rustup.rs' --output-filename=rustup-init.sh
+            wfetch 'https://sh.rustup.rs' -o rustup-init.sh
 
             run bash "$RUST_INIT_SH_FILEPATH" -y
 
@@ -3959,15 +3935,15 @@ $DOT_CONTENT
             run git submodule update --init
         fi
     else
-        wfetch "$PACKAGE_SRC_URL" --sha256="$PACKAGE_SRC_SHA" --buffer-dir="$PACKAGE_WORKING_DIR" --output-filepath="$PACKAGE_SRC_FILEPATH" --uri="$PACKAGE_SRC_URI"
+        wfetch "$PACKAGE_SRC_URL" --uri="$PACKAGE_SRC_URI" --sha256="$PACKAGE_SRC_SHA" -o "$PACKAGE_SRC_FILEPATH"
     fi
 
     if [ -n    "$PACKAGE_FIX_URL" ] ; then
-        wfetch "$PACKAGE_FIX_URL" --sha256="$PACKAGE_FIX_SHA" --buffer-dir="$PACKAGE_WORKING_DIR" --output-filepath="$PACKAGE_FIX_FILEPATH" --uri="$PACKAGE_FIX_URI"
+        wfetch "$PACKAGE_FIX_URL" --uri="$PACKAGE_FIX_URI" --sha256="$PACKAGE_FIX_SHA" -o "$PACKAGE_FIX_FILEPATH"
     fi
 
     if [ -n    "$PACKAGE_RES_URL" ] ; then
-        wfetch "$PACKAGE_RES_URL" --sha256="$PACKAGE_RES_SHA" --buffer-dir="$PACKAGE_WORKING_DIR" --output-filepath="$PACKAGE_RES_FILEPATH" --uri="$PACKAGE_RES_URI"
+        wfetch "$PACKAGE_RES_URL" --uri="$PACKAGE_RES_URI" --sha256="$PACKAGE_RES_SHA" -o "$PACKAGE_RES_FILEPATH"
     fi
 
     #########################################################################################
@@ -4060,7 +4036,7 @@ $DOT_CONTENT
         do
             FILEPATH="$SESSION_DIR/$FILENAME"
 
-            wfetch "https://git.savannah.gnu.org/cgit/config.git/plain/$FILENAME" --output-filepath="$FILEPATH"
+            wfetch "https://git.savannah.gnu.org/cgit/config.git/plain/$FILENAME" -o "$FILEPATH"
 
             run chmod a+x "$FILEPATH"
 
@@ -4189,9 +4165,9 @@ $PACKAGE_DONATIVE_ACTIONS
     PROXIED_CXX="$CXX"
     PROXIED_OBJC="$OBJC"
 
-    CC="$XCPKG_CORE_LIBEXEC_DIR/wrapper-target-cc"
-    CXX="$XCPKG_CORE_LIBEXEC_DIR/wrapper-target-c++"
-    OBJC="$XCPKG_CORE_LIBEXEC_DIR/wrapper-target-objc"
+    CC="$XCPKG_CORE_DIR/wrapper-target-cc"
+    CXX="$XCPKG_CORE_DIR/wrapper-target-c++"
+    OBJC="$XCPKG_CORE_DIR/wrapper-target-objc"
     CPP="$CC -E"
 
     for TOOL in PROXIED_CC PROXIED_OBJC PROXIED_CXX CC OBJC CXX CPP AS AR RANLIB LD NM STRIP SIZE STRINGS OBJDUMP SYSROOT
@@ -6849,7 +6825,7 @@ __uninstall_the_given_packages() {
     run install -d "$SESSION_DIR"
     run cd         "$SESSION_DIR"
 
-    wfetch "$1" --output-filename=self
+    wfetch "$1" -o self
 
     run chmod 755 self
 
@@ -6922,7 +6898,7 @@ __uninstall_the_given_packages() {
     run install -d "$SESSION_DIR"
     run cd         "$SESSION_DIR"
 
-    wfetch "$ZSH_COMPLETIONS_SCRIPT_URL" --output-filename=_xcpkg
+    wfetch "$ZSH_COMPLETIONS_SCRIPT_URL" -o _xcpkg
 
     run chmod 644 _xcpkg
 
@@ -7036,7 +7012,7 @@ __setup_uppm() {
 
     ##################################################################################
 
-    wfetch 'https://raw.githubusercontent.com/leleliu008/uppm/master/latest-release' --output-filename=uppm-latest-release
+    wfetch 'https://raw.githubusercontent.com/leleliu008/uppm/master/latest-release' -o uppm-latest-release
 
     ##################################################################################
 
@@ -7057,18 +7033,18 @@ __setup_uppm() {
         UPPM_LATEST_RELEASE_ARCHIVE_FILENAME="uppm-${UPPM_LATEST_RELEASE_VERSION}-${NATIVE_OS_KIND}-${NATIVE_OS_ARCH}.tar.xz"
     fi
 
-    wfetch "https://github.com/leleliu008/uppm/releases/download/${UPPM_LATEST_RELEASE_TAGNAME}/${UPPM_LATEST_RELEASE_ARCHIVE_FILENAME}" --output-filename="$UPPM_LATEST_RELEASE_ARCHIVE_FILENAME"
+    wfetch "https://github.com/leleliu008/uppm/releases/download/${UPPM_LATEST_RELEASE_TAGNAME}/${UPPM_LATEST_RELEASE_ARCHIVE_FILENAME}" -o "$UPPM_LATEST_RELEASE_ARCHIVE_FILENAME"
 
     run tar xvf "$UPPM_LATEST_RELEASE_ARCHIVE_FILENAME" --strip-components=1 --no-same-owner
 
     ##################################################################################
 
     # https://curl.se/docs/caextract.html
-    wfetch 'https://curl.se/ca/cacert.pem' --output-dir=etc
+    wfetch 'https://curl.se/ca/cacert.pem' -o .
 
     ##################################################################################
 
-    export SSL_CERT_FILE="$PWD/etc/cacert.pem"
+    export SSL_CERT_FILE="$PWD/cacert.pem"
 
     run bin/uppm env
     run bin/uppm update
@@ -7098,7 +7074,7 @@ __setup_uppm() {
     UPPM_PACKAGE_EXEFIND_PATH="${UPPM_PACKAGE_EXEFIND_PATH#':'}"
     UPPM_PACKAGE_ACLOCAL_PATH="${UPPM_PACKAGE_ACLOCAL_PATH#':'}"
 
-    cat > etc/profile <<EOF
+    cat > profile <<EOF
 export ACLOCAL_PATH="$UPPM_PACKAGE_ACLOCAL_PATH:\$ACLOCAL_PATH"
 export PATH="$UPPM_PACKAGE_EXEFIND_PATH:\$PATH"
 
@@ -7403,15 +7379,13 @@ EOF
 
     ##################################################################################
 
-    run install -d libexec
+    run cc -std=c99 -o wrapper-native-cc   wrapper-native-cc.c
+    run cc -std=c99 -o wrapper-native-c++  wrapper-native-c++.c
+    run cc -std=c99 -o wrapper-native-objc wrapper-native-objc.c
 
-    run cc -std=c99 -o libexec/wrapper-native-cc   wrapper-native-cc.c
-    run cc -std=c99 -o libexec/wrapper-native-c++  wrapper-native-c++.c
-    run cc -std=c99 -o libexec/wrapper-native-objc wrapper-native-objc.c
-
-    run cc -std=c99 -o libexec/wrapper-target-cc   wrapper-target-cc.c
-    run cc -std=c99 -o libexec/wrapper-target-c++  wrapper-target-c++.c
-    run cc -std=c99 -o libexec/wrapper-target-objc wrapper-target-objc.c
+    run cc -std=c99 -o wrapper-target-cc   wrapper-target-cc.c
+    run cc -std=c99 -o wrapper-target-c++  wrapper-target-c++.c
+    run cc -std=c99 -o wrapper-target-objc wrapper-target-objc.c
 
     ##################################################################################
 
@@ -7452,7 +7426,7 @@ int main(int argc, char* argv[]) {
 }
 EOF
 
-    run cc -std=c99 -o libexec/sed-in-place sed-in-place.c
+    run cc -std=c99 -o sed-in-place sed-in-place.c
 
     #################################################################################
 
@@ -7584,11 +7558,17 @@ ${COLOR_GREEN}xcpkg info <PACKAGE-SPEC> [--json | --yaml | <KEY>]${COLOR_OFF}
 ${COLOR_GREEN}xcpkg depends <PACKAGE-NAME> [-t <dot|box|svg|png>] [-o <OUTPUT-PATH>]${COLOR_OFF}
     show the packages that are depended by the given package.
 
-    <OUTPUT-PATH> can be either the filepath or directory where the file will be written to. If <OUTPUT-PATH> is an existing directory or ends with slash, then it will be treated as a directory, otherwize, it will be treated as a filepath.
+    <OUTPUT-TYPE> must be one of dot box svg png
 
-    If -t <OUTPUT-TYPE> option is not given but -o <OUTPUT-PATH> option is given, if <OUTPUT-PATH> is treated as a directory, then <OUTPU-TYPE> will be box and <OUTPUT-PATH> will be expanded to <OUTPUT-PATH>/<PACKAGE-NAME>-dependencies.box
+    <OUTPUT-PATH> can be either the filepath or directory.
 
-    If -t <OUTPUT-TYPE> option is not given but -o <OUTPUT-PATH> option is given, if <OUTPUT-PATH> is treated as a filepath, then <OUTPUT-PATH> must ends with one of .dot|.box|.svg|.png
+    If -o <OUTPUT-PATH> option is specified, the result will be written to file, otherwize, the result will be written to stdout.
+
+    If <OUTPUT-PATH> is . .. ./ ../ or ends with slash(/), then it will be treated as a directory, otherwize, it will be treated as a filepath.
+
+    If <OUTPUT-PATH> is treated as a directory, then it will be expanded to <OUTPUT-PATH>/<PACKAGE-NAME>-dependencies.<OUTPUT-TYPE>
+
+    If <OUTPUT-PATH> is treated as a filepath, and if -t <OUTPUT-TYPE> option is not given, if <OUTPUT-PATH> ends with one of .dot|.box|.svg|.png, <OUTPUT-TYPE> will be the <OUTPUT-PATH> suffix, otherwize, <OUTPUT-TYPE> will be box.
 
     If -t <OUTPUT-TYPE> and -o <OUTPUT-PATH> options both are not given, <OUTPU-TYPE> will be box and output to stdout.
 
@@ -7686,7 +7666,7 @@ ${COLOR_GREEN}xcpkg pack <PACKAGE-SPEC> [--keep-session-dir] [-t <OUTPUT-TYPE>] 
 
     <OUTPUT-PATH> can be either the filepath or directory which indicates where the packed archive file would be written to.
 
-    If <OUTPUT-PATH> is an existing directory or ends with slash, then it would be treated as a directory, otherwize, it would be treated as a filepath.
+    If <OUTPUT-PATH> is . .. ./ ../ or ends with slash(/), then it would be treated as a directory, otherwize, it would be treated as a filepath.
 
     If <OUTPUT-PATH> is treated as a filepath, then it must ends with one of .tar.gz .tar.xz .tar.lz .tar.bz2 .tgz .txz .tlz .tbz2 .zip , in this case, -t <OUTPUT-TYPE> option would be ignored if it also is specified.
 
@@ -7722,7 +7702,7 @@ main() {
 
     XCPKG="$CURRENT_SCRIPT_FILEPATH"
 
-    XCPKG_VERSION=0.15.7
+    XCPKG_VERSION=0.15.8
 
     XCPKG_OFFICAL_FORMULA_REPO_URL='https://github.com/leleliu008/xcpkg-formula-repository-offical-core'
 
@@ -7750,8 +7730,6 @@ main() {
     XCPKG_CORE_DIR="$XCPKG_HOME/core"
     XCPKG_CORE_BIN_DIR="$XCPKG_CORE_DIR/bin"
 
-    XCPKG_CORE_LIBEXEC_DIR="$XCPKG_CORE_DIR/libexec"
-
     UPPM="$XCPKG_CORE_BIN_DIR/uppm"
 
     NATIVE_PACKAGE_INSTALLED_ROOT="$XCPKG_HOME/native"
@@ -7766,8 +7744,8 @@ main() {
     unset TARGET_ARCH
 
     # https://www.openssl.org/docs/man1.1.1/man3/SSL_CTX_set_default_verify_paths.html
-    if [ -f "$XCPKG_CORE_DIR/etc/cacert.pem" ] ; then
-        export SSL_CERT_FILE="$XCPKG_CORE_DIR/etc/cacert.pem"
+    if [ -f "$XCPKG_CORE_DIR/cacert.pem" ] ; then
+        export SSL_CERT_FILE="$XCPKG_CORE_DIR/cacert.pem"
     fi
 
     XCPKG_ACTION="$1"
@@ -7838,8 +7816,8 @@ EOF
 
     #########################################################################################
 
-    if [ -f "$XCPKG_CORE_DIR/etc/profile" ] ; then
-        .   "$XCPKG_CORE_DIR/etc/profile"
+    if [ -f "$XCPKG_CORE_DIR/profile" ] ; then
+        .   "$XCPKG_CORE_DIR/profile"
     else
         abort 1 "please run ${COLOR_GREEN}$_0 setup${COLOR_OFF} command first, then try again."
     fi

@@ -482,7 +482,7 @@ a uppm formula's file content only has one level mapping and shall has following
 |`install`|optional|POSIX shell code to be run when user run `xcpkg install <PKG>`. If this mapping is not present, `xcpkg` will run default install code according to `bsystem`|
 |`symlink`|optional|whether to symlink installed files to `$XCPKG_HOME/symlinked/*`. value shall be `0` or `1`. default value is `1`.|
 
-**commands that can be invoked in `dopatch` and `install` block:**
+**commands that can be used out of the box in `dopatch` and `install` block:**
 
 |command|usage-example|
 |-|-|
@@ -493,9 +493,9 @@ a uppm formula's file content only has one level mapping and shall has following
 |`abort`|`abort 1 "please specify a package name."`|
 |`success`|`success "build success."`|
 |`sed_in_place`|`sed_in_place 's/-mandroid//g' Configure`|
-|`wfetch`|`wfetch URL [--sha256=SHA256] --output-path=PATH`<br>`wfetch URL [--sha256=SHA256] --output-dir=DIR --output-name=NAME`<br>`wfetch URL [--sha256=SHA256] --output-dir=DIR [--output-name=NAME]`<br>`wfetch URL [--sha256=SHA256] [--output-dir=DIR] --output-name=NAME`|
+|`wfetch`|`wfetch <URL> [--uri=<URL-MIRROR>] [--sha256=<SHA256>] [-o <PATH> [-q]`|
 
-**commands that can be invoked in `install` block only:**
+**commands that can be used out of the box in `install` block only:**
 
 |command|usage-example|
 |-|-|
