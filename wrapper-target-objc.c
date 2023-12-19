@@ -5,21 +5,21 @@
 #include <unistd.h>
 
 int main(int argc, char * argv[]) {
-    char * const cxxc = getenv("PROXIED_CXX");
+    char * const objc = getenv("PROXIED_OBJC");
 
-    if (cxxc == NULL) {
-        fprintf(stderr, "PROXIED_CXX environment variable is not set.\n");
+    if (objc == NULL) {
+        fprintf(stderr, "PROXIED_OBJC environment variable is not set.\n");
         return 1;
     }
 
-    if (cxxc[0] == '\0') {
-        fprintf(stderr, "PROXIED_CXX environment variable value should be a non-empty string.\n");
+    if (objc[0] == '\0') {
+        fprintf(stderr, "PROXIED_OBJC environment variable value should be a non-empty string.\n");
         return 2;
     }
 
     char* argv2[argc + 2];
 
-    argv2[0] = cxxc;
+    argv2[0] = objc;
 
     for (int i = 1; i < argc; i++) {
         argv2[i] = argv[i];
@@ -35,7 +35,7 @@ int main(int argc, char * argv[]) {
         argv2[argc + 2] = NULL;
     }
 
-    execv (cxxc, argv2);
-    perror(cxxc);
+    execv (objc, argv2);
+    perror(objc);
     return 255;
 }
