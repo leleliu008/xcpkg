@@ -26,7 +26,7 @@
 # 4. all utilities are GNU-style
 ######################################################################################
 
-# If IFS is not set, the deault value will be <space><tab><newline>
+# If IFS is not set, the default value will be <space><tab><newline>
 # https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_05_03
 unset IFS
 
@@ -191,9 +191,9 @@ version_match() {
 
 # wfetch <URL> [--uri=<URL-MIRROR>] [--sha256=<SHA256>] [-o <OUTPUT-PATH>] [-q] [--no-buffer]
 #
-# If -o <OUTPUT-PATH> option is specified, the result will be written to file, otherwize, the result will be written to stdout.
+# If -o <OUTPUT-PATH> option is specified, the result will be written to file, otherwise, the result will be written to stdout.
 #
-# If <OUTPUT-PATH> is . .. ./ ../ or ends with slash(/), then it will be treated as a directory, otherwize, it will be treated as a filepath.
+# If <OUTPUT-PATH> is . .. ./ ../ or ends with slash(/), then it will be treated as a directory, otherwise, it will be treated as a filepath.
 #
 # If <OUTPUT-PATH> is treated as a directory, then it will be expanded to <OUTPUT-PATH>/$(basename <URL>)
 #
@@ -605,7 +605,7 @@ EOF
   __delete_a_formula_repository() {
     [ -z "$1" ] && abort 1 "please specify a repository name."
 
-    [ "$1" = 'offical-core' ] && abort 1 "'offical-core' formula repository is not allowed to delete."
+    [ "$1" = 'official-core' ] && abort 1 "'official-core' formula repository is not allowed to delete."
 
     if [ -d    "$XCPKG_FORMULA_REPO_ROOT/$1" ] ; then
         rm -rf "$XCPKG_FORMULA_REPO_ROOT/$1"
@@ -784,8 +784,8 @@ __sync_available_formula_repositories() {
         done
     }
 
-    [ -d "$XCPKG_FORMULA_REPO_ROOT/offical-core" ] || {
-        __create_a_formula_repository_then_sync_it offical-core "$XCPKG_OFFICAL_FORMULA_REPO_URL"
+    [ -d "$XCPKG_FORMULA_REPO_ROOT/official-core" ] || {
+        __create_a_formula_repository_then_sync_it official-core "$XCPKG_OFFICIAL_FORMULA_REPO_URL"
     }
 }
 
@@ -4036,7 +4036,7 @@ $DOT_CONTENT
     # https://www.gnu.org/software/gettext/manual/html_node/config_002eguess.html
     # https://git.savannah.gnu.org/cgit/config.git/tree/
 
-    step "replace config.sub and config.guess with the lastest version"
+    step "replace config.sub and config.guess with the latest version"
 
     {
         [ "$PACKAGE_BUILD_SYSTEM_AUTOGENSH" = 1 ] ||
@@ -4660,10 +4660,10 @@ EOF
         # https://cmake.org/cmake/help/latest/variable/CMAKE_FIND_LIBRARY_SUFFIXES.html
 
         case $LINK_TYPE in
-            static-only)     printf 'set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")\n'          > "$CMAKE_PROJECT_INCLUDE" ;;
-            static-prefered) printf 'set(CMAKE_FIND_LIBRARY_SUFFIXES ".a" ".dylib")\n' > "$CMAKE_PROJECT_INCLUDE" ;;
-            shared-only)     printf 'set(CMAKE_FIND_LIBRARY_SUFFIXES ".dylib")\n'      > "$CMAKE_PROJECT_INCLUDE" ;;
-            shared-prefered) printf 'set(CMAKE_FIND_LIBRARY_SUFFIXES ".dylib" ".a")\n' > "$CMAKE_PROJECT_INCLUDE" ;;
+            static-only) printf 'set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")\n'          > "$CMAKE_PROJECT_INCLUDE" ;;
+            static-most) printf 'set(CMAKE_FIND_LIBRARY_SUFFIXES ".a" ".dylib")\n' > "$CMAKE_PROJECT_INCLUDE" ;;
+            shared-only) printf 'set(CMAKE_FIND_LIBRARY_SUFFIXES ".dylib")\n'      > "$CMAKE_PROJECT_INCLUDE" ;;
+            shared-most) printf 'set(CMAKE_FIND_LIBRARY_SUFFIXES ".dylib" ".a")\n' > "$CMAKE_PROJECT_INCLUDE" ;;
         esac
 
         if [ "$LOG_LEVEL" -gt 0 ] ; then
@@ -4850,10 +4850,10 @@ EOF
         unset libFileNameSuffix
 
         case $LINK_TYPE in
-            static-only|static-prefered)
+            static-only|static-most)
                 libFileNameSuffix='.a'
                 ;;
-            shared-only|shared-prefered)
+            shared-only|shared-most)
                 libFileNameSuffix='.dylib'
                 ;;
             *)  abort 1 "unrecognized link type: $LINK_TYPE"
@@ -5695,7 +5695,7 @@ EOF
     esac
 
     case $LINK_TYPE in
-        static-only|static-prefered) MESON_SETUP_ARGS="$MESON_SETUP_ARGS --prefer-static"
+        static-only|static-most) MESON_SETUP_ARGS="$MESON_SETUP_ARGS --prefer-static"
     esac
 
     MESON_COMPILE_ARGS="-C $PACKAGE_BCACHED_DIR -j $BUILD_NJOBS"
@@ -6223,7 +6223,7 @@ inspect_install_arguments() {
 
     BUILD_TYPE=release
 
-    LINK_TYPE=static-prefered
+    LINK_TYPE=static-most
 
     INSTALL_LIB=static
 
@@ -6286,9 +6286,9 @@ inspect_install_arguments() {
             --link-type=*)
                 LINK_TYPE="${1#*=}"
                 case $LINK_TYPE in
-                    static-only|shared-only|static-prefered|shared-prefered) ;;
+                    static-only|shared-only|static-most|shared-most) ;;
                     '') abort 1 "--link-type=<VALUE>, VALUE must be non-empty." ;;
-                    *)  abort 1 "--link-type=<VALUE>, VALUE must be one of static-only|shared-only|static-prefered|shared-prefered"
+                    *)  abort 1 "--link-type=<VALUE>, VALUE must be one of static-only|shared-only|static-most|shared-most"
                 esac
                 ;;
             --jobs=*)
@@ -7575,13 +7575,13 @@ ${COLOR_GREEN}xcpkg depends <PACKAGE-NAME> [-t <dot|box|svg|png>] [-o <OUTPUT-PA
 
     <OUTPUT-PATH> can be either the filepath or directory.
 
-    If -o <OUTPUT-PATH> option is specified, the result will be written to file, otherwize, the result will be written to stdout.
+    If -o <OUTPUT-PATH> option is specified, the result will be written to file, otherwise, the result will be written to stdout.
 
-    If <OUTPUT-PATH> is . .. ./ ../ or ends with slash(/), then it will be treated as a directory, otherwize, it will be treated as a filepath.
+    If <OUTPUT-PATH> is . .. ./ ../ or ends with slash(/), then it will be treated as a directory, otherwise, it will be treated as a filepath.
 
     If <OUTPUT-PATH> is treated as a directory, then it will be expanded to <OUTPUT-PATH>/<PACKAGE-NAME>-dependencies.<OUTPUT-TYPE>
 
-    If <OUTPUT-PATH> is treated as a filepath, and if -t <OUTPUT-TYPE> option is not given, if <OUTPUT-PATH> ends with one of .dot|.box|.svg|.png, <OUTPUT-TYPE> will be the <OUTPUT-PATH> suffix, otherwize, <OUTPUT-TYPE> will be box.
+    If <OUTPUT-PATH> is treated as a filepath, and if -t <OUTPUT-TYPE> option is not given, if <OUTPUT-PATH> ends with one of .dot|.box|.svg|.png, <OUTPUT-TYPE> will be the <OUTPUT-PATH> suffix, otherwise, <OUTPUT-TYPE> will be box.
 
     If -t <OUTPUT-TYPE> and -o <OUTPUT-PATH> options both are not given, <OUTPU-TYPE> will be box and output to stdout.
 
@@ -7638,7 +7638,7 @@ ${COLOR_GREEN}xcpkg install <PACKAGE-NAME|PACKAGE-SPEC>... [INSTALL-OPTIONS]${CO
         ${COLOR_BLUE}--build-type=<debug|release>${COLOR_OFF}
             specify the build type.
 
-        ${COLOR_BLUE}--link-type=<shared-only|static-prefered|shared-prefered>${COLOR_OFF}
+        ${COLOR_BLUE}--link-type=<shared-only|static-most|shared-most>${COLOR_OFF}
             specify the link strategy.
 
         ${COLOR_BLUE}--disable-ccache${COLOR_OFF}
@@ -7648,7 +7648,7 @@ ${COLOR_GREEN}xcpkg install <PACKAGE-NAME|PACKAGE-SPEC>... [INSTALL-OPTIONS]${CO
             generates compile_commands.json
 
         ${COLOR_BLUE}--upgrade${COLOR_OFF}
-            If this package has been alreadly intsalled, then it will be upgrated if it could be.
+            If this package has been already installed, then it will be upgraded if it could be.
 
         ${COLOR_BLUE}--dry-run${COLOR_OFF}
             do not actually install the package.
@@ -7679,7 +7679,7 @@ ${COLOR_GREEN}xcpkg pack <PACKAGE-SPEC> [--keep-session-dir] [-t <OUTPUT-TYPE>] 
 
     <OUTPUT-PATH> can be either the filepath or directory which indicates where the packed archive file would be written to.
 
-    If <OUTPUT-PATH> is . .. ./ ../ or ends with slash(/), then it would be treated as a directory, otherwize, it would be treated as a filepath.
+    If <OUTPUT-PATH> is . .. ./ ../ or ends with slash(/), then it would be treated as a directory, otherwise, it would be treated as a filepath.
 
     If <OUTPUT-PATH> is treated as a filepath, then it must ends with one of .tar.gz .tar.xz .tar.lz .tar.bz2 .tgz .txz .tlz .tbz2 .zip , in this case, -t <OUTPUT-TYPE> option would be ignored if it also is specified.
 
@@ -7717,7 +7717,7 @@ main() {
 
     XCPKG_VERSION=0.15.10
 
-    XCPKG_OFFICAL_FORMULA_REPO_URL='https://github.com/leleliu008/xcpkg-formula-repository-offical-core'
+    XCPKG_OFFICIAL_FORMULA_REPO_URL='https://github.com/leleliu008/xcpkg-formula-repository-official-core'
 
     XCPKG_UPGRAGE_URL='https://raw.githubusercontent.com/leleliu008/xcpkg/master/xcpkg'
 
@@ -7885,7 +7885,7 @@ EOF
             shift
 
             case $1 in
-                offical-*) abort 1 "xcpkg formula repository name that starts with 'offical-' is reserved for xcpkg offical formula repository, please use other name."
+                official-*) abort 1 "xcpkg formula repository name that starts with 'official-' is reserved for xcpkg official formula repository, please use other name."
             esac
 
             __create_a_formula_repository "$@"
@@ -7895,7 +7895,7 @@ EOF
             shift
 
             case $1 in
-                offical-*) abort 1 "xcpkg formula repository name that starts with 'offical-' is reserved for xcpkg offical formula repository, please use other name."
+                official-*) abort 1 "xcpkg formula repository name that starts with 'official-' is reserved for xcpkg official formula repository, please use other name."
             esac
 
             __create_a_formula_repository_then_sync_it "$@"

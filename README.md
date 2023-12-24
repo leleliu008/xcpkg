@@ -8,11 +8,11 @@ A package manager for [Xcode](https://developer.apple.com/xcode) to build C/C++/
 
 - Please do NOT place your own files under `~/.xcpkg` directory, as `xcpkg` will change files under `~/.xcpkg` directory without notice.
 
-- Please do NOT run `xcpkg` command in parallell to avoid generating dirty data.
+- Please do NOT run `xcpkg` command in parallel to avoid generating dirty data.
 
 ## Manually build packages using this software via GitHub Actions
 
-In this way, you will be liberated from the rut of setting up the build environemt.
+In this way, you will be liberated from the rut of setting up the build environment.
 
 In this way, all you need to do is just clicking the buttons and waiting for finishing. After finishing, a url refers to a zip archive will be provided to download.
 
@@ -73,7 +73,7 @@ all relevant directories and files are located under `~/.xcpkg` directory.
     xcpkg sysinfo
     ```
 
-- **show your current actived [Xcode](https://developer.apple.com/xcode) information**
+- **show your current activated [Xcode](https://developer.apple.com/xcode) information**
 
     ```bash
     xcpkg xcinfo
@@ -264,7 +264,7 @@ all relevant directories and files are located under `~/.xcpkg` directory.
     xcpkg upgrade-self -v
     ```
 
-- **list all avaliable formula repositories**
+- **list all available formula repositories**
 
     ```bash
     xcpkg formula-repo-list
@@ -418,7 +418,7 @@ all relevant directories and files are located under `~/.xcpkg` directory.
 
 - **XCPKG_DEFAULT_TARGET**
 
-    some commands need `<PACKAGE-SPEC>` to be specified. `<PACKAGE-SPEC>` has the form `<TARGET>/<PACKAGE-NAME>`. To simplify the usage, `xcpkg` allows omitting `<TARGET>/`. If `<TARGET>/` is omitted, this environment variable will be used, if this environment variable is not set, then will retrive your current running os's information.
+    some commands need `<PACKAGE-SPEC>` to be specified. `<PACKAGE-SPEC>` has the form `<TARGET>/<PACKAGE-NAME>`. To simplify the usage, `xcpkg` allows omitting `<TARGET>/`. If `<TARGET>/` is omitted, this environment variable will be used, if this environment variable is not set, then will retrieve your current running os's information.
 
     `<TARGET>` has the form `<TARGET-PLATFORM-NAME>-<TARGET-PLATFORM-VERSION>-<TARGET-PLATFORM-ARCH>`
 
@@ -487,7 +487,7 @@ a uppm formula's file content only has one level mapping and shall has following
 |command|usage-example|
 |-|-|
 |`echo`|`echo 'your message.'`|
-|`info`|`info 'your infomation.'`|
+|`info`|`info 'your information.'`|
 |`warn`|`warn "no package manager found."`|
 |`error`|`error 'error message.'`|
 |`abort`|`abort 1 "please specify a package name."`|
@@ -572,7 +572,7 @@ After a xcpkg formula repository is successfully fetched from server to local, a
 a typical xcpkg formula repository's config as following:
 
 ```yaml
-url: https://github.com/leleliu008/xcpkg-formula-repository-offical-core
+url: https://github.com/leleliu008/xcpkg-formula-repository-official-core
 branch: master
 pinned: 0
 enabled: 1
@@ -584,15 +584,15 @@ If a xcpkg formula repository is `pinned`, which means it would not be updated.
 
 If a xcpkg formula repository is `disabled`, which means xcpkg would not search formulas in this formula repository.
 
-## xcpkg offical formula repository
+## xcpkg official formula repository
 
-xcpkg offical formula repository's url: <https://github.com/leleliu008/xcpkg-formula-repository-offical-core>
+xcpkg official formula repository's url: <https://github.com/leleliu008/xcpkg-formula-repository-official-core>
 
-xcpkg offical formula repository would be automatically fetched to local cache as name `offical-core` when you run `xcpkg update` command.
+xcpkg official formula repository would be automatically fetched to local cache as name `official-core` when you run `xcpkg update` command.
 
-**Note:** If you find that a package is not in xcpkg offical formula repository yet, PR is welcomed.
+**Note:** If you find that a package is not in xcpkg official formula repository yet, PR is welcomed.
 
-## xcpkg offical prebuild package repository
+## xcpkg official prebuild package repository
 
 I have built and packed some commonly used packages using this software:
 
