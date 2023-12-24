@@ -467,11 +467,13 @@ a uppm formula's file content only has one level mapping and shall has following
 |`bscript`|optional|the directory where the build script is located in, relative to `PACKAGE_WORKING_DIR`. build script such as `configure`, `Makefile`, `CMakeLists.txt`, `meson.build`, `Cargo.toml`, etc.|
 |`binbstd`|optional|whether to build in the directory where the build script is located in, otherwise build in other directory. value shall be `0` or `1`. default value is `0`.|
 ||||
+|`symlink`|optional|whether to symlink installed files to `$XCPKG_HOME/symlinked/*`. value shall be `0` or `1`. default value is `1`. It is only meaningful when requesting for native building.|
+||||
 |`do12345`|optional|POSIX shell code to be run for native build. It is only meaningful when requesting for cross building.|
 |`dopatch`|optional|POSIX shell code to be run to apply patches for target build. current working directory is `$PACKAGE_BSCRIPT_DIR`|
 |`install`|optional|POSIX shell code to be run for target build. If this mapping is not present, `xcpkg` will run default install code according to `bsystem`|
-||||
-|`symlink`|optional|whether to symlink installed files to `$XCPKG_HOME/symlinked/*`. value shall be `0` or `1`. default value is `1`. It is only meaningful when requesting for native building.|
+
+<img src="relationship.svg" alt="relationship" >
 
 **commands that can be used out of the box:**
 
@@ -536,16 +538,16 @@ a uppm formula's file content only has one level mapping and shall has following
 |`UPPM`|the executable filepath of [uppm](https://github.com/leleliu008/uppm)|
 |||
 |`CC_FOR_BUILD`|the C Compiler for native build.|
-|`CFLAGS`|the flags of `CC`.|
+|`CFLAGS_FOR_BUILD`|the flags of `CC_FOR_BUILD`.|
 |`CXX_FOR_BUILD`|the C++ Compiler for native build.|
-|`CXXFLAGS`|the flags of `CXX`.|
+|`CXXFLAGS_FOR_BUILD`|the flags of `CXX_FOR_BUILD`.|
 |`CPP_FOR_BUILD`|the C/C++ PreProcessor for native build.|
-|`CPPFLAGS`|the flags of `CPP`.|
+|`CPPFLAGS_FOR_BUILD`|the flags of `CPP_FOR_BUILD`.|
 |`AS_FOR_BUILD`|the assembler for native build.|
 |`AR_FOR_BUILD`|the archiver for native build.|
 |`RANLIB_FOR_BUILD`|the archiver extra tool for native build.|
 |`LD_FOR_BUILD`|the linker for native build.|
-|`LDFLAGS_FOR_BUILD`|the flags of `LD`.|
+|`LDFLAGS_FOR_BUILD`|the flags of `LD_FOR_BUILD`.|
 |`NM_FOR_BUILD`|a command line tool to list symbols from object files for native build.|
 |`STRIP_FOR_BUILD`|a command line tool to discard symbols and other data from object files for native build.|
 |||
