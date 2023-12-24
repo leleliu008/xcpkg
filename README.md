@@ -466,9 +466,12 @@ a uppm formula's file content only has one level mapping and shall has following
 |`bsystem`|optional|build system name.<br>values can be some of `autogen` `autotools` `configure` `cmake` `cmake-gmake` `cmake-ninja` `meson` `xmake` `gmake` `ninja` `cargo` `go`|
 |`bscript`|optional|the directory where the build script is located in, relative to `PACKAGE_WORKING_DIR`. build script such as `configure`, `Makefile`, `CMakeLists.txt`, `meson.build`, `Cargo.toml`, etc.|
 |`binbstd`|optional|whether to build in the directory where the build script is located in, otherwise build in other directory. value shall be `0` or `1`. default value is `0`.|
-|`dopatch`|optional|POSIX shell code to be run before `install`. `pwd` is `$PACKAGE_BSCRIPT_DIR`|
-|`install`|optional|POSIX shell code to be run when user run `xcpkg install <PKG>`. If this mapping is not present, `xcpkg` will run default install code according to `bsystem`|
-|`symlink`|optional|whether to symlink installed files to `$XCPKG_HOME/symlinked/*`. value shall be `0` or `1`. default value is `1`.|
+||||
+|`do12345`|optional|POSIX shell code to be run for native build. It is only meaningful when requesting for cross building.|
+|`dopatch`|optional|POSIX shell code to be run to apply patches for target build. current working directory is `$PACKAGE_BSCRIPT_DIR`|
+|`install`|optional|POSIX shell code to be run for target build. If this mapping is not present, `xcpkg` will run default install code according to `bsystem`|
+||||
+|`symlink`|optional|whether to symlink installed files to `$XCPKG_HOME/symlinked/*`. value shall be `0` or `1`. default value is `1`. It is only meaningful when requesting for native building.|
 
 **commands that can be used out of the box in `dopatch` and `install` block:**
 
