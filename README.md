@@ -144,54 +144,49 @@ all relevant directories and files are located under `~/.xcpkg` directory.
 
     ```bash
     xcpkg search curl
-    xcpkg search lib
-    ```
-
-- **show information of all available packages**
-
-    ```bash
-    xcpkg info @all
+    xcpkg search curl -v
+    xcpkg search '^lib'
     ```
 
 - **show information of the given available package**
 
     ```bash
-    xcpkg info curl
-    xcpkg info curl --yaml
-    xcpkg info curl --json
-    xcpkg info curl version
-    xcpkg info curl license
-    xcpkg info curl summary
-    xcpkg info curl web-url
-    xcpkg info curl git-url
-    xcpkg info curl git-sha
-    xcpkg info curl git-ref
-    xcpkg info curl src-url
-    xcpkg info curl src-sha
+    xcpkg info-available curl
+    xcpkg info-available curl --yaml
+    xcpkg info-available curl --json
+    xcpkg info-available curl version
+    xcpkg info-available curl license
+    xcpkg info-available curl summary
+    xcpkg info-available curl web-url
+    xcpkg info-available curl git-url
+    xcpkg info-available curl git-sha
+    xcpkg info-available curl git-ref
+    xcpkg info-available curl src-url
+    xcpkg info-available curl src-sha
     ```
 
 - **show information of the given installed package**
 
     ```bash
-    xcpkg info iPhoneOS-12.0-arm64/curl
-    xcpkg info iPhoneOS-12.0-arm64/curl --yaml
-    xcpkg info iPhoneOS-12.0-arm64/curl --json
-    xcpkg info iPhoneOS-12.0-arm64/curl version
-    xcpkg info iPhoneOS-12.0-arm64/curl license
-    xcpkg info iPhoneOS-12.0-arm64/curl summary
-    xcpkg info iPhoneOS-12.0-arm64/curl web-url
-    xcpkg info iPhoneOS-12.0-arm64/curl git-url
-    xcpkg info iPhoneOS-12.0-arm64/curl git-sha
-    xcpkg info iPhoneOS-12.0-arm64/curl git-ref
-    xcpkg info iPhoneOS-12.0-arm64/curl src-url
-    xcpkg info iPhoneOS-12.0-arm64/curl src-sha
-    xcpkg info iPhoneOS-12.0-arm64/curl builtat
-    xcpkg info iPhoneOS-12.0-arm64/curl builtat-iso-8601
-    xcpkg info iPhoneOS-12.0-arm64/curl builtat-rfc-3339
-    xcpkg info iPhoneOS-12.0-arm64/curl builtat-iso-8601-utc
-    xcpkg info iPhoneOS-12.0-arm64/curl builtat-rfc-3339-utc
-    xcpkg info iPhoneOS-12.0-arm64/curl installed-dir
-    xcpkg info iPhoneOS-12.0-arm64/curl installed-files
+    xcpkg info-installed iPhoneOS-12.0-arm64/curl
+    xcpkg info-installed iPhoneOS-12.0-arm64/curl --prefix
+    xcpkg info-installed iPhoneOS-12.0-arm64/curl --files
+    xcpkg info-installed iPhoneOS-12.0-arm64/curl --yaml
+    xcpkg info-installed iPhoneOS-12.0-arm64/curl --json
+    xcpkg info-installed iPhoneOS-12.0-arm64/curl version
+    xcpkg info-installed iPhoneOS-12.0-arm64/curl license
+    xcpkg info-installed iPhoneOS-12.0-arm64/curl summary
+    xcpkg info-installed iPhoneOS-12.0-arm64/curl web-url
+    xcpkg info-installed iPhoneOS-12.0-arm64/curl git-url
+    xcpkg info-installed iPhoneOS-12.0-arm64/curl git-sha
+    xcpkg info-installed iPhoneOS-12.0-arm64/curl git-ref
+    xcpkg info-installed iPhoneOS-12.0-arm64/curl src-url
+    xcpkg info-installed iPhoneOS-12.0-arm64/curl src-sha
+    xcpkg info-installed iPhoneOS-12.0-arm64/curl builtat
+    xcpkg info-installed iPhoneOS-12.0-arm64/curl builtat-iso-8601
+    xcpkg info-installed iPhoneOS-12.0-arm64/curl builtat-rfc-3339
+    xcpkg info-installed iPhoneOS-12.0-arm64/curl builtat-iso-8601-utc
+    xcpkg info-installed iPhoneOS-12.0-arm64/curl builtat-rfc-3339-utc
     ```
 
 - **show packages that are depended by the given package**
@@ -219,10 +214,7 @@ all relevant directories and files are located under `~/.xcpkg` directory.
 
     ```bash
     xcpkg fetch curl
-    xcpkg fetch @all
-
     xcpkg fetch curl -v
-    xcpkg fetch @all -v
     ```
 
 - **install packages**
@@ -308,25 +300,21 @@ all relevant directories and files are located under `~/.xcpkg` directory.
 
     ```bash
     xcpkg ls-available
+    xcpkg ls-available -v
     ```
 
 - **list all installed packages**
 
     ```bash
     xcpkg ls-installed
+    xcpkg ls-installed -v
     ```
 
 - **list all outdated packages**
 
     ```bash
     xcpkg ls-outdated
-    ```
-
-- **list installed files of the given installed package**
-
-    ```bash
-    xcpkg list curl
-    xcpkg list iPhoneOS-12.0-arm64/curl
+    xcpkg ls-outdated -v
     ```
 
 - **list installed files of the given installed package in a tree-like format**

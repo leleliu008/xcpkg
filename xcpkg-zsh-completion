@@ -125,11 +125,12 @@ function _xcpkg() {
                     ;;
                 info)
                     _arguments \
-                        '1:package-name:(@all $(xcpkg ls-available 2>/dev/null) $(xcpkg ls-installed 2>/dev/null))' \
+                        '1:package-name:($(xcpkg ls-available 2>/dev/null) $(xcpkg ls-installed 2>/dev/null))' \
                         '2:key:(--yaml --json summary version license web-url git-url git-sha git-ref git-nth src-url src-uri src-sha fix-url fix-uri fix-sha res-url res-uri res-sha dep-pkg dep-upp dep-pym dep-plm ccflags xxflags ppflags ldflags bscript binbstd bsystem dopatch install symlink installed-dir installed-files builtby builtat builtat-rfc-3339 builtat-rfc-3339-utc builtat-iso-8601 builtat-iso-8601-utc builtfor parallel developer)'
                     ;;
                 fetch)
-                    _arguments ':package-name:(@all $(xcpkg ls-available 2>/dev/null))'
+                    _arguments \
+                        '1:package-name:_xcpkg_available_packages'
                     ;;
                 depends)
                     _arguments \
@@ -161,7 +162,7 @@ function _xcpkg() {
                     ;;
                 install)
                     _arguments \
-                        ':package-name:(@all $(xcpkg ls-available 2>/dev/null))' \
+                        ':package-name:_xcpkg_available_packages' \
                         '--target=-[specify which target to be built for]:target:()' \
                         '--jobs=-[specify the number of jobs you can run in parallel]:jobs:(1 2 3 4 5 6 7 8 9)' \
                         '--upgrade[upgrade if it could be]' \
