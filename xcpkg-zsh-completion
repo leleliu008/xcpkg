@@ -26,7 +26,8 @@ _xcpkg_actions=(
     'formula-repo-info:show information of the given formula repository.'
     'formula-repo-list:list all available formula repositories.'
     'search:search packages can be installed.'
-    'info:show information of the given package or all available packages.'
+    'info-available:show information of the given available package.'
+    'info-installed:show information of the given installed package.'
     'depends:show depends of the given package.'
     'fetch:download formula resources of the given package to the cache.'
     'install:install packages.'
@@ -35,7 +36,6 @@ _xcpkg_actions=(
     'update:update the formula repository.'
     'upgrade:upgrade the outdated packages.'
     'upgrade-self:upgrade this software.'
-    'list:list installed files of the given installed package.'
     'tree:list installed files of the given installed package in a tree-like format.'
     'logs:show logs of the given installed package.'
     'pack:pack all the installed files of the given installed package to a single archive file.'
@@ -123,10 +123,15 @@ function _xcpkg() {
                 formula-repo-info)
                     _arguments '1:formula-repo-name:($(xcpkg formula-repo-list | sed -n "/^name: /p" | cut -c7-))'
                     ;;
-                info)
+                info-available)
                     _arguments \
-                        '1:package-name:($(xcpkg ls-available 2>/dev/null) $(xcpkg ls-installed 2>/dev/null))' \
-                        '2:key:(--yaml --json summary version license web-url git-url git-sha git-ref git-nth src-url src-uri src-sha fix-url fix-uri fix-sha res-url res-uri res-sha dep-pkg dep-upp dep-pym dep-plm ccflags xxflags ppflags ldflags bscript binbstd bsystem dopatch install symlink installed-dir installed-files builtby builtat builtat-rfc-3339 builtat-rfc-3339-utc builtat-iso-8601 builtat-iso-8601-utc builtfor parallel developer)'
+                        '1:package-name:_xcpkg_available_packages' \
+                        '2:key:(--yaml --json summary version license web-url git-url git-sha git-ref git-nth src-url src-uri src-sha fix-url fix-uri fix-sha res-url res-uri res-sha dep-pkg dep-upp dep-pym dep-plm ccflags xxflags ppflags ldflags bscript binbstd bsystem dopatch install symlink parallel developer)'
+                    ;;
+                info-installed)
+                    _arguments \
+                        '1:package-name:_xcpkg_installed_packages' \
+                        '2:key:(--yaml --json summary version license web-url git-url git-sha git-ref git-nth src-url src-uri src-sha fix-url fix-uri fix-sha res-url res-uri res-sha dep-pkg dep-upp dep-pym dep-plm ccflags xxflags ppflags ldflags bscript binbstd bsystem dopatch install symlink --prefix --files builtby builtat builtat-rfc-3339 builtat-rfc-3339-utc builtat-iso-8601 builtat-iso-8601-utc builtfor parallel developer)'
                     ;;
                 fetch)
                     _arguments \
@@ -151,10 +156,6 @@ function _xcpkg() {
                         '-a[show all files, including hidden ones]' \
                         '--dirsfirst[list directories before files]' \
                         '-L[level]:level:(3)'
-                    ;;
-                list)
-                    _arguments \
-                        '1:package-name:_xcpkg_installed_packages'
                     ;;
                 logs)
                     _arguments \
@@ -212,6 +213,7 @@ function _xcpkg() {
                 uninstall)
                     _arguments '*:package-name:_xcpkg_installed_packages'
                     ;;
+
                 is-available)
                     _arguments '1:package-name:_xcpkg_available_packages'
                     ;;
@@ -221,6 +223,21 @@ function _xcpkg() {
                 is-outdated)
                     _arguments '1:package-name:_xcpkg_outdated_packages'
                     ;;
+
+                ls-available)
+                    _arguments '1:package-name:_xcpkg_available_packages' '-v[verbose mode]'
+                    ;;
+                ls-installed)
+                    _arguments '1:package-name:_xcpkg_installed_packages' '-v[verbose mode]'
+                    ;;
+                ls-outdated)
+                    _arguments '1:package-name:_xcpkg_outdated_packages' '-v[verbose mode]'
+                    ;;
+
+                integrate)
+                    _arguments '1:reg:()' '-v[verbose mode]'
+                    ;;
+
                 integrate)
                     _arguments '1:what:(zsh)'
                     ;;

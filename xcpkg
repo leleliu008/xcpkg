@@ -1624,7 +1624,7 @@ __list__outdated_packages() {
 __search_packages() {
     [ -z "$1" ] && abort 1 "please specify a regular expression pattern."
 
-    __list_available_packages | grep "$*"
+    __list_available_packages | grep "$1"
 }
 
 # }}}
