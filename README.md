@@ -473,10 +473,24 @@ a uppm formula's file content only has one level mapping and shall has following
 ||||
 |`symlink`|optional|whether to symlink installed files to `$XCPKG_HOME/symlinked/*`. value shall be `0` or `1`. default value is `1`. It is only meaningful when requesting for native building.|
 
-**commands that can be used out of the box in `dopatch` and `install` block:**
+**commands that can be used out of the box:**
 
 |command|usage-example|
 |-|-|
+|`bash`|[Reference](https://www.gnu.org/software/bash/manual/bash.html)|
+|`CoreUtils`|[Reference](https://www.gnu.org/software/coreutils/manual/coreutils.html)|
+|`find`|[Reference](https://www.gnu.org/software/findutils/manual/html_mono/find.html)|
+|`gawk`|[Reference](https://www.gnu.org/software/gawk/manual/gawk.html)|
+|`gsed`|[Reference](https://www.gnu.org/software/sed/manual/sed.html)|
+|`grep`|[Reference](https://www.gnu.org/software/grep/manual/grep.html)|
+|`yq`|[Reference](https://mikefarah.gitbook.io/yq/)|
+|`jq`|[Reference](https://stedolan.github.io/jq/manual/)|
+|`git`|[Reference](https://git-scm.com/docs/git)|
+|`curl`|[Reference](https://curl.se/docs/manpage.html)|
+|`bsdtar`|[Reference](https://man.archlinux.org/man/core/libarchive/bsdtar.1.en)|
+|`tree`|[Reference](https://linux.die.net/man/1/tree)|
+|`pkg-config`|[Reference](https://people.freedesktop.org/~dbn/pkg-config-guide.html)|
+|||
 |`echo`|`echo 'your message.'`|
 |`info`|`info 'your information.'`|
 |`warn`|`warn "no package manager found."`|
@@ -485,11 +499,7 @@ a uppm formula's file content only has one level mapping and shall has following
 |`success`|`success "build success."`|
 |`sed_in_place`|`sed_in_place 's/-mandroid//g' Configure`|
 |`wfetch`|`wfetch <URL> [--uri=<URL-MIRROR>] [--sha256=<SHA256>] [-o <PATH> [-q]`|
-
-**commands that can be used out of the box in `install` block only:**
-
-|command|usage-example|
-|-|-|
+|||
 |`configure`|`configure --enable-pic`|
 |`mesonw`|`mesonw -Dneon=disabled -Darm-simd=disabled`|
 |`cmakew`|`cmakew -DBUILD_SHARED_LIBS=ON -DBUILD_STATIC_LIBS=ON`|
@@ -498,7 +508,7 @@ a uppm formula's file content only has one level mapping and shall has following
 |`cargow`|`cargow`|
 |`gow`|`gow`|
 
-**shell variables can be used in `dopatch` and `install` block:**
+**shell variables can be used directly:**
 
 |variable|overview|
 |-|-|
@@ -522,6 +532,22 @@ a uppm formula's file content only has one level mapping and shall has following
 |`XCPKG_VERSION`|the version of `xcpkg`.|
 |`XCPKG_HOME`|the home directory of `xcpkg`.|
 |`XCPKG`|the executable filepath of `xcpkg`.|
+|||
+|`UPPM`|the executable filepath of [uppm](https://github.com/leleliu008/uppm)|
+|||
+|`CC_FOR_BUILD`|the C Compiler for native build.|
+|`CFLAGS`|the flags of `CC`.|
+|`CXX_FOR_BUILD`|the C++ Compiler for native build.|
+|`CXXFLAGS`|the flags of `CXX`.|
+|`CPP_FOR_BUILD`|the C/C++ PreProcessor for native build.|
+|`CPPFLAGS`|the flags of `CPP`.|
+|`AS_FOR_BUILD`|the assembler for native build.|
+|`AR_FOR_BUILD`|the archiver for native build.|
+|`RANLIB_FOR_BUILD`|the archiver extra tool for native build.|
+|`LD_FOR_BUILD`|the linker for native build.|
+|`LDFLAGS_FOR_BUILD`|the flags of `LD`.|
+|`NM_FOR_BUILD`|a command line tool to list symbols from object files for native build.|
+|`STRIP_FOR_BUILD`|a command line tool to discard symbols and other data from object files for native build.|
 |||
 |`CC`|the C Compiler.|
 |`CFLAGS`|the flags of `CC`.|
