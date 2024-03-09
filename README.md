@@ -10,7 +10,7 @@ A package manager for [Xcode](https://developer.apple.com/xcode) to build C/C++/
 
 - Please do NOT run `xcpkg` command in parallel to avoid generating dirty data.
 
-## Manually build packages using this software via GitHub Actions
+## Using xcpkg via GitHub Actions
 
 In this way, you will be liberated from the rut of setting up the build environment.
 

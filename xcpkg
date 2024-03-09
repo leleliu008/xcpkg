@@ -2445,7 +2445,7 @@ __fetch_resources_of_the_given_package() {
         *)  TARGET_PLATFORM_CANONICAL_NAME="$RECEIPT_PACKAGE_BUILTFOR_PLATFORM_NAME"
     esac
 
-    PACKED_DIR_NAME="$RECEIPT_PACKAGE_PKGNAME-$RECEIPT_PACKAGE_VERSION-$TARGET_PLATFORM_CANONICAL_NAME$RECEIPT_PACKAGE_BUILTFOR_PLATFORM_VERS-$RECEIPT_PACKAGE_BUILTFOR_PLATFORM_ARCH"
+    PACKED_DIR_NAME="$RECEIPT_PACKAGE_PKGNAME-$RECEIPT_PACKAGE_VERSION-$TARGET_PLATFORM_CANONICAL_NAME-$RECEIPT_PACKAGE_BUILTFOR_PLATFORM_VERS-$RECEIPT_PACKAGE_BUILTFOR_PLATFORM_ARCH"
 
     ###########################################################################################
 
@@ -2574,7 +2574,7 @@ __fetch_resources_of_the_given_package() {
             note "you have set DEVELOPER_DIR=$DEVELOPER_DIR, it will be used as the xcode developer directory."
         fi
     else
-        DEVELOPER_DIR="$SPECIFIED_DEVELOPER_DIR"
+        export DEVELOPER_DIR="$SPECIFIED_DEVELOPER_DIR"
     fi
 
     [ -e "$DEVELOPER_DIR" ] || abort 1 "$DEVELOPER_DIR was expected to be exist, but it was not."
@@ -4530,9 +4530,9 @@ EOF
         # https://cmake.org/cmake/help/latest/variable/CMAKE_FIND_LIBRARY_SUFFIXES.html
 
         case $LINK_TYPE in
-            static-only) printf 'set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")\n'          > "$CMAKE_PROJECT_INCLUDE" ;;
+            static-full) printf 'set(CMAKE_FIND_LIBRARY_SUFFIXES ".a")\n'          > "$CMAKE_PROJECT_INCLUDE" ;;
             static-most) printf 'set(CMAKE_FIND_LIBRARY_SUFFIXES ".a" ".dylib")\n' > "$CMAKE_PROJECT_INCLUDE" ;;
-            shared-only) printf 'set(CMAKE_FIND_LIBRARY_SUFFIXES ".dylib")\n'      > "$CMAKE_PROJECT_INCLUDE" ;;
+            shared-full) printf 'set(CMAKE_FIND_LIBRARY_SUFFIXES ".dylib")\n'      > "$CMAKE_PROJECT_INCLUDE" ;;
             shared-most) printf 'set(CMAKE_FIND_LIBRARY_SUFFIXES ".dylib" ".a")\n' > "$CMAKE_PROJECT_INCLUDE" ;;
         esac
 
@@ -4720,10 +4720,10 @@ EOF
         unset libFileNameSuffix
 
         case $LINK_TYPE in
-            static-only|static-most)
+            static-full|static-most)
                 libFileNameSuffix='.a'
                 ;;
-            shared-only|shared-most)
+            shared-full|shared-most)
                 libFileNameSuffix='.dylib'
                 ;;
             *)  abort 1 "unrecognized link type: $LINK_TYPE"
@@ -5565,7 +5565,7 @@ EOF
     esac
 
     case $LINK_TYPE in
-        static-only|static-most) MESON_SETUP_ARGS="$MESON_SETUP_ARGS --prefer-static"
+        static-full|static-most) MESON_SETUP_ARGS="$MESON_SETUP_ARGS --prefer-static"
     esac
 
     MESON_COMPILE_ARGS="-C $PACKAGE_BCACHED_DIR -j $BUILD_NJOBS"
@@ -6156,9 +6156,9 @@ inspect_install_arguments() {
             --link-type=*)
                 LINK_TYPE="${1#*=}"
                 case $LINK_TYPE in
-                    static-only|shared-only|static-most|shared-most) ;;
+                    static-full|shared-full|static-most|shared-most) ;;
                     '') abort 1 "--link-type=<VALUE>, VALUE must be non-empty." ;;
-                    *)  abort 1 "--link-type=<VALUE>, VALUE must be one of static-only|shared-only|static-most|shared-most"
+                    *)  abort 1 "--link-type=<VALUE>, VALUE must be one of static-full|shared-full|static-most|shared-most"
                 esac
                 ;;
             --jobs=*)
@@ -7502,7 +7502,7 @@ ${COLOR_GREEN}xcpkg install <PACKAGE-NAME|PACKAGE-SPEC>... [INSTALL-OPTIONS]${CO
         ${COLOR_BLUE}--build-type=<debug|release>${COLOR_OFF}
             specify the build type.
 
-        ${COLOR_BLUE}--link-type=<shared-only|static-most|shared-most>${COLOR_OFF}
+        ${COLOR_BLUE}--link-type=<shared-full|static-most|shared-most>${COLOR_OFF}
             specify the link strategy.
 
         ${COLOR_BLUE}--disable-ccache${COLOR_OFF}
@@ -7579,7 +7579,7 @@ main() {
 
     XCPKG="$CURRENT_SCRIPT_FILEPATH"
 
-    XCPKG_VERSION=0.16.0
+    XCPKG_VERSION=0.16.1
 
     XCPKG_OFFICIAL_FORMULA_REPO_URL='https://github.com/leleliu008/xcpkg-formula-repository-official-core'
 

@@ -170,7 +170,7 @@ function _xcpkg() {
                         '--dry-run[dry-run]' \
                         '--keep-session-dir[do not delete the session directory even if successfully installed]' \
                         '--build-type=-[specify build type]:build-type:(debug release)' \
-                        '--link-type=-[link static or shared library]:link-type:(shared-only static-most shared-most)' \
+                        '--link-type=-[link static or shared library]:link-type:(shared-full static-most shared-most)' \
                         '--export-compile-commands-json[generates compile_commands.json]' \
                         '--disable-ccache[do not use ccache]' \
                         + '(verbose_level)' \
@@ -186,7 +186,7 @@ function _xcpkg() {
                         '--dry-run[dry-run]' \
                         '--keep-session-dir[do not delete the session directory even if successfully installed]' \
                         '--build-type=-[specify build type]:build-type:(debug release)' \
-                        '--link-type=-[link static or shared library]:link-type:(shared-only static-most shared-most)' \
+                        '--link-type=-[link static or shared library]:link-type:(shared-full static-most shared-most)' \
                         '--export-compile-commands-json[generates compile_commands.json]' \
                         '--disable-ccache[do not use ccache]' \
                         + '(verbose_level)' \
@@ -202,7 +202,7 @@ function _xcpkg() {
                         '--dry-run[dry-run]' \
                         '--keep-session-dir[do not delete the session directory even if successfully installed]' \
                         '--build-type=-[specify build type]:build-type:(debug release)' \
-                        '--link-type=-[link static or shared library]:link-type:(shared-only static-most shared-most)' \
+                        '--link-type=-[link static or shared library]:link-type:(shared-full static-most shared-most)' \
                         '--export-compile-commands-json[generates compile_commands.json]' \
                         '--disable-ccache[do not use ccache]' \
                         + '(verbose_level)' \
