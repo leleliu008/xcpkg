@@ -6962,6 +6962,7 @@ export PATH="$UPPM_PACKAGE_EXEFIND_PATH:\$PATH"
 if [ -d "\$HOME/.uppm/installed/git/libexec/git-core" ] ; then
     export GIT_EXEC_PATH="\$HOME/.uppm/installed/git/libexec/git-core"
     export GIT_TEMPLATE_DIR="\$HOME/.uppm/installed/git/share/git-core/templates"
+    export GIT_CONFIG_NOSYSTEM=1
 fi
 EOF
 
@@ -7576,7 +7577,7 @@ main() {
 
     XCPKG="$CURRENT_SCRIPT_FILEPATH"
 
-    XCPKG_VERSION=0.16.2
+    XCPKG_VERSION=0.16.3
 
     XCPKG_OFFICIAL_FORMULA_REPO_URL='https://github.com/leleliu008/xcpkg-formula-repository-official-core'
 
@@ -7620,6 +7621,8 @@ main() {
     if [ -f "$XCPKG_CORE_DIR/cacert.pem" ] ; then
         export SSL_CERT_FILE="$XCPKG_CORE_DIR/cacert.pem"
     fi
+
+    unset UPPM_HOME
 
     XCPKG_ACTION="$1"
 
