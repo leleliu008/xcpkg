@@ -925,9 +925,17 @@ filetype_from_url() {
     unset PACKAGE_XXFLAGS
     unset PACKAGE_LDFLAGS
 
-    unset PACKAGE_ACTIONS_DO12345
-    unset PACKAGE_ACTIONS_DOPATCH
-    unset PACKAGE_ACTIONS_DOBUILD
+    unset PACKAGE_ONREADY
+    unset PACKAGE_DO12345
+    unset PACKAGE_DOPATCH
+    unset PACKAGE_PREPARE
+    unset PACKAGE_DOBUILD
+    unset PACKAGE_DOTWEAK
+
+    unset PACKAGE_SYMLINK
+
+    unset PACKAGE_PATCHES
+    unset PACKAGE_RESLIST
 
     #########################################################################################
 
@@ -986,12 +994,20 @@ filetype_from_url() {
 
     PACKAGE_DEVELOPER="$(yq '.developer | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
 
-    PACKAGE_ACTIONS_DO12345="$(yq '.do12345 | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
-    PACKAGE_ACTIONS_DOPATCH="$(yq '.dopatch | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
-    PACKAGE_ACTIONS_DOBUILD="$(yq '.install | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
+    PACKAGE_ONREADY="$(yq '.onready | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
+    PACKAGE_DO12345="$(yq '.do12345 | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
+    PACKAGE_DOPATCH="$(yq '.dopatch | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
+    PACKAGE_PREPARE="$(yq '.prepare | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
+    PACKAGE_DOBUILD="$(yq '.install | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
+    PACKAGE_DOTWEAK="$(yq '.dotweak | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
 
-    if [ -z "$PACKAGE_BSYSTEM" ] && [ -n "$PACKAGE_ACTIONS_DOBUILD" ] ; then
-        for FirstWordOfLineInInstallActions in $(printf '%s\n' "$PACKAGE_ACTIONS_DOBUILD" | sed 's|^[ ]*||' | cut -d ' ' -f1)
+    PACKAGE_PATCHES="$(yq '.patches | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
+    PACKAGE_RESLIST="$(yq '.reslist | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
+
+    #########################################################################################
+
+    if [ -z "$PACKAGE_BSYSTEM" ] && [ -n "$PACKAGE_DOBUILD" ] ; then
+        for FirstWordOfLineInInstallActions in $(printf '%s\n' "$PACKAGE_DOBUILD" | sed 's|^[[:space:]]*||' | cut -d ' ' -f1)
         do
             case "$FirstWordOfLineInInstallActions" in
                 configure)    PACKAGE_BSYSTEM=configure ; break ;;
@@ -1008,16 +1024,10 @@ filetype_from_url() {
     #########################################################################################
 
     PACKAGE_NAME="$1"
-    PACKAGE_NAME_UPPERCASE_UNDERSCORE="$(printf '%s\n' "$PACKAGE_NAME" | tr a-z A-Z | tr '@+-.' '_')"
-
-    PACKAGE_BUILD_SYSTEM=$PACKAGE_BSYSTEM
+    PACKAGE_NAME_UPPERCASE_UNDERSCORE=$(printf '%s\n' "$PACKAGE_NAME" | tr a-z A-Z | tr '@+-.' '_')
 
     if [ -n "$PACKAGE_GIT_NTH" ] ; then
         is_integer "$PACKAGE_GIT_NTH" || abort "the value of git-nth mapping should be an integer."
-    fi
-
-    if [ -z "$PACKAGE_SYMLINK" ] ; then
-        PACKAGE_SYMLINK=1
     fi
 
     if [ -z "$PACKAGE_BINBSTD" ] ; then
@@ -1034,10 +1044,20 @@ filetype_from_url() {
         PACKAGE_BUILD_IN_PARALLEL="$PACKAGE_PARALLEL"
     fi
 
+    [ -z "$PACKAGE_SYMLINK" ] && PACKAGE_SYMLINK=1
+
     [ -z "$PACKAGE_SUMMARY" ] && abort 1 "summary mapping not found in $PACKAGE_FORMULA_FILEPATH"
 
     if [ -z "$PACKAGE_WEB_URL" ] && [ -z "$PACKAGE_GIT_URL" ] ; then
         abort 1 "neither web-url nor git-url mapping was found in $PACKAGE_FORMULA_FILEPATH"
+    fi
+
+    if [ -n "$PACKAGE_FIX_URL" ] && [ -n "$PACKAGE_PATCHES" ] ; then
+        abort 1 "fix-url and patches mapping shouldn't be used together in $PACKAGE_FORMULA_FILEPATH"
+    fi
+
+    if [ -n "$PACKAGE_RES_URL" ] && [ -n "$PACKAGE_RESLIST" ] ; then
+        abort 1 "res-url and reslist mapping shouldn't be used together in $PACKAGE_FORMULA_FILEPATH"
     fi
 
     #########################################################################################
@@ -1047,23 +1067,20 @@ filetype_from_url() {
 
     #########################################################################################
 
-    if [ -z "$PACKAGE_SRC_URL" ] ; then
-        if [ -z "$PACKAGE_GIT_URL" ] ; then
-            abort 1 "neither src-url nor git-url mapping was found in $PACKAGE_FORMULA_FILEPATH"
-        fi
-
-        PACKAGE_SRC_FILETYPE=.git
-
-        if [ -z "$PACKAGE_VERSION" ] ; then
-            PACKAGE_VERSION="$(date -u -d "@$TIMESTAMP_UNIX" '+%Y.%m.%d')"
-        fi
-
-        PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP git"
-    else
+    if [ -n "$PACKAGE_SRC_URL" ] ; then
         case $PACKAGE_SRC_URL in
             dir://*)
                 PACKAGE_SRC_FILETYPE=.dir
                 PACKAGE_SRC_FILEPATH=$(printf '%s\n' "$PACKAGE_SRC_URL" | cut -c7-)
+
+                if [ -z "$PACKAGE_VERSION" ] ; then
+                    PACKAGE_VERSION="$(date -u -d "@$TIMESTAMP_UNIX" '+%Y.%m.%d')"
+                fi
+                ;;
+            file://*)
+                PACKAGE_SRC_FILEPATH=$(printf '%s\n' "$PACKAGE_SRC_URL" | cut -c8-)
+                PACKAGE_SRC_FILENAME="$(basename "$PACKAGE_SRC_FILEPATH")"
+                PACKAGE_SRC_FILETYPE="$(filetype_from_url "$PACKAGE_SRC_FILENAME")"
 
                 if [ -z "$PACKAGE_VERSION" ] ; then
                     PACKAGE_VERSION="$(date -u -d "@$TIMESTAMP_UNIX" '+%Y.%m.%d')"
@@ -1088,10 +1105,20 @@ filetype_from_url() {
                 PACKAGE_NEED_CURL=1
 
                 case $PACKAGE_SRC_FILETYPE in
-                    .zip|.txz|.tgz|.tlz|.tbz2)
+                    .zip|.txz|.tgz|.tlz|.tbz2|.crate)
                         PACKAGE_NEED_BTAR=1
                 esac
         esac
+    else
+        if [ -n "$PACKAGE_GIT_URL" ] ; then
+            PACKAGE_SRC_FILETYPE=.git
+
+            if [ -z "$PACKAGE_VERSION" ] ; then
+                PACKAGE_VERSION="$(date -u -d "@$TIMESTAMP_UNIX" '+%Y.%m.%d')"
+            fi
+
+            PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP git"
+        fi
     fi
 
     #########################################################################################
@@ -1106,7 +1133,7 @@ filetype_from_url() {
         PACKAGE_NEED_CURL=1
 
         case $PACKAGE_SRC_FILETYPE in
-            .zip|.txz|.tgz|.tlz|.tbz2)
+            .zip|.txz|.tgz|.tlz|.tbz2|.crate)
                 PACKAGE_NEED_BTAR=1
         esac
     }
@@ -1123,10 +1150,31 @@ filetype_from_url() {
         PACKAGE_NEED_CURL=1
 
         case $PACKAGE_SRC_FILETYPE in
-            .zip|.txz|.tgz|.tlz|.tbz2)
+            .zip|.txz|.tgz|.tlz|.tbz2|.crate)
                 PACKAGE_NEED_BTAR=1
         esac
     }
+
+    #########################################################################################
+
+    for LINE in $PACKAGE_PATCHES $PACKAGE_RESLIST
+    do
+        SHA="$(printf '%s\n' "$LINE" | cut -d '|' -f1)"
+        URL="$(printf '%s\n' "$LINE" | cut -d '|' -f2)"
+
+        FILETYPE="$(filetype_from_url "$URL")"
+
+        if [ "${#SHA}" -ne 64 ] ; then
+            abort 1 "not a sha256sum in line: $LINE in file: $PACKAGE_FORMULA_FILEPATH"
+        fi
+
+        PACKAGE_NEED_CURL=1
+
+        case $FILETYPE in
+            .zip|.txz|.tgz|.tlz|.tbz2|.crate)
+                PACKAGE_NEED_BTAR=1
+        esac
+    done
 
     #########################################################################################
 
@@ -1144,33 +1192,33 @@ filetype_from_url() {
 
     #########################################################################################
 
-    for item in $PACKAGE_BUILD_SYSTEM
+    for item in $PACKAGE_BSYSTEM
     do
         case $item in
-            autogen)     PACKAGE_BUILD_SYSTEM_AUTOGENSH=1 ; PACKAGE_BUILD_SYSTEM_GMAKE=1 ;;
-            autotools)   PACKAGE_BUILD_SYSTEM_AUTOTOOLS=1 ; PACKAGE_BUILD_SYSTEM_GMAKE=1 ;;
-            configure)   PACKAGE_BUILD_SYSTEM_CONFIGURE=1 ; PACKAGE_BUILD_SYSTEM_GMAKE=1 ;;
-            cmake-gmake) PACKAGE_BUILD_SYSTEM_CMAKE=1     ; PACKAGE_BUILD_SYSTEM_GMAKE=1 ;;
-            cmake-ninja) PACKAGE_BUILD_SYSTEM_CMAKE=1     ; PACKAGE_BUILD_SYSTEM_NINJA=1 ;;
-            cmake)       PACKAGE_BUILD_SYSTEM_CMAKE=1     ; PACKAGE_BUILD_SYSTEM_NINJA=1 ;;
-            xmake)       PACKAGE_BUILD_SYSTEM_XMAKE=1     ;;
-            meson)       PACKAGE_BUILD_SYSTEM_MESON=1     ; PACKAGE_BUILD_SYSTEM_NINJA=1 ;;
-            ninja)       PACKAGE_BUILD_SYSTEM_NINJA=1     ;;
-            gmake)       PACKAGE_BUILD_SYSTEM_GMAKE=1     ;;
-            rake)        PACKAGE_BUILD_SYSTEM_RAKE=1      ;;
-            cargo)       PACKAGE_BUILD_SYSTEM_CARGO=1     ;;
-            go)          PACKAGE_BUILD_SYSTEM_GO=1        ;;
+            autogen)     PACKAGE_USE_BSYSTEM_AUTOGENSH=1 ; PACKAGE_USE_BSYSTEM_GMAKE=1 ;;
+            autotools)   PACKAGE_USE_BSYSTEM_AUTOTOOLS=1 ; PACKAGE_USE_BSYSTEM_GMAKE=1 ;;
+            configure)   PACKAGE_USE_BSYSTEM_CONFIGURE=1 ; PACKAGE_USE_BSYSTEM_GMAKE=1 ;;
+            cmake-gmake) PACKAGE_USE_BSYSTEM_CMAKE=1     ; PACKAGE_USE_BSYSTEM_GMAKE=1 ;;
+            cmake-ninja) PACKAGE_USE_BSYSTEM_CMAKE=1     ; PACKAGE_USE_BSYSTEM_NINJA=1 ;;
+            cmake)       PACKAGE_USE_BSYSTEM_CMAKE=1     ; PACKAGE_USE_BSYSTEM_NINJA=1 ;;
+            xmake)       PACKAGE_USE_BSYSTEM_XMAKE=1     ;;
+            meson)       PACKAGE_USE_BSYSTEM_MESON=1     ; PACKAGE_USE_BSYSTEM_NINJA=1 ;;
+            ninja)       PACKAGE_USE_BSYSTEM_NINJA=1     ;;
+            gmake)       PACKAGE_USE_BSYSTEM_GMAKE=1     ;;
+            rake)        PACKAGE_USE_BSYSTEM_RAKE=1      ;;
+            cargo)       PACKAGE_USE_BSYSTEM_CARGO=1     ;;
+            go)          PACKAGE_USE_BSYSTEM_GO=1        ;;
         esac
     done
 
     #########################################################################################
 
-    for item in $PACKAGE_BUILD_SYSTEM
+    for item in $PACKAGE_BSYSTEM
     do
         case $item in
-            autogen)     PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP automake autoconf perl gm4 gmake" ;;
-            autotools)   PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP automake autoconf perl gm4 gmake" ;;
-            configure)   PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP gmake"  ;;
+            autogen)     PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP gmake gm4 perl autoconf automake" ;;
+            autotools)   PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP gmake gm4 perl autoconf automake" ;;
+            configure)   PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP gmake"        ;;
             cmake-gmake) PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP cmake gmake"  ;;
             cmake-ninja) PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP cmake ninja"  ;;
             cmake)       PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP cmake ninja"  ;;
@@ -1185,25 +1233,31 @@ filetype_from_url() {
 
     #########################################################################################
 
-    [ -z "$PACKAGE_ACTIONS_DOBUILD" ] && {
-        case $PACKAGE_BUILD_SYSTEM in
-            autogen)   PACKAGE_ACTIONS_DOBUILD='configure' ;;
-            autotools) PACKAGE_ACTIONS_DOBUILD='configure' ;;
-            configure) PACKAGE_ACTIONS_DOBUILD='configure' ;;
-            cmake*)    PACKAGE_ACTIONS_DOBUILD='cmakew' ;;
-            xmake)     PACKAGE_ACTIONS_DOBUILD='xmakew' ;;
-            meson)     PACKAGE_ACTIONS_DOBUILD='mesonw' ;;
-            ninja)     PACKAGE_ACTIONS_DOBUILD='ninjaw clean && ninjaw && ninjaw install' ;;
-            gmake)     PACKAGE_ACTIONS_DOBUILD='gmakew clean && gmakew && gmakew install' ;;
-            cargo)     PACKAGE_ACTIONS_DOBUILD='cargow install' ;;
-            go)        PACKAGE_ACTIONS_DOBUILD='gow' ;;
+    [ -z "$PACKAGE_DOBUILD" ] && {
+        case $PACKAGE_BSYSTEM in
+            autogen)   PACKAGE_DOBUILD='configure' ;;
+            autotools) PACKAGE_DOBUILD='configure' ;;
+            configure) PACKAGE_DOBUILD='configure' ;;
+            cmake*)    PACKAGE_DOBUILD='cmakew' ;;
+            xmake)     PACKAGE_DOBUILD='xmakew' ;;
+            meson)     PACKAGE_DOBUILD='mesonw' ;;
+            ninja)     PACKAGE_DOBUILD='ninjaw clean && ninjaw && ninjaw install' ;;
+            gmake)     PACKAGE_DOBUILD='gmakew clean && gmakew && gmakew install' ;;
+            cargo)     PACKAGE_DOBUILD='cargow install' ;;
+            go)        PACKAGE_DOBUILD='gow' ;;
             *)         abort 1 "install mapping not found in $PACKAGE_FORMULA_FILEPATH"
         esac
     }
 
     #########################################################################################
 
-    [ "$PACKAGE_BUILD_SYSTEM_MESON" = 1 ] && {
+    if [ -n "$PACKAGE_FIX_URL" ] || [ -n "$PACKAGE_PATCHES" ] ; then
+        PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP patch"
+    fi
+
+    #########################################################################################
+
+    [ "$PACKAGE_USE_BSYSTEM_MESON" = 1 ] && {
         PACKAGE_DEP_PYM="$PACKAGE_DEP_PYM meson"
     }
 
@@ -1212,20 +1266,24 @@ filetype_from_url() {
     }
 
     [ -n "$PACKAGE_DEP_PLM" ] && {
-        PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP perl"
+        PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP perl gmake"
     }
 
-    [ "$PACKAGE_BUILD_SYSTEM_GO" = 1 ] && {
+    [ "$PACKAGE_BUILD_IN_PARALLEL" = 0 ] && {
+        BUILD_NJOBS=1
+    }
+
+    [ "$PACKAGE_USE_BSYSTEM_GO" = 1 ] && {
         PACKAGE_BINBSTD=1
         PACKAGE_BUILD_IN_BSCRIPT_DIR=1
     }
 
-    [ "$PACKAGE_BUILD_SYSTEM_CARGO" = 1 ] && {
+    [ "$PACKAGE_USE_BSYSTEM_CARGO" = 1 ] && {
         PACKAGE_BINBSTD=1
         PACKAGE_BUILD_IN_BSCRIPT_DIR=1
     }
 
-    [ "$PACKAGE_BUILD_SYSTEM_XMAKE" = 1 ] && {
+    [ "$PACKAGE_USE_BSYSTEM_XMAKE" = 1 ] && {
         PACKAGE_BINBSTD=1
         PACKAGE_BUILD_IN_BSCRIPT_DIR=1
     }
@@ -1646,8 +1704,8 @@ __search_packages() {
         --arg dep_upp "$PACKAGE_DEP_UPP" \
         --arg dep_pym "$PACKAGE_DEP_PYM" \
         --arg dep_plm "$PACKAGE_DEP_PLM" \
-        --arg dopatch "$PACKAGE_ACTIONS_DOPATCH" \
-        --arg install "$PACKAGE_ACTIONS_DOBUILD" \
+        --arg dopatch "$PACKAGE_DOPATCH" \
+        --arg install "$PACKAGE_DOBUILD" \
         --arg bsystem "$PACKAGE_BSYSTEM" \
         --arg binbstd "$PACKAGE_BINBSTD" \
         --arg ccflags "$PACKAGE_CCFLAGS" \
@@ -1824,11 +1882,11 @@ EOF
             ;;
         dopatch)
             __load_formula_of_the_given_package "$1"
-            printf '%s\n' "$PACKAGE_ACTIONS_DOPATCH"
+            printf '%s\n' "$PACKAGE_DOPATCH"
             ;;
         install)
             __load_formula_of_the_given_package "$1"
-            printf '%s\n' "$PACKAGE_ACTIONS_DOBUILD"
+            printf '%s\n' "$PACKAGE_DOBUILD"
             ;;
         developer)
             __load_formula_of_the_given_package "$1"
@@ -2282,14 +2340,19 @@ __fetch_resources_of_the_given_package() {
 
     __load_formula_of_the_given_package "$1"
 
-    if [ "$PACKAGE_SRC_FILETYPE" = '.dir' ] ; then
-        note "$PACKAGE_SRC_URL is local path, no need to fetch."
-        return 0
-    fi
-
-    SESSION_DIR="$XCPKG_HOME/run/$$"
-
-    if [ -z "$PACKAGE_SRC_URL" ] ; then
+    if [ -n "$PACKAGE_SRC_URL" ] ; then
+        case $PACKAGE_SRC_URL in
+            dir://*)
+                note "$PACKAGE_SRC_URL is local path, no need to fetch."
+                return 0
+                ;;
+            file://*)
+                note "$PACKAGE_SRC_URL is local path, no need to fetch."
+                return 0
+                ;;
+            *)  wfetch "$PACKAGE_SRC_URL" --uri="$PACKAGE_SRC_URI" --sha256="$PACKAGE_SRC_SHA" -o "$PACKAGE_SRC_FILEPATH"
+        esac
+    elif [ -n "$PACKAGE_GIT_URL" ] ; then
         unset GIT_FETCH_URL
 
         if [ -z "$XCPKG_URL_TRANSFORM" ] ; then
@@ -2325,6 +2388,8 @@ __fetch_resources_of_the_given_package() {
             GIT_FETCH_EXTRA_OPTIONS="--depth=$PACKAGE_GIT_NTH"
         fi
 
+        SESSION_DIR="$XCPKG_HOME/run/$$"
+
         run rm -rf     "$SESSION_DIR"
         run install -d "$SESSION_DIR"
         run cd         "$SESSION_DIR"
@@ -2333,8 +2398,8 @@ __fetch_resources_of_the_given_package() {
         run git -c protocol.version=2 fetch --progress $GIT_FETCH_EXTRA_OPTIONS origin "$GIT_REF_SPEC"
         run git checkout --progress --force -B "$GIT_BRANCH_NAME" "refs/remotes/origin/$GIT_BRANCH_NAME"
         run git submodule update --init
-    else
-        wfetch "$PACKAGE_SRC_URL" --uri="$PACKAGE_SRC_URI" --sha256="$PACKAGE_SRC_SHA" -o "$PACKAGE_SRC_FILEPATH"
+
+        rm -rf "$SESSION_DIR"
     fi
 
     if [ -n    "$PACKAGE_FIX_URL" ] ; then
@@ -2343,10 +2408,6 @@ __fetch_resources_of_the_given_package() {
 
     if [ -n    "$PACKAGE_RES_URL" ] ; then
         wfetch "$PACKAGE_RES_URL" --uri="$PACKAGE_RES_URI" --sha256="$PACKAGE_RES_SHA" -o "$PACKAGE_RES_FILEPATH"
-    fi
-
-    if [    -d "$SESSION_DIR" ] ; then
-        rm -rf "$SESSION_DIR"
     fi
 }
 
@@ -3800,73 +3861,80 @@ $DOT_CONTENT
 
     #########################################################################################
 
-    step "fetch source/patches/resources from server"
+    step "fetch source/patches/resources"
 
-    if [ "$PACKAGE_SRC_FILETYPE" = '.dir' ] ; then
-        note "$PACKAGE_SRC_URL is local path, no need to fetch."
-    elif [ -z "$PACKAGE_SRC_URL" ] ; then
-        unset GIT_FETCH_URL
+    case $PACKAGE_SRC_URL in
+        '')
+            if [ -n "$PACKAGE_GIT_URL" ] ; then
+                unset GIT_FETCH_URL
 
-        if [ -z "$XCPKG_URL_TRANSFORM" ] ; then
-            GIT_FETCH_URL="$PACKAGE_GIT_URL"
-        else
-            GIT_FETCH_URL="$("$XCPKG_URL_TRANSFORM" "$PACKAGE_GIT_URL")" || return 1
-        fi
+                if [ -z "$XCPKG_URL_TRANSFORM" ] ; then
+                    GIT_FETCH_URL="$PACKAGE_GIT_URL"
+                else
+                    GIT_FETCH_URL="$("$XCPKG_URL_TRANSFORM" "$PACKAGE_GIT_URL")" || return 1
+                fi
 
-        if [ -z "$PACKAGE_GIT_SHA" ] ; then
-            if [ -z "$PACKAGE_GIT_REF" ] ; then
-                GIT_BRANCH_NAME=master
-                GIT_REF_SPEC="+HEAD:refs/remotes/origin/master"
-            else
-                GIT_BRANCH_NAME="$(basename "$PACKAGE_GIT_REF")"
-                GIT_REF_SPEC="+$PACKAGE_GIT_REF:refs/remotes/origin/$GIT_BRANCH_NAME"
+                if [ -z "$PACKAGE_GIT_SHA" ] ; then
+                    if [ -z "$PACKAGE_GIT_REF" ] ; then
+                        GIT_BRANCH_NAME=master
+                        GIT_REF_SPEC="+HEAD:refs/remotes/origin/master"
+                    else
+                        GIT_BRANCH_NAME="$(basename "$PACKAGE_GIT_REF")"
+                        GIT_REF_SPEC="+$PACKAGE_GIT_REF:refs/remotes/origin/$GIT_BRANCH_NAME"
+                    fi
+                else
+                    GIT_BRANCH_NAME=master
+                    GIT_REF_SPEC="+$PACKAGE_GIT_SHA:refs/remotes/origin/master"
+                fi
+
+                if [ -z "$PACKAGE_GIT_NTH" ] ; then
+                    PACKAGE_GIT_NTH=1
+                fi
+
+                if [ "$PACKAGE_GIT_NTH" -eq 0 ] ; then
+                    if [ -f "$PACKAGE_SRC_FILEPATH/.git/shallow" ] ; then
+                        GIT_FETCH_EXTRA_OPTIONS='--unshallow'
+                    else
+                        GIT_FETCH_EXTRA_OPTIONS=
+                    fi
+                else
+                    GIT_FETCH_EXTRA_OPTIONS="--depth=$PACKAGE_GIT_NTH"
+                fi
+
+                run cd "$PACKAGE_INSTALLING_SRC_DIR"
+                run git -c init.defaultBranch=master init
+                run git remote add origin "$GIT_FETCH_URL"
+                run git -c protocol.version=2 fetch --progress $GIT_FETCH_EXTRA_OPTIONS origin "$GIT_REF_SPEC"
+                run git checkout --progress --force -B "$GIT_BRANCH_NAME" "refs/remotes/origin/$GIT_BRANCH_NAME"
+
+                GIT_SUBMODULE_PATH_LIST="$(find . -name .gitmodules)"
+
+                if [ -n "$GIT_SUBMODULE_PATH_LIST" ] ; then
+                    if [ -n "$XCPKG_URL_TRANSFORM" ] ; then
+                        for GIT_SUBMODULE_PATH in $GIT_SUBMODULE_PATH_LIST
+                        do
+                            GIT_SUBMODULE_URLS="$(grep 'url = ' "$GIT_SUBMODULE_PATH" | sed 's|[[:space:]]||g' | cut -c5-)"
+
+                            for GIT_SUBMODULE_URL in $GIT_SUBMODULE_URLS
+                            do
+                                GIT_SUBMODULE_URI="$("$XCPKG_URL_TRANSFORM" "$GIT_SUBMODULE_URL")"
+                                sed_in_place "s|$GIT_SUBMODULE_URL|$GIT_SUBMODULE_URI|" "$GIT_SUBMODULE_PATH"
+                            done
+                        done
+                    fi
+
+                    run git submodule update --init
+                fi
             fi
-        else
-            GIT_BRANCH_NAME=master
-            GIT_REF_SPEC="+$PACKAGE_GIT_SHA:refs/remotes/origin/master"
-        fi
-
-        if [ -z "$PACKAGE_GIT_NTH" ] ; then
-            PACKAGE_GIT_NTH=1
-        fi
-
-        if [ "$PACKAGE_GIT_NTH" -eq 0 ] ; then
-            if [ -f "$PACKAGE_SRC_FILEPATH/.git/shallow" ] ; then
-                GIT_FETCH_EXTRA_OPTIONS='--unshallow'
-            else
-                GIT_FETCH_EXTRA_OPTIONS=
-            fi
-        else
-            GIT_FETCH_EXTRA_OPTIONS="--depth=$PACKAGE_GIT_NTH"
-        fi
-
-        run cd "$PACKAGE_INSTALLING_SRC_DIR"
-        run git -c init.defaultBranch=master init
-        run git remote add origin "$GIT_FETCH_URL"
-        run git -c protocol.version=2 fetch --progress $GIT_FETCH_EXTRA_OPTIONS origin "$GIT_REF_SPEC"
-        run git checkout --progress --force -B "$GIT_BRANCH_NAME" "refs/remotes/origin/$GIT_BRANCH_NAME"
-
-        GIT_SUBMODULE_PATH_LIST="$(find . -name .gitmodules)"
-
-        if [ -n "$GIT_SUBMODULE_PATH_LIST" ] ; then
-            if [ -n "$XCPKG_URL_TRANSFORM" ] ; then
-                for GIT_SUBMODULE_PATH in $GIT_SUBMODULE_PATH_LIST
-                do
-                    GIT_SUBMODULE_URLS="$(grep 'url = ' "$GIT_SUBMODULE_PATH" | sed 's|[[:space:]]||g' | cut -c5-)"
-
-                    for GIT_SUBMODULE_URL in $GIT_SUBMODULE_URLS
-                    do
-                        GIT_SUBMODULE_URI="$("$XCPKG_URL_TRANSFORM" "$GIT_SUBMODULE_URL")"
-                        sed_in_place "s|$GIT_SUBMODULE_URL|$GIT_SUBMODULE_URI|" "$GIT_SUBMODULE_PATH"
-                    done
-                done
-            fi
-
-            run git submodule update --init
-        fi
-    else
-        wfetch "$PACKAGE_SRC_URL" --uri="$PACKAGE_SRC_URI" --sha256="$PACKAGE_SRC_SHA" -o "$PACKAGE_SRC_FILEPATH"
-    fi
+            ;;
+        dir://*)
+            note "$PACKAGE_SRC_URL is local path, no need to fetch."
+            ;;
+        file://*)
+            note "$PACKAGE_SRC_URL is local path, no need to fetch."
+            ;;
+        *)  wfetch "$PACKAGE_SRC_URL" --uri="$PACKAGE_SRC_URI" --sha256="$PACKAGE_SRC_SHA" -o "$PACKAGE_SRC_FILEPATH"
+    esac
 
     if [ -n    "$PACKAGE_FIX_URL" ] ; then
         wfetch "$PACKAGE_FIX_URL" --uri="$PACKAGE_FIX_URI" --sha256="$PACKAGE_FIX_SHA" -o "$PACKAGE_FIX_FILEPATH"
@@ -3878,54 +3946,103 @@ $DOT_CONTENT
 
     #########################################################################################
 
-    case $PACKAGE_SRC_FILETYPE in
-        .dir)
-            if [ "$PACKAGE_SRC_FILEPATH" = '/dev/null' ] ; then
-                :
-            elif [ -d "$PACKAGE_SRC_FILEPATH" ] ; then
-                if [ -d "$PACKAGE_SRC_FILEPATH/.git" ] && command -v git > /dev/null ; then
-                    PACKAGE_GIT_SHA=$(git -C "$PACKAGE_SRC_FILEPATH" rev-parse HEAD || true)
+    step "unpack or copy source/patches/resources to proper location"
+
+    if [ -n "$PACKAGE_SRC_FILEPATH" ] ; then
+        case $PACKAGE_SRC_FILETYPE in
+            .dir)
+                if [ -d "$PACKAGE_SRC_FILEPATH" ] ; then
+                    if [ -d "$PACKAGE_SRC_FILEPATH/.git" ] && command -v git > /dev/null ; then
+                        PACKAGE_GIT_SHA=$(git -C "$PACKAGE_SRC_FILEPATH" rev-parse HEAD || true)
+                    fi
+                    run cp -r "$PACKAGE_SRC_FILEPATH/." "$PACKAGE_INSTALLING_SRC_DIR"
+                else
+                    abort 1 "src-url point to dir '$PACKAGE_SRC_FILEPATH' does not exist."
                 fi
-                step "copy source files to the installing src directory"
-                run cp -r "$PACKAGE_SRC_FILEPATH/." "$PACKAGE_INSTALLING_SRC_DIR"
-            else
-                abort 1 "src-url point to dir does not exist."
-            fi
-            ;;
-        .git)
-            if [ -z "$PACKAGE_GIT_SHA" ] ; then
-                PACKAGE_GIT_SHA="$(git rev-parse HEAD)"
-            fi
-            ;;
-        .zip|.txz|.tgz|.tlz|.tbz2)
-            step "uncompressed source file to the installing src directory"
-            run bsdtar xf "$PACKAGE_SRC_FILEPATH" -C "$PACKAGE_INSTALLING_SRC_DIR" --strip-components 1 --no-same-owner
-            ;;
-        *)  step "copy source files to the installing src directory"
-            run cp "$PACKAGE_SRC_FILEPATH" "$PACKAGE_INSTALLING_SRC_DIR/"
-    esac
+                ;;
+            .git)
+                if [ -z "$PACKAGE_GIT_SHA" ] ; then
+                    PACKAGE_GIT_SHA="$(git rev-parse HEAD)"
+                fi
+                ;;
+            .zip|.txz|.tgz|.tlz|.tbz2|.crate)
+                run bsdtar xf "$PACKAGE_SRC_FILEPATH" -C "$PACKAGE_INSTALLING_SRC_DIR" --strip-components 1 --no-same-owner
+                ;;
+            *)  run cp "$PACKAGE_SRC_FILEPATH" "$PACKAGE_INSTALLING_SRC_DIR/"
+        esac
+    fi
 
     if [ -n "$PACKAGE_FIX_FILEPATH" ] ; then
         case $PACKAGE_FIX_FILETYPE in
-            .zip|.txz|.tgz|.tlz|.tbz2)
-                step "uncompressed patch file to the installing fix directory"
+            .zip|.txz|.tgz|.tlz|.tbz2|.crate)
                 run bsdtar xf "$PACKAGE_FIX_FILEPATH" -C "$PACKAGE_INSTALLING_FIX_DIR" --strip-components 1 --no-same-owner
                 ;;
-            *)  step "copy patch file to the installing fix directory"
-                run cp "$PACKAGE_FIX_FILEPATH" "$PACKAGE_INSTALLING_FIX_DIR/"
+            *)  run cp "$PACKAGE_FIX_FILEPATH" "$PACKAGE_INSTALLING_FIX_DIR/"
+                printf '%s|%s\n' "$PACKAGE_FIX_FILENAME" "$PACKAGE_FIX_OPT" > "$PACKAGE_INSTALLING_FIX_DIR/index"
         esac
     fi
 
     if [ -n "$PACKAGE_RES_FILEPATH" ] ; then
         case $PACKAGE_RES_FILETYPE in
-            .zip|.txz|.tgz|.tlz|.tbz2)
-                step "uncompressed res file to the installing res directory"
+            .zip|.txz|.tgz|.tlz|.tbz2|.crate)
                 run bsdtar xf "$PACKAGE_RES_FILEPATH" -C "$PACKAGE_INSTALLING_RES_DIR" --strip-components 1 --no-same-owner
                 ;;
-            *)  step "copy res file to the installing res directory"
-                run cp "$PACKAGE_RES_FILEPATH" "$PACKAGE_INSTALLING_RES_DIR/"
+            *)  run cp "$PACKAGE_RES_FILEPATH" "$PACKAGE_INSTALLING_RES_DIR/"
         esac
     fi
+
+    for LINE in $PACKAGE_PATCHES
+    do
+        SHA="$(printf '%s\n' "$LINE" | cut -d '|' -f1)"
+        URL="$(printf '%s\n' "$LINE" | cut -d '|' -f2)"
+        URI="$(printf '%s\n' "$LINE" | cut -d '|' -f3)"
+        OPT="$(printf '%s\n' "$LINE" | cut -d '|' -f4)"
+
+        FILETYPE="$(filetype_from_url "$URL")"
+        FILENAME="$SHA$FILETYPE"
+        FILEPATH="$XCPKG_DOWNLOADS_DIR/$FILENAME"
+
+        wfetch "$URL" --uri="$URI" --sha256="$SHA" -o "$FILEPATH"
+
+        case $FILETYPE in
+            .zip|.txz|.tgz|.tlz|.tbz2|.crate)
+                run bsdtar xf "$FILEPATH" -C "$PACKAGE_INSTALLING_FIX_DIR" --strip-components 1 --no-same-owner
+                ;;
+            *)  run cp "$FILEPATH" "$PACKAGE_INSTALLING_FIX_DIR/"
+                printf '%s|%s\n' "$FILENAME" "$PACKAGE_FIX_OPT" >> "$PACKAGE_INSTALLING_FIX_DIR/index"
+        esac
+    done
+
+    for LINE in $PACKAGE_RESLIST
+    do
+        SHA="$(printf '%s\n' "$LINE" | cut -d '|' -f1)"
+        URL="$(printf '%s\n' "$LINE" | cut -d '|' -f2)"
+        URI="$(printf '%s\n' "$LINE" | cut -d '|' -f3)"
+        DIR="$(printf '%s\n' "$LINE" | cut -d '|' -f4)"
+        LEV="$(printf '%s\n' "$LINE" | cut -d '|' -f5)"
+
+        [ -z "$LEV" ] && LEV=1
+
+        FILETYPE="$(filetype_from_url "$URL")"
+        FILENAME="$SHA$FILETYPE"
+        FILEPATH="$XCPKG_DOWNLOADS_DIR/$FILENAME"
+
+        wfetch "$URL" --uri="$URI" --sha256="$SHA" -o "$FILEPATH"
+
+        if [ -z "$DIR" ] ; then
+            DEST="$PACKAGE_INSTALLING_RES_DIR"
+        else
+            DEST="$PACKAGE_INSTALLING_RES_DIR/$DIR"
+            run install -d "$DEST"
+        fi
+
+        case $FILETYPE in
+            .zip|.txz|.tgz|.tlz|.tbz2|.crate)
+                run bsdtar xf "$FILEPATH" -C "$DEST" --strip-components "$LEV" --no-same-owner
+                ;;
+            *)  run cp "$FILEPATH" "$DEST/"
+        esac
+    done
 
     #########################################################################################
 
@@ -3980,11 +4097,26 @@ $DOT_CONTENT
 
     #########################################################################################
 
+    if [ -n "$PACKAGE_ONREADY" ] ; then
+        step "onready"
+
+        if [ "$PWD" != "$PACKAGE_BSCRIPT_DIR" ] ; then
+            run cd "$PACKAGE_BSCRIPT_DIR"
+        fi
+        eval "
+onready() {
+$PACKAGE_ONREADY
+}"
+        onready "$1"
+    fi
+
+    #########################################################################################
+
     step "build for native"
 
     if [ "$CROSS_COMPILING" = 0 ] ; then
         note "not cross compiling, skipped."
-    elif [ -z "$PACKAGE_ACTIONS_DO12345" ] ; then
+    elif [ -z "$PACKAGE_DO12345" ] ; then
         note "do12345 mapping was not found in formula, skipped."
     else
         NATIVE_BUILD_NEEDED=1
@@ -4023,7 +4155,7 @@ EOF
 
                 eval "
 build_for_native() {
-$PACKAGE_ACTIONS_DO12345
+$PACKAGE_DO12345
 }"
 
                 BUILD_FOR_NATIVE=1
@@ -4801,10 +4933,20 @@ EOF
         run     cd "$PACKAGE_BSCRIPT_DIR"
     fi
 
-    if [ -n "$PACKAGE_ACTIONS_DOPATCH" ] ; then
+    if [ -f "$PACKAGE_INSTALLING_FIX_DIR/index" ] ; then
+        for LINE in $(cat "$PACKAGE_INSTALLING_FIX_DIR/index")
+        do
+            FILE="$(printf '%s\n' "$LINE" | cut -d '|' -f1)"
+            OPTS="$(printf '%s\n' "$LINE" | cut -d '|' -f2)"
+            [ -z "$OPTS" ] && OPTS='-p1'
+            run "patch $OPTS < $PACKAGE_INSTALLING_FIX_DIR/$FILE"
+        done
+    fi
+
+    if [ -n "$PACKAGE_DOPATCH" ] ; then
         eval "
 dopatch() {
-$PACKAGE_ACTIONS_DOPATCH
+$PACKAGE_DOPATCH
 }"
         dopatch "$1"
     else
@@ -4858,6 +5000,21 @@ $PACKAGE_ACTIONS_DOPATCH
 
     #########################################################################################
 
+    if [ -n "$PACKAGE_PREPARE" ] ; then
+        step "prepare for target"
+
+        if [ "$PWD" != "$PACKAGE_BSCRIPT_DIR" ] ; then
+            run     cd "$PACKAGE_BSCRIPT_DIR"
+        fi
+        eval "
+prepare() {
+$PACKAGE_PREPARE
+}"
+        prepare "$1"
+    fi
+
+    #########################################################################################
+
     step "install for target"
 
     if [ "$PACKAGE_BUILD_IN_BSCRIPT_DIR" = 1 ] ; then
@@ -4872,23 +5029,37 @@ $PACKAGE_ACTIONS_DOPATCH
 
     eval "
 dobuild() {
-$PACKAGE_ACTIONS_DOBUILD
+$PACKAGE_DOBUILD
 }"
 
     dobuild "$1"
 
     #########################################################################################
 
-    [ "$PACKAGE_BUILD_SYSTEM_CARGO" = 1 ] && {
-        rm -f "$PACKAGE_INSTALL_DIR/.crates.toml"
-        rm -f "$PACKAGE_INSTALL_DIR/.crates2.json"
-    }
+    run cd "$PACKAGE_INSTALL_DIR" || abort 1 "nothing is installed."
+
+    [ -z "$(ls)" ]                && abort 1 "nothing is installed."
 
     #########################################################################################
 
-    cd "$PACKAGE_INSTALL_DIR" || abort 1 "nothing is installed."
+    step "do some tweaks"
 
-    [ -z "$(ls)" ]            && abort 1 "nothing is installed."
+    if [ -n "$PACKAGE_DOTWEAK" ] ; then
+        eval "
+dotweak() {
+$PACKAGE_DOTWEAK
+}"
+        dotweak "$1"
+    else
+        note "dotweak mapping was not found in formula, skipped."
+    fi
+
+    #########################################################################################
+
+    [ "$PACKAGE_USE_BSYSTEM_CARGO" = 1 ] && {
+        rm -f "$PACKAGE_INSTALL_DIR/.crates.toml"
+        rm -f "$PACKAGE_INSTALL_DIR/.crates2.json"
+    }
 
     #########################################################################################
 

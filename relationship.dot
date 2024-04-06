@@ -1,5 +1,0 @@
-digraph {
-  do12345 [style="dashed"]
-  do12345 -> dopatch
-  dopatch -> install
-}
