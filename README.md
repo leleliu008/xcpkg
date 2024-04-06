@@ -1,6 +1,6 @@
 # xcpkg
 
-A package manager for [Xcode](https://developer.apple.com/xcode) to build C/C++/Rust/Go project.
+A package builder/manager for [Xcode](https://developer.apple.com/xcode) to build C/C++/Rust/Go project.
 
 ## Caveats
 
@@ -194,16 +194,19 @@ all relevant directories and files are located under `~/.xcpkg` directory.
     ```bash
     xcpkg depends curl
 
+    xcpkg depends curl -t d2
     xcpkg depends curl -t dot
     xcpkg depends curl -t box
     xcpkg depends curl -t png
     xcpkg depends curl -t svg
 
+    xcpkg depends curl -t d2  -o dependencies/
     xcpkg depends curl -t dot -o dependencies/
     xcpkg depends curl -t box -o dependencies/
     xcpkg depends curl -t png -o dependencies/
     xcpkg depends curl -t svg -o dependencies/
 
+    xcpkg depends curl -o curl-dependencies.d2
     xcpkg depends curl -o curl-dependencies.dot
     xcpkg depends curl -o curl-dependencies.box
     xcpkg depends curl -o curl-dependencies.png

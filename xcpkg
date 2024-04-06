@@ -1933,7 +1933,7 @@ EOF
 ##############################################################################
 # {{{ xcpkg depends
 
-# __show_packages_depended_by_the_given_package <PACKAGE-NAME> [-t <dot|box|svg|png>] [-o <OUTPUT-PATH>]
+# __show_packages_depended_by_the_given_package <PACKAGE-NAME> [-t <dot|d2|box|svg|png>] [-o <OUTPUT-PATH>]
 __show_packages_depended_by_the_given_package() {
     [ -z "$1" ] && abort 1 "_0 depends <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>], <PACKAGE-NAME> is unspecified."
 
@@ -1943,25 +1943,25 @@ __show_packages_depended_by_the_given_package() {
 
     ###########################################################################################
 
-    unset OUTPUT_FILETYPE
-    unset OUTPUT_FILEPATH
+    unset OUTPUT_TYPE
+    unset OUTPUT_PATH
 
     while [ -n "$1" ]
     do
         case $1 in
             -t) shift
                 case $1 in
-                    dot|box|svg|png)
-                        OUTPUT_FILETYPE="$1" ;;
+                    dot|d2|box|svg|png)
+                        OUTPUT_TYPE="$1" ;;
                     '') abort 1 "$_0 depends <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>], -t option is given but <OUTPUT-TYPE> is unspecified." ;;
-                    *)  abort 1 "$_0 depends <PACKAGE-NAME> [-t <OUTPUT-TYPE>], unsupported <OUTPUT-TYPE>: $1, <OUTPUT-TYPE> should be one of dot|box|svg|png"
+                    *)  abort 1 "$_0 depends <PACKAGE-NAME> [-t <OUTPUT-TYPE>], unsupported <OUTPUT-TYPE>: $1, <OUTPUT-TYPE> should be one of dot|d2|box|svg|png"
                 esac
                 ;;
             -o) shift
                 if [ -z "$1" ] ; then
                     abort 1 "$_0 depends <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>], -o option is given but <OUTPUT-PATH> is unspecified."
                 else
-                    OUTPUT_FILEPATH="$1"
+                    OUTPUT_PATH="$1"
                 fi
                 ;;
             *)  abort 1 "$_0 depends <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>] [--keep-session-dir], unrecognized option: $1"
@@ -1971,77 +1971,91 @@ __show_packages_depended_by_the_given_package() {
 
     ###########################################################################################
 
-    if [ -z "$OUTPUT_FILEPATH" ] ; then
-        if [ -z "$OUTPUT_FILETYPE" ] ; then
-            OUTPUT_FILETYPE='box'
-        fi
-    else
-        if [ -d "$OUTPUT_FILEPATH" ] ; then
-            if [ -z "$OUTPUT_FILETYPE" ] ; then
-                OUTPUT_FILETYPE='box'
+    unset OUTPUT_DIR
+    unset OUTPUT_FILEPATH
+
+    case $OUTPUT_PATH in
+        '')
+            if [ -z "$OUTPUT_TYPE" ] ; then
+                OUTPUT_TYPE='box'
+            fi
+            ;;
+        ..|../)
+            if [ -z "$OUTPUT_TYPE" ] ; then
+                OUTPUT_TYPE='box'
             fi
 
-            unset OUTPUT_DIR
-            OUTPUT_DIR="$(realpath -s "$OUTPUT_FILEPATH")"
+            OUTPUT_FILEPATH="$PWD/../$PACKAGE_NAME-dependencies.$OUTPUT_TYPE"
+            ;;
+        .|./)
+            if [ -z "$OUTPUT_TYPE" ] ; then
+                OUTPUT_TYPE='box'
+            fi
 
+            OUTPUT_FILEPATH="$PWD/$PACKAGE_NAME-dependencies.$OUTPUT_TYPE"
+            ;;
+        */)
+            if [ -z "$OUTPUT_TYPE" ] ; then
+                OUTPUT_TYPE='box'
+            fi
 
-            OUTPUT_FILEPATH="$OUTPUT_DIR/$PACKAGE_NAME-dependencies.$OUTPUT_FILETYPE"
-        else
-            case $OUTPUT_FILEPATH in
-                */)
-                    if [ -z "$OUTPUT_FILETYPE" ] ; then
-                        OUTPUT_FILETYPE='box'
-                    fi
-
-                    unset OUTPUT_DIR
-                    OUTPUT_DIR="$(realpath -s "$OUTPUT_FILEPATH")"
-
-                    OUTPUT_FILEPATH="$OUTPUT_DIR/$PACKAGE_NAME-dependencies.$OUTPUT_FILETYPE"
-
-                    [ -d "$OUTPUT_DIR" ] || install -d "$OUTPUT_DIR"
-                    ;;
-                *)
-                    OUTPUT_FILEPATH="$(realpath -s "$OUTPUT_FILEPATH")"
-
-                    unset OUTPUT_DIR
-                    OUTPUT_DIR="$(dirname "$OUTPUT_FILEPATH")"
-
-                    [ -d "$OUTPUT_DIR" ] || install -d "$OUTPUT_DIR"
-
-                    if [ -z "$OUTPUT_FILETYPE" ] ; then
-                        case $OUTPUT_FILEPATH in
-                            *.box)
-                                OUTPUT_FILETYPE='box'
-                                ;;
-                            *.dot)
-                                OUTPUT_FILETYPE='dot'
-                                ;;
-                            *.svg)
-                                OUTPUT_FILETYPE='svg'
-                                ;;
-                            *.png)
-                                OUTPUT_FILETYPE='png'
-                                ;;
-                            *)  OUTPUT_FILETYPE='box'
-                        esac
-                    fi
+            case $OUTPUT_PATH in
+                /*) OUTPUT_DIR="$OUTPUT_PATH" ;;
+                *)  OUTPUT_DIR="$PWD/$OUTPUT_PATH"
             esac
+
+            OUTPUT_FILEPATH="$OUTPUT_DIR/$PACKAGE_NAME-dependencies.$OUTPUT_TYPE"
+            ;;
+        *)
+            if [ -z "$OUTPUT_TYPE" ] ; then
+                case $OUTPUT_PATH in
+                    *.box) OUTPUT_TYPE='box' ;;
+                    *.dot) OUTPUT_TYPE='dot' ;;
+                    *.d2)  OUTPUT_TYPE='d2'  ;;
+                    *.svg) OUTPUT_TYPE='svg' ;;
+                    *.png) OUTPUT_TYPE='png' ;;
+                    *)     OUTPUT_TYPE='box' ;;
+                esac
+            fi
+
+            case $OUTPUT_PATH in
+                /*) OUTPUT_DIR="${OUTPUT_PATH%/*}"
+                    OUTPUT_FILEPATH="$OUTPUT_PATH"
+                    ;;
+                *)  OUTPUT_DIR="$PWD/$(dirname "$OUTPUT_PATH")"
+                    OUTPUT_FILEPATH="$PWD/$OUTPUT_PATH"
+            esac
+    esac
+
+    ###########################################################################################
+
+    unset ENGIN
+
+    if [ "$OUTPUT_TYPE" = svg ] || [ "$OUTPUT_TYPE" = png ] ; then
+        if command -v dot > /dev/null ; then
+            ENGIN=dot
+        elif command -v dot_static > /dev/null ; then
+            ENGIN=dot_static
+        elif command -v d2 > /dev/null ; then
+            ENGIN=d2
+        else
+            abort 1 'none of dot, dot_static, d2 commands was found. please install graphviz or d2 package, then try again.'
         fi
     fi
 
     ###########################################################################################
 
-    unset DOT_CONTENT
+    unset LINES
 
     unset DIRECTED_PATH_LIST
 
-    PACKAGE_NAME_STACK="$PACKAGE_NAME"
+    STACK="$PACKAGE_NAME"
 
-    while [ -n "$PACKAGE_NAME_STACK" ]
+    while [ -n "$STACK" ]
     do
-        case $PACKAGE_NAME_STACK in
-            *\;*) PACKAGE_NAME="${PACKAGE_NAME_STACK##*;}" ; PACKAGE_NAME_STACK="${PACKAGE_NAME_STACK%;*}" ;;
-            *)    PACKAGE_NAME="${PACKAGE_NAME_STACK}"     ; PACKAGE_NAME_STACK=
+        case $STACK in
+            *\;*) PACKAGE_NAME="${STACK##*;}" ; STACK="${STACK%;*}" ;;
+            *)    PACKAGE_NAME="${STACK}"     ; STACK=
         esac
 
         ################################################################
@@ -2054,13 +2068,21 @@ __show_packages_depended_by_the_given_package() {
 
         ################################################################
 
-        unset X; X="$(printf '"%s" ' $PACKAGE_DEP_PKG)"
-        unset Y; Y="$(printf '    "%s" -> { %s}\n' "$PACKAGE_NAME" "$X")"
-
-        if [ -z "$DOT_CONTENT" ] ; then
-            DOT_CONTENT="$Y"
+        if [ "$OUTPUT_TYPE" = d2 ] || [ "$ENGIN" = d2 ] ; then
+            for item in $PACKAGE_DEP_PKG
+            do
+                LINES="$LINES
+$PACKAGE_NAME -> $item"
+            done
         else
-            DOT_CONTENT="$(printf '%s\n%s\n' "$DOT_CONTENT" "$Y")"
+            unset X; X="$(printf '"%s" ' $PACKAGE_DEP_PKG)"
+            unset Y; Y="$(printf '    "%s" -> { %s}\n' "$PACKAGE_NAME" "$X")"
+
+            if [ -z "$LINES" ] ; then
+                LINES="$Y"
+            else
+                LINES="$(printf '%s\n%s\n' "$LINES" "$Y")"
+            fi
         fi
 
         ################################################################
@@ -2115,31 +2137,26 @@ __show_packages_depended_by_the_given_package() {
 
             ############################################################
 
-            if [ -z "$PACKAGE_NAME_STACK" ] ; then
-                PACKAGE_NAME_STACK="$DEPENDENT_PACKAGE_NAME"
+            if [ -z "$STACK" ] ; then
+                STACK="$DEPENDENT_PACKAGE_NAME"
             else
-                PACKAGE_NAME_STACK="$PACKAGE_NAME_STACK;$DEPENDENT_PACKAGE_NAME"
+                STACK="$STACK;$DEPENDENT_PACKAGE_NAME"
             fi
         done
 
         DIRECTED_PATH_LIST="$DIRECTED_PATH_LIST $DIRECTED_PATH_LIST_PART2"
     done
 
+    ###########################################################################################
+
+    [ -z "$LINES" ] && return 0
 
     ###########################################################################################
 
-    [ -z "$DOT_CONTENT" ] && return 0
-
-    DOT_CONTENT="digraph G {
-$DOT_CONTENT
-}"
-
-    ###########################################################################################
-
-    case $OUTPUT_FILETYPE in
+    case $OUTPUT_TYPE in
         dot)
             if [ -z "$OUTPUT_FILEPATH" ] ; then
-                printf '%s\n' "$DOT_CONTENT"
+                printf 'digraph G {\n%s\n}\n' "$LINE"
             else
                 SESSION_DIR="$XCPKG_HOME/run/$$"
 
@@ -2147,14 +2164,43 @@ $DOT_CONTENT
                 install -d "$SESSION_DIR"
                 cd         "$SESSION_DIR"
 
-                printf '%s\n' "$DOT_CONTENT" > dependencies.dot
+                printf 'digraph G {\n%s\n}\n' "$LINE" > dependencies.dot
 
-                mv dependencies.dot "$OUTPUT_FILEPATH"
+                if [ -n "$OUTPUT_DIR" ] && [ ! -d "$OUTPUT_DIR" ] ; then
+                    install -d "$OUTPUT_DIR"
+                fi
+
+                mv -T dependencies.dot "$OUTPUT_FILEPATH"
+
+                rm -rf "$SESSION_DIR"
+            fi
+            ;;
+        d2)
+            if [ -z "$OUTPUT_FILEPATH" ] ; then
+                printf '%s\n' "$LINES"
+            else
+                SESSION_DIR="$XCPKG_HOME/run/$$"
+
+                rm -rf     "$SESSION_DIR"
+                install -d "$SESSION_DIR"
+                cd         "$SESSION_DIR"
+
+                printf '%s\n' "$LINES" > dependencies.d2
+
+                if [ -n "$OUTPUT_DIR" ] && [ ! -d "$OUTPUT_DIR" ] ; then
+                    install -d "$OUTPUT_DIR"
+                fi
+
+                mv -T dependencies.d2 "$OUTPUT_FILEPATH"
 
                 rm -rf "$SESSION_DIR"
             fi
             ;;
         box)
+            DOT_CONTENT="digraph G {
+$LINES
+}"
+
             if [ -z "$OUTPUT_FILEPATH" ] ; then
                 # https://github.com/ggerganov/dot-to-ascii
                 curl \
@@ -2179,49 +2225,51 @@ $DOT_CONTENT
                     --data-urlencode "src=$DOT_CONTENT" \
                     'https://dot-to-ascii.ggerganov.com/dot-to-ascii.php'
 
+                if [ -n "$OUTPUT_DIR" ] && [ ! -d "$OUTPUT_DIR" ] ; then
+                    install -d "$OUTPUT_DIR"
+                fi
+
                 mv dependencies.box "$OUTPUT_FILEPATH"
 
                 rm -rf "$SESSION_DIR"
             fi
             ;;
-        svg)
-            SESSION_DIR="$XCPKG_HOME/run/$$"
+        svg|png)
+            if [ "$ENGIN" = d2 ] ; then
+                if [ -z "$OUTPUT_FILEPATH" ] ; then
+                    printf '%s\n' "$LINES" | d2 -
+                else
+                    if [ -n "$OUTPUT_DIR" ] && [ ! -d "$OUTPUT_DIR" ] ; then
+                        install -d "$OUTPUT_DIR"
+                    fi
 
-            rm -rf     "$SESSION_DIR"
-            install -d "$SESSION_DIR"
-            cd         "$SESSION_DIR"
-
-            printf '%s\n' "$DOT_CONTENT" > dependencies.dot
-
-            if [ -z "$OUTPUT_FILEPATH" ] ; then
-                dot -Tsvg dependencies.dot
+                    printf '%s\n' "$LINES" | d2 - "$OUTPUT_FILEPATH"
+                fi
             else
-                dot -Tsvg -o dependencies.svg dependencies.dot
-                mv dependencies.svg "$OUTPUT_FILEPATH"
+                SESSION_DIR="$XCPKG_HOME/run/$$"
+
+                rm -rf     "$SESSION_DIR"
+                install -d "$SESSION_DIR"
+                cd         "$SESSION_DIR"
+
+                printf 'digraph G {\n%s\n}\n' "$LINES" > dependencies.dot
+
+                if [ -z "$OUTPUT_FILEPATH" ] ; then
+                    "$ENGIN" "-T$OUTPUT_TYPE" dependencies.dot
+                else
+                    "$ENGIN" "-T$OUTPUT_TYPE" -o dependencies.tmp dependencies.dot
+
+                    if [ -n "$OUTPUT_DIR" ] && [ ! -d "$OUTPUT_DIR" ] ; then
+                        install -d "$OUTPUT_DIR"
+                    fi
+
+                    mv -T dependencies.tmp "$OUTPUT_FILEPATH"
+                fi
+
+                rm -rf "$SESSION_DIR"
             fi
-
-            rm -rf "$SESSION_DIR"
-            ;;
-        png)
-            SESSION_DIR="$XCPKG_HOME/run/$$"
-
-            rm -rf     "$SESSION_DIR"
-            install -d "$SESSION_DIR"
-            cd         "$SESSION_DIR"
-
-            printf '%s\n' "$DOT_CONTENT" > dependencies.dot
-
-            if [ -z "$OUTPUT_FILEPATH" ] ; then
-                dot -Tpng dependencies.dot
-            else
-                dot -Tpng -o dependencies.png dependencies.dot
-                mv dependencies.png "$OUTPUT_FILEPATH"
-            fi
-
-            rm -rf "$SESSION_DIR"
     esac
 }
-
 
 # }}}
 ##############################################################################
@@ -3361,14 +3409,15 @@ EOF
         step "generate  dependency tree of $1"
 
         unset DOT_CONTENT
+        unset D2__CONTENT
 
-        PACKAGE_NAME_STACK="$PACKAGE_NAME"
+        STACK="$PACKAGE_NAME"
 
-        while [ -n "$PACKAGE_NAME_STACK" ]
+        while [ -n "$STACK" ]
         do
-            case $PACKAGE_NAME_STACK in
-                *\;*) TOPE="${PACKAGE_NAME_STACK##*;}" ; PACKAGE_NAME_STACK="${PACKAGE_NAME_STACK%;*}" ;;
-                *)    TOPE="${PACKAGE_NAME_STACK}"     ; PACKAGE_NAME_STACK=
+            case $STACK in
+                *\;*) TOPE="${STACK##*;}" ; STACK="${STACK%;*}" ;;
+                *)    TOPE="${STACK}"     ; STACK=
             esac
 
             unset TOPE_UPPERCASE_UNDERSCORE
@@ -3389,11 +3438,17 @@ EOF
 
             for item in $TOPE_DEP_PKG
             do
+                if [ -z "$D2__CONTENT" ] ; then
+                    D2__CONTENT="$TOPE -> $item"
+                else
+                    D2__CONTENT="$D2__CONTENT
+$TOPE -> $item"
+                fi
 
                 if [ -z "$item" ] ; then
-                    PACKAGE_NAME_STACK="$item"
+                    STACK="$item"
                 else
-                    PACKAGE_NAME_STACK="$PACKAGE_NAME_STACK;$item"
+                    STACK="$STACK;$item"
                 fi
             done
         done
@@ -3402,16 +3457,18 @@ EOF
 $DOT_CONTENT
 }"
 
-        ############################################################################
+        #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
 
+        PACKAGE_DEPENDENCY_GRAPH_FILEPATH_D2_="$PACKAGE_WORKING_DIR/dependencies.d2"
         PACKAGE_DEPENDENCY_GRAPH_FILEPATH_DOT="$PACKAGE_WORKING_DIR/dependencies.dot"
         PACKAGE_DEPENDENCY_GRAPH_FILEPATH_BOX="$PACKAGE_WORKING_DIR/dependencies.box"
 
-        ############################################################################
+        #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
 
+        printf '%s\n' "$D2__CONTENT" > "$PACKAGE_DEPENDENCY_GRAPH_FILEPATH_D2_"
         printf '%s\n' "$DOT_CONTENT" > "$PACKAGE_DEPENDENCY_GRAPH_FILEPATH_DOT"
 
-        ############################################################################
+        #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
 
         # https://github.com/ggerganov/dot-to-ascii
         curl \
@@ -3422,12 +3479,20 @@ $DOT_CONTENT
             --data-urlencode "src=$DOT_CONTENT" \
             "https://dot-to-ascii.ggerganov.com/dot-to-ascii.php" || true
 
-        ############################################################################
+        #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++#
 
-        command -v dot > /dev/null && {
-            run dot -Tsvg -o "$PACKAGE_WORKING_DIR/dependencies.svg" "$PACKAGE_DEPENDENCY_GRAPH_FILEPATH_DOT" || true
-            run dot -Tpng -o "$PACKAGE_WORKING_DIR/dependencies.png" "$PACKAGE_DEPENDENCY_GRAPH_FILEPATH_DOT" || true
-        }
+        DOT="$(command -v dot || command -v dot_static || true)"
+
+        if [ -n "$DOT" ] ; then
+            run "$DOT" -Tsvg -o "$PACKAGE_WORKING_DIR/dependencies.svg" "$PACKAGE_DEPENDENCY_GRAPH_FILEPATH_DOT" || true
+            run "$DOT" -Tpng -o "$PACKAGE_WORKING_DIR/dependencies.png" "$PACKAGE_DEPENDENCY_GRAPH_FILEPATH_DOT" || true
+        else
+            D2="$(command -v d2 || true)"
+
+            if [ -n "$D2" ] ; then
+                run "$D2" "$PACKAGE_DEPENDENCY_GRAPH_FILEPATH_D2_" "$PACKAGE_WORKING_DIR/dependencies.svg"
+            fi
+        fi
 
         ############################################################################
 
@@ -6916,7 +6981,7 @@ __setup_uppm() {
     unset UPPM_PACKAGE_EXEFIND_PATH
     unset UPPM_PACKAGE_ACLOCAL_PATH
 
-    for item in bash coreutils findutils easyutils gawk gsed grep bsdtar jq yq git curl tree
+    for item in bash coreutils findutils easyutils gawk gsed grep bsdtar git curl tree jq yq d2
     do
         run ./uppm install "$item"
 
@@ -6943,9 +7008,9 @@ export ACLOCAL_PATH="$UPPM_PACKAGE_ACLOCAL_PATH:\$ACLOCAL_PATH"
 export PATH="$UPPM_PACKAGE_EXEFIND_PATH:\$PATH"
 
 # https://git-scm.com/book/en/v2/Git-Internals-Environment-Variables
-if [ -d "\$HOME/.uppm/installed/git/libexec/git-core" ] ; then
-    export GIT_EXEC_PATH="\$HOME/.uppm/installed/git/libexec/git-core"
-    export GIT_TEMPLATE_DIR="\$HOME/.uppm/installed/git/share/git-core/templates"
+if [ -d "\$UPPM_HOME/installed/git/libexec/git-core" ] ; then
+    export GIT_EXEC_PATH="\$UPPM_HOME/installed/git/libexec/git-core"
+    export GIT_TEMPLATE_DIR="\$UPPM_HOME/installed/git/share/git-core/templates"
     export GIT_CONFIG_NOSYSTEM=1
 fi
 EOF
@@ -7335,7 +7400,7 @@ ${COLOR_GREEN}xcpkg -V${COLOR_OFF}
     show version of this command.
 
 ${COLOR_GREEN}xcpkg setup${COLOR_OFF}
-    install essential tools (e.g. uppm, bash, coreutils, findutils, gsed, grep, git, curl, bsdtar, tree, jq, yq, etc) used by this shell script.
+    install essential tools (e.g. uppm, bash, coreutils, findutils, gsed, grep, git, curl, bsdtar, tree, jq, yq, d2, etc) used by this shell script.
 
 ${COLOR_GREEN}xcpkg env${COLOR_OFF}
     show basic information about this software.
@@ -7420,7 +7485,7 @@ ${COLOR_GREEN}xcpkg info-installed <PACKAGE-SPEC> [--json | --yaml | <KEY>]${COL
 ${COLOR_GREEN}xcpkg depends <PACKAGE-NAME> [-t <dot|box|svg|png>] [-o <OUTPUT-PATH>]${COLOR_OFF}
     show the packages that are depended by the given package.
 
-    <OUTPUT-TYPE> must be one of dot box svg png
+    <OUTPUT-TYPE> must be one of d2 dot box svg png
 
     <OUTPUT-PATH> can be either the filepath or directory.
 

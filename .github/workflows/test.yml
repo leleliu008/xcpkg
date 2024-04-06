@@ -63,6 +63,7 @@ jobs:
 
 
       - run: ./xcpkg depends uctags
+      - run: ./xcpkg depends uctags -t d2
       - run: ./xcpkg depends uctags -t dot
       - run: ./xcpkg depends uctags -t box
       - run: ./xcpkg depends uctags -t dot -o a/
