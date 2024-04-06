@@ -1,0 +1,283 @@
+name: build via HomeBrew
+
+on:
+  push:
+    branches: [ c ]
+  pull_request:
+    branches: [ c ]
+
+jobs:
+
+  brew:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, macos-13, macos-12]
+
+    runs-on: ${{ matrix.os }}
+
+    env:
+      HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
+
+    steps:
+      - name: create a local tap for homebrew
+        run: |
+          MY_FORMULA_DIR="$(brew --repository)/Library/Taps/leleliu008/homebrew-tmp/Formula"
+          install -d "$MY_FORMULA_DIR"
+          cat > "$MY_FORMULA_DIR/xcpkg.rb" <<EOF
+          class Ppkg < Formula
+            desc     "A portable package manager for Unix-like system"
+            homepage "https://github.com/leleliu008/xcpkg"
+            head     "https://github.com/leleliu008/xcpkg.git", branch: "c"
+            url      "https://github.com/leleliu008/xcpkg.git", revision: "${{ github.sha }}"
+            version  "0.1000.2"
+            license  "Apache-2.0"
+
+            depends_on "cmake" => :build
+            depends_on "ninja" => :build
+            depends_on "pkg-config" => :build
+
+            depends_on "curl"
+            depends_on "jansson"
+            depends_on "libyaml"
+            depends_on "libgit2"
+            depends_on "libarchive"
+
+            def install
+              system "cmake", "-S", ".", "-B", "build", *std_cmake_args
+              system "cmake", "--build",   "build"
+              system "cmake", "--install", "build"
+            end
+
+            test do
+              system "#{bin}/xcpkg", "--help"
+            end
+          end
+          EOF
+
+      - run: brew info    xcpkg
+      - run: brew install xcpkg -v
+
+      - run: xcpkg
+
+      - run: xcpkg --help
+      - run: xcpkg -h
+
+      - run: xcpkg --version
+      - run: xcpkg -V
+
+      - run: xcpkg env
+      - run: xcpkg env -v
+
+      - run: xcpkg buildinfo
+      - run: xcpkg sysinfo
+
+      - run: xcpkg setup -v
+
+      - run: xcpkg integrate zsh
+      - run: xcpkg integrate zsh -v
+
+      - run: xcpkg update
+
+      - run: xcpkg search lib
+      - run: xcpkg search zip
+
+      - run: xcpkg info-available libzip
+      - run: xcpkg info-available libzip --yaml
+      - run: xcpkg info-available libzip --json
+      - run: xcpkg info-available libzip summary
+      - run: xcpkg info-available libzip version
+      - run: xcpkg info-available libzip license
+      - run: xcpkg info-available libzip web-url
+      - run: xcpkg info-available libzip src-url
+      - run: xcpkg info-available libzip src-sha
+
+      - run: xcpkg depends libzip
+      - run: xcpkg depends libzip -t dot
+      - run: xcpkg depends libzip -t box
+
+      - run: xcpkg fetch gzip
+      - run: xcpkg fetch gsed -v
+
+      - run: xcpkg install libzip
+
+      - run: xcpkg tree libzip
+
+      - run: xcpkg info-installed libzip --prefix
+      - run: xcpkg info-installed libzip --files
+      - run: xcpkg info-installed libzip --json
+      - run: xcpkg info-installed libzip --yaml
+      - run: xcpkg info-installed libzip builtat
+      - run: xcpkg info-installed libzip builtat-iso-8601
+      - run: xcpkg info-installed libzip builtat-rfc-3339
+      - run: xcpkg info-installed libzip version
+
+      - run: xcpkg pack libzip
+      - run: xcpkg pack libzip -t tar.gz
+      - run: xcpkg pack libzip -t tar.lz
+      - run: xcpkg pack libzip -t tar.xz
+      - run: xcpkg pack libzip -t tar.bz2
+      - run: xcpkg pack libzip -t zip
+
+      - run: |
+          printf '%s\n' 'version: 1000' >> ~/.xcpkg/repos.d/official-core/formula/libzip.yml
+
+      - run: xcpkg ls-available
+      - run: xcpkg ls-installed
+      - run: xcpkg ls-outdated
+
+      - run: xcpkg is-available libzip
+      - run: xcpkg is-installed libzip
+      - run: xcpkg is-outdated  libzip
+
+      - run: xcpkg upgrade   libzip
+      - run: xcpkg reinstall libzip
+      - run: xcpkg uninstall libzip
+
+      - run: xcpkg formula-repo-list
+      - run: xcpkg formula-repo-add my_repo https://github.com/leleliu008/xcpkg-formula-repository-official-core
+      - run: xcpkg formula-repo-del my_repo
+
+      - run: xcpkg cleanup
+
+        #- run: xcpkg upgrade-self
+
+  brew-sanitizer:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, macos-13, macos-12]
+
+    runs-on: ${{ matrix.os }}
+
+    env:
+      HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
+
+    steps:
+      - name: create a local tap for homebrew
+        run: |
+          MY_FORMULA_DIR="$(brew --repository)/Library/Taps/leleliu008/homebrew-tmp/Formula"
+          install -d "$MY_FORMULA_DIR"
+          cat > "$MY_FORMULA_DIR/xcpkg.rb" <<EOF
+          class Ppkg < Formula
+            desc     "A portable package manager for Unix-like system"
+            homepage "https://github.com/leleliu008/xcpkg"
+            head     "https://github.com/leleliu008/xcpkg.git", branch: "c"
+            url      "https://github.com/leleliu008/xcpkg.git", revision: "${{ github.sha }}"
+            version  "0.1000.2"
+            license  "Apache-2.0"
+
+            depends_on "llvm"  => :build
+            depends_on "cmake" => :build
+            depends_on "ninja" => :build
+            depends_on "pkg-config" => :build
+
+            depends_on "curl"
+            depends_on "jansson"
+            depends_on "libyaml"
+            depends_on "libgit2"
+            depends_on "libarchive"
+
+            def install
+              cc = Formula["llvm"].opt_bin/"clang"
+
+              system "cmake", "-S", ".", "-B", "build", *std_cmake_args, "-DCMAKE_C_COMPILER=#{cc}", "-DCMAKE_BUILD_TYPE=Debug", "-DCMAKE_C_FLAGS='-fsanitize=undefined -fsanitize=address -fsanitize=leak'"
+              system "cmake", "--build",   "build"
+              system "cmake", "--install", "build"
+            end
+
+            test do
+              system "#{bin}/xcpkg", "--help"
+            end
+          end
+          EOF
+
+      - if: matrix.os == 'macos-13'
+        run: brew install --overwrite python@3.12
+
+      - run: brew info    xcpkg
+      - run: brew install xcpkg -v
+
+      - run: xcpkg
+
+      - run: xcpkg --help
+      - run: xcpkg -h
+
+      - run: xcpkg --version
+      - run: xcpkg -V
+
+      - run: xcpkg env
+      - run: xcpkg env -v
+
+      - run: xcpkg buildinfo
+      - run: xcpkg sysinfo
+
+      - run: xcpkg setup -v
+
+      - run: xcpkg integrate zsh
+      - run: xcpkg integrate zsh -v
+
+      - run: xcpkg update
+
+      - run: xcpkg search lib
+      - run: xcpkg search zip
+
+      - run: xcpkg info-available libzip
+      - run: xcpkg info-available libzip --yaml
+      - run: xcpkg info-available libzip --json
+      - run: xcpkg info-available libzip summary
+      - run: xcpkg info-available libzip version
+      - run: xcpkg info-available libzip license
+      - run: xcpkg info-available libzip web-url
+      - run: xcpkg info-available libzip src-url
+      - run: xcpkg info-available libzip src-sha
+
+      - run: xcpkg depends libzip
+      - run: xcpkg depends libzip -t dot
+      - run: xcpkg depends libzip -t box
+
+      - run: xcpkg fetch gzip
+      - run: xcpkg fetch gsed -v
+
+      - run: xcpkg install libzip
+
+      - run: xcpkg tree libzip
+
+      - run: xcpkg info-installed libzip --prefix
+      - run: xcpkg info-installed libzip --files
+      - run: xcpkg info-installed libzip --json
+      - run: xcpkg info-installed libzip --yaml
+      - run: xcpkg info-installed libzip builtat
+      - run: xcpkg info-installed libzip builtat-iso-8601
+      - run: xcpkg info-installed libzip builtat-rfc-3339
+      - run: xcpkg info-installed libzip version
+
+      - run: xcpkg pack libzip
+      - run: xcpkg pack libzip -t tar.gz
+      - run: xcpkg pack libzip -t tar.lz
+      - run: xcpkg pack libzip -t tar.xz
+      - run: xcpkg pack libzip -t tar.bz2
+      - run: xcpkg pack libzip -t zip
+
+      - run: |
+          printf '%s\n' 'version: 1000' >> ~/.xcpkg/repos.d/official-core/formula/libzip.yml
+
+      - run: xcpkg ls-available
+      - run: xcpkg ls-installed
+      - run: xcpkg ls-outdated
+
+      - run: xcpkg is-available libzip
+      - run: xcpkg is-installed libzip
+      - run: xcpkg is-outdated  libzip
+
+      - run: xcpkg upgrade   libzip
+      - run: xcpkg reinstall libzip
+      - run: xcpkg uninstall libzip
+
+      - run: xcpkg formula-repo-list
+      - run: xcpkg formula-repo-add my_repo https://github.com/leleliu008/xcpkg-formula-repository-official-core
+      - run: xcpkg formula-repo-del my_repo
+
+      - run: xcpkg cleanup
+
+        #- run: xcpkg upgrade-self
