@@ -859,6 +859,7 @@ filetype_from_url() {
     unset PACKAGE_FIX_URL
     unset PACKAGE_FIX_URI
     unset PACKAGE_FIX_SHA
+    unset PACKAGE_FIX_OPT
     unset PACKAGE_FIX_FILENAME
     unset PACKAGE_FIX_FILETYPE
     unset PACKAGE_FIX_FILEPATH
@@ -4009,7 +4010,7 @@ $DOT_CONTENT
                 run bsdtar xf "$FILEPATH" -C "$PACKAGE_INSTALLING_FIX_DIR" --strip-components 1 --no-same-owner
                 ;;
             *)  run cp "$FILEPATH" "$PACKAGE_INSTALLING_FIX_DIR/"
-                printf '%s|%s\n' "$FILENAME" "$PACKAGE_FIX_OPT" >> "$PACKAGE_INSTALLING_FIX_DIR/index"
+                printf '%s|%s\n' "$FILENAME" "$OPT" >> "$PACKAGE_INSTALLING_FIX_DIR/index"
         esac
     done
 
