@@ -2156,7 +2156,7 @@ $PACKAGE_NAME -> $item"
     case $OUTPUT_TYPE in
         dot)
             if [ -z "$OUTPUT_FILEPATH" ] ; then
-                printf 'digraph G {\n%s\n}\n' "$LINE"
+                printf 'digraph G {\n%s\n}\n' "$LINES"
             else
                 SESSION_DIR="$XCPKG_HOME/run/$$"
 
@@ -2164,7 +2164,7 @@ $PACKAGE_NAME -> $item"
                 install -d "$SESSION_DIR"
                 cd         "$SESSION_DIR"
 
-                printf 'digraph G {\n%s\n}\n' "$LINE" > dependencies.dot
+                printf 'digraph G {\n%s\n}\n' "$LINES" > dependencies.dot
 
                 if [ -n "$OUTPUT_DIR" ] && [ ! -d "$OUTPUT_DIR" ] ; then
                     install -d "$OUTPUT_DIR"
