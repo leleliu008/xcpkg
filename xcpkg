@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Copyright (c) 2021-2023 刘富频
+# Copyright (c) 2021-2024 刘富频
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,31 +15,15 @@
 # limitations under the License.
 
 
-# https://github.com/leleliu008/xcpkg
+# last line mode :set foldmethod=marker
+# command mode zM  fold close all
+# command mode zR  fold open all
 
+# {{{ coding convention
 
-######################################################################################
-####################################  convention  ####################################
 # 1. The variable/function name starts with underscore "_" means that it is a private variable/function.
 # 2. 0 represents the boolean value false
 # 3. 1 represents the boolean value true
-# 4. all utilities are GNU-style
-######################################################################################
-
-# If IFS is not set, the default value will be <space><tab><newline>
-# https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_05_03
-unset IFS
-
-_0=$0
-
-unset CURRENT_SCRIPT_DIR
-unset CURRENT_SCRIPT_FILENAME
-unset CURRENT_SCRIPT_FILEPATH
-
-CURRENT_SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd) || exit 1
-CURRENT_SCRIPT_FILENAME=$(basename "$0")
-CURRENT_SCRIPT_FILEPATH="$CURRENT_SCRIPT_DIR/$CURRENT_SCRIPT_FILENAME"
-
 
 # }}}
 ##############################################################################
@@ -7557,99 +7541,124 @@ ${COLOR_GREEN}xcpkg pack <PACKAGE-SPEC> [--keep-session-dir] [-t <OUTPUT-TYPE>] 
 ##############################################################################
 # {{{ xcpkg main
 
-main() {
-    set -e
+set -e
 
-    [ -n "$XCPKG_XTRACE" ] && set -x
+# If IFS is not set, the default value will be <space><tab><newline>
+# https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_05_03
+unset IFS
 
-    [ "$(uname)" = 'Darwin' ] || abort 1 "this software can only be run on macOS."
+_0=$0
 
-    TIMESTAMP_UNIX="$(date +%s)"
+unset CURRENT_SCRIPT_DIR
+unset CURRENT_SCRIPT_FILENAME
+unset CURRENT_SCRIPT_FILEPATH
 
-    NATIVE_OS_KIND=darwin
-    NATIVE_OS_TYPE=macos
-    NATIVE_OS_NAME=MacOSX
-    NATIVE_OS_VERS="$(sw_vers -productVersion)"
-    NATIVE_OS_ARCH="$(uname -m)"
-    NATIVE_OS_NCPU="$(sysctl -n machdep.cpu.thread_count)"
-    NATIVE_OS_EUID="$(id -u)"
-    NATIVE_OS_EGID="$(id -g)"
+CURRENT_SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd) || exit 1
+CURRENT_SCRIPT_FILENAME=$(basename "$0")
+CURRENT_SCRIPT_FILEPATH="$CURRENT_SCRIPT_DIR/$CURRENT_SCRIPT_FILENAME"
 
-    XCPKG="$CURRENT_SCRIPT_FILEPATH"
+[ -n "$XCPKG_XTRACE" ] && set -x
 
-    XCPKG_VERSION=0.16.5
+[ "$(uname)" = 'Darwin' ] || abort 1 "this software can only be run on macOS."
 
-    XCPKG_OFFICIAL_FORMULA_REPO_URL='https://github.com/leleliu008/xcpkg-formula-repository-official-core'
+##################################################################################
 
-    XCPKG_UPGRAGE_URL='https://raw.githubusercontent.com/leleliu008/xcpkg/master/xcpkg'
+XCPKG="$CURRENT_SCRIPT_FILEPATH"
 
-    [ -z "$XCPKG_HOME" ] && {
-        if [ -z "$HOME" ] ; then
-            abort 1 "HOME environment variable is not set."
-        else
-            XCPKG_HOME="$HOME/.xcpkg"
-        fi
-    }
+XCPKG_VERSION=0.17.0
 
-    if [ -n "$XCPKG_URL_TRANSFORM" ] ; then
-        export UPPM_URL_TRANSFORM="$XCPKG_URL_TRANSFORM"
+XCPKG_OFFICIAL_FORMULA_REPO_URL='https://github.com/leleliu008/xcpkg-formula-repository-official-core'
+
+XCPKG_UPGRAGE_URL='https://raw.githubusercontent.com/leleliu008/xcpkg/master/xcpkg'
+
+[ -z "$XCPKG_HOME" ] && {
+    if [ -z "$HOME" ] ; then
+        abort 1 "HOME environment variable is not set."
+    else
+        XCPKG_HOME="$HOME/.xcpkg"
     fi
+}
 
-    XCPKG_FORMULA_REPO_ROOT="$XCPKG_HOME/repos.d"
+XCPKG_FORMULA_REPO_ROOT="$XCPKG_HOME/repos.d"
 
-    XCPKG_PACKAGE_INSTALLED_ROOT="$XCPKG_HOME/installed"
-    XCPKG_PACKAGE_SYMLINKED_ROOT="$XCPKG_HOME/symlinked"
+XCPKG_PACKAGE_INSTALLED_ROOT="$XCPKG_HOME/installed"
+XCPKG_PACKAGE_SYMLINKED_ROOT="$XCPKG_HOME/symlinked"
 
-    XCPKG_DOWNLOADS_DIR="$XCPKG_HOME/downloads"
+XCPKG_DOWNLOADS_DIR="$XCPKG_HOME/downloads"
 
-    XCPKG_CORE_DIR="$XCPKG_HOME/core"
+XCPKG_CORE_DIR="$XCPKG_HOME/core"
 
-    UPPM="$XCPKG_CORE_DIR/uppm"
+NATIVE_PACKAGE_INSTALLED_ROOT="$XCPKG_HOME/native"
 
-    NATIVE_PACKAGE_INSTALLED_ROOT="$XCPKG_HOME/native"
+##################################################################################
 
-    # DO NOT use these environment variables
-    # https://cmake.org/cmake/help/latest/envvar/MACOSX_DEPLOYMENT_TARGET.html
-    unset   MACOSX_DEPLOYMENT_TARGET
-    unset IPHONEOS_DEPLOYMENT_TARGET
-    unset  WATCHOS_DEPLOYMENT_TARGET
+# DO NOT use these environment variables
+# https://cmake.org/cmake/help/latest/envvar/MACOSX_DEPLOYMENT_TARGET.html
+unset   MACOSX_DEPLOYMENT_TARGET
+unset IPHONEOS_DEPLOYMENT_TARGET
+unset  WATCHOS_DEPLOYMENT_TARGET
 
-    # https://stackoverflow.com/questions/18476490/what-is-purpose-of-target-arch-variable-in-makefiles
-    unset TARGET_ARCH
+# https://stackoverflow.com/questions/18476490/what-is-purpose-of-target-arch-variable-in-makefiles
+unset TARGET_ARCH
 
-    # https://www.openssl.org/docs/man1.1.1/man3/SSL_CTX_set_default_verify_paths.html
-    if [ -f "$XCPKG_CORE_DIR/cacert.pem" ] ; then
-        export SSL_CERT_FILE="$XCPKG_CORE_DIR/cacert.pem"
-    fi
+##################################################################################
 
-    unset UPPM_HOME
+# https://www.openssl.org/docs/man1.1.1/man3/SSL_CTX_set_default_verify_paths.html
+if [ -f "$XCPKG_CORE_DIR/cacert.pem" ] ; then
+    export SSL_CERT_FILE="$XCPKG_CORE_DIR/cacert.pem"
+fi
 
-    XCPKG_ACTION="$1"
+##################################################################################
 
-    case $1 in
-        ''|help|--help|-h)
-            __help
-            return 0
-            ;;
-        version|--version|-V)
-            printf '%s\n' "$XCPKG_VERSION"
-            return 0
-            ;;
-         env)
-            cat <<EOF
+UPPM="$XCPKG_CORE_DIR/uppm"
+
+export UPPM_HOME="$XCPKG_HOME/uppm"
+
+if [ -n  "$XCPKG_URL_TRANSFORM" ] ; then
+    export  UPPM_URL_TRANSFORM="$XCPKG_URL_TRANSFORM"
+fi
+
+##################################################################################
+
+NATIVE_OS_KIND=darwin
+NATIVE_OS_TYPE=macos
+NATIVE_OS_NAME=MacOSX
+NATIVE_OS_VERS="$(sw_vers -productVersion)"
+NATIVE_OS_ARCH="$(uname -m)"
+NATIVE_OS_NCPU="$(sysctl -n machdep.cpu.thread_count)"
+NATIVE_OS_EUID="$(id -u)"
+NATIVE_OS_EGID="$(id -g)"
+
+##################################################################################
+
+TIMESTAMP_UNIX="$(date +%s)"
+
+XCPKG_ACTION="$1"
+
+case $1 in
+    ''|help|--help|-h)
+        __help
+        exit
+        ;;
+    version|--version|-V)
+        printf '%s\n' "$XCPKG_VERSION"
+        exit
+        ;;
+     env)
+        cat <<EOF
 xcpkg.version : $XCPKG_VERSION
 xcpkg.homedir : $XCPKG_HOME
 xcpkg.exepath : $XCPKG
 xcpkg.website : https://github.com/leleliu008/xcpkg
-
 EOF
-            if [ -f "$UPPM" ] ; then
-                "$UPPM" env
-            fi
-            return 0
-            ;;
-        sysinfo)
-            cat <<EOF
+        if [ -f "$UPPM" ] ; then
+            printf '\n'
+            "$UPPM" env
+        fi
+        exit
+        ;;
+    sysinfo)
+        cat <<EOF
 sysinfo.ncpu: $NATIVE_OS_NCPU
 sysinfo.arch: $NATIVE_OS_ARCH
 sysinfo.kind: $NATIVE_OS_KIND
@@ -7658,190 +7667,172 @@ sysinfo.vers: $NATIVE_OS_VERS
 sysinfo.euid: $NATIVE_OS_EUID
 sysinfo.egid: $NATIVE_OS_EGID
 EOF
-            return 0;
-            ;;
-        gen-url-transform-sample)
-            shift
-            __gen_url_transform_sample "$@"
-            return 0
-            ;;
-       setup)
-            shift
-            __setup "$@"
-            return 0
-            ;;
-    esac
+        exit
+        ;;
+    gen-url-transform-sample)
+        shift
+        __gen_url_transform_sample "$@"
+        exit
+        ;;
+   setup)
+        shift
+        __setup "$@"
+        exit
+        ;;
+esac
 
-    #########################################################################################
+#########################################################################################
 
-    if [ -z "$CARGO_HOME" ] ; then
-        bppend_to_PATH "$HOME/.cargo/bin"
-    else
-        bppend_to_PATH "$CARGO_HOME/bin"
-    fi
+if [ -z "$CARGO_HOME" ] ; then
+    bppend_to_PATH "$HOME/.cargo/bin"
+else
+    bppend_to_PATH "$CARGO_HOME/bin"
+fi
 
-    # pip install --user <PKG>
-    bppend_to_PATH "$HOME/.local/bin"
+# pip install --user <PKG>
+bppend_to_PATH "$HOME/.local/bin"
 
-    # cpan install to default local location
-    bppend_to_PATH "$HOME/perl5/bin"
+# cpan install to default local location
+bppend_to_PATH "$HOME/perl5/bin"
 
-    #########################################################################################
+#########################################################################################
 
-    unset ACLOCAL_PATH
+unset ACLOCAL_PATH
 
-    #########################################################################################
+#########################################################################################
 
-    if [ -f "$XCPKG_CORE_DIR/profile" ] ; then
-        .   "$XCPKG_CORE_DIR/profile"
-    else
-        abort 1 "please run ${COLOR_GREEN}$_0 setup${COLOR_OFF} command first, then try again."
-    fi
+if [ -f "$XCPKG_CORE_DIR/profile" ] ; then
+    .   "$XCPKG_CORE_DIR/profile"
+else
+    abort 1 "please run ${COLOR_GREEN}$_0 setup${COLOR_OFF} command first, then try again."
+fi
 
-    #########################################################################################
+#########################################################################################
 
-    # https://www.gnu.org/software/automake/manual/html_node/Macro-Search-Path.html
-    if [ -z  "$ACLOCAL_PATH" ] ; then
-        export ACLOCAL_PATH="$XCPKG_CORE_DIR/share/aclocal"
-    else
-        export ACLOCAL_PATH="$XCPKG_CORE_DIR/share/aclocal:$ACLOCAL_PATH"
-    fi
+# https://www.gnu.org/software/automake/manual/html_node/Macro-Search-Path.html
+if [ -z  "$ACLOCAL_PATH" ] ; then
+    export ACLOCAL_PATH="$XCPKG_CORE_DIR/share/aclocal"
+else
+    export ACLOCAL_PATH="$XCPKG_CORE_DIR/share/aclocal:$ACLOCAL_PATH"
+fi
 
-    if [ -d         "$XCPKG_CORE_DIR/bin" ] ; then
-        export PATH="$XCPKG_CORE_DIR/bin:$PATH"
-    fi
+if [ -d         "$XCPKG_CORE_DIR/bin" ] ; then
+    export PATH="$XCPKG_CORE_DIR/bin:$PATH"
+fi
 
-    #########################################################################################
+#########################################################################################
 
-    case $1 in
-        xcinfo)
-            shift
-            xcinfo "$@"
-            ;;
+case $1 in
+    xcinfo)
+        shift
+        xcinfo "$@"
+        ;;
 
-        info-available)
-            shift
-            __info_the_given_available_package "$@"
-            ;;
+    info-available)
+        shift
+        __info_the_given_available_package "$@"
+        ;;
+    info-installed)
+        shift
+        __info_the_given_installed_package "$@"
+        ;;
 
-        info-installed)
-            shift
-            __info_the_given_installed_package "$@"
-            ;;
+    ls-available) shift; __list_available_packages "$@" ;;
+    ls-installed) shift; __list_installed_packages "$@" ;;
+    ls-outdated)  shift; __list__outdated_packages "$@" ;;
 
-        ls-available) shift; __list_available_packages "$@" ;;
-        ls-installed) shift; __list_installed_packages "$@" ;;
-        ls-outdated)  shift; __list__outdated_packages "$@" ;;
+    is-available)
+        shift
+        is_package_available "$1"
+        ;;
+    is-installed)
+        shift
+        PACKAGE_SPEC=
+        PACKAGE_SPEC="$(inspect_package_spec "$1")"
+        is_package_installed "$PACKAGE_SPEC"
+        ;;
+    is-outdated)
+        shift
+        PACKAGE_SPEC=
+        PACKAGE_SPEC="$(inspect_package_spec "$1")"
+        is_package__outdated "$PACKAGE_SPEC"
+        ;;
 
-        is-available)
-            shift
-            is_package_available "$1"
-            ;;
-        is-installed)
-            shift
-            PACKAGE_SPEC=
-            PACKAGE_SPEC="$(inspect_package_spec "$1")"
-            is_package_installed "$PACKAGE_SPEC"
-            ;;
-        is-outdated)
-            shift
-            PACKAGE_SPEC=
-            PACKAGE_SPEC="$(inspect_package_spec "$1")"
-            is_package__outdated "$PACKAGE_SPEC"
-            ;;
+    update)            shift; __sync_available_formula_repositories "$@" ;;
+    formula-repo-list) shift; __list_available_formula_repositories "$@" ;;
+    formula-repo-info) shift; __info_the_given_formula_repository "$@" ;;
+    formula-repo-conf) shift; __conf_the_given_formula_repository "$@" ;;
+    formula-repo-sync) shift; __sync_the_given_formula_repository "$@" ;;
+    formula-repo-init)
+        shift
 
-        update)            shift; __sync_available_formula_repositories "$@" ;;
-        formula-repo-list) shift; __list_available_formula_repositories "$@" ;;
-        formula-repo-info) shift; __info_the_given_formula_repository "$@" ;;
-        formula-repo-conf) shift; __conf_the_given_formula_repository "$@" ;;
-        formula-repo-sync) shift; __sync_the_given_formula_repository "$@" ;;
-        formula-repo-init)
-            shift
+        case $1 in
+            official-*) abort 1 "xcpkg formula repository name that starts with 'official-' is reserved for xcpkg official formula repository, please use other name."
+        esac
 
-            case $1 in
-                official-*) abort 1 "xcpkg formula repository name that starts with 'official-' is reserved for xcpkg official formula repository, please use other name."
-            esac
+        __create_a_formula_repository "$@"
+        ;;
 
-            __create_a_formula_repository "$@"
-            ;;
+    formula-repo-add)
+        shift
 
-        formula-repo-add)
-            shift
+        case $1 in
+            official-*) abort 1 "xcpkg formula repository name that starts with 'official-' is reserved for xcpkg official formula repository, please use other name."
+        esac
 
-            case $1 in
-                official-*) abort 1 "xcpkg formula repository name that starts with 'official-' is reserved for xcpkg official formula repository, please use other name."
-            esac
+        __create_a_formula_repository_then_sync_it "$@"
+        ;;
 
-            __create_a_formula_repository_then_sync_it "$@"
-            ;;
+    formula-repo-del)
+        shift
+        __delete_a_formula_repository "$@"
+        ;;
+    cleanup)
+        shift
+        __cleanup
+        ;;
+    search)
+        shift
+        __search_packages "$@"
+        ;;
 
-        formula-repo-del)
-            shift
-            __delete_a_formula_repository "$@"
-            ;;
+      install) shift;   __install_the_given_packages "$@" ;;
+    reinstall) shift; __reinstall_the_given_packages "$@" ;;
+    uninstall) shift; __uninstall_the_given_packages "$@" ;;
+    upgrade)   shift; __upgrade_packages "$@" ;;
 
-        cleanup)
-            shift
-            __cleanup
-            ;;
-
-        search)
-            shift
-            __search_packages "$@"
-            ;;
-
-          install) shift;   __install_the_given_packages "$@" ;;
-        reinstall) shift; __reinstall_the_given_packages "$@" ;;
-        uninstall) shift; __uninstall_the_given_packages "$@" ;;
-        upgrade)   shift; __upgrade_packages "$@" ;;
-
-        upgrade-self)
-            shift
-            __upgrade_self "$XCPKG_UPGRAGE_URL" "$@"
-            ;;
-
-        integrate)
-            shift
-            case $1 in
-                zsh) shift; __integrate_zsh_completions 'https://raw.githubusercontent.com/leleliu008/xcpkg/master/xcpkg-zsh-completion' "$@" ;;
-                *)   abort 1 "xcpkg integrate $1: not support."
-            esac
-            ;;
-
-        depends)
-            shift
-            __show_packages_depended_by_the_given_package "$@"
-            ;;
-
-        fetch)
-            shift
-            __fetch_resources_of_the_given_package "$@"
-            ;;
-
-        tree)
-            shift
-            __tree_the_given_installed_package "$@"
-            ;;
-
-        logs)
-            shift
-            __logs_the_given_installed_package "$@"
-            ;;
-
-        pack)
-            shift
-            __pack_the_given_installed_package "$@"
-            ;;
-
-        *)  abort 1 "unrecognized argument: $1"
-    esac
-}
-
-main "$@"
+    upgrade-self)
+        shift
+        __upgrade_self "$XCPKG_UPGRAGE_URL" "$@"
+        ;;
+    integrate)
+        shift
+        case $1 in
+            zsh) shift; __integrate_zsh_completions 'https://raw.githubusercontent.com/leleliu008/xcpkg/master/xcpkg-zsh-completion' "$@" ;;
+            *)   abort 1 "xcpkg integrate $1: not support."
+        esac
+        ;;
+    depends)
+        shift
+        __show_packages_depended_by_the_given_package "$@"
+        ;;
+    fetch)
+        shift
+        __fetch_resources_of_the_given_package "$@"
+        ;;
+    tree)
+        shift
+        __tree_the_given_installed_package "$@"
+        ;;
+    logs)
+        shift
+        __logs_the_given_installed_package "$@"
+        ;;
+    pack)
+        shift
+        __pack_the_given_installed_package "$@"
+        ;;
+    *)  abort 1 "unrecognized argument: $1"
+esac
 
 # }}}
-##############################################################################
-# {{{ vim operation
-# last line mode :set foldmethod=marker
-# command mode zM  fold close all
-# command mode zR  fold open all
