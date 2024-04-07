@@ -1701,12 +1701,18 @@ __search_packages() {
         --arg res_url "$PACKAGE_RES_URL" \
         --arg res_uri "$PACKAGE_RES_URI" \
         --arg res_sha "$PACKAGE_RES_SHA" \
+        --arg patches "$PACKAGE_PATCHES" \
+        --arg reslist "$PACKAGE_RESLIST" \
         --arg dep_pkg "$PACKAGE_DEP_PKG" \
         --arg dep_upp "$PACKAGE_DEP_UPP" \
         --arg dep_pym "$PACKAGE_DEP_PYM" \
         --arg dep_plm "$PACKAGE_DEP_PLM" \
+        --arg onready "$PACKAGE_ONREADY" \
+        --arg do12345 "$PACKAGE_DO12345" \
         --arg dopatch "$PACKAGE_DOPATCH" \
+        --arg prepare "$PACKAGE_PREPARE" \
         --arg install "$PACKAGE_DOBUILD" \
+        --arg dotweak "$PACKAGE_DOTWEAK" \
         --arg bsystem "$PACKAGE_BSYSTEM" \
         --arg binbstd "$PACKAGE_BINBSTD" \
         --arg ccflags "$PACKAGE_CCFLAGS" \
@@ -1733,6 +1739,8 @@ __search_packages() {
     "res-url":$res_url,
     "res-uri":$res_uri,
     "res-sha":$res_sha,
+    "patches":$patches,
+    "reslist":$reslist,
     "dep-pkg":$dep_pkg,
     "dep-upp":$dep_upp,
     "dep-pym":$dep_pym,
@@ -1744,8 +1752,12 @@ __search_packages() {
     "ppflags":$ppflags,
     "ldflags":$ldflags,
     "parallel":$parallel,
+    "onready":$onready,
+    "do12345":$do12345,
     "dopatch":$dopatch,
-    "install":$install
+    "prepare":$prepare,
+    "install":$install,
+    "dotweak":$dotweak
 }' | jq 'with_entries(select(.value != ""))'
 }
 
@@ -1881,13 +1893,29 @@ EOF
         --json)
             __info_the_given_available_package_as_json "$1"
             ;;
+        onready)
+            __load_formula_of_the_given_package "$1"
+            printf '%s\n' "$PACKAGE_ONREADY"
+            ;;
+        do12345)
+            __load_formula_of_the_given_package "$1"
+            printf '%s\n' "$PACKAGE_DO12345"
+            ;;
         dopatch)
             __load_formula_of_the_given_package "$1"
             printf '%s\n' "$PACKAGE_DOPATCH"
             ;;
+        prepare)
+            __load_formula_of_the_given_package "$1"
+            printf '%s\n' "$PACKAGE_PREPARE"
+            ;;
         install)
             __load_formula_of_the_given_package "$1"
             printf '%s\n' "$PACKAGE_DOBUILD"
+            ;;
+        dotweak)
+            __load_formula_of_the_given_package "$1"
+            printf '%s\n' "$PACKAGE_DOTWEAK"
             ;;
         developer)
             __load_formula_of_the_given_package "$1"
