@@ -1994,7 +1994,7 @@ EOF
 
 # __show_packages_depended_by_the_given_package <PACKAGE-NAME> [-t <dot|d2|box|svg|png>] [-o <OUTPUT-PATH>]
 __show_packages_depended_by_the_given_package() {
-    [ -z "$1" ] && abort 1 "_0 depends <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>], <PACKAGE-NAME> is unspecified."
+    [ -z "$1" ] && abort 1 "$XCPKG depends <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>], <PACKAGE-NAME> is unspecified."
 
     PACKAGE_NAME="$1"
 
@@ -2012,18 +2012,18 @@ __show_packages_depended_by_the_given_package() {
                 case $1 in
                     dot|d2|box|svg|png)
                         OUTPUT_TYPE="$1" ;;
-                    '') abort 1 "$_0 depends <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>], -t option is given but <OUTPUT-TYPE> is unspecified." ;;
-                    *)  abort 1 "$_0 depends <PACKAGE-NAME> [-t <OUTPUT-TYPE>], unsupported <OUTPUT-TYPE>: $1, <OUTPUT-TYPE> should be one of dot|d2|box|svg|png"
+                    '') abort 1 "$XCPKG depends <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>], -t option is given but <OUTPUT-TYPE> is unspecified." ;;
+                    *)  abort 1 "$XCPKG depends <PACKAGE-NAME> [-t <OUTPUT-TYPE>], unsupported <OUTPUT-TYPE>: $1, <OUTPUT-TYPE> should be one of dot|d2|box|svg|png"
                 esac
                 ;;
             -o) shift
                 if [ -z "$1" ] ; then
-                    abort 1 "$_0 depends <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>], -o option is given but <OUTPUT-PATH> is unspecified."
+                    abort 1 "$XCPKG depends <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>], -o option is given but <OUTPUT-PATH> is unspecified."
                 else
                     OUTPUT_PATH="$1"
                 fi
                 ;;
-            *)  abort 1 "$_0 depends <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>] [--keep-session-dir], unrecognized option: $1"
+            *)  abort 1 "$XCPKG depends <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>] [--keep-session-dir], unrecognized option: $1"
         esac
         shift
     done
@@ -2492,24 +2492,24 @@ __fetch_resources_of_the_given_package() {
             -t) shift
 
                 if [ -z "$1" ] ; then
-                    abort 1 "$_0 pack <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>], -t option is given but <OUTPUT-TYPE> is unspecified."
+                    abort 1 "$XCPKG pack <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>], -t option is given but <OUTPUT-TYPE> is unspecified."
                 else
                     OUTPUT_FILETYPE="$1"
                 fi
 
                 case $OUTPUT_FILETYPE in
                     zip|tar.gz|tar.xz|tar.lz|tar.bz2) ;;
-                    *) abort 1 "$_0 pack <PACKAGE-NAME> [-t <OUTPUT-TYPE>], unsupported <OUTPU-TYPE>: $OUTPUT_FILETYPE, <OUTPU-TYPE> should be one of zip|tar.gz|tar.xz|tar.lz|tar.bz2"
+                    *) abort 1 "$XCPKG pack <PACKAGE-NAME> [-t <OUTPUT-TYPE>], unsupported <OUTPU-TYPE>: $OUTPUT_FILETYPE, <OUTPU-TYPE> should be one of zip|tar.gz|tar.xz|tar.lz|tar.bz2"
                 esac
                 ;;
             -o) shift
                 if [ -z "$1" ] ; then
-                    abort 1 "$_0 pack <PACKAGE-NAME> [-t <OUTPU-TYPE>] [-o <OUTPUT-PATH>], -o option is given but <OUTPUT-PATH> is unspecified."
+                    abort 1 "$XCPKG pack <PACKAGE-NAME> [-t <OUTPU-TYPE>] [-o <OUTPUT-PATH>], -o option is given but <OUTPUT-PATH> is unspecified."
                 else
                     OUTPUT_FILEPATH="$1"
                 fi
                 ;;
-            *)  abort 1 "$_0 pack <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>] [--keep-session-dir], unrecognized option: $1"
+            *)  abort 1 "$XCPKG pack <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>] [--keep-session-dir], unrecognized option: $1"
         esac
         shift
     done
@@ -6441,7 +6441,7 @@ inspect_install_arguments() {
 __install_the_given_packages() {
     inspect_install_arguments "$@"
 
-    [ -z "$SPECIFIED_PACKAGE_SPEC_LIST" ] && abort 1 "$_0 install <PACKAGE-SPEC|PACKAGE-NAME>..., <|PACKAGE-SPEC|PACKAGE-NAME> is unspecified."
+    [ -z "$SPECIFIED_PACKAGE_SPEC_LIST" ] && abort 1 "$XCPKG install <PACKAGE-SPEC|PACKAGE-NAME>..., <|PACKAGE-SPEC|PACKAGE-NAME> is unspecified."
 
     #########################################################################################
 
@@ -6908,17 +6908,17 @@ __uninstall_the_given_packages() {
     unset CURRENT_SCRIPT_REALPATH
 
     # if file exists and is a symbolic link
-    if [ -L "$CURRENT_SCRIPT_FILEPATH" ] ; then
+    if [ -L "$XCPKG_PATH" ] ; then
         # https://unix.stackexchange.com/questions/136494/whats-the-difference-between-realpath-and-readlink-f#:~:text=GNU%20coreutils%20introduced%20a%20realpath,in%20common%20with%20GNU%20readlink%20.
         if command -v realpath > /dev/null ; then
-            CURRENT_SCRIPT_REALPATH=$(realpath "$CURRENT_SCRIPT_FILEPATH")
+            CURRENT_SCRIPT_REALPATH=$(realpath "$XCPKG_PATH")
         elif command -v readlink > /dev/null && readlink -f xx > /dev/null 2>&1 ; then
-            CURRENT_SCRIPT_REALPATH=$(readlink -f "$CURRENT_SCRIPT_FILEPATH")
+            CURRENT_SCRIPT_REALPATH=$(readlink -f "$XCPKG_PATH")
         else
-            CURRENT_SCRIPT_REALPATH=$(realpath "$CURRENT_SCRIPT_FILEPATH")
+            CURRENT_SCRIPT_REALPATH=$(realpath "$XCPKG_PATH")
         fi
     else
-        CURRENT_SCRIPT_REALPATH="$CURRENT_SCRIPT_FILEPATH"
+        CURRENT_SCRIPT_REALPATH="$XCPKG_PATH"
     fi
 
     SESSION_DIR="$XCPKG_HOME/run/$$"
@@ -6972,7 +6972,7 @@ __uninstall_the_given_packages() {
         esac
     done
 
-    ZSH_COMPLETIONS_SCRIPT_FILENAME="_$CURRENT_SCRIPT_FILENAME"
+    ZSH_COMPLETIONS_SCRIPT_FILENAME="_$(basename "$XCPKG")"
 
     if [ -n "$OUTPUT_DIR" ] ; then
         ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH="$OUTPUT_DIR/$ZSH_COMPLETIONS_SCRIPT_FILENAME"
@@ -7796,23 +7796,13 @@ fi
 
 ##################################################################################
 
-_0=$0
+XCPKG="$0"
 
-unset CURRENT_SCRIPT_DIR
-unset CURRENT_SCRIPT_FILENAME
-unset CURRENT_SCRIPT_FILEPATH
-
-CURRENT_SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-CURRENT_SCRIPT_FILENAME="$(basename "$0")"
-CURRENT_SCRIPT_FILEPATH="$CURRENT_SCRIPT_DIR/$CURRENT_SCRIPT_FILENAME"
-
-##################################################################################
-
-XCPKG="$CURRENT_SCRIPT_FILEPATH"
+XCPKG_PATH="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
 
 XCPKG_ACTION="$*"
 
-XCPKG_VERSION=0.17.1
+XCPKG_VERSION=0.17.2
 
 XCPKG_OFFICIAL_FORMULA_REPO_URL='https://github.com/leleliu008/xcpkg-formula-repository-official-core'
 
@@ -7949,7 +7939,7 @@ unset ACLOCAL_PATH
 if [ -f "$XCPKG_CORE_DIR/profile" ] ; then
     .   "$XCPKG_CORE_DIR/profile"
 else
-    abort 1 "please run ${COLOR_GREEN}$_0 setup${COLOR_OFF} command first, then try again."
+    abort 1 "please run ${COLOR_GREEN}$XCPKG setup${COLOR_OFF} command first, then try again."
 fi
 
 #########################################################################################

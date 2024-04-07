@@ -384,6 +384,14 @@ all relevant directories and files are located under `~/.xcpkg` directory.
     export GOPROXY='https://goproxy.cn'
     ```
 
+- **XCPKG_HOME**
+
+    If this environment variable is not set or set a empty string, `$HOME/.xcpkg` will be used as the default value.
+
+    ```bash
+    export XCPKG_HOME=$HOME/xcpkg-home
+    ```
+
 - **XCPKG_URL_TRANSFORM**
 
     ```bash
@@ -444,7 +452,7 @@ a xcpkg formula'a filename prefix would be treated as the package name.
 
 a xcpkg formula'a filename prefix must match regular expression pattern `^[A-Za-z0-9+-._@]{1,50}$`
 
-a uppm formula's file content only has one level mapping and shall has following KEY:
+a xcpkg formula's file content only has one level mapping and shall has following KEY:
 
 |KEY|required?|overview|
 |-|-|-|
@@ -559,9 +567,11 @@ a uppm formula's file content only has one level mapping and shall has following
 |||
 |`CROSS_COMPILING`|value shall be 0 or 1. indicates whether is cross-compiling.|
 |||
-|`XCPKG_VERSION`|the version of `xcpkg`.|
-|`XCPKG_HOME`|the home directory of `xcpkg`.|
-|`XCPKG`|the executable filepath of `xcpkg`.|
+|`XCPKG`|the name or path of `xcpkg` that you're running.|
+|`XCPKG_PATH`|the full path of `xcpkg` that you're running.|
+|`XCPKG_ARGS`|the arguments of `xcpkg` that you've supplied.|
+|`XCPKG_HOME`|the home directory of `xcpkg` that you're running.|
+|`XCPKG_VERSION`|the version of `xcpkg` that you're running.|
 |||
 |`UPPM`|the executable filepath of [uppm](https://github.com/leleliu008/uppm)|
 |||
