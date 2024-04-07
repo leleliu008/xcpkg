@@ -7784,25 +7784,35 @@ set -e
 # https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_05_03
 unset IFS
 
+##################################################################################
+
+if [ -n "$XCPKG_XTRACE" ] ; then
+    set -x
+fi
+
+if [ "$(uname)" != 'Darwin' ] ; then
+    abort 1 "this software can only be run on macOS."
+fi
+
+##################################################################################
+
 _0=$0
 
 unset CURRENT_SCRIPT_DIR
 unset CURRENT_SCRIPT_FILENAME
 unset CURRENT_SCRIPT_FILEPATH
 
-CURRENT_SCRIPT_DIR=$(cd "$(dirname "$0")" && pwd) || exit 1
-CURRENT_SCRIPT_FILENAME=$(basename "$0")
+CURRENT_SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+CURRENT_SCRIPT_FILENAME="$(basename "$0")"
 CURRENT_SCRIPT_FILEPATH="$CURRENT_SCRIPT_DIR/$CURRENT_SCRIPT_FILENAME"
-
-[ -n "$XCPKG_XTRACE" ] && set -x
-
-[ "$(uname)" = 'Darwin' ] || abort 1 "this software can only be run on macOS."
 
 ##################################################################################
 
 XCPKG="$CURRENT_SCRIPT_FILEPATH"
 
-XCPKG_VERSION=0.17.0
+XCPKG_ACTION="$*"
+
+XCPKG_VERSION=0.17.1
 
 XCPKG_OFFICIAL_FORMULA_REPO_URL='https://github.com/leleliu008/xcpkg-formula-repository-official-core'
 
@@ -7825,7 +7835,15 @@ XCPKG_DOWNLOADS_DIR="$XCPKG_HOME/downloads"
 
 XCPKG_CORE_DIR="$XCPKG_HOME/core"
 
-NATIVE_PACKAGE_INSTALLED_ROOT="$XCPKG_HOME/native"
+##################################################################################
+
+UPPM="$XCPKG_CORE_DIR/uppm"
+
+export UPPM_HOME="$XCPKG_HOME/uppm"
+
+if [ -n  "$XCPKG_URL_TRANSFORM" ] ; then
+    export  UPPM_URL_TRANSFORM="$XCPKG_URL_TRANSFORM"
+fi
 
 ##################################################################################
 
@@ -7847,16 +7865,6 @@ fi
 
 ##################################################################################
 
-UPPM="$XCPKG_CORE_DIR/uppm"
-
-export UPPM_HOME="$XCPKG_HOME/uppm"
-
-if [ -n  "$XCPKG_URL_TRANSFORM" ] ; then
-    export  UPPM_URL_TRANSFORM="$XCPKG_URL_TRANSFORM"
-fi
-
-##################################################################################
-
 NATIVE_OS_KIND=darwin
 NATIVE_OS_TYPE=macos
 NATIVE_OS_NAME=MacOSX
@@ -7866,11 +7874,11 @@ NATIVE_OS_NCPU="$(sysctl -n machdep.cpu.thread_count)"
 NATIVE_OS_EUID="$(id -u)"
 NATIVE_OS_EGID="$(id -g)"
 
+NATIVE_PACKAGE_INSTALLED_ROOT="$XCPKG_HOME/native"
+
 ##################################################################################
 
 TIMESTAMP_UNIX="$(date +%s)"
-
-XCPKG_ACTION="$1"
 
 case $1 in
     ''|help|--help|-h)
