@@ -970,6 +970,7 @@ filetype_from_url() {
     PACKAGE_FIX_URL="$(yq '.fix-url | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
     PACKAGE_FIX_URI="$(yq '.fix-uri | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
     PACKAGE_FIX_SHA="$(yq '.fix-sha | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
+    PACKAGE_FIX_OPT="$(yq '.fix-opt | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
 
     PACKAGE_RES_URL="$(yq '.res-url | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
     PACKAGE_RES_URI="$(yq '.res-uri | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
@@ -7918,7 +7919,7 @@ case $1 in
         cat <<EOF
 xcpkg.version : $XCPKG_VERSION
 xcpkg.homedir : $XCPKG_HOME
-xcpkg.exepath : $XCPKG
+xcpkg.exepath : $XCPKG_PATH
 xcpkg.website : https://github.com/leleliu008/xcpkg
 EOF
         if [ -f "$UPPM" ] ; then
