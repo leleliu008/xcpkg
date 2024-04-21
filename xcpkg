@@ -2022,7 +2022,7 @@ EOF
 ##############################################################################
 # {{{ xcpkg depends
 
-# __show_packages_depended_by_the_given_package <PACKAGE-NAME> [-t <dot|d2|box|svg|png>] [-o <OUTPUT-PATH>]
+# __show_packages_depended_by_the_given_package <PACKAGE-NAME> [-t <d2|dot|box|svg|png>] [-o <OUTPUT-PATH>]
 __show_packages_depended_by_the_given_package() {
     [ -z "$1" ] && abort 1 "$XCPKG depends <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>], <PACKAGE-NAME> is unspecified."
 
@@ -2040,10 +2040,10 @@ __show_packages_depended_by_the_given_package() {
         case $1 in
             -t) shift
                 case $1 in
-                    dot|d2|box|svg|png)
+                    d2|dot|box|svg|png)
                         OUTPUT_TYPE="$1" ;;
                     '') abort 1 "$XCPKG depends <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>], -t option is given but <OUTPUT-TYPE> is unspecified." ;;
-                    *)  abort 1 "$XCPKG depends <PACKAGE-NAME> [-t <OUTPUT-TYPE>], unsupported <OUTPUT-TYPE>: $1, <OUTPUT-TYPE> should be one of dot|d2|box|svg|png"
+                    *)  abort 1 "$XCPKG depends <PACKAGE-NAME> [-t <OUTPUT-TYPE>], unsupported <OUTPUT-TYPE>: $1, <OUTPUT-TYPE> should be one of d2|dot|box|svg|png"
                 esac
                 ;;
             -o) shift
@@ -2904,8 +2904,8 @@ EOF
             NATIVE_PACKAGE_BUILD_CONFIG_ARGS='--disable-dependency-tracking --enable-static --disable-shared --enable-largefile --disable-editline --disable-readline'
             ;;
         libffi)
-            NATIVE_PACKAGE_SRC_URL='https://github.com/libffi/libffi/releases/download/v3.4.4/libffi-3.4.4.tar.gz'
-            NATIVE_PACKAGE_SRC_SHA='d66c56ad259a82cf2a9dfc408b32bf5da52371500b84745f7fb8b645712df676'
+            NATIVE_PACKAGE_SRC_URL='https://github.com/libffi/libffi/releases/download/v3.4.6/libffi-3.4.6.tar.gz'
+            NATIVE_PACKAGE_SRC_SHA='b0dea9df23c863a7a50e825440f3ebffabd65df1497108e5d437747843895a4e'
             NATIVE_PACKAGE_DEPENDENCIES=
             NATIVE_PACKAGE_USE_BSYSTEM_NAME='configure'
             NATIVE_PACKAGE_BUILD_CONFIG_ARGS='--disable-dependency-tracking --enable-static --disable-shared --disable-docs --disable-symvers'
@@ -6468,6 +6468,17 @@ inspect_install_arguments() {
         exec 1>/dev/null
         exec 2>&1
     fi
+
+    #########################################################################################
+
+    # DO NOT use these environment variables
+    # https://cmake.org/cmake/help/latest/envvar/MACOSX_DEPLOYMENT_TARGET.html
+    unset   MACOSX_DEPLOYMENT_TARGET
+    unset IPHONEOS_DEPLOYMENT_TARGET
+    unset  WATCHOS_DEPLOYMENT_TARGET
+
+    # https://stackoverflow.com/questions/18476490/what-is-purpose-of-target-arch-variable-in-makefiles
+    unset TARGET_ARCH
 }
 
 # }}}
@@ -7838,7 +7849,7 @@ XCPKG_PATH="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
 
 XCPKG_ACTION="$*"
 
-XCPKG_VERSION=0.17.3
+XCPKG_VERSION=0.17.4
 
 XCPKG_OFFICIAL_FORMULA_REPO_URL='https://github.com/leleliu008/xcpkg-formula-repository-official-core'
 
@@ -7873,17 +7884,6 @@ fi
 
 ##################################################################################
 
-# DO NOT use these environment variables
-# https://cmake.org/cmake/help/latest/envvar/MACOSX_DEPLOYMENT_TARGET.html
-unset   MACOSX_DEPLOYMENT_TARGET
-unset IPHONEOS_DEPLOYMENT_TARGET
-unset  WATCHOS_DEPLOYMENT_TARGET
-
-# https://stackoverflow.com/questions/18476490/what-is-purpose-of-target-arch-variable-in-makefiles
-unset TARGET_ARCH
-
-##################################################################################
-
 # https://www.openssl.org/docs/man1.1.1/man3/SSL_CTX_set_default_verify_paths.html
 if [ -f "$XCPKG_CORE_DIR/cacert.pem" ] ; then
     export SSL_CERT_FILE="$XCPKG_CORE_DIR/cacert.pem"
@@ -7905,6 +7905,8 @@ NATIVE_PACKAGE_INSTALLED_ROOT="$XCPKG_HOME/native"
 ##################################################################################
 
 TIMESTAMP_UNIX="$(date +%s)"
+
+##################################################################################
 
 case $1 in
     ''|help|--help|-h)
@@ -7952,25 +7954,28 @@ EOF
         ;;
 esac
 
-#########################################################################################
+##################################################################################
 
-if [ -z "$CARGO_HOME" ] ; then
-    bppend_to_PATH "$HOME/.cargo/bin"
-else
-    bppend_to_PATH "$CARGO_HOME/bin"
-fi
+[ -z  "$CARGO_HOME" ] && {
+    if [ -z "$HOME" ] ; then
+        abort 1 "HOME environment variable is not set."
+    else
+        CARGO_HOME="$HOME/.cargo"
+    fi
+}
 
-# pip install --user <PKG>
-bppend_to_PATH "$HOME/.local/bin"
+bppend_to_PATH "$CARGO_HOME/bin"
 
-# cpan install to default local location
-bppend_to_PATH "$HOME/perl5/bin"
+##################################################################################
 
-#########################################################################################
+export PATH="$XCPKG_CORE_DIR/bin:$PATH"
 
-unset ACLOCAL_PATH
+##################################################################################
 
-#########################################################################################
+# https://www.gnu.org/software/automake/manual/html_node/Macro-Search-Path.html
+export ACLOCAL_PATH="$XCPKG_CORE_DIR/share/aclocal"
+
+##################################################################################
 
 if [ -f "$XCPKG_CORE_DIR/profile" ] ; then
     .   "$XCPKG_CORE_DIR/profile"
@@ -7978,20 +7983,7 @@ else
     abort 1 "please run ${COLOR_GREEN}$XCPKG setup${COLOR_OFF} command first, then try again."
 fi
 
-#########################################################################################
-
-# https://www.gnu.org/software/automake/manual/html_node/Macro-Search-Path.html
-if [ -z  "$ACLOCAL_PATH" ] ; then
-    export ACLOCAL_PATH="$XCPKG_CORE_DIR/share/aclocal"
-else
-    export ACLOCAL_PATH="$XCPKG_CORE_DIR/share/aclocal:$ACLOCAL_PATH"
-fi
-
-if [ -d         "$XCPKG_CORE_DIR/bin" ] ; then
-    export PATH="$XCPKG_CORE_DIR/bin:$PATH"
-fi
-
-#########################################################################################
+##################################################################################
 
 case $1 in
     xcinfo)
