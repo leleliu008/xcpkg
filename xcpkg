@@ -7272,7 +7272,7 @@ __setup_uppm() {
     XCPKG_CORE_LATEST_RELEASE_VERSION="$(cat xcpkg-core-latest-release-version)"
     XCPKG_CORE_LATEST_RELEASE_ARCHIVE="xcpkg-core-${XCPKG_CORE_LATEST_RELEASE_VERSION}-macos-${X}-${NATIVE_OS_ARCH}.tar.xz"
 
-    wfetch "https://github.com/leleliu008/uppm/releases/download/${XCPKG_CORE_LATEST_RELEASE_VERSION}/${XCPKG_CORE_LATEST_RELEASE_ARCHIVE}" -o . --no-buffer
+    wfetch "https://github.com/leleliu008/xcpkg/releases/download/${XCPKG_CORE_LATEST_RELEASE_VERSION}/${XCPKG_CORE_LATEST_RELEASE_ARCHIVE}" -o . --no-buffer
 
     run tar xvf "$XCPKG_CORE_LATEST_RELEASE_ARCHIVE" --strip-components=1 --no-same-owner
 
