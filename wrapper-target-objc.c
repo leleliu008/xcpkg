@@ -1,41 +1,140 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stddef.h>
 #include <string.h>
 
 #include <unistd.h>
+#include <sys/stat.h>
 
 int main(int argc, char * argv[]) {
-    char * const objc = getenv("PROXIED_OBJC");
+    char * const compiler = getenv("PROXIED_OBJC");
 
-    if (objc == NULL) {
+    if (compiler == NULL) {
         fprintf(stderr, "PROXIED_OBJC environment variable is not set.\n");
         return 1;
     }
 
-    if (objc[0] == '\0') {
+    if (compiler[0] == '\0') {
         fprintf(stderr, "PROXIED_OBJC environment variable value should be a non-empty string.\n");
         return 2;
     }
 
-    char* argv2[argc + 2];
+    /////////////////////////////////////////////////////////////////
 
-    argv2[0] = objc;
+    const char * const SYSROOT = getenv("SYSROOT");
+
+    if (SYSROOT == NULL) {
+        fprintf(stderr, "SYSROOT environment variable is not set.\n");
+        return 5;
+    }
+
+    if (SYSROOT[0] == '\0') {
+        fprintf(stderr, "SYSROOT environment variable value should be a non-empty string.\n");
+        return 6;
+    }
+
+    /////////////////////////////////////////////////////////////////
+
+    size_t sysrootArgLength = strlen(SYSROOT) + 11U;
+    char   sysrootArg[sysrootArgLength];
+
+    int ret = snprintf(sysrootArg, sysrootArgLength, "--sysroot=%s", SYSROOT);
+
+    if (ret < 0) {
+        perror(NULL);
+        return 8;
+    }
+
+    /////////////////////////////////////////////////////////////////
+
+    int createSharedLibrary = 0;
 
     for (int i = 1; i < argc; i++) {
-        argv2[i] = argv[i];
+        if (strcmp(argv[i], "-shared") == 0) {
+            createSharedLibrary = 1;
+            break;
+        }
     }
 
-    char * const sysroot = getenv("SYSROOT");
+    /////////////////////////////////////////////////////////////////
 
-    if (sysroot == NULL || sysroot[0] == '\0') {
-        argv2[argc] = NULL;
+    char* argv2[argc + 3];
+
+    if (createSharedLibrary == 0) {
+        const char * msle = getenv("PACKAGE_CREATE_MOSTLY_STATICALLY_LINKED_EXECUTABLE");
+
+        if (msle != NULL && strcmp(msle, "1") == 0) {
+            for (int i = 1; i < argc; i++) {
+                if (argv[i][0] == '/') {
+                    int len = 0;
+                    int dotIndex = -1;
+
+                    for (int j = 0; ; j++) {
+                        if (argv[i][j] == '\0') {
+                            len = j;
+                            break;
+                        }
+
+                        if (argv[i][j] == '.') {
+                            dotIndex = j;
+                        }
+                    }
+
+                    if (dotIndex > 0) {
+                        if (len - dotIndex == 6) {
+                            if (strcmp(&argv[i][dotIndex], ".dylib") == 0) {
+                                argv[i][dotIndex + 1] = 'a' ;
+                                argv[i][dotIndex + 2] = '\0';
+
+                                struct stat st;
+
+                                if (stat(argv[i], &st) != 0 || !S_ISREG(st.st_mode)) {
+                                    argv[i][dotIndex + 1] = 'd';
+                                    argv[i][dotIndex + 2] = 'y';
+                                }
+                            }
+                        }
+                    }
+                }
+
+                argv2[i] = argv[i];
+            }
+        } else {
+            for (int i = 1; i < argc; i++) {
+                argv2[i] = argv[i];
+            }
+        }
     } else {
-        argv2[argc]     = (char*)"-isysroot";
-        argv2[argc + 1] = sysroot;
-        argv2[argc + 2] = NULL;
+        for (int i = 1; i < argc; i++) {
+            argv2[i] = argv[i];
+        }
     }
 
-    execv (objc, argv2);
-    perror(objc);
+    /////////////////////////////////////////////////////////////////
+
+    argv2[0]    = compiler;
+    argv2[argc] = sysrootArg;
+
+    if (createSharedLibrary == 1) {
+        argv2[argc + 1] = (char*)"-fPIC";
+        argv2[argc + 2] = NULL;
+    } else {
+        argv2[argc + 1] = NULL;
+    }
+
+    /////////////////////////////////////////////////////////////////
+
+    for (int i = 0; ;i++) {
+        if (argv2[i] == NULL) {
+            break;
+        } else {
+            fprintf(stderr, "%s\n", argv2[i]);
+        }
+    }
+
+    /////////////////////////////////////////////////////////////////
+
+    execv (compiler, argv2);
+    perror(compiler);
     return 255;
 }
