@@ -4404,13 +4404,14 @@ $PACKAGE_DO12345
         fi
 
         if [ -d "$DEPENDENT_PACKAGE_LIBRARY_DIR" ] ; then
-            LDFLAGS="-L$DEPENDENT_PACKAGE_LIBRARY_DIR -Wl,-rpath,$DEPENDENT_PACKAGE_LIBRARY_DIR $LDFLAGS"
+            LDFLAGS="-L$DEPENDENT_PACKAGE_LIBRARY_DIR $LDFLAGS"
+            #LDFLAGS="-L$DEPENDENT_PACKAGE_LIBRARY_DIR -Wl,-rpath,$DEPENDENT_PACKAGE_LIBRARY_DIR $LDFLAGS"
         fi
     done
 
     PPFLAGS="-I$PACKAGE_INSTALLING_INC_DIR $PPFLAGS"
     LDFLAGS="-L$PACKAGE_INSTALLING_LIB_DIR $LDFLAGS"
-    LDFLAGS="-Wl,-rpath,$PACKAGE_INSTALL_DIR/lib $LDFLAGS"
+    #LDFLAGS="-Wl,-rpath,$PACKAGE_INSTALL_DIR/lib $LDFLAGS"
 
     export    CFLAGS="$CCFLAGS"
     export OBJCFLAGS="$OCFLAGS"
@@ -5095,8 +5096,8 @@ $PACKAGE_DOTWEAK
 
     unset PACKAGE_NEED_SET_RPATH_EXECUTABLES
 
-    step "check Mach-O files"
-    __check_mach_o_files
+    step "tweak Mach-O files"
+    __tweak_mach_o_files
 
     #########################################################################################
 
@@ -5130,7 +5131,7 @@ $PACKAGE_DOTWEAK
         do
             DIRNAME="${f%/*}"
             RELATIVE_PATH="$(realpath -m --relative-to="$DIRNAME" .xcpkg/dependencies/lib)"
-            run patchelf --set-rpath "@executable_path/$RELATIVE_PATH" "$f"
+            run install_name_tool -add_rpath "@executable_path/$RELATIVE_PATH" "$f"
         done
     }
 
@@ -5201,7 +5202,7 @@ $PACKAGE_DOTWEAK
     run tree --dirsfirst -a "$PACKAGE_INSTALL_DIR"
 }
 
-__check_mach_o_files() {
+__tweak_mach_o_files() {
     cd "$PACKAGE_INSTALL_DIR"
 
     FILEPATHs="$(find -not -name . -type f)"
@@ -5216,73 +5217,61 @@ __check_mach_o_files() {
         FILE_HEADER_ACTUAL=
         FILE_HEADER_ACTUAL="$(hexdump -n 16 -v -e '1/1 "%02X" ""' "$FILEPATH")"
 
+        unset LIBRARY
+        unset EXECUTABLE
+
         # https://github.com/aidansteele/osx-abi-macho-file-format-reference
         case $FILE_HEADER_ACTUAL in
-            CFFAEDFE0C000001000000000[26]000000)
-                # arm64
+            CFFAEDFE0C0000010000000002000000)
+                # arm64 executable
+                EXECUTABLE=1
                 ;;
-            CFFAEDFE07000001030000000[26]000000)
-                # x86_64
+            CFFAEDFE0C0000010000000006000000)
+                # arm64 shared library
+                LIBRARY=1
+                ;;
+            CFFAEDFE070000010300000002000000)
+                # x86_64 executable
+                EXECUTABLE=1
+                ;;
+            CFFAEDFE070000010300000006000000)
+                # x86_64 shared library
+                LIBRARY=1
                 ;;
             *)  continue
         esac
 
-        DT_SONAME=
-        DT_SONAME=$( otool -l "$FILEPATH" | grep LC_ID_DYLIB   -A2 | grep name | sed 's|^[[:space:]]*||' | cut -d ' ' -f2)
+        #######################################################################
 
-        DT_NEEDED=
-        DT_NEEDED=$( otool -l "$FILEPATH" | grep LC_LOAD_DYLIB -A2 | grep name | sed 's|^[[:space:]]*||' | cut -d ' ' -f2)
+        DYLIB_ID=$(otool -l "$FILEPATH" | grep LC_ID_DYLIB -A2 | grep name | sed 's|^[[:space:]]*||' | cut -d ' ' -f2)
 
-        DT_RUNPATH=
-        DT_RUNPATH=$(otool -l "$FILEPATH" | grep LC_RPATH      -A2 | grep path | sed 's|^[[:space:]]*||' | cut -d ' ' -f2)
+        RUNPATHs=$(otool -l "$FILEPATH" | grep LC_RPATH    -A2 | grep path | sed 's|^[[:space:]]*||' | cut -d ' ' -f2)
 
-        if [ -z "$DT_NEEDED" ] ; then
-            abort 1 "no dependent shared libraries found in $FILEPATH"
-        fi
+        cat <<EOF
+FILEPATH = $FILEPATH
+DYLIB_ID = $DYLIB_ID
+RUNPATHs = $RUNPATHs
+EOF
 
-        printf '%s\n' "FILEPATH: $FILEPATH"
-        printf '%s\n' "DT_SONAME=\n$DT_SONAME"
-        printf '%s\n' "DT_NEEDED=\n$DT_NEEDED"
-        printf '%s\n' "DT_RUNPATH=\n$DT_RUNPATH"
+        #######################################################################
 
-        case $DT_SONAME in
+        case $DYLIB_ID in
             '') ;;
-            @*) ;;
-            /*/*.dylib)
-                run install_name_tool -id "@rpath/${DT_SONAME##*/}" "$FILEPATH"
-                run install_name_tool -add_rpath '@loader_path' "$FILEPATH"
+            @rpath/*)
                 ;;
-            lib*.dylib)
-                run install_name_tool -id "@rpath/$DT_SONAME" "$FILEPATH"
+            @loader_path/*)
                 ;;
+            @executable_path/*)
+                ;;
+            @*) abort 1 "unexpected LC_ID_DYLIB($DYLIB_ID) in $FILEPATH"
+                ;;
+            *)  run install_name_tool -id "@rpath/${DYLIB_ID##*/}" "$FILEPATH"
+                run install_name_tool -add_rpath '@loader_path'    "$FILEPATH"
         esac
 
-        for NEEDED in $DT_NEEDED
-        do
-            case $NEEDED in
-                @rpath/*)
-                    ;;
-                @loader_path/*)
-                    ;;
-                @executable_path/*)
-                    ;;
-                /usr/lib/lib*.dylib)
-                    ;;
-                /System/Library/Frameworks/*)
-                    ;;
-                /*)
-                    NEEDED_DYLIB_DIR="$(dirname "$NEEDED")"
-                    NEEDED_DYLIB_FILENAME="$(basename "$NEEDED")"
+        #######################################################################
 
-                    # error: /Applications/Xcode_14.2.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/install_name_tool: for: /Users/runner/.xcpkg/installed/MacOSX/13.0/x86_64/ncurses/bin/tabs (for architecture x86_64) option "-add_rpath /Users/runner/.xcpkg/installed/MacOSX/13.0/x86_64/ncurses/lib" would duplicate path, file already has LC_RPATH for: /Users/runner/.xcpkg/installed/MacOSX/13.0/x86_64/ncurses/lib
-                    run install_name_tool -add_rpath "$NEEDED_DYLIB_DIR" "$FILEPATH" || true
-                    run install_name_tool -change "$NEEDED" "@rpath/$NEEDED_DYLIB_FILENAME" "$FILEPATH"
-                    ;;
-                #*)  abort 1 "unexpected runtime dependency: $NEEDED , which is needed by $FILEPATH"
-            esac
-        done
-
-        for RPATH in $DT_RUNPATH
+        for RPATH in $RUNPATHs
         do
             case $RPATH in
                 @rpath/*)
@@ -5296,24 +5285,105 @@ __check_mach_o_files() {
                 /System/Library/Frameworks/*)
                     ;;
                 /*)
-                    case $FILEPATH in
-                        *.dylib)
-                            if [ "$RPATH" = "$PACKAGE_LIBRARY_DIR" ] ; then
-                                run install_name_tool -rpath "$RPATH" '@loader_path' "$FILEPATH"
-                            fi
-                            ;;
-                        *)
-                            if [ "$RPATH" = "$PACKAGE_LIBRARY_DIR" ] ; then
-                                run install_name_tool -rpath "$RPATH" '@executable_path/../lib' "$FILEPATH"
-                            fi
-                    esac
+                    if [ "$RPATH" = "$PACKAGE_LIBRARY_DIR" ] ; then
+                          if [ "$LIBRARY" = 1 ] ; then
+                            run install_name_tool -rpath "$RPATH" '@loader_path' "$FILEPATH"
+                        elif [ "$EXECUTABLE" = 1 ] ; then
+                            run install_name_tool -rpath "$RPATH" '@executable_path/../lib' "$FILEPATH"
+                        fi
+                    fi
             esac
         done
 
+        #######################################################################
+
+        __check_NEEDED "$FILEPATH" "$EXECUTABLE"
     done
 
     unset IFS
 }
+
+# __check_NEEDED <MACH-O-FILE-PATH> <IS-EXECUTABLE>
+  __check_NEEDED() {
+    # a \n-separated list
+    NEEDEDs=$(otool -l "$1" | grep LC_LOAD_DYLIB -A2 | grep name | sed 's|^[[:space:]]*||' | cut -d ' ' -f2)
+
+    cat <<EOF
+FILEPATH = $1
+NEEDEDs  = $NEEDEDs
+EOF
+
+    if [ -z "$NEEDEDs" ] ; then
+        abort 1 "no dependent shared libraries found in $1"
+    fi
+
+    for NEEDED in $NEEDEDs
+    do
+        case $NEEDED in
+            @rpath/*)
+                NEEDED_FILENAME="${NEEDED#*/}"
+
+                NEEDED_FILEPATH="$PACKAGE_LIBRARY_DIR/$NEEDED_FILENAME"
+
+                if [ ! -e "$NEEDED_FILEPATH" ] ; then
+                    unset   NEEDED_FILEPATH
+
+                    if [ -n "$RECURSIVE_DEPENDENT_PACKAGE_NAMES" ] ; then
+                        RECURSIVE_DEPENDENT_PACKAGE_NAMES2="$(printf '%s\n' "$RECURSIVE_DEPENDENT_PACKAGE_NAMES" | tr ' ' '\n')"
+
+                        for DEPENDENT_PACKAGE_NAME in $RECURSIVE_DEPENDENT_PACKAGE_NAMES2
+                        do
+                            NEEDED_FILEPATH="$XCPKG_PACKAGE_INSTALLED_ROOT/$TARGET_PLATFORM_SPEC/$DEPENDENT_PACKAGE_NAME/lib/$NEEDED_FILENAME"
+
+                            if [ -e "$NEEDED_FILEPATH" ] ; then
+                                if [ !      -d    "$PACKAGE_DEPENDENT_SHARED_LIBS_DIR" ] ; then
+                                    install -d -v "$PACKAGE_DEPENDENT_SHARED_LIBS_DIR"
+                                fi
+
+                                if [ ! -e "$PACKAGE_DEPENDENT_SHARED_LIBS_DIR/$NEEDED_FILENAME" ] ; then
+                                    cp -L -v "$NEEDED_FILEPATH" "$PACKAGE_DEPENDENT_SHARED_LIBS_DIR/"
+                                fi
+
+                                if [ "$2" = 1 ] ; then
+                                    PACKAGE_NEED_SET_RPATH_EXECUTABLES="$PACKAGE_NEED_SET_RPATH_EXECUTABLES $1"
+                                fi
+
+                                break
+                            else
+                                unset NEEDED_FILEPATH
+                            fi
+                        done
+                    fi
+                fi
+
+                if [ -z "$NEEDED_FILEPATH" ] ; then
+                    abort 1 "$NEEDED was not found, which is needed by $1"
+                else
+                    __check_NEEDED "$NEEDED_FILEPATH" 0
+                fi
+
+                ;;
+            @loader_path/*)
+                ;;
+            @executable_path/*)
+                ;;
+            /usr/lib/lib*.dylib)
+                ;;
+            /System/Library/Frameworks/*)
+                ;;
+            /*)
+                NEEDED_DYLIB_DIR="$(dirname "$NEEDED")"
+                NEEDED_DYLIB_FILENAME="$(basename "$NEEDED")"
+
+                # error: /Applications/Xcode_14.2.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/install_name_tool: for: /Users/runner/.xcpkg/installed/MacOSX/13.0/x86_64/ncurses/bin/tabs (for architecture x86_64) option "-add_rpath /Users/runner/.xcpkg/installed/MacOSX/13.0/x86_64/ncurses/lib" would duplicate path, file already has LC_RPATH for: /Users/runner/.xcpkg/installed/MacOSX/13.0/x86_64/ncurses/lib
+                run install_name_tool -add_rpath "$NEEDED_DYLIB_DIR" "$FILEPATH" || true
+                run install_name_tool -change "$NEEDED" "@rpath/$NEEDED_DYLIB_FILENAME" "$FILEPATH"
+                ;;
+            #*)  abort 1 "unexpected runtime dependency: $NEEDED , which is needed by $FILEPATH"
+        esac
+    done
+}
+
 
 __tweak_pc_files() {
     [ -d "$PACKAGE_INSTALL_DIR/lib/pkgconfig" ] || {
