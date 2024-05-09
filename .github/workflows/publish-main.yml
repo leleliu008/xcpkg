@@ -1,4 +1,4 @@
-name: publish
+name: publish xcpkg main
 
 on:
   workflow_dispatch:

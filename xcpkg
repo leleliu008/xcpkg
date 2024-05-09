@@ -7249,12 +7249,16 @@ __setup_uppm() {
 
     ##################################################################################
 
-    wfetch 'https://raw.githubusercontent.com/leleliu008/uppm/master/latest-release' -o uppm-latest-release --no-buffer
+    # https://curl.se/docs/caextract.html
+    wfetch 'https://curl.se/ca/cacert.pem' -o . --no-buffer
+
+    export SSL_CERT_FILE="$PWD/cacert.pem"
 
     ##################################################################################
 
-    UPPM_LATEST_RELEASE_TAGNAME="$(cat uppm-latest-release)"
-    UPPM_LATEST_RELEASE_VERSION="$(printf '%s\n' "$UPPM_LATEST_RELEASE_TAGNAME" | cut -d+ -f1)"
+    wfetch 'https://raw.githubusercontent.com/leleliu008/xcpkg/dev/xcpkg-core-latest-release-version' -o . --no-buffer
+
+    ##################################################################################
 
     case $(sw_vers -productVersion | cut -d. -f1) in
         10) X='10.15' ;;
@@ -7265,22 +7269,14 @@ __setup_uppm() {
         *)  X='14.0'  ;;
     esac
 
-    UPPM_LATEST_RELEASE_ARCHIVE_FILENAME="uppm-${UPPM_LATEST_RELEASE_VERSION}-macos-${X}-${NATIVE_OS_ARCH}.tar.xz"
+    XCPKG_CORE_LATEST_RELEASE_VERSION="$(cat xcpkg-core-latest-release-version)"
+    XCPKG_CORE_LATEST_RELEASE_ARCHIVE="xcpkg-core-${XCPKG_CORE_LATEST_RELEASE_VERSION}-macos-${X}-${NATIVE_OS_ARCH}.tar.xz"
 
-    wfetch "https://github.com/leleliu008/uppm/releases/download/${UPPM_LATEST_RELEASE_TAGNAME}/${UPPM_LATEST_RELEASE_ARCHIVE_FILENAME}" -o "$UPPM_LATEST_RELEASE_ARCHIVE_FILENAME" --no-buffer
+    wfetch "https://github.com/leleliu008/uppm/releases/download/${XCPKG_CORE_LATEST_RELEASE_VERSION}/${XCPKG_CORE_LATEST_RELEASE_ARCHIVE}" -o . --no-buffer
 
-    run tar xvf "$UPPM_LATEST_RELEASE_ARCHIVE_FILENAME" --strip-components=1 --no-same-owner
-
-    run mv bin/uppm .
-
-    ##################################################################################
-
-    # https://curl.se/docs/caextract.html
-    wfetch 'https://curl.se/ca/cacert.pem' -o cacert.pem --no-buffer
+    run tar xvf "$XCPKG_CORE_LATEST_RELEASE_ARCHIVE" --strip-components=1 --no-same-owner
 
     ##################################################################################
-
-    export SSL_CERT_FILE="$PWD/cacert.pem"
 
     run ./uppm env
     run ./uppm update
