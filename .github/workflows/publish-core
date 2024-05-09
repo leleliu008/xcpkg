@@ -1,0 +1,106 @@
+name: publish xcpkg core
+
+on:
+  workflow_dispatch:
+
+jobs:
+
+  base:
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - id:  calculate-release-version
+        run: |
+          RELEASE_VERSION="$(date +%Y.%m.%d)"
+
+          printf 'RELEASE_VERSION=%s\n' "$RELEASE_VERSION" >> "$GITHUB_OUTPUT"
+
+    outputs:
+      release-version: ${{ steps.calculate-release-version.outputs.RELEASE_VERSION }}
+
+
+  build:
+    needs: base
+
+    runs-on: macos-14
+
+    strategy:
+      fail-fast: false
+      matrix:
+        target-version: ['10.15', '11.0', '12.0', '13.0', '14.0']
+        target-arch: [x86_64, arm64]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: |
+          set -ex
+
+          CC="$(xcrun --sdk macosx --find clang)"
+          SYSROOT="$(xcrun --sdk macosx --show-sdk-path)"
+          CFLAGS="-isysroot $SYSROOT -mmacosx-version-min=${{ matrix.target-version }} -arch ${{ matrix.target-arch }} -Qunused-arguments"
+
+          install -d out/
+
+          for item in *.c
+          do
+            $CC $CFLAGS -std=c99 -Os -flto -o "out/${item%.c}" "$item"
+          done
+
+      - run: curl -LO https://raw.githubusercontent.com/leleliu008/xcpkg/master/xcpkg
+      - run: chmod a+x xcpkg
+      - run: ./xcpkg setup
+      - run: ./xcpkg update
+      - run: ./xcpkg install MacOSX-${{ matrix.target-version }}-${{ matrix.target-arch }}/uppm@0.15.2 --link-type=static-most
+      - run: ./xcpkg pack    MacOSX-${{ matrix.target-version }}-${{ matrix.target-arch }}/uppm@0.15.2 -o .
+
+      - run: tar vxf uppm*.tar.xz -C out --strip-components=1
+      - run: mv out/bin/uppm out/
+      - run: rm -rf out/bin
+      - run: rm -rf out/share
+      - run: rm -rf out/.xcpkg
+
+      - run: |
+          DIRNAME="xcpkg-core-${{ needs.base.outputs.release-version }}-macos-${{ matrix.target-version }}-${{ matrix.target-arch }}"
+          mv out "$DIRNAME"
+          tar cJvf "$DIRNAME.tar.xz" "$DIRNAME"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: xcpkg-core-macos-${{ matrix.target-version }}-${{ matrix.target-arch }}.tar.xz
+          path: xcpkg-core-*.tar.xz
+
+
+  publish:
+
+    needs: [base, build]
+
+    runs-on: ubuntu-latest
+
+    env:
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: '*'
+          path: .
+          merge-multiple: true
+
+      - run: ls -a
+
+      # to avaid: failed to run git: fatal: not a git repository (or any of the parent directories): .git
+      - run: git -c init.defaultBranch=master init
+      - run: git remote add origin ${{ github.repositoryUrl }}
+
+      - run: |
+          cat > notes.md <<EOF
+          sha256sum:
+
+          \`\`\`
+          $(sha256sum xcpkg-core-*.tar.xz)
+          \`\`\`
+          EOF
+
+      - run: gh release create xcpkg-core-${{ needs.base.outputs.release-version }} xcpkg-core-*.tar.xz --title xcpkg-core-${{ needs.base.outputs.release-version }} --notes-file notes.md
