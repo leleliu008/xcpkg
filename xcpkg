@@ -4253,18 +4253,67 @@ $PACKAGE_DO12345
 
     step "config CFLAGS OBJCFLAGS CXXFLAGS CPPFLAGS LDFLAGS"
 
-    CCFLAGS="$PACKAGE_CCFLAGS -fPIC"
-    OCFLAGS="$PACKAGE_OCFLAGS -fPIC"
-    OXFLAGS="$PACKAGE_OXFLAGS -fPIC"
-    XXFLAGS="$PACKAGE_XXFLAGS -fPIC"
-    PPFLAGS="$PACKAGE_PPFLAGS"
-    LDFLAGS="$PACKAGE_LDFLAGS"
+    CCFLAGS="$(printf '%s\n' "$PACKAGE_CCFLAGS" | sed -e 's|--static||g' -e 's|-static||g')"
+    OCFLAGS="$(printf '%s\n' "$PACKAGE_OCFLAGS" | sed -e 's|--static||g' -e 's|-static||g')"
+    OXFLAGS="$(printf '%s\n' "$PACKAGE_OXFLAGS" | sed -e 's|--static||g' -e 's|-static||g')"
+    XXFLAGS="$(printf '%s\n' "$PACKAGE_XXFLAGS" | sed -e 's|--static||g' -e 's|-static||g')"
+    LDFLAGS="$(printf '%s\n' "$PACKAGE_LDFLAGS" | sed -e 's|--static||g' -e 's|-static||g')"
 
-    CCFLAGS="$(printf '%s\n' "$CCFLAGS" | sed -e 's|--static||g' -e 's|-static||g')"
-    OCFLAGS="$(printf '%s\n' "$OCFLAGS" | sed -e 's|--static||g' -e 's|-static||g')"
-    OXFLAGS="$(printf '%s\n' "$OXFLAGS" | sed -e 's|--static||g' -e 's|-static||g')"
-    XXFLAGS="$(printf '%s\n' "$XXFLAGS" | sed -e 's|--static||g' -e 's|-static||g')"
-    LDFLAGS="$(printf '%s\n' "$LDFLAGS" | sed -e 's|--static||g' -e 's|-static||g')"
+    ##############################################
+
+    BASEFLAGS="-isysroot $SYSROOT -arch $TARGET_PLATFORM_ARCH -m${TARGET_PLATFORM_NAME_LOWER_CASE}-version-min=$TARGET_PLATFORM_VERS"
+
+    PPFLAGS="$BASEFLAGS -Qunused-arguments $PPFLAGS"
+    CCFLAGS="$BASEFLAGS -Qunused-arguments $CCFLAGS -fPIC"
+    OCFLAGS="$BASEFLAGS -Qunused-arguments $OCFLAGS -fPIC"
+    OXFLAGS="$BASEFLAGS -Qunused-arguments $OXFLAGS -fPIC"
+    XXFLAGS="$BASEFLAGS -Qunused-arguments $XXFLAGS -fPIC"
+    LDFLAGS="$BASEFLAGS -Wl,-search_paths_first $LDFLAGS"
+
+    ##############################################
+
+    if [ "$LOG_LEVEL" -ge 3 ] ; then
+        CCFLAGS="$CCFLAGS -v"
+        XXFLAGS="$XXFLAGS -v"
+        OCFLAGS="$OCFLAGS -v"
+        OXFLAGS="$OXFLAGS -v"
+        LDFLAGS="$LDFLAGS -Wl,-v"
+    fi
+
+    ##############################################
+
+    case $PROFILE in
+        debug)
+            CCFLAGS="$CCFLAGS -O0 -g"
+            XXFLAGS="$XXFLAGS -O0 -g"
+            OCFLAGS="$OCFLAGS -O0 -g"
+            OXFLAGS="$OXFLAGS -O0 -g"
+            ;;
+        release)
+            CCFLAGS="$CCFLAGS -Os"
+            XXFLAGS="$XXFLAGS -Os"
+            OCFLAGS="$OCFLAGS -Os"
+            OXFLAGS="$OXFLAGS -Os"
+
+            unset _U_NDEBUG_OPT_IS_SET
+
+            for item in $PACKAGE_PPFLAGS
+            do
+                [ "$item" = '-UNDEBUG' ] && {
+                    _U_NDEBUG_OPT_IS_SET=1
+                    break
+                }
+            done
+
+            if [ "$_U_NDEBUG_OPT_IS_SET" != 1 ] ; then
+                PPFLAGS="$PPFLAGS -DNDEBUG"
+            fi
+
+            if [ -z "$ENABLE_LTO" ] || [ "$ENABLE_LTO" = 1 ] ; then
+                LDFLAGS="$LDFLAGS -flto"
+            fi
+    esac
+
 
     ##############################################
 
@@ -4329,60 +4378,6 @@ $PACKAGE_DO12345
     if [ "$_F_COMMON_OPT_IS_SET" = 0 ] ; then
         XXFLAGS="$XXFLAGS -fno-common"
     fi
-
-    ##############################################
-
-    PPFLAGS="-isysroot $SYSROOT -arch $TARGET_PLATFORM_ARCH -m${TARGET_PLATFORM_NAME_LOWER_CASE}-version-min=$TARGET_PLATFORM_VERS -Qunused-arguments $PPFLAGS"
-    CCFLAGS="-isysroot $SYSROOT -arch $TARGET_PLATFORM_ARCH -m${TARGET_PLATFORM_NAME_LOWER_CASE}-version-min=$TARGET_PLATFORM_VERS -Qunused-arguments $CCFLAGS"
-    OCFLAGS="-isysroot $SYSROOT -arch $TARGET_PLATFORM_ARCH -m${TARGET_PLATFORM_NAME_LOWER_CASE}-version-min=$TARGET_PLATFORM_VERS -Qunused-arguments $OCFLAGS"
-    OXFLAGS="-isysroot $SYSROOT -arch $TARGET_PLATFORM_ARCH -m${TARGET_PLATFORM_NAME_LOWER_CASE}-version-min=$TARGET_PLATFORM_VERS -Qunused-arguments $OXFLAGS"
-    XXFLAGS="-isysroot $SYSROOT -arch $TARGET_PLATFORM_ARCH -m${TARGET_PLATFORM_NAME_LOWER_CASE}-version-min=$TARGET_PLATFORM_VERS -Qunused-arguments $XXFLAGS"
-    LDFLAGS="-isysroot $SYSROOT -arch $TARGET_PLATFORM_ARCH -m${TARGET_PLATFORM_NAME_LOWER_CASE}-version-min=$TARGET_PLATFORM_VERS -Wl,-search_paths_first $LDFLAGS"
-
-    ##############################################
-
-    if [ "$LOG_LEVEL" -ge 3 ] ; then
-        CCFLAGS="$CCFLAGS -v"
-        XXFLAGS="$XXFLAGS -v"
-        OCFLAGS="$OCFLAGS -v"
-        OXFLAGS="$OXFLAGS -v"
-        LDFLAGS="$LDFLAGS -Wl,-v"
-    fi
-
-    ##############################################
-
-    case $PROFILE in
-        debug)
-            CCFLAGS="$CCFLAGS -O0 -g"
-            XXFLAGS="$XXFLAGS -O0 -g"
-            OCFLAGS="$OCFLAGS -O0 -g"
-            OXFLAGS="$OXFLAGS -O0 -g"
-            ;;
-        release)
-            CCFLAGS="$CCFLAGS -Os"
-            XXFLAGS="$XXFLAGS -Os"
-            OCFLAGS="$OCFLAGS -Os"
-            OXFLAGS="$OXFLAGS -Os"
-
-            unset _U_NDEBUG_OPT_IS_SET
-
-            for item in $PACKAGE_PPFLAGS
-            do
-                [ "$item" = '-UNDEBUG' ] && {
-                    _U_NDEBUG_OPT_IS_SET=1
-                    break
-                }
-            done
-
-            if [ "$_U_NDEBUG_OPT_IS_SET" != 1 ] ; then
-                PPFLAGS="$PPFLAGS -DNDEBUG"
-            fi
-
-            if [ -z "$ENABLE_LTO" ] || [ "$ENABLE_LTO" = 1 ] ; then
-                LDFLAGS="$LDFLAGS -flto"
-            fi
-    esac
-
 
     ##############################################
 
@@ -4703,7 +4698,7 @@ set(CMAKE_CXX_COMPILER "$CXX")
 set(CMAKE_CXX_FLAGS "$CXXFLAGS $CPPFLAGS")
 
 set(CMAKE_ASM_COMPILER "$CC")
-set(CMAKE_ASM_FLAGS "-arch $TARGET_PLATFORM_ARCH")
+set(CMAKE_ASM_FLAGS "$BASEFLAGS")
 
 set(CMAKE_SHARED_LINKER_FLAGS "$LDFLAGS")
 set(CMAKE_EXE_LINKER_FLAGS    "$LDFLAGS")
