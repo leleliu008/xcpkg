@@ -4960,6 +4960,15 @@ $PACKAGE_DOPATCH
         run     cd "$PACKAGE_BSCRIPT_DIR"
     fi
 
+    #########################################################################################
+
+    # https://github.com/golang/go/issues/65568
+    if [ -f go.mod ] ; then
+        sed_in_place 's|^go 1.22$|go 1.22.0|' go.mod
+    fi
+
+    #########################################################################################
+
     case $PACKAGE_BSYSTEM_MASTER in
         autogen)
             if [ -f configure ] ; then
@@ -5282,7 +5291,7 @@ EOF
                 /*) run install_name_tool -delete_rpath "$RPATH" "$FILEPATH"
 
                     if [ "$RPATH" = "$PACKAGE_LIBRARY_DIR" ] && [ "$EXECUTABLE" = 1 ] ; then
-                        run install_name_tool -rpath "$RPATH" '@executable_path/../lib' "$FILEPATH"
+                        run install_name_tool -add_rpath '@executable_path/../lib' "$FILEPATH" || true
                     fi
             esac
         done
