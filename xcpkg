@@ -3045,6 +3045,8 @@ EOF
 
     if   [ "$1" = 'zlib' ] ; then
         sed_in_place 's|/share/pkgconfig|/lib/pkgconfig|' CMakeLists.txt
+    elif [ "$1" = 'texinfo' ] ; then
+        sed_in_place '/libintl/d' tp/Texinfo/XS/parsetexi/api.c
     elif [ "$1" = 'python3' ] ; then
         unset PYTHONHOME
         unset PYTHONPATH
