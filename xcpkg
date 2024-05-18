@@ -7891,6 +7891,8 @@ XCPKG_OFFICIAL_FORMULA_REPO_URL='https://github.com/leleliu008/xcpkg-formula-rep
 
 XCPKG_UPGRAGE_URL='https://raw.githubusercontent.com/leleliu008/xcpkg/master/xcpkg'
 
+XCPKG_ZSH_COMPLETION_SCRIPT_URL='https://raw.githubusercontent.com/leleliu008/xcpkg/master/xcpkg-zsh-completion'
+
 [ -z "$XCPKG_HOME" ] && {
     if [ -z "$HOME" ] ; then
         abort 1 "HOME environment variable is not set."
