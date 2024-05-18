@@ -1626,9 +1626,63 @@ is_package_available() {
 
 # }}}
 ##############################################################################
-# {{{ xcpkg ls-available
+# {{{ xcpkg ls-available [-v] [--yaml | --json]
 
 __list_available_packages() {
+    unset OUTPUT_MODE
+    unset OUTPUT_TYPE
+
+    for arg in $@
+    do
+        case $arg in
+            -v)     OUTPUT_MODE=full ;;
+            --json) OUTPUT_TYPE=json ;;
+            --yaml) OUTPUT_TYPE=yaml ;;
+            *) abort 1 "unrecognized argument: $arg"
+        esac
+    done
+
+    if [ -z "$OUTPUT_MODE" ] ; then
+        __list_available_package_names
+    else
+        AVAILABLE_PACKAGE_NAMES="$(__list_available_package_names)"
+
+        [ -z "$AVAILABLE_PACKAGE_NAMES" ] && return 0
+
+        IS_FIRST_ELEMENT=1
+
+        case $OUTPUT_TYPE in
+            yaml|'')
+                for PKGNAME in $AVAILABLE_PACKAGE_NAMES
+                do
+                    if [ "$IS_FIRST_ELEMENT" = 1 ] ; then
+                        unset IS_FIRST_ELEMENT
+                    else
+                        printf '%s\n' '---'
+                    fi
+                    __info_the_given_available_package_as_yaml "$PKGNAME"
+                done
+                ;;
+            json)
+                printf '%s\n' '['
+
+                for PKGNAME in $AVAILABLE_PACKAGE_NAMES
+                do
+                    if [ "$IS_FIRST_ELEMENT" = 1 ] ; then
+                        unset IS_FIRST_ELEMENT
+                    else
+                        printf '%s\n' ','
+                    fi
+                    __info_the_given_available_package_as_json "$PKGNAME"
+                done
+
+                printf '%s\n' ']'
+                ;;
+        esac
+    fi
+}
+
+__list_available_package_names() {
     [ -d "$XCPKG_FORMULA_REPO_ROOT" ] || return 0
 
     {
@@ -1643,12 +1697,6 @@ __list_available_packages() {
 
         for FORMULA_REPOSITORY_NAME in $AVAILABLE_FORMULA_REPOSITORY_NAMES
         do
-            FORMULA_SEARCH_DIR="$XCPKG_FORMULA_REPO_ROOT/$FORMULA_REPOSITORY_NAME/formula/$NATIVE_OS_TYPE"
-
-            if [ -d  "$FORMULA_SEARCH_DIR" ] ; then
-                find "$FORMULA_SEARCH_DIR" -maxdepth 1 -type f -name '*.yml' -exec basename {} .yml \; || return 1
-            fi
-
             FORMULA_SEARCH_DIR="$XCPKG_FORMULA_REPO_ROOT/$FORMULA_REPOSITORY_NAME/formula"
 
             if [ -d  "$FORMULA_SEARCH_DIR" ] ; then
@@ -7675,7 +7723,7 @@ ${COLOR_GREEN}xcpkg cleanup${COLOR_OFF}
     delete the unused cached files.
 
 
-${COLOR_GREEN}xcpkg ls-available [-v]${COLOR_OFF}
+${COLOR_GREEN}xcpkg ls-available [-v] [--json | --yaml]${COLOR_OFF}
     list all available packages.
 
 ${COLOR_GREEN}xcpkg ls-installed [-v]${COLOR_OFF}
@@ -7717,7 +7765,7 @@ ${COLOR_GREEN}xcpkg formula-repo-list${COLOR_OFF}
     list all available formula repositories.
 
 
-${COLOR_GREEN}xcpkg search <REGULAR-EXPRESSION-PATTERN> [-v]${COLOR_OFF}
+${COLOR_GREEN}xcpkg search <REGULAR-EXPRESSION-PATTERN> [-v] [--json | --yaml]${COLOR_OFF}
     search all available packages whose name matches the given regular expression pattern.
 
 
