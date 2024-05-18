@@ -1269,6 +1269,16 @@ filetype_from_url() {
     #########################################################################################
 
     PACKAGE_DEP_UPP="${PACKAGE_DEP_UPP#' '}"
+
+    #########################################################################################
+
+    if [ -z "$PACKAGE_PKGTYPE" ] ; then
+        case $PACKAGE_NAME in
+            lib*) PACKAGE_PKGTYPE=lib ;;
+            *lib) PACKAGE_PKGTYPE=lib ;;
+               *) PACKAGE_PKGTYPE=exe ;;
+        esac
+    fi
 }
 
 
@@ -1676,12 +1686,36 @@ __list__outdated_packages() {
 
 # }}}
 ##############################################################################
-# {{{ xcpkg search
+# {{{ xcpkg search <REGULAR-EXPRESSION-PATTERN> [-v]
 
 __search_packages() {
-    [ -z "$1" ] && abort 1 "please specify a regular expression pattern."
+    [ -z "$1" ] && abort 1 "please specify a regular express partten."
 
-    __list_available_packages | grep "$1"
+    AVAILABLE_PACKAGE_NAMES_ALL="$(__list_available_package_names)"
+
+    [ -z "$AVAILABLE_PACKAGE_NAMES_ALL" ] && return 0
+
+    AVAILABLE_PACKAGE_NAMES_FILTERED="$(printf '%s\n' $AVAILABLE_PACKAGE_NAMES_ALL | grep "$1" || true)"
+
+    [ -z "$AVAILABLE_PACKAGE_NAMES_FILTERED" ] && return 0
+
+    case $2 in
+        '') printf '%s\n' $AVAILABLE_PACKAGE_NAMES_FILTERED ;;
+        -v) IS_FIRST_ELEMENT=1
+
+            for PKGNAME in $AVAILABLE_PACKAGE_NAMES_FILTERED
+            do
+                if [ "$IS_FIRST_ELEMENT" = 1 ] ; then
+                    unset IS_FIRST_ELEMENT
+                else
+                    printf '%s\n' '---'
+                fi
+
+                __info_the_given_available_package_as_yaml "$PKGNAME"
+            done
+            ;;
+        *)  abort 1 "unrecognzied argument: $2"
+    esac
 }
 
 # }}}
@@ -1698,6 +1732,7 @@ __search_packages() {
 
     jq  --null-input \
         --arg pkgname "$PACKAGE_NAME" \
+        --arg pkgtype "$PACKAGE_PKGTYPE" \
         --arg version "$PACKAGE_VERSION" \
         --arg summary "$PACKAGE_SUMMARY" \
         --arg license "$PACKAGE_LICENSE" \
@@ -1737,8 +1772,10 @@ __search_packages() {
         --arg ppflags "$PACKAGE_PPFLAGS" \
         --arg ldflags "$PACKAGE_LDFLAGS" \
         --arg parallel $PACKAGE_PARALLEL \
+        --arg developer "$PACKAGE_DEVELOPER" \
 '{
     "pkgname":$pkgname,
+    "pkgtype":$pkgtype,
     "version":$version,
     "license":$license,
     "summary":$summary,
@@ -1769,6 +1806,7 @@ __search_packages() {
     "ppflags":$ppflags,
     "ldflags":$ldflags,
     "parallel":$parallel,
+    "developer":$developer,
     "onstart":$onstart,
     "onready":$onready,
     "onfinal":$onfinal,
@@ -1789,9 +1827,16 @@ __search_packages() {
         PACKAGE_WEB_URL="$PACKAGE_GIT_URL"
     fi
 
+    if is_package_installed "$1" ; then
+        PACKAGE_INSTALLED=yes
+    else
+        PACKAGE_INSTALLED=no
+    fi
+
     {
     cat <<EOF
 pkgname: $PACKAGE_NAME
+pkgtype: $PACKAGE_PKGTYPE
 version: $PACKAGE_VERSION
 license: $PACKAGE_LICENSE
 summary: $PACKAGE_SUMMARY
@@ -1820,14 +1865,9 @@ ccflags: $PACKAGE_CCFLAGS
 xxflags: $PACKAGE_XXFLAGS
 ldflags: $PACKAGE_LDFLAGS
 parallel: $PACKAGE_PARALLEL
+installed: $PACKAGE_INSTALLED
 EOF
     } | yq eval '. | with_entries(select(.value != null))'
-
-    if is_package_installed "$1" ; then
-        yq eval --null-input '.installed = "yes"'
-    else
-        yq eval --null-input '.installed = "no"'
-    fi
 }
 
 # __info_the_given_available_package_as_shell <PACKAGE-NAME>
@@ -1839,6 +1879,7 @@ EOF
         printf "%s='%s'\n" "${PACKAGE_NAME_UPPERCASE_UNDERSCORE}_${KEY}" "$(eval echo \$$KEY)"
     done <<EOF
 PACKAGE_NAME
+PACKAGE_PKGTYPE
 PACKAGE_SUMMARY
 PACKAGE_LICENSE
 PACKAGE_VERSION
@@ -1903,9 +1944,7 @@ EOF
 # __info_the_given_available_package curl web-url
   __info_the_given_available_package() {
     case $2 in
-        '') __info_the_given_available_package_as_yaml "$1"
-            ;;
-        --yaml)
+        --yaml|'')
             __info_the_given_available_package_as_yaml "$1"
             ;;
         --json)
@@ -1999,6 +2038,19 @@ EOF
 # __info_the_given_installed_package curl web-url
   __info_the_given_installed_package() {
     case $2 in
+        --yaml|'')
+            PACKAGE_SPEC=
+            PACKAGE_SPEC="$(inspect_package_spec "$1")"
+
+            if is_package_installed "$PACKAGE_SPEC" ; then
+                yq "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_SPEC/.xcpkg/RECEIPT.yml"
+            else
+                abort 1 "package '$PACKAGE_SPEC' is not installed."
+            fi
+            ;;
+        --json)
+            __info_the_given_installed_package_as_json "$1"
+            ;;
         --prefix)
             PACKAGE_SPEC=
             PACKAGE_SPEC="$(inspect_package_spec "$1")"
@@ -2530,16 +2582,19 @@ __fetch_resources_of_the_given_package() {
 # {{{ xcpkg pack
 
 # examples:
-# __pack_the_given_installed_package <PACKAGE-NAME|PACKAGE-SPEC> [-t <zip|tar.gz|tar.xz|tar.lz|tar.bz2>] [-o <OUTPUT-PATH>] [--keep-session-dir]
+# __pack_the_given_installed_package <PACKAGE-NAME> [-t <zip|tar.gz|tar.xz|tar.lz|tar.bz2>] [-o <OUTPUT-PATH>] [--exclude=<PATH>] [--keep-session-dir]
 # __pack_the_given_installed_package    autoconf     -t tar.xz
   __pack_the_given_installed_package() {
     __load_receipt_of_the_given_package "$1"
 
     shift
 
-    unset OUTPUT_DIR
-    unset OUTPUT_FILETYPE
-    unset OUTPUT_FILEPATH
+    ###########################################################################################
+
+    unset OUTPUT_PATH
+    unset OUTPUT_TYPE
+
+    unset EXCLUDES
 
     while [ -n "$1" ]
     do
@@ -2550,27 +2605,82 @@ __fetch_resources_of_the_given_package() {
             -t) shift
 
                 if [ -z "$1" ] ; then
-                    abort 1 "$XCPKG pack <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>], -t option is given but <OUTPUT-TYPE> is unspecified."
+                    abort 1 "$XCPKG pack <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>], -t option is specified but <OUTPUT-TYPE> is unspecified."
                 else
-                    OUTPUT_FILETYPE="$1"
+                    OUTPUT_TYPE="$1"
                 fi
 
-                case $OUTPUT_FILETYPE in
+                case $OUTPUT_TYPE in
                     zip|tar.gz|tar.xz|tar.lz|tar.bz2) ;;
-                    *) abort 1 "$XCPKG pack <PACKAGE-NAME> [-t <OUTPUT-TYPE>], unsupported <OUTPU-TYPE>: $OUTPUT_FILETYPE, <OUTPU-TYPE> should be one of zip|tar.gz|tar.xz|tar.lz|tar.bz2"
+                    *) abort 1 "$XCPKG pack <PACKAGE-NAME> [-t <OUTPUT-TYPE>], unsupported <OUTPU-TYPE>: $OUTPUT_TYPE, <OUTPU-TYPE> should be one of zip|tar.gz|tar.xz|tar.lz|tar.bz2"
                 esac
                 ;;
             -o) shift
                 if [ -z "$1" ] ; then
-                    abort 1 "$XCPKG pack <PACKAGE-NAME> [-t <OUTPU-TYPE>] [-o <OUTPUT-PATH>], -o option is given but <OUTPUT-PATH> is unspecified."
+                    abort 1 "$XCPKG pack <PACKAGE-NAME> [-t <OUTPU-TYPE>] [-o <OUTPUT-PATH>], -o option is specified but <OUTPUT-PATH> is unspecified."
                 else
-                    OUTPUT_FILEPATH="$1"
+                    OUTPUT_PATH="$1"
+                fi
+                ;;
+            --exclude=*)
+                EXCLUDE="${1#*=}"
+                if [ -n "$EXCLUDE" ] ; then
+                    EXCLUDES="$EXCLUDES $EXCLUDE"
                 fi
                 ;;
             *)  abort 1 "$XCPKG pack <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>] [--keep-session-dir], unrecognized option: $1"
         esac
         shift
     done
+
+    ###########################################################################################
+
+    SESSION_DIR="$XCPKG_HOME/run/$$"
+
+    run rm -rf     "$SESSION_DIR"
+    run install -d "$SESSION_DIR"
+    run cd         "$SESSION_DIR"
+
+    if [ -z "$EXCLUDES" ] ; then
+        run ln -s "$PACKAGE_INSTALLED_DIR" packed
+    else
+        run install -d packed
+
+        run cp -r "$PACKAGE_INSTALLED_DIR/." packed/
+
+        for EXCLUDE in $EXCLUDES
+        do
+            run rm -rf "packed/$EXCLUDE"
+        done
+    fi
+
+    ###########################################################################################
+
+    if [ -z "$OUTPUT_TYPE" ] ; then
+        case $OUTPUT_PATH in
+            *.tar.gz|*.tgz)
+                OUTPUT_TYPE=tar.gz
+                ;;
+            *.tar.xz|*.txz)
+                OUTPUT_TYPE=tar.xz
+                ;;
+            *.tar.lz|*.tlz)
+                OUTPUT_TYPE=tar.lz
+                ;;
+            *.tar.bz2|*.tbz2)
+                OUTPUT_TYPE=tar.bz2
+                ;;
+            *.zip)
+                OUTPUT_TYPE=zip
+                ;;
+            *.7z)
+                OUTPUT_TYPE=7z
+                ;;
+            *)  OUTPUT_TYPE=tar.xz
+        esac
+    fi
+
+    ###########################################################################################
 
     case $RECEIPT_PACKAGE_BUILTFOR_PLATFORM_NAME in
         iPhoneOS)
@@ -2601,99 +2711,41 @@ __fetch_resources_of_the_given_package() {
 
     ###########################################################################################
 
-    if [ -z "$OUTPUT_FILEPATH" ] ; then
-        if [ -z "$OUTPUT_FILETYPE" ] ; then
-            OUTPUT_FILETYPE='tar.xz'
-        fi
+    OUTPUT_FILENAME="$PACKED_DIR_NAME.$OUTPUT_TYPE"
 
-        OUTPUT_DIR="$PWD"
-        OUTPUT_FILENAME="$PACKED_DIR_NAME.$OUTPUT_FILETYPE"
-    else
-        if [ -d "$OUTPUT_FILEPATH" ] ; then
-            if [ -z "$OUTPUT_FILETYPE" ] ; then
-                OUTPUT_FILETYPE='tar.xz'
-            fi
+    run mv packed "$PACKED_DIR_NAME"
 
-            OUTPUT_DIR="$(realpath -s "$OUTPUT_FILEPATH")"
-            OUTPUT_FILENAME="$PACKED_DIR_NAME.$OUTPUT_FILETYPE"
-        else
-            case $OUTPUT_FILEPATH in
-                */)
-                    if [ -z "$OUTPUT_FILETYPE" ] ; then
-                        OUTPUT_FILETYPE='tar.xz'
-                    fi
+    run bsdtar cvaf "$OUTPUT_FILENAME" "$PACKED_DIR_NAME/*" "$PACKED_DIR_NAME/.xcpkg"
 
-                    OUTPUT_DIR="$(realpath -s "$OUTPUT_FILEPATH")"
-                    OUTPUT_FILENAME="$PACKED_DIR_NAME.$OUTPUT_FILETYPE"
-                    ;;
-                *)
-                    OUTPUT_FILEPATH="$(realpath -s "$OUTPUT_FILEPATH")"
+    run du -sh "$OUTPUT_FILENAME"
 
-                    if [ -z "$OUTPUT_FILETYPE" ] ; then
-                        case $OUTPUT_FILEPATH in
-                            *.tar.gz|*.tgz)
-                                OUTPUT_FILETYPE=tar.gz
-                                ;;
-                            *.tar.xz|*.txz)
-                                OUTPUT_FILETYPE=tar.xz
-                                ;;
-                            *.tar.lz|*.tlz)
-                                OUTPUT_FILETYPE=tar.lz
-                                ;;
-                            *.tar.bz2|*.tbz2)
-                                OUTPUT_FILETYPE=tar.bz2
-                                ;;
-                            *.zip)
-                                OUTPUT_FILETYPE=zip
-                                ;;
-                            *.7z)
-                                OUTPUT_FILETYPE=7z
-                                ;;
-                            *)  abort 1 "when -t <OUTPUT-TYPE> option is not given, -o <OUTPUT-PATH> option specified filename must ends with one of .tar.gz|.tar.xz|.tar.lz|.tar.bz2|.tgz|.txz|.tlz|.tbz2|.zip|.7z"
-                        esac
-                    fi
-
-                    OUTPUT_DIR="$(dirname "$OUTPUT_FILEPATH")"
-                    OUTPUT_FILENAME="$(basename "$OUTPUT_FILEPATH")"
-            esac
-        fi
-    fi
+    run cd -
 
     ###########################################################################################
 
-    step "create the session directory then change to it"
+    case $OUTPUT_PATH in
+        '') OUTPUT_PATH=.
+            ;;
+        */*)
+            OUTPUT_DIR="${OUTPUT_PATH%/*}"
 
-    SESSION_DIR="$XCPKG_HOME/run/$$"
+            [ -d "$OUTPUT_DIR" ] || run install -d "$OUTPUT_DIR"
+    esac
 
-    run rm -rf     "$SESSION_DIR"
-    run install -d "$SESSION_DIR"
-    run cd         "$SESSION_DIR"
+    ###########################################################################################
 
-    step "make link refer to installed package root dir"
-    run ln -s "$PACKAGE_INSTALLED_DIR" "$PACKED_DIR_NAME"
+    run mv "$SESSION_DIR/$OUTPUT_FILENAME" "$OUTPUT_PATH"
 
-    step "packing"
-    run bsdtar cvaf "$OUTPUT_FILENAME" "$PACKED_DIR_NAME/*" "$PACKED_DIR_NAME/.xcpkg"
-
-    step "show size of packed file"
-    run "du -sh $OUTPUT_FILENAME | cut -f1"
-
-    if [ ! -d "$OUTPUT_DIR" ] ; then
-        step "create output dir"
-        run install -d "$OUTPUT_DIR"
-    fi
-
-    step "move packed file to output dir"
-    run mv "$OUTPUT_FILENAME" "$OUTPUT_DIR/"
+    ###########################################################################################
 
     if [ "$KEEP_SESSION_DIR" = 1 ] ; then
-        printf '\n'
-        note "the session directory '$SESSION_DIR' is not deleted as --keep-session-dir option is given."
+        echo
+        note "the session directory '$SESSION_DIR' is not deleted as --keep-session-dir option is specified."
     else
-        step "delete the session directory"
         run rm -rf "$SESSION_DIR"
     fi
 }
+
 
 # }}}
 ##############################################################################
@@ -3435,16 +3487,6 @@ $PACKAGE_ONSTART
 
     step "load formula"
     __load_formula_of_the_given_package "$PACKAGE_NAME" "$PACKAGE_FORMULA_FILEPATH"
-
-    #########################################################################################
-
-    if [ -z "$PACKAGE_PKGTYPE" ] ; then
-        case $PACKAGE_NAME in
-            lib*) PACKAGE_PKGTYPE=lib ;;
-            *lib) PACKAGE_PKGTYPE=lib ;;
-               *) PACKAGE_PKGTYPE=exe ;;
-        esac
-    fi
 
     #########################################################################################
 
@@ -7550,7 +7592,7 @@ __setup_uppm() {
     UPPM_PACKAGE_EXEFIND_PATH="${UPPM_PACKAGE_EXEFIND_PATH#':'}"
     UPPM_PACKAGE_ACLOCAL_PATH="${UPPM_PACKAGE_ACLOCAL_PATH#':'}"
 
-    cat > profile <<EOF
+    cat > env.sh <<EOF
 export ACLOCAL_PATH="$UPPM_PACKAGE_ACLOCAL_PATH:\$ACLOCAL_PATH"
 export PATH="$UPPM_PACKAGE_EXEFIND_PATH:\$PATH"
 
@@ -7753,6 +7795,16 @@ ${COLOR_GREEN}xcpkg install <PACKAGE-NAME|PACKAGE-SPEC>... [INSTALL-OPTIONS]${CO
         ${COLOR_BLUE}--profile=<debug|release>${COLOR_OFF}
             specify the build profile.
 
+            debug:
+                  CFLAGS: -O0 -g
+                CXXFLAGS: -O0 -g
+
+            release:
+                  CFLAGS: -Os
+                CXXFLAGS: -Os
+                CPPFLAGS: -DNDEBUG
+                 LDFLAGS: -flto -Wl,-S
+
         ${COLOR_BLUE}--disable-ccache${COLOR_OFF}
             do not use ccache.
 
@@ -7784,7 +7836,7 @@ ${COLOR_GREEN}xcpkg tree <PACKAGE-SPEC> [--dirsfirst | -L N]${COLOR_OFF}
 ${COLOR_GREEN}xcpkg logs <PACKAGE-SPEC>${COLOR_OFF}
     show logs of the given installed package.
 
-${COLOR_GREEN}xcpkg pack <PACKAGE-SPEC> [--keep-session-dir] [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>]${COLOR_OFF}
+${COLOR_GREEN}xcpkg pack <PACKAGE-SPEC> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>] [--exclude <PATH>] [--keep-session-dir]${COLOR_OFF}
     pack the given installed package.
 
     <OUTPUT-TYPE> must ends with one of tar.gz tar.xz tar.lz tar.bz2 zip
@@ -7800,6 +7852,8 @@ ${COLOR_GREEN}xcpkg pack <PACKAGE-SPEC> [--keep-session-dir] [-t <OUTPUT-TYPE>] 
     If -o <OUTPUT-PATH> option is unspecified, <OUTPUT-PATH> would be assigned to ./<PACKAGE-NAME>-<PACKAGE-VERSION>-<TARGET-PLATFORM-NAME>-<TARGET-PLATFORM-ARCH><OUTPUT-TYPE>
 
     If -t <OUTPUT-TYPE> option is unspecified, <OUTPUT-TYPE> would be assigned to .tar.xz
+
+    <PATH> is relative to installed root directory.
     "
 }
 
@@ -7959,8 +8013,8 @@ export ACLOCAL_PATH="$XCPKG_CORE_DIR/share/aclocal"
 
 ##################################################################################
 
-if [ -f "$XCPKG_CORE_DIR/profile" ] ; then
-    .   "$XCPKG_CORE_DIR/profile"
+if [ -f "$XCPKG_CORE_DIR/env.sh" ] ; then
+    .   "$XCPKG_CORE_DIR/env.sh"
 else
     abort 1 "please run ${COLOR_GREEN}$XCPKG setup${COLOR_OFF} command first, then try again."
 fi
@@ -7968,40 +8022,8 @@ fi
 ##################################################################################
 
 case $1 in
-    xcinfo)
-        shift
-        xcinfo "$@"
-        ;;
-
-    info-available)
-        shift
-        __info_the_given_available_package "$@"
-        ;;
-    info-installed)
-        shift
-        __info_the_given_installed_package "$@"
-        ;;
-
-    ls-available) shift; __list_available_packages "$@" ;;
-    ls-installed) shift; __list_installed_packages "$@" ;;
-    ls-outdated)  shift; __list__outdated_packages "$@" ;;
-
-    is-available)
-        shift
-        is_package_available "$1"
-        ;;
-    is-installed)
-        shift
-        PACKAGE_SPEC=
-        PACKAGE_SPEC="$(inspect_package_spec "$1")"
-        is_package_installed "$PACKAGE_SPEC"
-        ;;
-    is-outdated)
-        shift
-        PACKAGE_SPEC=
-        PACKAGE_SPEC="$(inspect_package_spec "$1")"
-        is_package__outdated "$PACKAGE_SPEC"
-        ;;
+     xcinfo) shift;  xcinfo "$@" ;;
+    sysinfo) shift; sysinfo "$@" ;;
 
     update)            shift; __sync_available_formula_repositories "$@" ;;
     formula-repo-list) shift; __list_available_formula_repositories "$@" ;;
@@ -8017,7 +8039,6 @@ case $1 in
 
         __create_a_formula_repository "$@"
         ;;
-
     formula-repo-add)
         shift
 
@@ -8027,56 +8048,75 @@ case $1 in
 
         __create_a_formula_repository_then_sync_it "$@"
         ;;
-
     formula-repo-del)
         shift
         __delete_a_formula_repository "$@"
         ;;
-    cleanup)
+
+    info-available) shift; __info_the_given_available_package "$@" ;;
+    info-installed) shift; __info_the_given_installed_package "$@" ;;
+
+    ls-available) shift; __list_available_packages "$@" ;;
+    ls-installed) shift; __list_installed_packages "$@" ;;
+    ls-outdated)  shift; __list__outdated_packages "$@" ;;
+
+    is-available) shift; is_package_available "$@" ;;
+
+    is-installed)
         shift
-        __cleanup
-        ;;
-    search)
-        shift
-        __search_packages "$@"
+        PACKAGE_SPEC=
+        PACKAGE_SPEC="$(inspect_package_spec "$1")"
+        is_package_installed "$PACKAGE_SPEC"
         ;;
 
-      install) shift;   __install_the_given_packages "$@" ;;
-    reinstall) shift; __reinstall_the_given_packages "$@" ;;
-    uninstall) shift; __uninstall_the_given_packages "$@" ;;
-    upgrade)   shift; __upgrade_packages "$@" ;;
+    is-outdated)
+        shift
+        PACKAGE_SPEC=
+        PACKAGE_SPEC="$(inspect_package_spec "$1")"
+        is_package__outdated "$PACKAGE_SPEC"
+        ;;
+
+    search)  shift; __search_packages "$@" ;;
+
+    depends) shift; __show_packages_depended_by_the_given_package "$@" ;;
+    fetch)   shift;        __fetch_resources_of_the_given_package "$@" ;;
+
+    install) shift;   __install_the_given_packages "$@" ;;
+  reinstall) shift; __reinstall_the_given_packages "$@" ;;
+  uninstall) shift; __uninstall_the_given_packages "$@" ;;
+
+    upgrade) shift; __upgrade_packages "$@" ;;
 
     upgrade-self)
-        shift
-        __upgrade_self "$XCPKG_UPGRAGE_URL" "$@"
-        ;;
+             shift; __upgrade_self "$XCPKG_UPGRAGE_URL" "$@" ;;
+
+    logs) shift; __logs_the_given_installed_package "$@" ;;
+    tree) shift; __tree_the_given_installed_package "$@" ;;
+    pack) shift; __pack_the_given_installed_package "$@" ;;
+
     integrate)
         shift
         case $1 in
-            zsh) shift; __integrate_zsh_completions 'https://raw.githubusercontent.com/leleliu008/xcpkg/master/xcpkg-zsh-completion' "$@" ;;
-            *)   abort 1 "xcpkg integrate $1: not support."
+            zsh)
+                shift
+                __integrate_zsh_completions "$XCPKG_ZSH_COMPLETION_SCRIPT_URL" "$@"
+                ;;
+            *)  abort 1 "xcpkg integrate $1: not support."
         esac
         ;;
-    depends)
+
+    cleanup) shift; __cleanup ;;
+
+    run)
         shift
-        __show_packages_depended_by_the_given_package "$@"
+
+        case $1 in
+            uppm) shift; "$UPPM" "$@" ;;
+            '')   abort 1 'no command is supplied to run.' ;;
+            *)    "$@"
+        esac
         ;;
-    fetch)
-        shift
-        __fetch_resources_of_the_given_package "$@"
-        ;;
-    tree)
-        shift
-        __tree_the_given_installed_package "$@"
-        ;;
-    logs)
-        shift
-        __logs_the_given_installed_package "$@"
-        ;;
-    pack)
-        shift
-        __pack_the_given_installed_package "$@"
-        ;;
+
     *)  abort 1 "unrecognized argument: $1"
 esac
 
