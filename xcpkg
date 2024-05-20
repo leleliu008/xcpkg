@@ -5530,10 +5530,10 @@ $PACKAGE_ONFINAL
 
     #########################################################################################
 
-    printf '\n%b\n' "${COLOR_PURPLE}<<< Installation ${COLOR_OFF}${COLOR_GREEN}${1}${COLOR_OFF}${COLOR_PURPLE} end${COLOR_OFF}"
+    printf '\n%b\n' "${COLOR_PURPLE}✅️  ${COLOR_OFF}${COLOR_GREEN}${1} was successfully installed.${COLOR_OFF}${COLOR_PURPLE}${COLOR_OFF}"
 
     if [ -n "$PACKAGE_CAVEATS" ] ; then
-        printf '\n%b\n' "${COLOR_YELLOW}🔥  Caveats:\n\n$PACKAGE_CAVEATS${COLOR_OFF}" >&2
+        printf '\n%b\n' "${COLOR_YELLOW}⚠️  Caveats:\n\n$PACKAGE_CAVEATS${COLOR_OFF}" >&2
     fi
 }
 
