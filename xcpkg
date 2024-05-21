@@ -3555,12 +3555,9 @@ $PACKAGE_ONSTART
     for TOOL in PROXIED_CC PROXIED_OBJC PROXIED_CXX CC OBJC CXX CPP AS AR RANLIB LD NM STRIP SIZE STRINGS OBJDUMP SYSROOT
     do
         export "${TOOL}_FOR_BUILD"
-        printf "%22s = %s\n" "${TOOL}_FOR_BUILD" "$(eval echo \$"${TOOL}_FOR_BUILD")"
     done
 
     #########################################################################################
-
-    step "config CFLAGS_FOR_BUILD OBJCFLAGS_FOR_BUILD CXXFLAGS_FOR_BUILD CPPFLAGS_FOR_BUILD LDFLAGS_FOR_BUILD"
 
     export    CFLAGS_FOR_BUILD="-isysroot $SYSROOT_FOR_BUILD -mmacosx-version-min=$NATIVE_OS_VERS -arch $NATIVE_OS_ARCH -Qunused-arguments"
     export OBJCFLAGS_FOR_BUILD="-isysroot $SYSROOT_FOR_BUILD -mmacosx-version-min=$NATIVE_OS_VERS -arch $NATIVE_OS_ARCH -Qunused-arguments"
@@ -3581,25 +3578,6 @@ $PACKAGE_ONSTART
        OBJCFLAGS_FOR_BUILD="$OBJCFLAGS_FOR_BUILD -Os"
          LDFLAGS_FOR_BUILD="$LDFLAGS_FOR_BUILD -Wl,-S"
     fi
-
-    printf '%b\n' "${COLOR_PURPLE}==>${COLOR_OFF} CFLAGS_FOR_BUILD"
-    printf '%s\n' "$CFLAGS_FOR_BUILD"   | xargs printf '        %s\n'
-    printf '\n'
-
-    printf '%b\n' "${COLOR_PURPLE}==>${COLOR_OFF} OBJCFLAGS_FOR_BUILD"
-    printf '%s\n' "$OBJCFLAGS_FOR_BUILD" | xargs printf '        %s\n'
-    printf '\n'
-
-    printf '%b\n' "${COLOR_PURPLE}==>${COLOR_OFF} CXXFLAGS_FOR_BUILD"
-    printf '%s\n' "$CXXFLAGS_FOR_BUILD" | xargs printf '        %s\n'
-    printf '\n'
-
-    printf '%b\n' "${COLOR_PURPLE}==>${COLOR_OFF} CPPFLAGS_FOR_BUILD"
-    printf '%s\n' "$CPPFLAGS_FOR_BUILD" | xargs printf '        %s\n'
-    printf '\n'
-
-    printf '%b\n' "${COLOR_PURPLE}==>${COLOR_OFF} LDFLAGS_FOR_BUILD"
-    printf '%s\n' "$LDFLAGS_FOR_BUILD"  | xargs printf '        %s\n'
 
     #########################################################################################
 
@@ -4523,12 +4501,9 @@ $PACKAGE_DO12345
     for TOOL in PROXIED_CC PROXIED_OBJC PROXIED_CXX CC OBJC CXX CPP AS AR RANLIB LD NM STRIP SIZE STRINGS OBJDUMP SYSROOT
     do
         export "$TOOL"
-        printf "%12s = %s\n" "${TOOL}" "$(eval echo \$"${TOOL}")"
     done
 
     #########################################################################################
-
-    step "config CFLAGS OBJCFLAGS CXXFLAGS CPPFLAGS LDFLAGS"
 
     CCFLAGS="$(printf '%s\n' "$PACKAGE_CCFLAGS" | sed -e 's|--static||g' -e 's|-static||g')"
     OCFLAGS="$(printf '%s\n' "$PACKAGE_OCFLAGS" | sed -e 's|--static||g' -e 's|-static||g')"
@@ -4690,28 +4665,7 @@ $PACKAGE_DO12345
     export  CPPFLAGS="$PPFLAGS"
     export   LDFLAGS="$LDFLAGS"
 
-    printf '%b\n' "${COLOR_PURPLE}==>${COLOR_OFF} CFLAGS"
-    printf '%s\n' "$CFLAGS" | xargs printf '        %s\n'
-    printf '\n'
-
-    printf '%b\n' "${COLOR_PURPLE}==>${COLOR_OFF} OBJCFLAGS"
-    printf '%s\n' "$OBJCFLAGS" | xargs printf '        %s\n'
-    printf '\n'
-
-    printf '%b\n' "${COLOR_PURPLE}==>${COLOR_OFF} CXXFLAGS"
-    printf '%s\n' "$CXXFLAGS" | xargs printf '        %s\n'
-    printf '\n'
-
-    printf '%b\n' "${COLOR_PURPLE}==>${COLOR_OFF} CPPFLAGS"
-    printf '%s\n' "$CPPFLAGS" | xargs printf '        %s\n'
-    printf '\n'
-
-    printf '%b\n' "${COLOR_PURPLE}==>${COLOR_OFF} LDFLAGS"
-    printf '%s\n' "$LDFLAGS" | xargs printf '        %s\n'
-
     #########################################################################################
-
-    step "list XDG_DATA_DIRS"
 
     # https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html
     export XDG_DATA_DIRS
@@ -4737,11 +4691,7 @@ $PACKAGE_DO12345
         fi
     done
 
-    printf '%s\n' "$XDG_DATA_DIRS" | tr ':' '\n'
-
     #########################################################################################
-
-    step "list ACLOCAL_PATH"
 
     # https://www.gnu.org/software/automake/manual/html_node/Macro-Search-Path.html
     export ACLOCAL_PATH
@@ -4759,19 +4709,11 @@ $PACKAGE_DO12345
         fi
     done
 
-    printf '%s\n' "$ACLOCAL_PATH" | tr ':' '\n'
-
     #########################################################################################
-
-    step "list PATH"
 
     PATH="$PACKAGE_INSTALLING_BIN_DIR:$PATH"
 
-    printf '%s\n' "$PATH" | tr ':' '\n'
-
     #########################################################################################
-
-    step "config environment variables for pkg-config"
 
     # https://www.freedesktop.org/wiki/Software/pkg-config/CrossCompileProposal
     unset PKG_CONFIG_SYSROOT_DIR
@@ -4805,33 +4747,9 @@ $PACKAGE_DO12345
         fi
     done
 
-    printf 'PKG_CONFIG_DEBUG_SPEW = %s\n' "$PKG_CONFIG_DEBUG_SPEW"
-
-    printf 'PKG_CONFIG          = %s\n' "$PKG_CONFIG"
-
-    printf 'PKG_CONFIG_LIBDIR   = %s\n' "$PKG_CONFIG_LIBDIR"
-
-    export IFS=':'
-
-    FIRST=1
-
-    for item in $(printf '%s\n' "$PKG_CONFIG_PATH")
-    do
-        if [ "$FIRST" = 1 ] ; then
-            FIRST=0
-            printf 'PKG_CONFIG_PATH     = %s\n' "$item"
-        else
-            printf '%s\n' "                      $item"
-        fi
-    done
-
-    unset IFS
-
     #########################################################################################
 
     if [ "$PACKAGE_USE_BSYSTEM_CMAKE" = 1 ] ; then
-        step "config environment variables for cmake"
-
         # https://cmake.org/cmake/help/latest/manual/cmake-env-variables.7.html#manual:cmake-env-variables(7)
 
         unset CMAKE_PREFIX_PATH
@@ -4925,8 +4843,6 @@ $PACKAGE_DO12345
             fi
         done
 
-        env | sed -n '/^CMAKE_/p'
-
         CMAKE_TOOLCHAIN_FILE="$PACKAGE_WORKING_DIR/toolchain.cmake"
 
         cat > "$CMAKE_TOOLCHAIN_FILE" <<EOF
@@ -5006,7 +4922,7 @@ if(NOT DEFINED CMAKE_MACOSX_BUNDLE)
     set(CMAKE_MACOSX_BUNDLE OFF)
 endif()
 EOF
-        [ "$LOG_LEVEL" -gt "$LOG_LEVEL_QUIET" ] && {
+        [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] && {
             if command -v bat > /dev/null ; then
                 run bat --language=cmake --paging=never "$CMAKE_TOOLCHAIN_FILE"
             else
@@ -5018,8 +4934,6 @@ EOF
     #########################################################################################
 
     if [ "$PACKAGE_USE_BSYSTEM_CARGO" = 1 ] ; then
-        step "config environment variables for rustc and cargo"
-
         # https://docs.rs/backtrace/latest/backtrace/
         export RUST_BACKTRACE=1
 
@@ -5027,7 +4941,7 @@ EOF
 
         # https://doc.rust-lang.org/cargo/commands/cargo-rustc.html
         # https://doc.rust-lang.org/rustc/codegen-options/index.html#link-arg
-        export RUSTFLAGS="-Clinker=$CC -Clink-arg=-L$PACKAGE_WORKING_DIR/lib"
+        export RUSTFLAGS="-Clinker=$CC"
 
         for LDFLAG in $LDFLAGS
         do
@@ -5078,11 +4992,11 @@ EOF
         # https://crates.io/crates/cc
         # https://docs.rs/cc/latest/cc/
         # https://github.com/alexcrichton/cc-rs
-        export HOST_CC="$CC"
-        export HOST_CFLAGS="$CFLAGS $CPPFLAGS"
+        export HOST_CC="$CC_FOR_BUILD"
+        export HOST_CFLAGS="$CFLAGS_FOR_BUILD $CPPFLAGS_FOR_BUILD"
 
-        export HOST_CXX="$CXX"
-        export HOST_CXXFLAGS="$CXXFLAGS $CPPFLAGS"
+        export HOST_CXX="$CXX_FOR_BUILD"
+        export HOST_CXXFLAGS="$CXXFLAGS_FOR_BUILD $CPPFLAGS_FOR_BUILD"
 
         export HOST_AR="$AR"
 
@@ -5157,21 +5071,11 @@ EOF
                     ;;
             esac
         done
-
-        #################################################################
-
-        env | grep CARGO_
-        env | grep RUST_
-
-        printf '%b\n' "${COLOR_PURPLE}==>${COLOR_OFF} RUSTFLAGS"
-        printf '%s\n' "$RUSTFLAGS" | xargs printf '        %s\n'
     fi
 
     #########################################################################################
 
     if [ "$PACKAGE_USE_BSYSTEM_GO" = 1 ] ; then
-        step "config environment variables for go"
-
         # https://golang.org/doc/install/source#environment
 
         export CGO_ENABLED=0
@@ -5193,14 +5097,6 @@ EOF
             x86_64)  export GOARCH=amd64 ;;
         esac
     fi
-
-    #########################################################################################
-
-    [ "$LOG_LEVEL" -ge 3 ] && {
-        step "show export variables"
-        run export -p
-        printf '\n'
-    }
 
     #########################################################################################
 
@@ -5346,6 +5242,11 @@ $PACKAGE_PREPARE
         run rm -rf "$PACKAGE_INSTALL_DIR"
     fi
 
+    [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] && {
+        run export -p
+        printf '\n'
+    }
+
     eval "
 dobuild() {
 $PACKAGE_DOBUILD
@@ -5407,13 +5308,6 @@ $PACKAGE_DOTWEAK
 
     step "tweak Mach-O files"
     __tweak_mach_o_files
-
-    #########################################################################################
-
-    if [ "$PROFILE" = release ] ; then
-        :
-        #run "$STRIP" $STRIP_ARG "$FILEPATH" || true
-    fi
 
     #########################################################################################
 
