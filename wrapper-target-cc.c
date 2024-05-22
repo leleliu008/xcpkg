@@ -124,11 +124,15 @@ int main(int argc, char * argv[]) {
 
     /////////////////////////////////////////////////////////////////
 
-    for (int i = 0; ;i++) {
-        if (argv2[i] == NULL) {
-            break;
-        } else {
-            fprintf(stderr, "%s\n", argv2[i]);
+    const char * verbose = getenv("XCPKG_VERBOSE");
+
+    if (verbose != NULL && strcmp(verbose, "1") == 0) {
+        for (int i = 0; ;i++) {
+            if (argv2[i] == NULL) {
+                break;
+            } else {
+                fprintf(stderr, "%s\n", argv2[i]);
+            }
         }
     }
 

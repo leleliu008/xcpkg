@@ -74,10 +74,7 @@ step() {
 }
 
 run() {
-    if [ "$RUN_SILENT" != 1 ] ; then
-        echo "${COLOR_PURPLE}==>${COLOR_OFF} ${COLOR_GREEN}$@${COLOR_OFF}"
-    fi
-
+    echo "${COLOR_PURPLE}==>${COLOR_OFF} ${COLOR_GREEN}$@${COLOR_OFF}"
     eval "$@"
 }
 
@@ -108,9 +105,7 @@ bppend_to_ACLOCAL_PATH() {
 }
 
 sed_in_place() {
-    if [ "$RUN_SILENT" = 1 ] ; then
-        gsed -i "$@"
-    else
+    if [ "${SED_VERBOSE:-0}" = 1 ] ; then
         if [ -z "$SED" ] ; then
             SED="$(command -v gsed || command -v sed)" || abort 1 "command not found: gsed"
         fi
@@ -118,6 +113,8 @@ sed_in_place() {
         export SED
 
         "$XCPKG_CORE_DIR/sed-in-place" "$@"
+    else
+        sed -i "$@"
     fi
 }
 
@@ -232,7 +229,6 @@ wfetch() {
                 ;;
             -q)
                 FETCH_SILENT=1
-                RUN_SILENT=1
                 ;;
             --no-buffer)
                 NOT_BUFFER=1
@@ -1041,58 +1037,50 @@ filetype_from_url() {
 
     #########################################################################################
 
-    if [ -n "$PACKAGE_SRC_URL" ] ; then
-        case $PACKAGE_SRC_URL in
-            dir://*)
-                PACKAGE_SRC_FILETYPE=.dir
-                PACKAGE_SRC_FILEPATH=$(printf '%s\n' "$PACKAGE_SRC_URL" | cut -c7-)
+    case $PACKAGE_SRC_URL in
+        '')
+            if [ -n "$PACKAGE_GIT_URL" ] ; then
+                PACKAGE_SRC_FILETYPE=.git
+                PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP git"
+            fi
+            ;;
+        dir://*)
+            PACKAGE_SRC_FILETYPE=.dir
+            PACKAGE_SRC_FILEPATH=$(printf '%s\n' "$PACKAGE_SRC_URL" | cut -c7-)
+            ;;
+        file://*)
+            PACKAGE_SRC_FILEPATH=$(printf '%s\n' "$PACKAGE_SRC_URL" | cut -c8-)
+            PACKAGE_SRC_FILENAME="$(basename "$PACKAGE_SRC_FILEPATH")"
+            PACKAGE_SRC_FILETYPE="$(filetype_from_url "$PACKAGE_SRC_FILENAME")"
+            ;;
+        *)  PACKAGE_SRC_FILETYPE="$(filetype_from_url "$PACKAGE_SRC_URL")"
+            PACKAGE_SRC_FILENAME="$PACKAGE_SRC_SHA$PACKAGE_SRC_FILETYPE"
+            PACKAGE_SRC_FILEPATH="$XCPKG_DOWNLOADS_DIR/$PACKAGE_SRC_FILENAME"
 
-                if [ -z "$PACKAGE_VERSION" ] ; then
-                    PACKAGE_VERSION="$(date -u -d "@$TIMESTAMP_UNIX" '+%Y.%m.%d')"
-                fi
-                ;;
-            file://*)
-                PACKAGE_SRC_FILEPATH=$(printf '%s\n' "$PACKAGE_SRC_URL" | cut -c8-)
-                PACKAGE_SRC_FILENAME="$(basename "$PACKAGE_SRC_FILEPATH")"
-                PACKAGE_SRC_FILETYPE="$(filetype_from_url "$PACKAGE_SRC_FILENAME")"
-
-                if [ -z "$PACKAGE_VERSION" ] ; then
-                    PACKAGE_VERSION="$(date -u -d "@$TIMESTAMP_UNIX" '+%Y.%m.%d')"
-                fi
-                ;;
-            *)  PACKAGE_SRC_FILETYPE="$(filetype_from_url "$PACKAGE_SRC_URL")"
-                PACKAGE_SRC_FILENAME="$PACKAGE_SRC_SHA$PACKAGE_SRC_FILETYPE"
-                PACKAGE_SRC_FILEPATH="$XCPKG_DOWNLOADS_DIR/$PACKAGE_SRC_FILENAME"
-
-                if [ -z "$PACKAGE_SRC_SHA" ] ; then
-                    abort 1 "src-sha mapping not found in $PACKAGE_FORMULA_FILEPATH"
-                fi
-
-                if [ -z "$PACKAGE_VERSION" ] ; then
-                    PACKAGE_VERSION="$(basename "$PACKAGE_SRC_URL" | tr '_@' - | sed -e 's|\.tar\.[glx]z$||' -e 's|\.tar\.bz2$||' -e 's|\.t[glx]z$||' -e 's|\.zip$||' -e 's|-stable||' -e 's|-source||' -e 's|[-.]src$||' -e 's|\.orig||' | awk -F- '{print $NF}')"
-                    case $PACKAGE_VERSION in
-                        '') abort 1 "version mapping not found in $PACKAGE_FORMULA_FILEPATH" ;;
-                        v*) PACKAGE_VERSION=$(printf '%s\n' "$PACKAGE_VERSION" | cut -c2-)
-                    esac
-                fi
-
-                PACKAGE_NEED_CURL=1
-
-                case $PACKAGE_SRC_FILETYPE in
-                    .zip|.txz|.tgz|.tlz|.tbz2|.crate)
-                        PACKAGE_NEED_BTAR=1
-                esac
-        esac
-    else
-        if [ -n "$PACKAGE_GIT_URL" ] ; then
-            PACKAGE_SRC_FILETYPE=.git
-
-            if [ -z "$PACKAGE_VERSION" ] ; then
-                PACKAGE_VERSION="$(date -u -d "@$TIMESTAMP_UNIX" '+%Y.%m.%d')"
+            if [ -z "$PACKAGE_SRC_SHA" ] ; then
+                abort 1 "src-sha mapping not found in $PACKAGE_FORMULA_FILEPATH"
             fi
 
-            PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP git"
-        fi
+            if [ -z "$PACKAGE_VERSION" ] ; then
+                PACKAGE_VERSION="$(basename "$PACKAGE_SRC_URL" | tr '_@' - | sed -e 's|\.tar\.[glx]z$||' -e 's|\.tar\.bz2$||' -e 's|\.t[glx]z$||' -e 's|\.zip$||' -e 's|-stable||' -e 's|-source||' -e 's|[-.]src$||' -e 's|\.orig||' | awk -F- '{print $NF}')"
+                case $PACKAGE_VERSION in
+                    '') abort 1 "version mapping not found in $PACKAGE_FORMULA_FILEPATH" ;;
+                    v*) PACKAGE_VERSION=$(printf '%s\n' "$PACKAGE_VERSION" | cut -c2-)
+                esac
+            fi
+
+            PACKAGE_NEED_CURL=1
+
+            case $PACKAGE_SRC_FILETYPE in
+                .zip|.txz|.tgz|.tlz|.tbz2|.crate)
+                    PACKAGE_NEED_BTAR=1
+            esac
+    esac
+
+    #########################################################################################
+
+    if [ -z "$PACKAGE_VERSION" ] ; then
+        PACKAGE_VERSION="$(date -u -d "@$TIMESTAMP_UNIX" '+%Y.%m.%d')"
     fi
 
     #########################################################################################
@@ -3159,8 +3147,8 @@ EOF
             NATIVE_PACKAGE_BUILD_CONFIG_ARGS="--with-system-expat --with-system-ffi --with-openssl=$NATIVE_PACKAGE_INSTALLED_ROOT/openssl --with-ensurepip=yes --with-lto --enable-ipv6 --enable-shared --enable-largefile --disable-option-checking --disable-nls --disable-debug --disable-loadable-sqlite-extensions --disable-profiling"
             ;;
         perl-XML-Parser)
-            NATIVE_PACKAGE_SRC_URL='https://cpan.metacpan.org/authors/id/T/TO/TODDR/XML-Parser-2.46.tar.gz'
-            NATIVE_PACKAGE_SRC_SHA='d331332491c51cccfb4cb94ffc44f9cd73378e618498d4a37df9e043661c515d'
+            NATIVE_PACKAGE_SRC_URL='https://cpan.metacpan.org/authors/id/T/TO/TODDR/XML-Parser-2.47.tar.gz'
+            NATIVE_PACKAGE_SRC_SHA='ad4aae643ec784f489b956abe952432871a622d4e2b5c619e8855accbfc4d1d8'
             NATIVE_PACKAGE_DEPENDENCIES='perl libexpat'
             NATIVE_PACKAGE_USE_BSYSTEM_NAME='configure'
             NATIVE_PACKAGE_BUILD_CONFIG_ARGS=
@@ -4380,9 +4368,7 @@ $PACKAGE_ONREADY
 
     step "build for native"
 
-    if [ "$CROSS_COMPILING" = 0 ] ; then
-        note "not cross compiling, skipped."
-    elif [ -z "$PACKAGE_DO12345" ] ; then
+    if [ -z "$PACKAGE_DO12345" ] ; then
         note "do12345 mapping was not found in formula, skipped."
     else
         NATIVE_BUILD_NEEDED=1
@@ -4992,13 +4978,24 @@ EOF
         # https://crates.io/crates/cc
         # https://docs.rs/cc/latest/cc/
         # https://github.com/alexcrichton/cc-rs
-        export HOST_CC="$CC_FOR_BUILD"
-        export HOST_CFLAGS="$CFLAGS_FOR_BUILD $CPPFLAGS_FOR_BUILD"
 
-        export HOST_CXX="$CXX_FOR_BUILD"
-        export HOST_CXXFLAGS="$CXXFLAGS_FOR_BUILD $CPPFLAGS_FOR_BUILD"
+        if [ "$CROSS_COMPILING" = 1 ] ; then
+            export HOST_CC="$CC_FOR_BUILD"
+            export HOST_CFLAGS="$CFLAGS_FOR_BUILD $CPPFLAGS_FOR_BUILD"
 
-        export HOST_AR="$AR"
+            export HOST_CXX="$CXX_FOR_BUILD"
+            export HOST_CXXFLAGS="$CXXFLAGS_FOR_BUILD $CPPFLAGS_FOR_BUILD"
+
+            export HOST_AR="$AR"
+        else
+            export HOST_CC="$CC"
+            export HOST_CFLAGS="$CFLAGS $CPPFLAGS"
+
+            export HOST_CXX="$CXX"
+            export HOST_CXXFLAGS="$CXXFLAGS $CPPFLAGS"
+
+            export HOST_AR="$AR"
+        fi
 
         export TARGET_CC="$CC"
         export TARGET_CFLAGS="$CFLAGS $CPPFLAGS"
@@ -5638,18 +5635,20 @@ __tweak_pc_files() {
     do
         sed_in_place "s|$PACKAGE_INSTALL_DIR|\${pcfiledir}/../..|g" "$pcfile"
 
-        sed_in_place "s|${XCPKG_HOME}/.*/lib\(.*\)\.dylib|-l\1|g" "$pcfile"
-        sed_in_place "s|${XCPKG_HOME}/.*/lib\(.*\)\.a|-l\1|g"     "$pcfile"
-
-        sed_in_place "s|-L${XCPKG_HOME}[^' ]*||g"  "$pcfile"
-        sed_in_place "s|-R[^' ]*||g"               "$pcfile"
-        sed_in_place "s|-F[^' ]*||g"               "$pcfile"
-        sed_in_place "s|-idirafter[^' ]*||g"       "$pcfile"
-        sed_in_place "s|-isysroot [^' ]*||g"       "$pcfile"
-
+        sed_in_place "s|-L${XCPKG_HOME}[^' ]*||g"   "$pcfile"
+        sed_in_place "s|-R[^' ]*||g"                "$pcfile"
+        sed_in_place "s|-F[^' ]*||g"                "$pcfile"
+        sed_in_place "s|-idirafter[^' ]*||g"        "$pcfile"
+        sed_in_place "s|-isysroot [^' ]*||g"        "$pcfile"
+        sed_in_place "s|-arch [^' ]*||g"            "$pcfile"
         sed_in_place 's|-flto||g'                   "$pcfile"
         sed_in_place 's|-Wl,--strip-debug||g'       "$pcfile"
         sed_in_place 's|-Wl,-search_paths_first||g' "$pcfile"
+
+        sed_in_place "s|-mmacosx-version-min=[^' ]*||g" "$pcfile"
+
+        sed_in_place "s|${XCPKG_HOME}/.*/lib\(.*\)\.dylib|-l\1|g" "$pcfile"
+        sed_in_place "s|${XCPKG_HOME}/.*/lib\(.*\)\.a|-l\1|g"     "$pcfile"
 
         if grep 'Libs.private:' "$pcfile" > /dev/null ; then
             if grep 'Libs:' "$pcfile" > /dev/null ; then
@@ -6862,7 +6861,12 @@ inspect_install_arguments() {
 
     #########################################################################################
 
-    if [ "$LOG_LEVEL" -eq "$LOG_LEVEL_QUIET" ] ; then
+      if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERY_VERBOSE" ] ; then
+        export XCPKG_VERBOSE=1
+        SED_VERBOSE=1
+    elif [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
+        SED_VERBOSE=1
+    elif [ "$LOG_LEVEL" -eq "$LOG_LEVEL_QUIET" ] ; then
         exec 1>/dev/null
         exec 2>&1
     fi
