@@ -50,7 +50,7 @@ int main(int argc, char * argv[]) {
     int createSharedLibrary = 0;
 
     for (int i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "-shared") == 0) {
+        if (strcmp(argv[i], "-dynamiclib") == 0 || strcmp(argv[i], "-shared") == 0) {
             createSharedLibrary = 1;
             break;
         }

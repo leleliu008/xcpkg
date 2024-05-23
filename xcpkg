@@ -5618,23 +5618,32 @@ EOF
 
 
 __tweak_pc_files() {
-    [ -d "$PACKAGE_INSTALL_DIR/lib/pkgconfig" ] || {
-        note "no .pc files installed, skipped"
-        return 0
-    }
+    unset PC_FILES
 
-    PC_FILES="$(find "$PACKAGE_INSTALL_DIR/lib/pkgconfig" -name "*.pc")"
+    for item in lib share
+    do
+        PC_FILES_LIVEDIR="$PACKAGE_INSTALL_DIR/$item/pkgconfig"
+
+        if [ -d        "$PC_FILES_LIVEDIR" ] ; then
+            fs="$(find "$PC_FILES_LIVEDIR" -type f -name '*.pc')"
+
+            if [ -n "$fs" ] ; then
+                PC_FILES="$PC_FILES $fs"
+            fi
+        fi
+    done
 
     [ -z "$PC_FILES" ] && {
         note "no .pc files installed, skipped"
         return 0
     }
 
-    # cc: error: unrecognized command line option ‘-R’
     for pcfile in $PC_FILES
     do
         sed_in_place "s|$PACKAGE_INSTALL_DIR|\${pcfiledir}/../..|g" "$pcfile"
 
+        # https://gcc.gnu.org/onlinedocs/gcc/Directory-Options.html
+        sed_in_place "s|-I${XCPKG_HOME}[^' ]*||g"   "$pcfile"
         sed_in_place "s|-L${XCPKG_HOME}[^' ]*||g"   "$pcfile"
         sed_in_place "s|-R[^' ]*||g"                "$pcfile"
         sed_in_place "s|-F[^' ]*||g"                "$pcfile"
@@ -6531,13 +6540,10 @@ extern char **environ;
 #endif
 
 __attribute__((unused))
-static int stub_system(char* cmd) {
-    char argv0[] = "sh";
-    char argv1[] = "-c";
-    char* const argv[4] = {argv0, argv1, cmd, NULL};
+static int stub_system(const char * cmd) {
+    char* const argv[4] = {(char*)"sh", (char*)"-c", (char*)cmd, NULL};
     pid_t pid;
-    int status;
-    status = posix_spawn(&pid, "/bin/sh", NULL, NULL, argv, environ);
+    int status = posix_spawn(&pid, "/bin/sh", NULL, NULL, argv, environ);
     if (0 == status) {
         return waitpid(pid, &status, 0);
     }
