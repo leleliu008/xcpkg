@@ -50,7 +50,7 @@ int main(int argc, char * argv[]) {
     int createSharedLibrary = 0;
 
     for (int i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "-shared") == 0) {
+        if (strcmp(argv[i], "-dynamiclib") == 0 || strcmp(argv[i], "-shared") == 0) {
             createSharedLibrary = 1;
             break;
         }
@@ -124,11 +124,15 @@ int main(int argc, char * argv[]) {
 
     /////////////////////////////////////////////////////////////////
 
-    for (int i = 0; ;i++) {
-        if (argv2[i] == NULL) {
-            break;
-        } else {
-            fprintf(stderr, "%s\n", argv2[i]);
+    const char * verbose = getenv("XCPKG_VERBOSE");
+
+    if (verbose != NULL && strcmp(verbose, "1") == 0) {
+        for (int i = 0; ;i++) {
+            if (argv2[i] == NULL) {
+                break;
+            } else {
+                fprintf(stderr, "%s\n", argv2[i]);
+            }
         }
     }
 
