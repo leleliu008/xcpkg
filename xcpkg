@@ -3553,10 +3553,13 @@ $PACKAGE_ONSTART
     export  CPPFLAGS_FOR_BUILD="-isysroot $SYSROOT_FOR_BUILD -mmacosx-version-min=$NATIVE_OS_VERS -arch $NATIVE_OS_ARCH -Qunused-arguments"
     export   LDFLAGS_FOR_BUILD="-isysroot $SYSROOT_FOR_BUILD -mmacosx-version-min=$NATIVE_OS_VERS -arch $NATIVE_OS_ARCH"
 
-    if [ "$LOG_LEVEL" -ge 3 ] ; then
+    if [ "$DUMP_CC" = 1 ] ; then
           CFLAGS_FOR_BUILD="$CFLAGS_FOR_BUILD -v"
         CXXFLAGS_FOR_BUILD="$CXXFLAGS_FOR_BUILD -v"
        OBJCFLAGS_FOR_BUILD="$OBJCFLAGS_FOR_BUILD -v"
+    fi
+
+    if [ "$DUMP_LD" = 1 ] ; then
          LDFLAGS_FOR_BUILD="$LDFLAGS_FOR_BUILD -Wl,-v"
     fi
 
@@ -3604,7 +3607,8 @@ $PACKAGE_ONSTART
     #########################################################################################
 
     if [ "$PACKAGE_PKGTYPE" != lib ] ; then
-        export PACKAGE_CREATE_MOSTLY_STATICALLY_LINKED_EXECUTABLE=1
+        # these environment variable is used by target-wrapper-*
+        export XCPKG_CREATE_MOSTLY_STATICALLY_LINKED_EXECUTABLE=1
     fi
 
     #########################################################################################
@@ -4410,6 +4414,11 @@ build_for_native() {
 $PACKAGE_DO12345
 }"
 
+                [ "$DUMP_ENV" = 1 ] && {
+                    run export -p
+                    printf '\n'
+                }
+
                 BUILD_FOR_NATIVE=1
 
                 build_for_native
@@ -4475,21 +4484,26 @@ $PACKAGE_DO12345
 
     ##################################################################################
 
-    PROXIED_CC="$CC"
-    PROXIED_CXX="$CXX"
-    PROXIED_OBJC="$OBJC"
+    # these environment variable is used by target-wrapper-*
+    export XCPKG_COMPILER_C="$CC"
+    export XCPKG_COMPILER_CXX="$CXX"
+    export XCPKG_COMPILER_OBJC="$OBJC"
+
+    ##################################################################################
 
     CC="$XCPKG_CORE_DIR/wrapper-target-cc"
     CXX="$XCPKG_CORE_DIR/wrapper-target-c++"
     OBJC="$XCPKG_CORE_DIR/wrapper-target-objc"
     CPP="$CC -E"
 
-    for TOOL in PROXIED_CC PROXIED_OBJC PROXIED_CXX CC OBJC CXX CPP AS AR RANLIB LD NM STRIP SIZE STRINGS OBJDUMP SYSROOT
+    ##################################################################################
+
+    for TOOL in CC OBJC CXX CPP AS AR RANLIB LD NM STRIP SIZE STRINGS OBJDUMP SYSROOT
     do
         export "$TOOL"
     done
 
-    #########################################################################################
+    ##################################################################################
 
     CCFLAGS="$(printf '%s\n' "$PACKAGE_CCFLAGS" | sed -e 's|--static||g' -e 's|-static||g')"
     OCFLAGS="$(printf '%s\n' "$PACKAGE_OCFLAGS" | sed -e 's|--static||g' -e 's|-static||g')"
@@ -4499,22 +4513,26 @@ $PACKAGE_DO12345
 
     ##############################################
 
-    BASEFLAGS="-isysroot $SYSROOT -arch $TARGET_PLATFORM_ARCH -m${TARGET_PLATFORM_NAME_LOWER_CASE}-version-min=$TARGET_PLATFORM_VERS"
+    # this environment variable is used by target-wrapper-*
+    export XCPKG_COMPILER_ARGS="-isysroot $SYSROOT -arch $TARGET_PLATFORM_ARCH -m${TARGET_PLATFORM_NAME_LOWER_CASE}-version-min=$TARGET_PLATFORM_VERS"
 
-    PPFLAGS="$BASEFLAGS -Qunused-arguments $PPFLAGS"
-    CCFLAGS="$BASEFLAGS -Qunused-arguments $CCFLAGS -fPIC"
-    OCFLAGS="$BASEFLAGS -Qunused-arguments $OCFLAGS -fPIC"
-    OXFLAGS="$BASEFLAGS -Qunused-arguments $OXFLAGS -fPIC"
-    XXFLAGS="$BASEFLAGS -Qunused-arguments $XXFLAGS -fPIC"
-    LDFLAGS="$BASEFLAGS -Wl,-search_paths_first $LDFLAGS"
+    PPFLAGS="-Qunused-arguments $PPFLAGS"
+    CCFLAGS="-Qunused-arguments $CCFLAGS -fPIC"
+    OCFLAGS="-Qunused-arguments $OCFLAGS -fPIC"
+    OXFLAGS="-Qunused-arguments $OXFLAGS -fPIC"
+    XXFLAGS="-Qunused-arguments $XXFLAGS -fPIC"
+    LDFLAGS="-Wl,-search_paths_first $LDFLAGS"
 
     ##############################################
 
-    if [ "$LOG_LEVEL" -ge 3 ] ; then
+    if [ "$DUMP_CC" = 1 ] ; then
         CCFLAGS="$CCFLAGS -v"
         XXFLAGS="$XXFLAGS -v"
         OCFLAGS="$OCFLAGS -v"
         OXFLAGS="$OXFLAGS -v"
+    fi
+
+    if [ "$DUMP_CC" = 1 ] ; then
         LDFLAGS="$LDFLAGS -Wl,-v"
     fi
 
@@ -4704,7 +4722,7 @@ $PACKAGE_DO12345
     # https://www.freedesktop.org/wiki/Software/pkg-config/CrossCompileProposal
     unset PKG_CONFIG_SYSROOT_DIR
 
-    if [ "$LOG_LEVEL" -ge 3 ] ; then
+    if [ "$DUMP_PKG_CONFIG" = 1 ] ; then
         export PKG_CONFIG_DEBUG_SPEW='set'
     fi
 
@@ -4788,16 +4806,16 @@ $PACKAGE_DO12345
             release) CMAKE_BUILD_TYPE=Release ;;
         esac
 
-        if [ "$LOG_LEVEL" -eq 0 ] ; then
-            CMAKE_VERBOSE_MAKEFILE=OFF
-            CMAKE_COLOR_MAKEFILE=OFF
-        else
+        if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
             CMAKE_VERBOSE_MAKEFILE=ON
             CMAKE_COLOR_MAKEFILE=ON
+        else
+            CMAKE_VERBOSE_MAKEFILE=OFF
+            CMAKE_COLOR_MAKEFILE=OFF
         fi
 
         # https://cmake.org/cmake/help/latest/variable/CMAKE_FIND_DEBUG_MODE.html
-        if [ "$LOG_LEVEL" -ge 3 ] ; then
+        if [ "$DUMP_CMAKE" = 1 ] ; then
             CMAKE_FIND_DEBUG_MODE=ON
         else
             CMAKE_FIND_DEBUG_MODE=OFF
@@ -4877,7 +4895,7 @@ set(CMAKE_CXX_COMPILER "$CXX")
 set(CMAKE_CXX_FLAGS "$CXXFLAGS $CPPFLAGS")
 
 set(CMAKE_ASM_COMPILER "$CC")
-set(CMAKE_ASM_FLAGS "$BASEFLAGS")
+set(CMAKE_ASM_FLAGS "$XCPKG_COMPILER_ARGS")
 
 set(CMAKE_SHARED_LINKER_FLAGS "$LDFLAGS")
 set(CMAKE_EXE_LINKER_FLAGS    "$LDFLAGS")
@@ -5239,7 +5257,7 @@ $PACKAGE_PREPARE
         run rm -rf "$PACKAGE_INSTALL_DIR"
     fi
 
-    [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] && {
+    [ "$DUMP_ENV" = 1 ] && {
         run export -p
         printf '\n'
     }
@@ -5920,11 +5938,10 @@ configure_only() {
         fi
 
         if [ -z "$CONFIGURE_ARG_ENABLE_DEBUG" ] ; then
-            if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERY_VERBOSE" ] ; then
-                CONFIGURE_ARGS="$CONFIGURE_ARGS --enable-debug"
-            else
-                CONFIGURE_ARGS="$CONFIGURE_ARGS --disable-debug"
-            fi
+            case $PROFILE in
+                debug)   CONFIGURE_ARGS="$CONFIGURE_ARGS --enable-debug"  ;;
+                release) CONFIGURE_ARGS="$CONFIGURE_ARGS --disable-debug" ;;
+            esac
         fi
 
         if [ -z "$CONFIGURE_ARG_ENABLE_STATIC" ] ; then
@@ -5993,7 +6010,7 @@ configure() {
 # {{{ gmakew
 
 gmakew() {
-    if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERY_VERBOSE" ] ; then
+    if [ "$DUMP_GMAKE" = 1 ] ; then
         run "$GMAKE -w -j$BUILD_NJOBS --debug V=1 $*"
     else
         run "$GMAKE -w -j$BUILD_NJOBS $*"
@@ -6005,7 +6022,7 @@ gmakew() {
 # {{{ ninjaw
 
 ninjaw() {
-    if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERY_VERBOSE" ] ; then
+    if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
         run "$NINJA -j $BUILD_NJOBS -v $*"
     else
         run "$NINJA -j $BUILD_NJOBS    $*"
@@ -6045,15 +6062,15 @@ cmakew() {
             CMAKE_GENERATOR='Unix Makefiles'
         fi
 
-        if [ "$LOG_LEVEL" -eq 0 ] ; then
-            CMAKE_VERBOSE_MAKEFILE=OFF
-            CMAKE_COLOR_MAKEFILE=OFF
-        else
+        if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
             CMAKE_VERBOSE_MAKEFILE=ON
             CMAKE_COLOR_MAKEFILE=ON
+        else
+            CMAKE_VERBOSE_MAKEFILE=OFF
+            CMAKE_COLOR_MAKEFILE=OFF
         fi
 
-        if [ "$LOG_LEVEL" -ge 3 ] ; then
+        if [ "$DUMP_CMAKE" = 1 ] ; then
             CMAKE_FIND_DEBUG_MODE=ON
         else
             CMAKE_FIND_DEBUG_MODE=OFF
@@ -6144,7 +6161,7 @@ xmakew() {
         esac
     done
 
-    if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERY_VERBOSE" ] && [ -z "$XMAKE_CONFIG_OPTION_vD" ]; then
+    if [ "$DUMP_XMAKE" = 1 ] && [ -z "$XMAKE_CONFIG_OPTION_vD" ]; then
         XMAKE_CONFIG_OPTIONS="$XMAKE_CONFIG_OPTION_vD -vD"
     fi
 
@@ -6243,7 +6260,7 @@ EOF
         MESON_SETUP_ARGS="$MESON_SETUP_ARGS --prefer-static"
     fi
 
-    if [ "$LOG_LEVEL" -ge 3 ] ; then
+    if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
         MESON_COMPILE_ARGS="$MESON_COMPILE_ARGS -v"
     fi
 
@@ -6484,7 +6501,7 @@ gow() {
     fi
 
     if [ -z "$GO_BUILD_ARGV_X" ] ; then
-        if [ "$LOG_LEVEL" -ge 2 ] ; then
+        if [ "$DUMP_GO" = 1 ] ; then
             GO_BUILD_ARGS="$GO_BUILD_ARGS -x"
         fi
     else
@@ -6784,11 +6801,37 @@ inspect_install_arguments() {
 
     unset SPECIFIED_DEVELOPER_DIR
 
+    unset DUMP_GO
+    unset DUMP_CC
+    unset DUMP_LD
+
+    unset DUMP_ENV
+    unset DUMP_NET
+
+    unset DUMP_GMAKE
+    unset DUMP_CMAKE
+    unset DUMP_XMAKE
+    unset DUMP_NINJA
+    unset DUMP_PKG_CONFIG
+
     while [ -n "$1" ]
     do
         case $1 in
             -vv)
                 LOG_LEVEL="$LOG_LEVEL_VERY_VERBOSE"
+
+                DUMP_GO=1
+                DUMP_CC=1
+                DUMP_LD=1
+
+                DUMP_ENV=1
+                DUMP_NET=1
+
+                DUMP_GMAKE=1
+                DUMP_CMAKE=1
+                DUMP_XMAKE=1
+                DUMP_NINJA=1
+                DUMP_PKG_CONFIG=1
                 ;;
             -v)
                 LOG_LEVEL="$LOG_LEVEL_VERBOSE"
@@ -6796,8 +6839,32 @@ inspect_install_arguments() {
             -q)
                 LOG_LEVEL="$LOG_LEVEL_QUIET"
                 ;;
-            --disable-ccache)
-                ENABLE_CCACHE=0
+            --dump-go)
+                DUMP_GO=1
+                ;;
+            --dump-cc)
+                DUMP_CC=1
+                ;;
+            --dump-ld)
+                DUMP_LD=1
+                ;;
+            --dump-env)
+                DUMP_ENV=1
+                ;;
+            --dump-net)
+                DUMP_NET=1
+                ;;
+            --dump-ninja)
+                DUMP_NINJA=1
+                ;;
+            --dump-gmake)
+                DUMP_GMAKE=1
+                ;;
+            --dump-cmake)
+                DUMP_CMAKE=1
+                ;;
+            --dump-pkg-config)
+                DUMP_PKG_CONFIG=1
                 ;;
             --upgrade)
                 REQUEST_TO_UPGRADE_IF_COULD_BE=1
@@ -6817,6 +6884,9 @@ inspect_install_arguments() {
             --jobs=*)
                 BUILD_NJOBS="${1#*=}"
                 is_integer "$BUILD_NJOBS" || abort 1 "--jobs=INTEGER argument's value must be an integer."
+                ;;
+            --disable-ccache)
+                ENABLE_CCACHE=0
                 ;;
             --enable-lto)
                 ENABLE_LTO=1
@@ -6867,12 +6937,16 @@ inspect_install_arguments() {
 
     #########################################################################################
 
-      if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERY_VERBOSE" ] ; then
+    if [ "$DUMP_CC" = 1 ] ; then
+        # this environment variable is used by target-wrapper-*
         export XCPKG_VERBOSE=1
+    fi
+
+    if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
         SED_VERBOSE=1
-    elif [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
-        SED_VERBOSE=1
-    elif [ "$LOG_LEVEL" -eq "$LOG_LEVEL_QUIET" ] ; then
+    fi
+
+    if [ "$LOG_LEVEL" -eq "$LOG_LEVEL_QUIET" ] ; then
         exec 1>/dev/null
         exec 2>&1
     fi
@@ -7936,7 +8010,7 @@ XCPKG_PATH="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
 
 XCPKG_ACTION="$*"
 
-XCPKG_VERSION=0.18.1
+XCPKG_VERSION=0.19.0
 
 XCPKG_OFFICIAL_FORMULA_REPO_URL='https://github.com/leleliu008/xcpkg-formula-repository-official-core'
 

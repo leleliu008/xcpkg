@@ -7,42 +7,44 @@
 #include <sys/stat.h>
 
 int main(int argc, char * argv[]) {
-    char * const compiler = getenv("PROXIED_OBJC");
+    char * const compiler = getenv("XCPKG_COMPILER_OBJC");
 
     if (compiler == NULL) {
-        fprintf(stderr, "PROXIED_OBJC environment variable is not set.\n");
+        fprintf(stderr, "XCPKG_COMPILER_OBJC environment variable is not set.\n");
         return 1;
     }
 
     if (compiler[0] == '\0') {
-        fprintf(stderr, "PROXIED_OBJC environment variable value should be a non-empty string.\n");
+        fprintf(stderr, "XCPKG_COMPILER_OBJC environment variable value should be a non-empty string.\n");
         return 2;
     }
 
     /////////////////////////////////////////////////////////////////
 
-    const char * const SYSROOT = getenv("SYSROOT");
+    char * const baseArgs = getenv("XCPKG_COMPILER_ARGS");
 
-    if (SYSROOT == NULL) {
-        fprintf(stderr, "SYSROOT environment variable is not set.\n");
+    if (baseArgs == NULL) {
+        fprintf(stderr, "XCPKG_COMPILER_ARGS environment variable is not set.\n");
         return 5;
     }
 
-    if (SYSROOT[0] == '\0') {
-        fprintf(stderr, "SYSROOT environment variable value should be a non-empty string.\n");
+    if (baseArgs[0] == '\0') {
+        fprintf(stderr, "XCPKG_COMPILER_ARGS environment variable value should be a non-empty string.\n");
         return 6;
     }
 
     /////////////////////////////////////////////////////////////////
 
-    size_t sysrootArgLength = strlen(SYSROOT) + 11U;
-    char   sysrootArg[sysrootArgLength];
+    size_t baseArgc = 1U;
 
-    int ret = snprintf(sysrootArg, sysrootArgLength, "--sysroot=%s", SYSROOT);
+    for (size_t i = 0U; ; i++) {
+        if (baseArgs[i] == '\0') {
+            break;
+        }
 
-    if (ret < 0) {
-        perror(NULL);
-        return 8;
+        if (baseArgs[i] == ' ') {
+            baseArgc++;
+        }
     }
 
     /////////////////////////////////////////////////////////////////
@@ -58,10 +60,10 @@ int main(int argc, char * argv[]) {
 
     /////////////////////////////////////////////////////////////////
 
-    char* argv2[argc + 3];
+    char* argv2[argc + baseArgc + 2];
 
     if (createSharedLibrary == 0) {
-        const char * msle = getenv("PACKAGE_CREATE_MOSTLY_STATICALLY_LINKED_EXECUTABLE");
+        const char * msle = getenv("XCPKG_CREATE_MOSTLY_STATICALLY_LINKED_EXECUTABLE");
 
         if (msle != NULL && strcmp(msle, "1") == 0) {
             for (int i = 1; i < argc; i++) {
@@ -112,15 +114,38 @@ int main(int argc, char * argv[]) {
 
     /////////////////////////////////////////////////////////////////
 
-    argv2[0]    = compiler;
-    argv2[argc] = sysrootArg;
+    argv2[0] = compiler;
+
+    /////////////////////////////////////////////////////////////////
+
+    char * p = baseArgs;
+
+    for (size_t i = 0U; ; i++) {
+        if (baseArgs[i] == '\0') {
+            if (p[0] != '\0') {
+                argv2[argc++] = p;
+            }
+            break;
+        }
+
+        if (baseArgs[i] == ' ') {
+            baseArgs[i] = '\0';
+
+            if (p[0] != '\0') {
+                argv2[argc++] = p;
+            }
+
+            p = &baseArgs[i + 1];
+        }
+    }
+
+    /////////////////////////////////////////////////////////////////
 
     if (createSharedLibrary == 1) {
-        argv2[argc + 1] = (char*)"-fPIC";
-        argv2[argc + 2] = NULL;
-    } else {
-        argv2[argc + 1] = NULL;
+        argv2[argc++] = (char*)"-fPIC";
     }
+
+    argv2[argc++] = NULL;
 
     /////////////////////////////////////////////////////////////////
 
