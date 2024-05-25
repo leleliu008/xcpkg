@@ -7753,8 +7753,8 @@ __help() {
 [0m
 EOF
 
-    printf '%b\n' "
-A package manager for Xcode to build C/C++/Rust/Go project.${COLOR_OFF}
+    printf '%b\n' "\
+${COLOR_GREEN}A package builder/manager for Xcode to build projects written in C, C++, Rust, Zig, Go, etc.${COLOR_OFF}
 
 ${COLOR_GREEN}xcpkg <ACTION> [ARGUMENT...]${COLOR_OFF}
 
