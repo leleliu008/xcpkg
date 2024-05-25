@@ -7743,17 +7743,15 @@ EOF
 # {{{ xcpkg help
 
 __help() {
-    if command -v base64 > /dev/null ; then
-        LOGO_BASE64_ENCODED='ICAgICAgICAgICAgICAgIF8gICAgICAgICAKX18gIF9fX19fIF8gX18gfCB8IF9fX18gXyAKXCBc
-LyAvIF9ffCAnXyBcfCB8LyAvIF9gIHwKID4gIDwgKF9ffCB8XykgfCAgIDwgKF98IHwKL18vXF9c
-X19ffCAuX18vfF98XF9cX18sIHwKICAgICAgICAgfF98ICAgICAgICB8X19fLyAK'
-
-        if command -v lolcat > /dev/null ; then
-            printf '%s\n' "$LOGO_BASE64_ENCODED" | base64 -d | lolcat -S 350
-        else
-            printf '%b\n' "${COLOR_BLUE}$(printf '%s\n' "$LOGO_BASE64_ENCODED" | base64 -d)${COLOR_OFF}"
-        fi
-    fi
+    cat <<EOF
+[38;5;199m    [38;5;163m    [38;5;164m     [38;5;128m   _[38;5;129m    [38;5;93m     
+[38;5;199m__ [38;5;163m ____[38;5;164m_ _ [38;5;128m__ |[38;5;129m | __[38;5;93m__ _[38;5;99m 
+[38;5;199m\ \[38;5;163m/ / [38;5;164m__| '[38;5;128m_ \|[38;5;129m |/ [38;5;93m/ _\` [38;5;99m|
+[38;5;199m > [38;5;163m < ([38;5;164m__| [38;5;128m|_) |[38;5;129m   <[38;5;93m (_|[38;5;99m |
+[38;5;199m/_[38;5;163m/\_\[38;5;164m___| [38;5;128m.__/[38;5;129m|_|\[38;5;93m_\__,[38;5;99m |
+[38;5;199m  [38;5;163m    [38;5;164m   |[38;5;128m_|   [38;5;129m    [38;5;93m |__[38;5;99m_/  $XCPKG_VERSION
+[0m
+EOF
 
     printf '%b\n' "
 A package manager for Xcode to build C/C++/Rust/Go project.${COLOR_OFF}
@@ -8010,7 +8008,7 @@ XCPKG_PATH="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
 
 XCPKG_ACTION="$*"
 
-XCPKG_VERSION=0.19.0
+XCPKG_VERSION=0.19.1
 
 XCPKG_OFFICIAL_FORMULA_REPO_URL='https://github.com/leleliu008/xcpkg-formula-repository-official-core'
 
