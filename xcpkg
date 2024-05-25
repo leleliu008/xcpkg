@@ -6839,6 +6839,8 @@ inspect_install_arguments() {
             -q)
                 LOG_LEVEL="$LOG_LEVEL_QUIET"
                 ;;
+            -x) set -x
+                ;;
             --dump-go)
                 DUMP_GO=1
                 ;;
@@ -7769,7 +7771,7 @@ ${COLOR_GREEN}xcpkg -V${COLOR_OFF}
     show version of this command.
 
 ${COLOR_GREEN}xcpkg setup${COLOR_OFF}
-    install essential tools (e.g. uppm, bash, coreutils, findutils, gsed, grep, git, curl, bsdtar, tree, jq, yq, d2, etc) used by this shell script.
+    install essential tools (e.g. uppm, bash, coreutils, findutils, gawk, gsed, grep, git, curl, bsdtar, tree, jq, yq, d2, etc) used by this shell script.
 
 ${COLOR_GREEN}xcpkg env${COLOR_OFF}
     show basic information about this software.
@@ -7914,6 +7916,38 @@ ${COLOR_GREEN}xcpkg install <PACKAGE-NAME|PACKAGE-SPEC>... [INSTALL-OPTIONS]${CO
 
         ${COLOR_BLUE}-vv${COLOR_OFF}
             very verbose mode. many many messages will be output to terminal.
+
+            This option is equivalent to --dump-* options all are supplied.
+
+        ${COLOR_BLUE}-x${COLOR_OFF}
+            set -x
+
+        ${COLOR_BLUE}--dump-go${COLOR_OFF}
+            pass -x argument to go build command.
+
+        ${COLOR_BLUE}--dump-cc${COLOR_OFF}
+            pass -v argument to clang command.
+
+        ${COLOR_BLUE}--dump-ld${COLOR_OFF}
+            pass -Wl,-v argument to linker.
+
+        ${COLOR_BLUE}--dump-env${COLOR_OFF}
+            print all environment variables before starting to build.
+
+        ${COLOR_BLUE}--dump-net${COLOR_OFF}
+            show detailed http messages.
+
+        ${COLOR_BLUE}--dump-ninja${COLOR_OFF}
+            pass -v argument to ninja command.
+
+        ${COLOR_BLUE}--dump-gmake${COLOR_OFF}
+            pass --debug argument to gmake command.
+
+        ${COLOR_BLUE}--dump-cmake${COLOR_OFF}
+            set(CMAKE_FIND_DEBUG_MODE ON)
+
+        ${COLOR_BLUE}--dump-pkg-config${COLOR_OFF}
+            export PKG_CONFIG_DEBUG_SPEW=1
 
         ${COLOR_BLUE}--profile=<debug|release>${COLOR_OFF}
             specify the build profile.

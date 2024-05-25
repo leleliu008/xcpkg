@@ -173,9 +173,19 @@ function _xcpkg() {
                         '--export-compile-commands-json[generates compile_commands.json]' \
                         '--disable-ccache[do not use ccache]' \
                         + '(verbose_level)' \
-                        '-vv[debug mode. many many messages will be output to terminal]' \
+                        '-vv[very verbose mode. many many messages will be output to terminal]' \
                         '-v[verbose mode. many messages will be output to terminal]' \
-                        '-q[silent mode. no any messages will be output to terminal]'
+                        '-q[silent mode. no any messages will be output to terminal]' \
+                        '-x[set -x]' \
+                        '--dump-go[pass -x argument to go build command]' \
+                        '--dump-cc[pass -v argument to clang command]' \
+                        '--dump-ld[pass -Wl,-v argument to linker]' \
+                        '--dump-env[print all environment variables before starting to build]' \
+                        '--dump-net[show detailed http messages]' \
+                        '--dump-ninja[pass -v argument to ninja command]' \
+                        '--dump-gmake[pass --debug argument to gmake command]' \
+                        '--dump-cmake[pass -DCMAKE_FIND_DEBUG_MODE=ON argument to cmake command]' \
+                        '--dump-pkg-config[export PKG_CONFIG_DEBUG_SPEW=1]'
                     ;;
                 reinstall)
                     _arguments \
@@ -188,9 +198,19 @@ function _xcpkg() {
                         '--export-compile-commands-json[generates compile_commands.json]' \
                         '--disable-ccache[do not use ccache]' \
                         + '(verbose_level)' \
-                        '-vv[debug mode. many many messages will be output to terminal]' \
+                        '-vv[very verbose mode. many many messages will be output to terminal]' \
                         '-v[verbose mode. many messages will be output to terminal]' \
-                        '-q[silent mode. no any messages will be output to terminal]'
+                        '-q[silent mode. no any messages will be output to terminal]' \
+                        '-x[set -x]' \
+                        '--dump-go[pass -x argument to go build command]' \
+                        '--dump-cc[pass -v argument to clang command]' \
+                        '--dump-ld[pass -Wl,-v argument to linker]' \
+                        '--dump-env[print all environment variables before starting to build]' \
+                        '--dump-net[show detailed http messages]' \
+                        '--dump-ninja[pass -v argument to ninja command]' \
+                        '--dump-gmake[pass --debug argument to gmake command]' \
+                        '--dump-cmake[pass -DCMAKE_FIND_DEBUG_MODE=ON argument to cmake command]' \
+                        '--dump-pkg-config[export PKG_CONFIG_DEBUG_SPEW=1]'
                     ;;
                 upgrade)
                     _arguments \
@@ -203,9 +223,19 @@ function _xcpkg() {
                         '--export-compile-commands-json[generates compile_commands.json]' \
                         '--disable-ccache[do not use ccache]' \
                         + '(verbose_level)' \
-                        '-vv[debug mode. many many messages will be output to terminal]' \
+                        '-vv[very verbose mode. many many messages will be output to terminal]' \
                         '-v[verbose mode. many messages will be output to terminal]' \
-                        '-q[silent mode. no any messages will be output to terminal]'
+                        '-q[silent mode. no any messages will be output to terminal]' \
+                        '-x[set -x]' \
+                        '--dump-go[pass -x argument to go build command]' \
+                        '--dump-cc[pass -v argument to clang command]' \
+                        '--dump-ld[pass -Wl,-v argument to linker]' \
+                        '--dump-env[print all environment variables before starting to build]' \
+                        '--dump-net[show detailed http messages]' \
+                        '--dump-ninja[pass -v argument to ninja command]' \
+                        '--dump-gmake[pass --debug argument to gmake command]' \
+                        '--dump-cmake[pass -DCMAKE_FIND_DEBUG_MODE=ON argument to cmake command]' \
+                        '--dump-pkg-config[export PKG_CONFIG_DEBUG_SPEW=1]'
                     ;;
                 uninstall)
                     _arguments '*:package-name:_xcpkg_installed_packages'
