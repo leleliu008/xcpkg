@@ -5424,6 +5424,22 @@ $PACKAGE_DOTWEAK
     step "generate RECEIPT.yml"
     __generate_receipt_of_the_given_package "$1"
 
+    #########################################################################################
+
+    step "onfinal"
+
+    if [ -z "$PACKAGE_ONFINAL" ] ; then
+        note "onfinal mapping was not found in formula, skipped."
+    else
+        eval "
+onfinal() {
+$PACKAGE_ONFINAL
+}"
+        onfinal
+    fi
+
+    #########################################################################################
+
     step "generate index"
     run ln -s -r -f -T "$PACKAGE_INSTALL_DIR" "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_SPEC"
 
@@ -5437,31 +5453,17 @@ $PACKAGE_DOTWEAK
         run  ccache -s
     }
 
-    [ "$REQUEST_TO_KEEP_SESSION_DIR" != 1 ] && {
-        step "delete the working directory"
-        run rm -rf "$PACKAGE_WORKING_DIR"
-    }
+    #########################################################################################
 
     step "show installed files in tree-like format"
     run tree --dirsfirst -a "$PACKAGE_INSTALL_DIR"
 
     #########################################################################################
 
-    step "onfinal"
-
-    if [ -z "$PACKAGE_ONFINAL" ] ; then
-        note "onfinal mapping was not found in formula, skipped."
-    else
-        if [ "$PWD" != "$PACKAGE_INSTALL_DIR" ] ; then
-            run     cd "$PACKAGE_INSTALL_DIR"
-        fi
-
-        eval "
-onfinal() {
-$PACKAGE_ONFINAL
-}"
-        onfinal
-    fi
+    [ "$REQUEST_TO_KEEP_SESSION_DIR" != 1 ] && {
+        step "delete the working directory"
+        run rm -rf "$PACKAGE_WORKING_DIR"
+    }
 
     #########################################################################################
 
