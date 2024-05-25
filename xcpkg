@@ -5474,6 +5474,10 @@ __tweak_mach_o_files() {
                 # arm64 shared library
                 LIBRARY=1
                 ;;
+            CFFAEDFE0C0000010000000008000000)
+                # arm64 bundle library
+                LIBRARY=1
+                ;;
             CFFAEDFE070000010300000002000000)
                 # x86_64 executable
                 EXECUTABLE=1
@@ -5482,7 +5486,12 @@ __tweak_mach_o_files() {
                 # x86_64 shared library
                 LIBRARY=1
                 ;;
-            *)  continue
+            CFFAEDFE070000010300000008000000)
+                # x86_64 bundle library
+                LIBRARY=1
+                ;;
+            *)  #echo "$FILE_HEADER_ACTUAL:$FILEPATH"
+                continue
         esac
 
         #######################################################################
@@ -5622,14 +5631,17 @@ EOF
             /System/Library/Frameworks/*)
                 ;;
             /*)
-                NEEDED_DYLIB_DIR="$(dirname "$NEEDED")"
-                NEEDED_DYLIB_FILENAME="$(basename "$NEEDED")"
+                NEEDED_DYLIB_FILENAME="${NEEDED##*/}"
 
-                # error: /Applications/Xcode_14.2.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/install_name_tool: for: /Users/runner/.xcpkg/installed/MacOSX/13.0/x86_64/ncurses/bin/tabs (for architecture x86_64) option "-add_rpath /Users/runner/.xcpkg/installed/MacOSX/13.0/x86_64/ncurses/lib" would duplicate path, file already has LC_RPATH for: /Users/runner/.xcpkg/installed/MacOSX/13.0/x86_64/ncurses/lib
-                run install_name_tool -add_rpath "$NEEDED_DYLIB_DIR" "$FILEPATH" || true
-                run install_name_tool -change "$NEEDED" "@rpath/$NEEDED_DYLIB_FILENAME" "$FILEPATH"
+                run install_name_tool -change "$NEEDED" "@rpath/$NEEDED_DYLIB_FILENAME" "$1"
+
+                NEEDED_DYLIB_DIR="${NEEDED%/*}"
+
+                if [ "$NEEDED_DYLIB_DIR" = "$PACKAGE_LIBRARY_DIR" ] && [ "$EXECUTABLE" = 1 ] ; then
+                    run install_name_tool -add_rpath '@executable_path/../lib' "$FILEPATH" || true
+                fi
                 ;;
-            #*)  abort 1 "unexpected runtime dependency: $NEEDED , which is needed by $FILEPATH"
+            *)  abort 1 "unexpected runtime dependency: $NEEDED , which is needed by $1"
         esac
     done
 }
@@ -8042,7 +8054,7 @@ XCPKG_PATH="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
 
 XCPKG_ACTION="$*"
 
-XCPKG_VERSION=0.19.1
+XCPKG_VERSION=0.19.2
 
 XCPKG_OFFICIAL_FORMULA_REPO_URL='https://github.com/leleliu008/xcpkg-formula-repository-official-core'
 
