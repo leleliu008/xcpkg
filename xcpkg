@@ -3685,7 +3685,8 @@ $PACKAGE_ONSTART
             if [ -z "$RECURSIVE_DEPENDENT_PACKAGE_INSTALL_DIRS" ] ; then
                 RECURSIVE_DEPENDENT_PACKAGE_INSTALL_DIRS="$DEPENDENT_PACKAGE_INSTALL_DIR"
             else
-                RECURSIVE_DEPENDENT_PACKAGE_INSTALL_DIRS="$RECURSIVE_DEPENDENT_PACKAGE_INSTALL_DIRS $DEPENDENT_PACKAGE_INSTALL_DIR"
+                RECURSIVE_DEPENDENT_PACKAGE_INSTALL_DIRS="$RECURSIVE_DEPENDENT_PACKAGE_INSTALL_DIRS
+$DEPENDENT_PACKAGE_INSTALL_DIR"
             fi
 
             if [ "$CROSS_COMPILING" = 1 ] ; then
@@ -5293,10 +5294,12 @@ $PACKAGE_DOTWEAK
 
     #########################################################################################
 
-    if [ -d  "$PACKAGE_INSTALL_DIR/lib" ] ; then
+    PACKAGE_LIBRARY_DIR="$PACKAGE_INSTALL_DIR/lib"
+
+    if [ -d  "$PACKAGE_LIBRARY_DIR" ] ; then
         # https://www.linuxfromscratch.org/blfs/view/stable-systemd/introduction/la-files.html
         # remove Libtool Archive (.la) files
-        find "$PACKAGE_INSTALL_DIR/lib" -maxdepth 1 -mindepth 1 \( -type f -or -type l \) -name '*.la' -exec rm '{}' \;
+        find "$PACKAGE_LIBRARY_DIR" -maxdepth 1 -mindepth 1 \( -type f -or -type l \) -name '*.la' -exec rm '{}' \;
     fi
 
     #########################################################################################
@@ -5306,23 +5309,52 @@ $PACKAGE_DOTWEAK
 
     #########################################################################################
 
-    PACKAGE_LIBRARY_DIR="$PACKAGE_INSTALL_DIR/lib"
-
-    PACKAGE_METAINFO_DIR="$PACKAGE_INSTALL_DIR/.xcpkg"
-
-    PACKAGE_MANIFEST_FILEPATH="$PACKAGE_METAINFO_DIR/MANIFEST.txt"
-    PACKAGE_RECEIPT_FILEPATH="$PACKAGE_METAINFO_DIR/RECEIPT.yml"
-
-    PACKAGE_DEPENDENT_SHARED_LIBS_DIR="$PACKAGE_METAINFO_DIR/dependencies/lib"
-
-    install -d "$PACKAGE_METAINFO_DIR"
-
-    #########################################################################################
-
-    unset PACKAGE_NEED_SET_RPATH_EXECUTABLES
+    unset PACKAGE_NEEDED_EXTERNAL_DYLIBS
+    unset PACKAGE_EXECUTABLES_NEED_SET_RPATH
 
     step "tweak Mach-O files"
     __tweak_mach_o_files
+
+    #########################################################################################
+
+    [ -n "$PACKAGE_NEEDED_EXTERNAL_DYLIBS" ] && {
+        step "copy dependent external shared libraries"
+
+        echo "PACKAGE_NEEDED_EXTERNAL_DYLIBS=$PACKAGE_NEEDED_EXTERNAL_DYLIBS"
+
+        install -d .xcpkg/dependencies/lib
+
+        for f in $PACKAGE_NEEDED_EXTERNAL_DYLIBS
+        do
+            cp -L -v "$f" .xcpkg/dependencies/lib/
+        done
+    }
+
+    #########################################################################################
+
+    [ -n "$PACKAGE_EXECUTABLES_NEED_SET_RPATH" ] && {
+        step "set rpath for executables"
+
+        echo "PACKAGE_EXECUTABLES_NEED_SET_RPATH=$PACKAGE_EXECUTABLES_NEED_SET_RPATH"
+
+        PACKAGE_EXECUTABLES_NEED_SET_RPATH="$(printf '%s\n' $PACKAGE_EXECUTABLES_NEED_SET_RPATH | sort | uniq)"
+
+        for item in $PACKAGE_EXECUTABLES_NEED_SET_RPATH
+        do
+            f="$(printf '%s\n' "$item" | cut -d '|' -f1)"
+            r="$(printf '%s\n' "$item" | cut -d '|' -f2)"
+
+            case $r in
+                1) X='lib' ;;
+                2) X='.xcpkg/dependencies/lib' ;;
+                *) X="$r"  ;;
+            esac
+
+            RELATIVE_PATH="$(realpath -m --relative-to="${f%/*}" "$X")"
+
+            run install_name_tool -add_rpath "@executable_path/$RELATIVE_PATH" "$f"
+        done
+    }
 
     #########################################################################################
 
@@ -5333,25 +5365,19 @@ $PACKAGE_DOTWEAK
 
     #########################################################################################
 
+    PACKAGE_METAINFO_DIR="$PACKAGE_INSTALL_DIR/.xcpkg"
+
+    PACKAGE_MANIFEST_FILEPATH="$PACKAGE_METAINFO_DIR/MANIFEST.txt"
+    PACKAGE_RECEIPT_FILEPATH="$PACKAGE_METAINFO_DIR/RECEIPT.yml"
+
+    install -d "$PACKAGE_METAINFO_DIR"
+
+    #########################################################################################
+
     for item in 'FAQ*' 'TODO*' 'NEWS*' 'THANKS*' 'README*' 'COPYING*' 'LICENSE*' 'AUTHORS*' 'CHANGES*' 'CHANGELOG*' 'CONTRIBUTORS*' 'CONTRIBUTING*'
     do
         find "$PACKAGE_INSTALLING_SRC_DIR" -mindepth 1 -maxdepth 1 \( -type f -or -type l \) -iname "$item" -exec cp -L {} "$PACKAGE_METAINFO_DIR/" \;
     done
-
-    #########################################################################################
-
-    [ -n "$PACKAGE_NEED_SET_RPATH_EXECUTABLES" ] && {
-        step "set rpath for executables"
-
-        PACKAGE_NEED_SET_RPATH_EXECUTABLES="$(printf '%s\n' $PACKAGE_NEED_SET_RPATH_EXECUTABLES | sort | uniq)"
-
-        for f in $PACKAGE_NEED_SET_RPATH_EXECUTABLES
-        do
-            DIRNAME="${f%/*}"
-            RELATIVE_PATH="$(realpath -m --relative-to="$DIRNAME" .xcpkg/dependencies/lib)"
-            run install_name_tool -add_rpath "@executable_path/$RELATIVE_PATH" "$f"
-        done
-    }
 
     #########################################################################################
 
@@ -5539,10 +5565,6 @@ EOF
                 /System/Library/Frameworks/*)
                     ;;
                 /*) run install_name_tool -delete_rpath "$RPATH" "$FILEPATH"
-
-                    if [ "$RPATH" = "$PACKAGE_LIBRARY_DIR" ] && [ "$EXECUTABLE" = 1 ] ; then
-                        run install_name_tool -add_rpath '@executable_path/../lib' "$FILEPATH" || true
-                    fi
             esac
         done
 
@@ -5558,6 +5580,28 @@ EOF
     done
 
     unset IFS
+}
+
+# __find_NEEDED <MACH-O-FILE-NAME>
+  __find_NEEDED() {
+    NEEDED_FILEPATH="$PACKAGE_LIBRARY_DIR/$1"
+    NEEDED_FILEPATH_TYPE=1
+
+    if [ ! -e "$NEEDED_FILEPATH" ] ; then
+        NEEDED_FILEPATH=
+        NEEDED_FILEPATH_TYPE=2
+
+        for DEPENDENT_PACKAGE_INSTALL_DIR in $RECURSIVE_DEPENDENT_PACKAGE_INSTALL_DIRS
+        do
+            NEEDED_FILEPATH="$DEPENDENT_PACKAGE_INSTALL_DIR/lib/$1"
+
+            if [ -e "$NEEDED_FILEPATH" ] ; then
+                break
+            else
+                NEEDED_FILEPATH=
+            fi
+        done
+    fi
 }
 
 # __check_NEEDED <MACH-O-FILE-PATH> <IS-EXECUTABLE>
@@ -5580,47 +5624,23 @@ EOF
             @rpath/libclang_rt*)
                 ;;
             @rpath/*)
-                NEEDED_FILENAME="${NEEDED#*/}"
-
-                NEEDED_FILEPATH="$PACKAGE_LIBRARY_DIR/$NEEDED_FILENAME"
-
-                if [ ! -e "$NEEDED_FILEPATH" ] ; then
-                    unset   NEEDED_FILEPATH
-
-                    if [ -n "$RECURSIVE_DEPENDENT_PACKAGE_NAMES" ] ; then
-                        RECURSIVE_DEPENDENT_PACKAGE_NAMES2="$(printf '%s\n' "$RECURSIVE_DEPENDENT_PACKAGE_NAMES" | tr ' ' '\n')"
-
-                        for DEPENDENT_PACKAGE_NAME in $RECURSIVE_DEPENDENT_PACKAGE_NAMES2
-                        do
-                            NEEDED_FILEPATH="$XCPKG_PACKAGE_INSTALLED_ROOT/$TARGET_PLATFORM_SPEC/$DEPENDENT_PACKAGE_NAME/lib/$NEEDED_FILENAME"
-
-                            if [ -e "$NEEDED_FILEPATH" ] ; then
-                                if [ !      -d    "$PACKAGE_DEPENDENT_SHARED_LIBS_DIR" ] ; then
-                                    install -d -v "$PACKAGE_DEPENDENT_SHARED_LIBS_DIR"
-                                fi
-
-                                if [ ! -e "$PACKAGE_DEPENDENT_SHARED_LIBS_DIR/$NEEDED_FILENAME" ] ; then
-                                    cp -L -v "$NEEDED_FILEPATH" "$PACKAGE_DEPENDENT_SHARED_LIBS_DIR/"
-                                fi
-
-                                if [ "$2" = 1 ] ; then
-                                    PACKAGE_NEED_SET_RPATH_EXECUTABLES="$PACKAGE_NEED_SET_RPATH_EXECUTABLES $1"
-                                fi
-
-                                break
-                            else
-                                unset NEEDED_FILEPATH
-                            fi
-                        done
-                    fi
-                fi
+                __find_NEEDED "${NEEDED#*/}"
 
                 if [ -z "$NEEDED_FILEPATH" ] ; then
                     abort 1 "$NEEDED was not found, which is needed by $1"
-                else
-                    __check_NEEDED "$NEEDED_FILEPATH" 0
                 fi
 
+                if [ "$NEEDED_FILEPATH_TYPE" = 2 ] ; then
+                    PACKAGE_NEEDED_EXTERNAL_DYLIBS="$PACKAGE_NEEDED_EXTERNAL_DYLIBS
+$NEEDED_FILEPATH"
+                fi
+
+                if [ "$2" = 1 ] ; then
+                    PACKAGE_EXECUTABLES_NEED_SET_RPATH="$PACKAGE_EXECUTABLES_NEED_SET_RPATH
+$1|$NEEDED_FILEPATH_TYPE"
+                fi
+
+                __check_NEEDED "$NEEDED_FILEPATH" 0
                 ;;
             @loader_path/*)
                 ;;
@@ -5637,15 +5657,48 @@ EOF
 
                 NEEDED_DYLIB_DIR="${NEEDED%/*}"
 
-                if [ "$NEEDED_DYLIB_DIR" = "$PACKAGE_LIBRARY_DIR" ] && [ "$EXECUTABLE" = 1 ] ; then
-                    run install_name_tool -add_rpath '@executable_path/../lib' "$FILEPATH" || true
-                fi
+                case "$NEEDED_DYLIB_DIR" in
+                    "$PACKAGE_INSTALL_DIR"/*)
+                        if [ "$EXECUTABLE" = 1 ] ; then
+                            RELATIVE_PATH="${NEEDED_DYLIB_DIR#$PACKAGE_INSTALL_DIR/}"
+                            PACKAGE_EXECUTABLES_NEED_SET_RPATH="$PACKAGE_EXECUTABLES_NEED_SET_RPATH
+$1|$RELATIVE_PATH"
+                        fi
+                        ;;
+                    *)  PACKAGE_NEEDED_EXTERNAL_DYLIBS="$PACKAGE_NEEDED_EXTERNAL_DYLIBS
+$NEEDED"
+                        if [ "$EXECUTABLE" = 1 ] ; then
+                            PACKAGE_EXECUTABLES_NEED_SET_RPATH="$PACKAGE_EXECUTABLES_NEED_SET_RPATH
+$1|2"
+                        fi
+                        ;;
+                esac
                 ;;
-            *)  abort 1 "unexpected runtime dependency: $NEEDED , which is needed by $1"
+            lib*.dylib)
+                run install_name_tool -change "$NEEDED" "@rpath/$NEEDED" "$1"
+
+                __find_NEEDED "$NEEDED"
+
+                if [ -z "$NEEDED_FILEPATH" ] ; then
+                    abort 1 "$NEEDED was not found, which is needed by $1"
+                fi
+
+                if [ "$NEEDED_FILEPATH_TYPE" = 2 ] ; then
+                    PACKAGE_NEEDED_EXTERNAL_DYLIBS="$PACKAGE_NEEDED_EXTERNAL_DYLIBS
+$NEEDED_FILEPATH"
+                fi
+
+                if [ "$2" = 1 ] ; then
+                    PACKAGE_EXECUTABLES_NEED_SET_RPATH="$PACKAGE_EXECUTABLES_NEED_SET_RPATH
+$1|$NEEDED_FILEPATH_TYPE"
+                fi
+
+                __check_NEEDED "$NEEDED_FILEPATH" 0
+                ;;
+            #*)  abort 1 "unexpected runtime dependency: $NEEDED , which is needed by $1"
         esac
     done
 }
-
 
 __tweak_pc_files() {
     unset PC_FILES
@@ -8054,7 +8107,7 @@ XCPKG_PATH="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
 
 XCPKG_ACTION="$*"
 
-XCPKG_VERSION=0.19.2
+XCPKG_VERSION=0.19.3
 
 XCPKG_OFFICIAL_FORMULA_REPO_URL='https://github.com/leleliu008/xcpkg-formula-repository-official-core'
 
