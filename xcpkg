@@ -5312,8 +5312,8 @@ $PACKAGE_DOTWEAK
     unset PACKAGE_NEEDED_EXTERNAL_DYLIBS
     unset PACKAGE_EXECUTABLES_NEED_SET_RPATH
 
-    step "tweak Mach-O files"
-    __tweak_mach_o_files
+    step "check Mach-O files"
+    __check_mach_o_files
 
     #########################################################################################
 
@@ -5474,7 +5474,7 @@ $PACKAGE_ONFINAL
     fi
 }
 
-__tweak_mach_o_files() {
+__check_mach_o_files() {
     cd "$PACKAGE_INSTALL_DIR"
 
     FILEPATHs="$(find -not -name . -type f)"
