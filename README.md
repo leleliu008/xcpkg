@@ -500,7 +500,7 @@ a xcpkg formula's file content only has one level mapping and shall has followin
 |`bscript`|optional|the directory where the build script is located in, relative to `PACKAGE_WORKING_DIR`. build script such as `configure`, `Makefile`, `CMakeLists.txt`, `meson.build`, `Cargo.toml`, etc.|
 |`binbstd`|optional|whether to build in the directory where the build script is located in, otherwise build in other directory.<br>value shall be `0` or `1`. default value is `0`.|
 |`symlink`|optional|whether to symlink installed files to `$XCPKG_HOME/symlinked/*`.<br>value shall be `0` or `1`. default value is `1`.|
-|`movable`|optional|whether to be relocatable (can be moved/copied to other locations).<br>value shall be `0` or `1`. default value is `1`.|
+|`movable`|optional|whether can be moved/copied to other locations.<br>value shall be `0` or `1`. default value is `1`.|
 |`parallel`|optional|whether to allow build system running jobs in parallel.<br>value shall be `0` or `1`. default value is `1`.|
 ||||
 |`onstart`|optional|POSIX shell code to be run when this package's formula is loaded.<br>`PWD` is `$PACKAGE_WORKING_DIR`|
@@ -636,19 +636,26 @@ a xcpkg formula's file content only has one level mapping and shall has followin
 
 ## xcpkg formula repository
 
-a xcpkg formula repository is a git repository.
+a typical hierarchical structure of a xcpkg formula repository looks like below:
 
-a xcpkg formula repository's root dir should have a `formula` named sub dir, this repository's formulas all should be located in this dir.
+```
+XCPKGFormulaRepoName
+├── formula
+│   ├── packageA.yml
+│   └── packageB.yml
+├── LICENSE
+└── README.md
+```
 
-a xcpkg formula repository's local path is `~/.xcpkg/repos.d/${XCPKGFormulaRepoName}`
+## xcpkg formula repository local location
 
-xcpkg supports multiple formula repositories.
+`${XCPKG_HOME}/repos.d/${XCPKGFormulaRepoName}`
 
-## xcpkg formula repository's config
+## xcpkg formula repository local config
 
-After a xcpkg formula repository is successfully fetched from server to local, a config file for this repository would be created at `~/.xcpkg/repos.d/${XCPKGFormulaRepoName}/.xcpkg-formula-repo.yml`
+a xcpkg formula repository's config file is located at `${XCPKG_HOME}/repos.d/${XCPKGFormulaRepoName}/.xcpkg-formula-repo.yml`
 
-a typical xcpkg formula repository's config as following:
+a typical xcpkg formula repository's config file content looks like below:
 
 ```yaml
 url: https://github.com/leleliu008/xcpkg-formula-repository-official-core
@@ -663,22 +670,28 @@ If a xcpkg formula repository is `pinned`, which means it would not be updated.
 
 If a xcpkg formula repository is `disabled`, which means xcpkg would not search formulas in this formula repository.
 
+## xcpkg formula repository management
+
+run `xcpkg formula-repo-add ` command to create a new formula repository locally from an exsting remote git repostory.
+
+run `xcpkg formula-repo-init` command to create a new formula repository locally without taking any further action.
+
 ## xcpkg official formula repository
 
-xcpkg official formula repository's url: <https://github.com/leleliu008/xcpkg-formula-repository-official-core>
+xcpkg official formula repository is hosted at <https://github.com/leleliu008/xcpkg-formula-repository-official-core>
 
-xcpkg official formula repository would be automatically fetched to local cache as name `official-core` when you run `xcpkg update` command.
+It would be automatically fetched to your local repository as name `official-core` when you run `xcpkg update` command.
 
 **Note:** If you find that a package is not in xcpkg official formula repository yet, PR is welcomed.
 
-## xcpkg official prebuild package repository
+## prebuild packages built by this software
 
-I have built and packed some commonly used packages using this software:
-
-- <https://github.com/leleliu008/uppm-package-repository-macos10.15-x86_64>
-- <https://github.com/leleliu008/uppm-package-repository-macos11.0-x86_64>
-- <https://github.com/leleliu008/uppm-package-repository-macos12.0-x86_64>
-- <https://github.com/leleliu008/uppm-package-repository-macos13.0-x86_64>
-- <https://github.com/leleliu008/uppm-package-repository-macos11.0-arm64>
-- <https://github.com/leleliu008/uppm-package-repository-macos12.0-arm64>
-- <https://github.com/leleliu008/uppm-package-repository-macos13.0-arm64>
+- <https://github.com/leleliu008/uppm-package-repository-macos-10.15-x86_64>
+- <https://github.com/leleliu008/uppm-package-repository-macos-11.0-x86_64>
+- <https://github.com/leleliu008/uppm-package-repository-macos-12.0-x86_64>
+- <https://github.com/leleliu008/uppm-package-repository-macos-13.0-x86_64>
+- <https://github.com/leleliu008/uppm-package-repository-macos-14.0-x86_64>
+- <https://github.com/leleliu008/uppm-package-repository-macos-11.0-arm64>
+- <https://github.com/leleliu008/uppm-package-repository-macos-12.0-arm64>
+- <https://github.com/leleliu008/uppm-package-repository-macos-13.0-arm64>
+- <https://github.com/leleliu008/uppm-package-repository-macos-14.0-arm64>
