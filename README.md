@@ -501,6 +501,7 @@ a xcpkg formula's file content only has one level mapping and shall has followin
 |`binbstd`|optional|whether to build in the directory where the build script is located in, otherwise build in other directory.<br>value shall be `0` or `1`. default value is `0`.|
 |`symlink`|optional|whether to symlink installed files to `$XCPKG_HOME/symlinked/*`.<br>value shall be `0` or `1`. default value is `1`.|
 |`movable`|optional|whether to be relocatable (can be moved/copied to other locations).<br>value shall be `0` or `1`. default value is `1`.|
+|`parallel`|optional|whether to allow build system running jobs in parallel.<br>value shall be `0` or `1`. default value is `1`.|
 ||||
 |`onstart`|optional|POSIX shell code to be run when this package's formula is loaded.<br>`PWD` is `$PACKAGE_WORKING_DIR`|
 |`onready`|optional|POSIX shell code to be run when this package's needed resources all are ready.<br>`PWD` is `$PACKAGE_BSCRIPT_DIR`|
