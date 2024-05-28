@@ -7721,7 +7721,7 @@ __setup_uppm() {
 
     ##################################################################################
 
-    wfetch 'https://raw.githubusercontent.com/leleliu008/xcpkg/master/xcpkg-core-latest-release-version' -o . --no-buffer
+    wfetch 'https://raw.githubusercontent.com/leleliu008/xcpkg/dev/xcpkg-core-latest-release-version' -o . --no-buffer
 
     ##################################################################################
 
@@ -8094,7 +8094,7 @@ XCPKG_PATH="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
 
 XCPKG_ACTION="$*"
 
-XCPKG_VERSION=0.19.4
+XCPKG_VERSION=0.19.5
 
 XCPKG_OFFICIAL_FORMULA_REPO_URL='https://github.com/leleliu008/xcpkg-formula-repository-official-core'
 
