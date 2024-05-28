@@ -116,13 +116,13 @@ all relevant directories and files are located under `~/.xcpkg` directory.
     - [GNU sed](https://www.gnu.org/software/sed/manual/sed.html)
     - [GNU grep](https://www.gnu.org/software/grep/manual/grep.html)
     - [BSD tar](https://man.archlinux.org/man/core/libarchive/bsdtar.1.en)
-    - [pkg-config](https://www.freedesktop.org/wiki/Software/pkg-config/)
     - [tree](https://linux.die.net/man/1/tree)
     - [curl](https://curl.se/docs/manpage.html)
     - [git](https://git-scm.com/docs/git)
-    - [yq](https://mikefarah.gitbook.io/yq/)
     - [jq](https://stedolan.github.io/jq/manual/)
+    - [yq](https://mikefarah.gitbook.io/yq/)
     - [d2](https://github.com/terrastruct/d2)
+    - [dot](https://graphviz.org/doc/info/command.html)
 
 - **integrate `zsh-completion` script**
 

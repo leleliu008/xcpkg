@@ -7749,13 +7749,7 @@ __setup_uppm() {
     unset UPPM_PACKAGE_EXEFIND_PATH
     unset UPPM_PACKAGE_ACLOCAL_PATH
 
-    if ./uppm is-available dot_static ; then
-        DOT=dot_static
-    else
-        unset DOT
-    fi
-
-    for item in bash coreutils findutils gawk gsed grep bsdtar git curl tree jq yq d2 $DOT
+    for item in bash coreutils findutils gawk gsed grep git curl bsdtar tree jq yq d2 dot_static
     do
         run ./uppm install "$item"
 
@@ -7829,7 +7823,7 @@ ${COLOR_GREEN}xcpkg -V${COLOR_OFF}
     show version of this command.
 
 ${COLOR_GREEN}xcpkg setup${COLOR_OFF}
-    install essential tools (e.g. uppm, bash, coreutils, findutils, gawk, gsed, grep, git, curl, bsdtar, tree, jq, yq, d2, etc) used by this shell script.
+    install essential tools (e.g. uppm, bash, coreutils, findutils, gawk, gsed, grep, git, curl, bsdtar, tree, jq, yq, d2, dot, etc) used by this shell script.
 
 ${COLOR_GREEN}xcpkg env${COLOR_OFF}
     show basic information about this software.
