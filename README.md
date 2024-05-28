@@ -539,16 +539,18 @@ a xcpkg formula's file content only has one level mapping and shall has followin
 |-|-|
 |`bash`|[Reference](https://www.gnu.org/software/bash/manual/bash.html)|
 |`CoreUtils`|[Reference](https://www.gnu.org/software/coreutils/manual/coreutils.html)|
+|`xargs`|[Reference](https://www.gnu.org/software/findutils/manual/html_node/find_html/Invoking-xargs.html)|
 |`find`|[Reference](https://www.gnu.org/software/findutils/manual/html_mono/find.html)|
 |`gawk`|[Reference](https://www.gnu.org/software/gawk/manual/gawk.html)|
 |`gsed`|[Reference](https://www.gnu.org/software/sed/manual/sed.html)|
 |`grep`|[Reference](https://www.gnu.org/software/grep/manual/grep.html)|
-|`yq`|[Reference](https://mikefarah.gitbook.io/yq/)|
 |`jq`|[Reference](https://stedolan.github.io/jq/manual/)|
+|`yq`|[Reference](https://mikefarah.gitbook.io/yq/)|
+|`d2`|[Reference](https://github.com/terrastruct/d2)|
 |`git`|[Reference](https://git-scm.com/docs/git)|
 |`curl`|[Reference](https://curl.se/docs/manpage.html)|
-|`bsdtar`|[Reference](https://man.archlinux.org/man/core/libarchive/bsdtar.1.en)|
 |`tree`|[Reference](https://linux.die.net/man/1/tree)|
+|`bsdtar`|[Reference](https://man.archlinux.org/man/core/libarchive/bsdtar.1.en)|
 |`pkg-config`|[Reference](https://people.freedesktop.org/~dbn/pkg-config-guide.html)|
 |||
 |`echo`|`echo 'your message.'`|
