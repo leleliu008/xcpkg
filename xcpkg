@@ -1342,6 +1342,7 @@ buildon:
     os-euid: $NATIVE_OS_EUID
     os-egid: $NATIVE_OS_EGID
 builtfor: $TARGET_PLATFORM_SPEC
+profile: $PROFILE
 EOF
 }
 
@@ -3617,10 +3618,6 @@ $PACKAGE_ONSTART
         BUILD_NJOBS=1
     fi
 
-    printf '%s\n' "
-        BUILD_NJOBS = $BUILD_NJOBS
-    "
-
     #########################################################################################
 
     unset RECURSIVE_DEPENDENT_PACKAGE_NAMES
@@ -4305,15 +4302,17 @@ $DOT_CONTENT
     PACKAGE_BSCRIPT_DIR="$PACKAGE_INSTALLING_SRC_DIR/$PACKAGE_BSCRIPT"
     PACKAGE_BSCRIPT_DIR="${PACKAGE_BSCRIPT_DIR%/}"
 
-    step "tree files of the installing top directory"
-    run tree --dirsfirst -L 2 "$PACKAGE_WORKING_DIR"
+    if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
+        step "tree files of the installing top directory"
+        run tree --dirsfirst -L 2 "$PACKAGE_WORKING_DIR"
 
-    step "list files of the installing src directory"
-    run ls -l "$PACKAGE_INSTALLING_SRC_DIR"
+        step "list files of the installing src directory"
+        run ls -l "$PACKAGE_INSTALLING_SRC_DIR"
 
-    if [ -n "$PACKAGE_BSCRIPT" ] ; then
-        step "list files of the installing build script directory"
-        run ls -l "$PACKAGE_BSCRIPT_DIR"
+        if [ -n "$PACKAGE_BSCRIPT" ] ; then
+            step "list files of the installing build script directory"
+            run ls -l "$PACKAGE_BSCRIPT_DIR"
+        fi
     fi
 
     #########################################################################################
@@ -6387,7 +6386,7 @@ cargow() {
 
             CARGO_BUILD_ARGS="$@"
 
-            if [ -z "$CARGO_BUILD_ARG_VV" ] ; then
+            if [ -z "$CARGO_BUILD_ARG_VV" ] && [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
                 CARGO_BUILD_ARGS="$CARGO_BUILD_ARGS -vv"
             fi
 
@@ -6423,7 +6422,7 @@ cargow() {
 
             CARGO_INSTALL_ARGS="$@"
 
-            if [ -z "$CARGO_INSTALL_ARG_VV" ] ; then
+            if [ -z "$CARGO_INSTALL_ARG_VV" ] && [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
                 CARGO_INSTALL_ARGS="$CARGO_INSTALL_ARGS -vv"
             fi
 
@@ -6466,8 +6465,10 @@ cargow() {
 
             CARGO_CINSTALL_ARGS="$@"
 
-            if [ -z "$CARGO_CINSTALL_ARG_Q" ] && [ -z "$CARGO_CINSTALL_ARG_V" ] && [ -z "$CARGO_CINSTALL_ARG_VV" ] ; then
-                CARGO_CINSTALL_ARGS="$CARGO_CINSTALL_ARGS -vv"
+            if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
+                if [ -z "$CARGO_CINSTALL_ARG_Q" ] && [ -z "$CARGO_CINSTALL_ARG_V" ] && [ -z "$CARGO_CINSTALL_ARG_VV" ] ; then
+                    CARGO_CINSTALL_ARGS="$CARGO_CINSTALL_ARGS -vv"
+                fi
             fi
 
             if [ -z "$CARGO_CINSTALL_ARG_DEBUG" ] && [ -z "$CARGO_CINSTALL_ARG_RELEASE" ] ; then
@@ -6500,26 +6501,6 @@ gow() {
     fi
 
     printf '\n'
-
-    # /Users/runner/go/pkg/mod/golang.org/x/sys@v0.0.0-20191028164358-195ce5e7f934/unix/syscall_darwin.1_13.go:25:3: //go:linkname must refer to declared function or variable
-    GOMOD="$PACKAGE_BSCRIPT_DIR/go.mod"
-
-    if [ -f "$GOMOD" ] && go mod graph | grep -q 'golang\.org/x/sys' ; then
-        run go get -u golang.org/x/sys
-
-        if [ -d "$PACKAGE_BSCRIPT_DIR/vendor" ] ; then
-            unset GO_VERSION_MAJOR
-            unset GO_VERSION_MINOR
-
-            GO_VERSION_MAJOR=$(go env GOVERSION | cut -c3- | cut -d. -f1)
-            GO_VERSION_MINOR=$(go env GOVERSION | cut -c3- | cut -d. -f2)
-
-            sed_in_place "/^go[[:space:]]*[1-9]\.[0-9][0-9]/c go $GO_VERSION_MAJOR.$GO_VERSION_MINOR" "$GOMOD"
-
-            run go mod tidy
-            run go mod vendor
-        fi
-    fi
 
     # https://pkg.go.dev/cmd/go
     # https://pkg.go.dev/cmd/link
@@ -7768,7 +7749,13 @@ __setup_uppm() {
     unset UPPM_PACKAGE_EXEFIND_PATH
     unset UPPM_PACKAGE_ACLOCAL_PATH
 
-    for item in bash coreutils findutils gawk gsed grep bsdtar git curl tree jq yq d2
+    if ./uppm is-available dot_static ; then
+        DOT=dot_static
+    else
+        unset DOT
+    fi
+
+    for item in bash coreutils findutils gawk gsed grep bsdtar git curl tree jq yq d2 $DOT
     do
         run ./uppm install "$item"
 

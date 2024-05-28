@@ -672,7 +672,7 @@ If a xcpkg formula repository is `disabled`, which means xcpkg would not search 
 
 ## xcpkg formula repository management
 
-run `xcpkg formula-repo-add ` command to create a new formula repository locally from an exsting remote git repostory.
+run `xcpkg formula-repo-add ` command to create a new formula repository locally from an exsting remote git repository.
 
 run `xcpkg formula-repo-init` command to create a new formula repository locally without taking any further action.
 
@@ -686,12 +686,12 @@ It would be automatically fetched to your local repository as name `official-cor
 
 ## prebuild packages built by this software
 
-- <https://github.com/leleliu008/uppm-package-repository-macos-10.15-x86_64>
-- <https://github.com/leleliu008/uppm-package-repository-macos-11.0-x86_64>
-- <https://github.com/leleliu008/uppm-package-repository-macos-12.0-x86_64>
-- <https://github.com/leleliu008/uppm-package-repository-macos-13.0-x86_64>
-- <https://github.com/leleliu008/uppm-package-repository-macos-14.0-x86_64>
-- <https://github.com/leleliu008/uppm-package-repository-macos-11.0-arm64>
-- <https://github.com/leleliu008/uppm-package-repository-macos-12.0-arm64>
-- <https://github.com/leleliu008/uppm-package-repository-macos-13.0-arm64>
-- <https://github.com/leleliu008/uppm-package-repository-macos-14.0-arm64>
+- <https://github.com/leleliu008/uppm-package-repository-macos-10.15-x86_64/releases>
+- <https://github.com/leleliu008/uppm-package-repository-macos-11.0-x86_64/releases>
+- <https://github.com/leleliu008/uppm-package-repository-macos-12.0-x86_64/releases>
+- <https://github.com/leleliu008/uppm-package-repository-macos-13.0-x86_64/releases>
+- <https://github.com/leleliu008/uppm-package-repository-macos-14.0-x86_64/releases>
+- <https://github.com/leleliu008/uppm-package-repository-macos-11.0-arm64/releases>
+- <https://github.com/leleliu008/uppm-package-repository-macos-12.0-arm64/releases>
+- <https://github.com/leleliu008/uppm-package-repository-macos-13.0-arm64/releases>
+- <https://github.com/leleliu008/uppm-package-repository-macos-14.0-arm64/releases>
