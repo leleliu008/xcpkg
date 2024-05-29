@@ -5649,6 +5649,8 @@ $1|$NEEDED_FILEPATH_TYPE"
                 ;;
             /usr/lib/lib*.dylib)
                 ;;
+            /usr/lib/swift/lib*.dylib)
+                ;;
             /System/Library/Frameworks/*)
                 ;;
             /*)
