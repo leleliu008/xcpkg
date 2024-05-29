@@ -7723,7 +7723,7 @@ __setup_uppm() {
 
     ##################################################################################
 
-    wfetch 'https://raw.githubusercontent.com/leleliu008/xcpkg/dev/xcpkg-core-latest-release-version' -o . --no-buffer
+    wfetch 'https://raw.githubusercontent.com/leleliu008/xcpkg/master/xcpkg-core-latest-release-version' -o . --no-buffer
 
     ##################################################################################
 
