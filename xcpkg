@@ -5612,9 +5612,9 @@ EOF
     NEEDEDs=$(otool -l "$1" | grep LC_LOAD_DYLIB -A2 | grep name | sed 's|^[[:space:]]*||' | cut -d ' ' -f2)
 
     if [ -z "$NEEDEDs" ] ; then
-        #abort 1 "no dependent shared libraries found in $1"
-        warn "no dependent shared libraries found in $1"
-        return 0
+        abort 1 "no dependent shared libraries found in $1"
+        #warn "no dependent shared libraries found in $1"
+        #return 0
     fi
 
     cat <<EOF
