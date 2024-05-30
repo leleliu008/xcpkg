@@ -905,6 +905,8 @@ filetype_from_url() {
     unset PACKAGE_PPFLAGS
     unset PACKAGE_CCFLAGS
     unset PACKAGE_XXFLAGS
+    unset PACKAGE_OCFLAGS
+    unset PACKAGE_OXFLAGS
     unset PACKAGE_LDFLAGS
 
     unset PACKAGE_ONSTART
@@ -4489,6 +4491,8 @@ $PACKAGE_DO12345
     export XCPKG_COMPILER_CXX="$CXX"
     export XCPKG_COMPILER_OBJC="$OBJC"
 
+    export XCPKG_COMPILER_ARGS="-isysroot $SYSROOT -arch $TARGET_PLATFORM_ARCH -m${TARGET_PLATFORM_NAME_LOWER_CASE}-version-min=$TARGET_PLATFORM_VERS"
+
     ##################################################################################
 
     CC="$XCPKG_CORE_DIR/wrapper-target-cc"
@@ -4505,16 +4509,14 @@ $PACKAGE_DO12345
 
     ##################################################################################
 
-    CCFLAGS="$(printf '%s\n' "$PACKAGE_CCFLAGS" | sed -e 's|--static||g' -e 's|-static||g')"
-    OCFLAGS="$(printf '%s\n' "$PACKAGE_OCFLAGS" | sed -e 's|--static||g' -e 's|-static||g')"
-    OXFLAGS="$(printf '%s\n' "$PACKAGE_OXFLAGS" | sed -e 's|--static||g' -e 's|-static||g')"
-    XXFLAGS="$(printf '%s\n' "$PACKAGE_XXFLAGS" | sed -e 's|--static||g' -e 's|-static||g')"
-    LDFLAGS="$(printf '%s\n' "$PACKAGE_LDFLAGS" | sed -e 's|--static||g' -e 's|-static||g')"
+    PPFLAGS="$PACKAGE_PPFLAGS"
+    CCFLAGS="$PACKAGE_CCFLAGS"
+    OCFLAGS="$PACKAGE_OCFLAGS"
+    OXFLAGS="$PACKAGE_OXFLAGS"
+    XXFLAGS="$PACKAGE_XXFLAGS"
+    LDFLAGS="$PACKAGE_LDFLAGS"
 
     ##############################################
-
-    # this environment variable is used by target-wrapper-*
-    export XCPKG_COMPILER_ARGS="-isysroot $SYSROOT -arch $TARGET_PLATFORM_ARCH -m${TARGET_PLATFORM_NAME_LOWER_CASE}-version-min=$TARGET_PLATFORM_VERS"
 
     PPFLAGS="-Qunused-arguments $PPFLAGS"
     CCFLAGS="-Qunused-arguments $CCFLAGS -fPIC"
@@ -4661,7 +4663,6 @@ $PACKAGE_DO12345
 
     PPFLAGS="-I$PACKAGE_INSTALLING_INC_DIR $PPFLAGS"
     LDFLAGS="-L$PACKAGE_INSTALLING_LIB_DIR $LDFLAGS"
-    #LDFLAGS="-Wl,-rpath,$PACKAGE_INSTALL_DIR/lib $LDFLAGS"
 
     export    CFLAGS="$CCFLAGS"
     export OBJCFLAGS="$OCFLAGS"
@@ -5610,14 +5611,16 @@ EOF
     # a \n-separated list
     NEEDEDs=$(otool -l "$1" | grep LC_LOAD_DYLIB -A2 | grep name | sed 's|^[[:space:]]*||' | cut -d ' ' -f2)
 
+    if [ -z "$NEEDEDs" ] ; then
+        #abort 1 "no dependent shared libraries found in $1"
+        warn "no dependent shared libraries found in $1"
+        return 0
+    fi
+
     cat <<EOF
 FILEPATH = $1
 NEEDEDs  = $NEEDEDs
 EOF
-
-    if [ -z "$NEEDEDs" ] ; then
-        abort 1 "no dependent shared libraries found in $1"
-    fi
 
     for NEEDED in $NEEDEDs
     do
@@ -8096,7 +8099,7 @@ XCPKG_PATH="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
 
 XCPKG_ACTION="$*"
 
-XCPKG_VERSION=0.19.5
+XCPKG_VERSION=0.19.6
 
 XCPKG_OFFICIAL_FORMULA_REPO_URL='https://github.com/leleliu008/xcpkg-formula-repository-official-core'
 
