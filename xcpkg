@@ -3170,6 +3170,13 @@ EOF
             NATIVE_PACKAGE_USE_BSYSTEM_NAME='configure'
             NATIVE_PACKAGE_BUILD_CONFIG_ARGS='--enable-ccache --enable-cpp11-testing --with-popen --with-pcre --without-boost --without-android --without-java --without-javascript --without-python --without-perl5 --without-ruby --without-php --without-tcl --without-guile --without-octave --without-scilab --without-ocaml --without-mzscheme --without-csharp --without-lua --without-r --without-d --without-go'
             ;;
+        ghc)
+            NATIVE_PACKAGE_SRC_URL='https://downloads.haskell.org/~ghc/9.6.3/ghc-9.6.3-aarch64-apple-darwin.tar.xz'
+            NATIVE_PACKAGE_SRC_SHA='e1cdf458926b2eaf52d2a8287d99a965040ff9051171f5c3b7467049cf0eb213'
+            NATIVE_PACKAGE_DEPENDENCIES=
+            NATIVE_PACKAGE_USE_BSYSTEM_NAME='configure'
+            NATIVE_PACKAGE_BUILD_CONFIG_ARGS=
+            ;;
         *)  abort 1 "unknown native package name: $1"
     esac
 
@@ -3297,70 +3304,76 @@ EOF
 
     run cd src
 
-    if   [ "$1" = 'libz' ] ; then
-        sed_in_place 's|/share/pkgconfig|/lib/pkgconfig|' CMakeLists.txt
-    elif [ "$1" = 'texinfo' ] ; then
-        sed_in_place '/libintl/d' tp/Texinfo/XS/parsetexi/api.c
-    elif [ "$1" = 'python3' ] ; then
-        unset PYTHONHOME
-        unset PYTHONPATH
+    #########################################################################################
 
-        export ZLIB_CFLAGS="-I$NATIVE_PACKAGE_INSTALLED_ROOT/libz/include"
-        export ZLIB_LIBS="-L$NATIVE_PACKAGE_INSTALLED_ROOT/libz/lib -lz"
+    case $1 in
+        libz)
+            sed_in_place 's|/share/pkgconfig|/lib/pkgconfig|' CMakeLists.txt
+            ;;
+        texinfo)
+            sed_in_place '/libintl/d' tp/Texinfo/XS/parsetexi/api.c
+            ;;
+        python3)
+            unset PYTHONHOME
+            unset PYTHONPATH
 
-        export BZIP2_CFLAGS="-I$NATIVE_PACKAGE_INSTALLED_ROOT/libbz2/include"
-        export BZIP2_LIBS="-L$NATIVE_PACKAGE_INSTALLED_ROOT/libbz2/lib -lbz2"
+            export ZLIB_CFLAGS="-I$NATIVE_PACKAGE_INSTALLED_ROOT/libz/include"
+            export ZLIB_LIBS="-L$NATIVE_PACKAGE_INSTALLED_ROOT/libz/lib -lz"
 
-        export LIBLZMA_CFLAGS="-I$NATIVE_PACKAGE_INSTALLED_ROOT/liblzma/include"
-        export LIBLZMA_LIBS="-L$NATIVE_PACKAGE_INSTALLED_ROOT/liblzma/lib -llzma"
+            export BZIP2_CFLAGS="-I$NATIVE_PACKAGE_INSTALLED_ROOT/libbz2/include"
+            export BZIP2_LIBS="-L$NATIVE_PACKAGE_INSTALLED_ROOT/libbz2/lib -lbz2"
 
-        export LIBSQLITE3_CFLAGS="-I$NATIVE_PACKAGE_INSTALLED_ROOT/sqlite3/include"
-        export LIBSQLITE3_LIBS="-L$NATIVE_PACKAGE_INSTALLED_ROOT/sqlite3/lib -lsqlite3"
+            export LIBLZMA_CFLAGS="-I$NATIVE_PACKAGE_INSTALLED_ROOT/liblzma/include"
+            export LIBLZMA_LIBS="-L$NATIVE_PACKAGE_INSTALLED_ROOT/liblzma/lib -llzma"
 
-        export GDBM_CFLAGS="-I$NATIVE_PACKAGE_INSTALLED_ROOT/libgdbm/include"
-        export GDBM_LIBS="-L$NATIVE_PACKAGE_INSTALLED_ROOT/libgdbm/lib -lgdbm -lgdbm_compat"
+            export LIBSQLITE3_CFLAGS="-I$NATIVE_PACKAGE_INSTALLED_ROOT/sqlite3/include"
+            export LIBSQLITE3_LIBS="-L$NATIVE_PACKAGE_INSTALLED_ROOT/sqlite3/lib -lsqlite3"
 
-        export LIBS='-lm'
-    fi
+            export GDBM_CFLAGS="-I$NATIVE_PACKAGE_INSTALLED_ROOT/libgdbm/include"
+            export GDBM_LIBS="-L$NATIVE_PACKAGE_INSTALLED_ROOT/libgdbm/lib -lgdbm -lgdbm_compat"
+
+            export LIBS='-lm'
+    esac
 
     #########################################################################################
 
-    case $NATIVE_PACKAGE_USE_BSYSTEM_NAME in
-        cmake)
-            CMAKE="$(command -v cmake)" || abort 1 "command not found: cmake"
+    if [ "$NATIVE_PACKAGE_USE_BSYSTEM_NAME" = cmake ] ; then
+        CMAKE="$(command -v cmake)" || abort 1 "command not found: cmake"
 
-            run "$CMAKE" -DCMAKE_INSTALL_PREFIX="$NATIVE_PACKAGE_INSTALL_DIR" -DCMAKE_INSTALL_LIBDIR=lib -DBUILD_SHARED_LIBS=ON "$NATIVE_PACKAGE_BUILD_CONFIG_ARGS -G 'Unix Makefiles'" -S . -B build.d
-            run "$CMAKE" --build   build.d -- -j$BUILD_NJOBS
-            run "$CMAKE" --install build.d
-            ;;
-        configure)
-            if [ "$1" = openssl ] ; then
+        run "$CMAKE" -DCMAKE_INSTALL_PREFIX="$NATIVE_PACKAGE_INSTALL_DIR" -DCMAKE_INSTALL_LIBDIR=lib -DBUILD_SHARED_LIBS=ON "$NATIVE_PACKAGE_BUILD_CONFIG_ARGS -G 'Unix Makefiles'" -S . -B build.d
+        run "$CMAKE" --build   build.d -- -j$BUILD_NJOBS
+        run "$CMAKE" --install build.d
+    else
+        GMAKE="$(command -v gmake)" || abort 1 "command not found: gmake"
+
+        case $1 in
+            openssl)
                 # https://github.com/openssl/openssl/blob/master/INSTALL.md
                 run ./config no-tests no-ssl3 no-ssl3-method no-zlib --prefix="$NATIVE_PACKAGE_INSTALL_DIR" --libdir=lib --openssldir=etc/ssl
-
-                GMAKE="$(command -v gmake)" || abort 1 "command not found: gmake"
-
                 run "$GMAKE" "--jobs=$NATIVE_OS_NCPU"
                 run "$GMAKE" install_sw
-            else
-                case $1 in
-                    perl)
-                        run ./Configure "-Dprefix=$NATIVE_PACKAGE_INSTALL_DIR" -Dman1dir=none -Dman3dir=none -des -Dmake=gmake -Duselargefiles -Duseshrplib -Dusethreads -Dusenm=false -Dusedl=true
-                        ;;
-                    perl-XML-Parser)
-                        run perl Makefile.PL EXPATLIBPATH="$NATIVE_PACKAGE_INSTALLED_ROOT/libexpat/lib" EXPATINCPATH="$NATIVE_PACKAGE_INSTALLED_ROOT/libexpat/include"
-                        run install -d "$NATIVE_PACKAGE_INSTALL_DIR"
-                        ;;
-                    *)  run ./configure "--prefix=$NATIVE_PACKAGE_INSTALL_DIR" "$NATIVE_PACKAGE_BUILD_CONFIG_ARGS"
-                esac
-
-                GMAKE="$(command -v gmake)" || abort 1 "command not found: gmake"
-
+                ;;
+            perl)
+                run ./Configure "-Dprefix=$NATIVE_PACKAGE_INSTALL_DIR" -Dman1dir=none -Dman3dir=none -des -Dmake=gmake -Duselargefiles -Duseshrplib -Dusethreads -Dusenm=false -Dusedl=true
                 run "$GMAKE" "--jobs=$NATIVE_OS_NCPU"
                 run "$GMAKE" install
-            fi
-            ;;
-    esac
+                ;;
+            perl-XML-Parser)
+                run perl Makefile.PL EXPATLIBPATH="$NATIVE_PACKAGE_INSTALLED_ROOT/libexpat/lib" EXPATINCPATH="$NATIVE_PACKAGE_INSTALLED_ROOT/libexpat/include"
+                run install -d "$NATIVE_PACKAGE_INSTALL_DIR"
+                run "$GMAKE" "--jobs=$NATIVE_OS_NCPU"
+                run "$GMAKE" install
+                ;;
+            ghc)run ./configure "--prefix=$NATIVE_PACKAGE_INSTALL_DIR" "$NATIVE_PACKAGE_BUILD_CONFIG_ARGS"
+                run "$GMAKE" install
+                ;;
+            *)  run ./configure "--prefix=$NATIVE_PACKAGE_INSTALL_DIR" "$NATIVE_PACKAGE_BUILD_CONFIG_ARGS"
+                run "$GMAKE" "--jobs=$NATIVE_OS_NCPU"
+                run "$GMAKE" install
+        esac
+    fi
+
+    #########################################################################################
 
     # TO FIX: glibtoolize: command not found
     if [ "$1" = 'libtool' ] ; then
@@ -3369,6 +3382,8 @@ EOF
         run ln -s -r libtoolize glibtoolize
         run cd -
     fi
+
+    #########################################################################################
 
     printf '%s\n' "$NATIVE_PACKAGE_SRC_SHA" > "$NATIVE_PACKAGE_INSTALL_DIR/receipt.txt"
 
@@ -3830,6 +3845,7 @@ $DOT_CONTENT
     for item in $PACKAGE_DEP_UPP
     do
         case $item in
+            ghc)      PACKAGE_DEP_UPP_T1="$PACKAGE_DEP_UPP_T1 gmake"       ; PACKAGE_DEP_UPP_T2="$PACKAGE_DEP_UPP_T2 $item" ;;
             perl)     PACKAGE_DEP_UPP_T1="$PACKAGE_DEP_UPP_T1 gmake"       ; PACKAGE_DEP_UPP_T2="$PACKAGE_DEP_UPP_T2 $item" ;;
             openssl)  PACKAGE_DEP_UPP_T1="$PACKAGE_DEP_UPP_T1 gmake"       ; PACKAGE_DEP_UPP_T2="$PACKAGE_DEP_UPP_T2 $item" ;;
             texinfo)  PACKAGE_DEP_UPP_T1="$PACKAGE_DEP_UPP_T1 gmake"       ; PACKAGE_DEP_UPP_T2="$PACKAGE_DEP_UPP_T2 $item" ;;
@@ -4920,6 +4936,10 @@ set(CMAKE_FIND_DEBUG_MODE $CMAKE_FIND_DEBUG_MODE)
 set(CMAKE_FIND_ROOT_PATH "$CMAKE_FIND_ROOT_PATH")
 
 set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+
+# https://stackoverflow.com/questions/36523911/osx-homebrew-cmake-libpng-version-mismatch-issue
+# https://cmake.org/cmake/help/latest/variable/CMAKE_FIND_FRAMEWORK.html
+set(CMAKE_FIND_FRAMEWORK LAST)
 
 # https://cmake.org/cmake/help/latest/variable/CMAKE_MACOSX_BUNDLE.html
 # https://github.com/Kitware/CMake/blob/master/Modules/Platform/Darwin.cmake
@@ -8099,7 +8119,7 @@ XCPKG_PATH="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
 
 XCPKG_ACTION="$*"
 
-XCPKG_VERSION=0.19.6
+XCPKG_VERSION=0.19.7
 
 XCPKG_OFFICIAL_FORMULA_REPO_URL='https://github.com/leleliu008/xcpkg-formula-repository-official-core'
 
