@@ -3606,10 +3606,8 @@ $PACKAGE_ONSTART
 
     PACKAGE_FORMULA_FILEPATH="$SESSION_DIR/$PACKAGE_NAME.yml"
 
-    step "view formula"
-    run yq "$PACKAGE_FORMULA_FILEPATH"
-
     step "load formula"
+    bat --language=yaml --paging=never "$PACKAGE_FORMULA_FILEPATH"
     __load_formula_of_the_given_package "$PACKAGE_NAME" "$PACKAGE_FORMULA_FILEPATH"
 
     #########################################################################################
