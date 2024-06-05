@@ -123,6 +123,7 @@ all relevant directories and files are located under `~/.xcpkg` directory.
     - [yq](https://mikefarah.gitbook.io/yq/)
     - [d2](https://github.com/terrastruct/d2)
     - [dot](https://graphviz.org/doc/info/command.html)
+    - [bat](https://github.com/sharkdp/bat)
 
 - **integrate `zsh-completion` script**
 
@@ -547,6 +548,7 @@ a xcpkg formula's file content only has one level mapping and shall has followin
 |`jq`|[Reference](https://stedolan.github.io/jq/manual/)|
 |`yq`|[Reference](https://mikefarah.gitbook.io/yq/)|
 |`d2`|[Reference](https://github.com/terrastruct/d2)|
+|`bat`|[Reference](https://github.com/sharkdp/bat)|
 |`git`|[Reference](https://git-scm.com/docs/git)|
 |`curl`|[Reference](https://curl.se/docs/manpage.html)|
 |`tree`|[Reference](https://linux.die.net/man/1/tree)|
