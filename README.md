@@ -82,13 +82,6 @@ all relevant directories and files are located under `~/.xcpkg` directory.
 - **show the given [Xcode](https://developer.apple.com/xcode) information**
 
     ```bash
-    xcpkg xcinfo --developer-dir=/Applications/Xcode12.app/Contents/Developer
-    ```
-
-- **show the supported target platform names only**
-
-    ```bash
-    xcpkg xcinfo
     xcpkg xcinfo /Applications/Xcode12.app/Contents/Developer
     ```
 

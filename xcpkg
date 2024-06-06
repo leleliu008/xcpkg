@@ -2874,31 +2874,26 @@ __fetch_resources_of_the_given_package() {
     fi
 }
 
-
 # }}}
 ##############################################################################
 # {{{ xcpkg xcinfo
 
-# xcpkg xcinfo [DEVELOPER-DIR]
-  xcinfo() {
-    unset XCODE_DEVELOPER_DIR
-
+__inspect_xcode_info() {
     if [ -z "$1" ] ; then
         if [ -z "$DEVELOPER_DIR" ] ; then
-            XCODE_DEVELOPER_DIR="$(xcode-select -p)"
-            [ -z "$XCODE_DEVELOPER_DIR" ] && abort 1 "Xcode developer dir can't be located.\nThere're 3 ways to resolve this problem:\n1. run command 'xcode-select --switch DEVELOPER_DIR', then try again.\n2. set system-wide environment variable DEVELOPER_DIR\3. set process-wide environment variable DEVELOPER_DIR, you can run xcpkg command as 'DEVELOPER_DIR=/some/path xcpkg'"
+            export DEVELOPER_DIR="$(xcode-select -p)"
+            [ -z "$DEVELOPER_DIR" ] && abort 1 "Xcode developer dir can't be located.\nThere're 3 ways to resolve this problem:\n1. run command 'xcode-select --switch DEVELOPER_DIR', then try again.\n2. set system-wide environment variable DEVELOPER_DIR\3. set process-wide environment variable DEVELOPER_DIR, you can run xcpkg command as 'DEVELOPER_DIR=/some/path xcpkg'"
         else
             note "you have set DEVELOPER_DIR=$DEVELOPER_DIR, it will be used as the xcode developer directory."
-            XCODE_DEVELOPER_DIR="$DEVELOPER_DIR"
         fi
     else
-        XCODE_DEVELOPER_DIR="$1"
+        export DEVELOPER_DIR="$1"
     fi
 
-    [ -e "$XCODE_DEVELOPER_DIR" ] || abort 1 "$XCODE_DEVELOPER_DIR directory was expected to be exist, but it was not."
-    [ -d "$XCODE_DEVELOPER_DIR" ] || abort 1 "$XCODE_DEVELOPER_DIR was expected to be a directory, but it was not."
+    [ -e "$DEVELOPER_DIR" ] || abort 1 "$DEVELOPER_DIR directory was expected to be exist, but it was not."
+    [ -d "$DEVELOPER_DIR" ] || abort 1 "$DEVELOPER_DIR was expected to be a directory, but it was not."
 
-    XCODE_ROOT="${XCODE_DEVELOPER_DIR%/*}"
+    XCODE_ROOT="${DEVELOPER_DIR%/*}"
 
     XCODE_VERSION_PLIST_FILEPATH="$XCODE_ROOT/version.plist"
 
@@ -2908,7 +2903,7 @@ __fetch_resources_of_the_given_package() {
     XCODE_VERSION=
     XCODE_VERSION="$(/usr/libexec/PlistBuddy -c 'Print CFBundleShortVersionString' "$XCODE_VERSION_PLIST_FILEPATH")"
 
-    XCODE_TOOLCHAIN_BIN_DIR="$XCODE_DEVELOPER_DIR/Toolchains/XcodeDefault.xctoolchain/usr/bin"
+    XCODE_TOOLCHAIN_BIN_DIR="$DEVELOPER_DIR/Toolchains/XcodeDefault.xctoolchain/usr/bin"
 
     [ -e "$XCODE_TOOLCHAIN_BIN_DIR" ] || abort 1 "$XCODE_TOOLCHAIN_BIN_DIR was expected to be exist, but it was not."
     [ -d "$XCODE_TOOLCHAIN_BIN_DIR" ] || abort 1 "$XCODE_TOOLCHAIN_BIN_DIR was expected to be a directory, but it was not."
@@ -2928,7 +2923,7 @@ __fetch_resources_of_the_given_package() {
 
     XCODE_PLATFORM_NAMES=
 
-    XCODE_PLATFORMS_DIR="$XCODE_DEVELOPER_DIR/Platforms"
+    XCODE_PLATFORMS_DIR="$DEVELOPER_DIR/Platforms"
 
     if [ -d "$XCODE_PLATFORMS_DIR" ] ; then
         for item in $(cd "$XCODE_PLATFORMS_DIR" && ls)
@@ -2951,9 +2946,22 @@ __fetch_resources_of_the_given_package() {
         [ -d "$XCODE_PLATFORMS_DIR" ] || abort 1 "$XCODE_PLATFORMS_DIR was expected to be a directory, but it was not."
     fi
 
+    for TARGET_PLATFORM_NAME in $XCODE_PLATFORM_NAMES
+    do
+        SDKNAME="$(printf '%s\n' "$TARGET_PLATFORM_NAME" | tr A-Z a-z)"
+        SDKROOT="$(xcrun --sdk "$SDKNAME" --show-sdk-path)"
+        SDK_SUPPORTED_ARCHS="$(jq -r ".SupportedTargets.$SDKNAME.Archs | join(\" \")" "$SDKROOT/SDKSettings.json")"
+        SDK_SUPPORTED_VERSIONS="$(jq -r ".SupportedTargets.$SDKNAME.ValidDeploymentTargets | reverse | join(\" \")" "$SDKROOT/SDKSettings.json")"
+
+        eval "XCODE_${TARGET_PLATFORM_NAME}_SDKROOT='$SDKROOT'"
+        eval "XCODE_${TARGET_PLATFORM_NAME}_ARCHS='$SDK_SUPPORTED_ARCHS'"
+        eval "XCODE_${TARGET_PLATFORM_NAME}_VERSIONS='$SDK_SUPPORTED_VERSIONS'"
+    done
+}
+
+__println_xcode_info() {
     cat <<EOF
-XCODE_ROOT='$XCODE_ROOT'
-XCODE_DEVELOPER_DIR='$XCODE_DEVELOPER_DIR'
+DEVELOPER_DIR='$DEVELOPER_DIR'
 XCODE_VERSION='$XCODE_VERSION'
 XCODE_CC='$XCODE_CC'
 XCODE_CXX='$XCODE_CXX'
@@ -2973,14 +2981,9 @@ EOF
 
     for TARGET_PLATFORM_NAME in $XCODE_PLATFORM_NAMES
     do
-        SDKNAME="$(printf '%s\n' "$TARGET_PLATFORM_NAME" | tr A-Z a-z)"
-        SDKROOT="$(xcrun --sdk "$SDKNAME" --show-sdk-path)"
-        SDK_SUPPORTED_ARCHS="$(jq -r ".SupportedTargets.$SDKNAME.Archs | join(\" \")" "$SDKROOT/SDKSettings.json")"
-        SDK_SUPPORTED_VERSIONS="$(jq -r ".SupportedTargets.$SDKNAME.ValidDeploymentTargets | reverse | join(\" \")" "$SDKROOT/SDKSettings.json")"
-
-        eval "XCODE_${TARGET_PLATFORM_NAME}_SDKROOT='$SDKROOT'"
-        eval "XCODE_${TARGET_PLATFORM_NAME}_ARCHS='$SDK_SUPPORTED_ARCHS'"
-        eval "XCODE_${TARGET_PLATFORM_NAME}_VERSIONS='$SDK_SUPPORTED_VERSIONS'"
+        eval "SDKROOT=\"\$XCODE_${TARGET_PLATFORM_NAME}_SDKROOT\""
+        eval "SDK_SUPPORTED_ARCHS=\"\$XCODE_${TARGET_PLATFORM_NAME}_ARCHS\""
+        eval "SDK_SUPPORTED_VERSIONS=\"\$XCODE_${TARGET_PLATFORM_NAME}_VERSIONS\""
 
         cat <<EOF
 
@@ -3415,6 +3418,9 @@ __install_the_given_package() {
      NATIVE_OS_EUID = $NATIVE_OS_EUID
      NATIVE_OS_EGID = $NATIVE_OS_EGID
 
+DEVELOPER_DIR       = $DEVELOPER_DIR
+XCODE_VERSION       = $XCODE_VERSION
+
 XCPKG_VERSION       = $XCPKG_VERSION
 XCPKG_HOME          = $XCPKG_HOME
 XCPKG               = $XCPKG
@@ -3428,6 +3434,27 @@ XCPKG_URL_TRANSFORM = $XCPKG_URL_TRANSFORM
    KEEP_SESSION_DIR = $KEEP_SESSION_DIR
 EXPORT_COMPILE_COMMANDS_JSON = $EXPORT_COMPILE_COMMANDS_JSON
 EOF
+
+    #########################################################################################
+
+    PACKAGE_FORMULA_FILEPATH="$SESSION_DIR/$PACKAGE_NAME.yml"
+
+    step "load formula"
+    bat --language=yaml --paging=never "$PACKAGE_FORMULA_FILEPATH"
+    __load_formula_of_the_given_package "$PACKAGE_NAME" "$PACKAGE_FORMULA_FILEPATH"
+
+    #########################################################################################
+
+    if [ "$PACKAGE_PKGTYPE" != lib ] ; then
+        # this environment variable is used by wrapper-target-*
+        export XCPKG_CREATE_MOSTLY_STATICALLY_LINKED_EXECUTABLE=1
+    fi
+
+    #########################################################################################
+
+    if [ "$PACKAGE_PARALLEL" = 0 ] ; then
+        BUILD_NJOBS=1
+    fi
 
     #########################################################################################
 
@@ -3488,27 +3515,6 @@ onstart() {
 $PACKAGE_ONSTART
 }"
         onstart
-    fi
-
-    #########################################################################################
-
-    PACKAGE_FORMULA_FILEPATH="$SESSION_DIR/$PACKAGE_NAME.yml"
-
-    step "load formula"
-    bat --language=yaml --paging=never "$PACKAGE_FORMULA_FILEPATH"
-    __load_formula_of_the_given_package "$PACKAGE_NAME" "$PACKAGE_FORMULA_FILEPATH"
-
-    #########################################################################################
-
-    if [ "$PACKAGE_PKGTYPE" != lib ] ; then
-        # these environment variable is used by target-wrapper-*
-        export XCPKG_CREATE_MOSTLY_STATICALLY_LINKED_EXECUTABLE=1
-    fi
-
-    #########################################################################################
-
-    if [ "$PACKAGE_PARALLEL" = 0 ] ; then
-        BUILD_NJOBS=1
     fi
 
     #########################################################################################
@@ -3909,7 +3915,7 @@ $DOT_CONTENT
     unset CCACHE
     unset PKG_CONFIG
 
-    [ -n "$PACKAGE_DEP_UPP" ] && {
+    [ -n "$PACKAGE_DEP_UPP" ] && [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] && {
         for item in $PACKAGE_DEP_UPP
         do
             case $item in
@@ -3935,73 +3941,101 @@ $DOT_CONTENT
         ACLOCAL=$(command -v aclocal)       || abort 1 "command not found: aclocal"
         M4=$(command -v m4)                 || abort 1 "command not found: m4"
 
-        run "$AUTORECONF" --version
-        printf '\n'
-        run "$AUTOCONF"   --version
-        printf '\n'
-        run "$AUTOMAKE"   --version
-        printf '\n'
-        run "$ACLOCAL"    --version
-        printf '\n'
-        run "$M4"         --version
-        printf '\n'
+        if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
+            run "$AUTORECONF" --version
+            printf '\n'
+            run "$AUTOCONF"   --version
+            printf '\n'
+            run "$AUTOMAKE"   --version
+            printf '\n'
+            run "$ACLOCAL"    --version
+            printf '\n'
+            run "$M4"         --version
+            printf '\n'
+        fi
     }
 
     [ "$PACKAGE_USE_BSYSTEM_MESON" = 1 ] && {
         MESON=$(command -v meson) || abort 1 "command not found: meson"
-        run "$MESON"      --version
-        printf '\n'
+
+        if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
+            run "$MESON"      --version
+            printf '\n'
+        fi
     }
 
     [ "$PACKAGE_USE_BSYSTEM_CMAKE" = 1 ] && {
         CMAKE=$(command -v cmake) || abort 1 "command not found: cmake"
-        run "$CMAKE"      --version
-        printf '\n'
+
+        if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
+            run "$CMAKE"      --version
+            printf '\n'
+        fi
     }
 
     [ "$PACKAGE_USE_BSYSTEM_XMAKE" = 1 ] && {
         XMAKE=$(command -v xmake) || abort 1 "command not found: xmake"
-        run "$XMAKE"      --version
-        printf '\n'
+
+        if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
+            run "$XMAKE"      --version
+            printf '\n'
+        fi
     }
 
     [ "$PACKAGE_USE_BSYSTEM_GMAKE" = 1 ] && {
         GMAKE=$(command -v gmake || command -v make) || abort 1 "command not found: gmake and make"
-        run "$GMAKE"      --version
-        printf '\n'
+
+        if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
+            run "$GMAKE"      --version
+            printf '\n'
+        fi
     }
 
     [ "$PACKAGE_USE_BSYSTEM_NINJA" = 1 ] && {
         NINJA=$(command -v ninja) || abort 1 "command not found: ninja"
-        run "$NINJA"      --version
-        printf '\n'
+
+        if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
+            run "$NINJA"      --version
+            printf '\n'
+        fi
     }
 
     [ "$PACKAGE_USE_BSYSTEM_CARGO" = 1 ] && {
         RUSTUP=$(command -v rustup) || abort 1 "command not found: rustup"
         CARGO=$(command -v cargo)   || abort 1 "command not found: cargo"
-        run "$RUSTUP"     --version
-        printf '\n'
-        run "$CARGO"      --version
-        printf '\n'
+
+        if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
+            run "$RUSTUP"     --version
+            printf '\n'
+            run "$CARGO"      --version
+            printf '\n'
+        fi
     }
 
     [ "$PACKAGE_USE_BSYSTEM_GO" = 1 ] && {
         GO=$(command -v go) || abort 1 "command not found: go"
-        run "$GO"      version
-        printf '\n'
+
+        if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
+            run "$GO"      version
+            printf '\n'
+        fi
     }
 
     [ "$CCACHE_ENABLED" = 1 ] && {
         CCACHE=$(command -v ccache) || abort 1 "command not found: ccache"
-        run "$CCACHE"    --version
-        printf '\n'
+
+        if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
+            run "$CCACHE"    --version
+            printf '\n'
+        fi
     }
 
     PKG_CONFIG=$(command -v pkg-config || command -v pkgconf) || abort 1 "command not found: pkg-config"
 
-    run "$PKG_CONFIG"    --version
-    printf '\n'
+    if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
+        run "$PKG_CONFIG"    --version
+        printf '\n'
+    fi
 
     unset  M4
     export M4="$(command -v m4 || true)"
@@ -4675,9 +4709,11 @@ $PACKAGE_DO12345
         if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
             CMAKE_VERBOSE_MAKEFILE=ON
             CMAKE_COLOR_MAKEFILE=ON
+            CMAKE_INSTALL_MESSAGE=ALWAYS
         else
             CMAKE_VERBOSE_MAKEFILE=OFF
             CMAKE_COLOR_MAKEFILE=OFF
+            CMAKE_INSTALL_MESSAGE=NEVER
         fi
 
         # https://cmake.org/cmake/help/latest/variable/CMAKE_FIND_DEBUG_MODE.html
@@ -6023,6 +6059,8 @@ set(CMAKE_FIND_FRAMEWORK LAST)
 if(NOT DEFINED CMAKE_MACOSX_BUNDLE)
     set(CMAKE_MACOSX_BUNDLE OFF)
 endif()
+
+set(CMAKE_INSTALL_MESSAGE "$CMAKE_INSTALL_MESSAGE")
 EOF
         [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] && {
             run bat --language=cmake --paging=never --style=numbers,grid "$CMAKE_TOOLCHAIN_FILE"
@@ -6612,7 +6650,7 @@ EOF
                         TARGET_PLATFORM_SPEC="$TARGET_PLATFORM_NAME-$TARGET_PLATFORM_VERS-$TARGET_PLATFORM_ARCH"
                         PACKAGE_SPEC="$TARGET_PLATFORM_SPEC/$1"
 
-                        note "$1 will be treated as a package-name, and it will be expanded to $PACKAGE_SPEC"
+                        #note "$1 will be treated as a package-name, and it will be expanded to $PACKAGE_SPEC"
                         printf '%s\n' "$PACKAGE_SPEC"
                         return 0
                         ;;
@@ -6677,7 +6715,7 @@ EOF
                     *) abort 1 "you have set XCPKG_DEFAULT_TARGET=$XCPKG_DEFAULT_TARGET , but it is an invalid target."
                 esac
 
-                note "$1 will be treated as a package-name, and it will be expanded to $PACKAGE_SPEC"
+                #note "$1 will be treated as a package-name, and it will be expanded to $PACKAGE_SPEC"
                 printf '%s\n' "$PACKAGE_SPEC"
             else
                 abort 1 "invalid package-name: $1\npackage-name does not match pattern ^[A-Za-z0-9+-._@]{1,50}$"
@@ -6833,7 +6871,15 @@ inspect_install_arguments() {
 
     #########################################################################################
 
-    xcinfo "$SPECIFIED_DEVELOPER_DIR"
+    if [ -z "$SPECIFIED_DEVELOPER_DIR" ] ; then
+        __inspect_xcode_info
+    else
+        __inspect_xcode_info "$SPECIFIED_DEVELOPER_DIR"
+    fi
+
+    if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
+        __println_xcode_info
+    fi
 
     #########################################################################################
 
@@ -8039,7 +8085,7 @@ XCPKG_PATH="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
 
 XCPKG_ACTION="$*"
 
-XCPKG_VERSION=0.20.0
+XCPKG_VERSION=0.20.1
 
 XCPKG_OFFICIAL_FORMULA_REPO_URL='https://github.com/leleliu008/xcpkg-formula-repository-official-core'
 
@@ -8182,8 +8228,16 @@ fi
 ##################################################################################
 
 case $1 in
-     xcinfo) shift;  xcinfo "$@" ;;
-    sysinfo) shift; sysinfo "$@" ;;
+     xcinfo)
+         shift
+         __inspect_xcode_info "$@"
+         __println_xcode_info
+         ;;
+
+    sysinfo)
+        shift
+        sysinfo "$@"
+        ;;
 
     update)            shift; __sync_available_formula_repositories "$@" ;;
     formula-repo-list) shift; __list_available_formula_repositories "$@" ;;
