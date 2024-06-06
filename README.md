@@ -88,8 +88,8 @@ all relevant directories and files are located under `~/.xcpkg` directory.
 - **show the supported target platform names only**
 
     ```bash
-    xcpkg xcinfo --list-supported-platform-names
-    xcpkg xcinfo --list-supported-platform-names --developer-dir=/Applications/Xcode12.app/Contents/Developer
+    xcpkg xcinfo
+    xcpkg xcinfo /Applications/Xcode12.app/Contents/Developer
     ```
 
 - **generate url-transform sample**
