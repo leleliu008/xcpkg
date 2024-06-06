@@ -177,11 +177,14 @@ function _xcpkg() {
                         '-v[verbose mode. many messages will be output to terminal]' \
                         '-q[silent mode. no any messages will be output to terminal]' \
                         '-x[set -x]' \
+                        '--dump-env[print all environment variables before starting to build]' \
+                        '--dump-net[show detailed http messages]' \
+                        '--dump-xcinfo[show xcode information]' \
+                        '--dump-formula[show formula content]' \
                         '--dump-go[pass -x argument to go build command]' \
                         '--dump-cc[pass -v argument to clang command]' \
                         '--dump-ld[pass -Wl,-v argument to linker]' \
-                        '--dump-env[print all environment variables before starting to build]' \
-                        '--dump-net[show detailed http messages]' \
+                        '--dump-uppm[pass -v argument to uppm command]' \
                         '--dump-ninja[pass -v argument to ninja command]' \
                         '--dump-gmake[pass --debug argument to gmake command]' \
                         '--dump-cmake[pass -DCMAKE_FIND_DEBUG_MODE=ON argument to cmake command]' \
@@ -202,11 +205,14 @@ function _xcpkg() {
                         '-v[verbose mode. many messages will be output to terminal]' \
                         '-q[silent mode. no any messages will be output to terminal]' \
                         '-x[set -x]' \
+                        '--dump-env[print all environment variables before starting to build]' \
+                        '--dump-net[show detailed http messages]' \
+                        '--dump-xcinfo[show xcode information]' \
+                        '--dump-formula[show formula content]' \
                         '--dump-go[pass -x argument to go build command]' \
                         '--dump-cc[pass -v argument to clang command]' \
                         '--dump-ld[pass -Wl,-v argument to linker]' \
-                        '--dump-env[print all environment variables before starting to build]' \
-                        '--dump-net[show detailed http messages]' \
+                        '--dump-uppm[pass -v argument to uppm command]' \
                         '--dump-ninja[pass -v argument to ninja command]' \
                         '--dump-gmake[pass --debug argument to gmake command]' \
                         '--dump-cmake[pass -DCMAKE_FIND_DEBUG_MODE=ON argument to cmake command]' \
@@ -227,11 +233,14 @@ function _xcpkg() {
                         '-v[verbose mode. many messages will be output to terminal]' \
                         '-q[silent mode. no any messages will be output to terminal]' \
                         '-x[set -x]' \
+                        '--dump-env[print all environment variables before starting to build]' \
+                        '--dump-net[show detailed http messages]' \
+                        '--dump-xcinfo[show xcode information]' \
+                        '--dump-formula[show formula content]' \
                         '--dump-go[pass -x argument to go build command]' \
                         '--dump-cc[pass -v argument to clang command]' \
                         '--dump-ld[pass -Wl,-v argument to linker]' \
-                        '--dump-env[print all environment variables before starting to build]' \
-                        '--dump-net[show detailed http messages]' \
+                        '--dump-uppm[pass -v argument to uppm command]' \
                         '--dump-ninja[pass -v argument to ninja command]' \
                         '--dump-gmake[pass --debug argument to gmake command]' \
                         '--dump-cmake[pass -DCMAKE_FIND_DEBUG_MODE=ON argument to cmake command]' \

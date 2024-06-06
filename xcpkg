@@ -3421,9 +3421,11 @@ __install_the_given_package() {
 DEVELOPER_DIR       = $DEVELOPER_DIR
 XCODE_VERSION       = $XCODE_VERSION
 
-XCPKG_VERSION       = $XCPKG_VERSION
-XCPKG_HOME          = $XCPKG_HOME
 XCPKG               = $XCPKG
+XCPKG_ARGS          = $XCPKG_ARGS
+XCPKG_PATH          = $XCPKG_PATH
+XCPKG_HOME          = $XCPKG_HOME
+XCPKG_VERSION       = $XCPKG_VERSION
 XCPKG_URL_TRANSFORM = $XCPKG_URL_TRANSFORM
 
           LOG_LEVEL = $LOG_LEVEL
@@ -3440,7 +3442,11 @@ EOF
     PACKAGE_FORMULA_FILEPATH="$SESSION_DIR/$PACKAGE_NAME.yml"
 
     step "load formula"
-    bat --language=yaml --paging=never "$PACKAGE_FORMULA_FILEPATH"
+
+    if [ "$DUMP_FORMULA" = 1 ] ; then
+        bat --language=yaml --paging=never "$PACKAGE_FORMULA_FILEPATH"
+    fi
+
     __load_formula_of_the_given_package "$PACKAGE_NAME" "$PACKAGE_FORMULA_FILEPATH"
 
     #########################################################################################
@@ -3452,7 +3458,9 @@ EOF
 
     #########################################################################################
 
-    if [ "$PACKAGE_PARALLEL" = 0 ] ; then
+    if [ "$PACKAGE_PARALLEL" = 1 ] ; then
+        BUILD_NJOBS="$NATIVE_OS_NCPU"
+    else
         BUILD_NJOBS=1
     fi
 
@@ -3765,9 +3773,15 @@ $DOT_CONTENT
         run "$UPPM" env
         run "$UPPM" update
 
+        unset UPPM_INSTALL_ARGS
+
+        if [ "$DUMP_UPPM" = 1 ] ; then
+            UPPM_INSTALL_ARGS=-v
+        fi
+
         for UPPM_PACKAGE_NAME in $PACKAGE_DEP_UPP_T1
         do
-            run "$UPPM" install "$UPPM_PACKAGE_NAME"
+            run "$UPPM" install "$UPPM_PACKAGE_NAME" $UPPM_INSTALL_ARGS
 
             UPPM_PACKAGE_INSTALLED_DIR="$("$UPPM" info "$UPPM_PACKAGE_NAME" installed-dir)"
 
@@ -4127,7 +4141,7 @@ $DOT_CONTENT
 
     #########################################################################################
 
-    step "unpack or copy source/patches/resources to proper location"
+    step "unpack/copy source/patches/resources to the proper location"
 
     if [ -n "$PACKAGE_SRC_FILEPATH" ] ; then
         case $PACKAGE_SRC_FILETYPE in
@@ -6735,9 +6749,9 @@ inspect_install_arguments() {
 
     LOG_LEVEL=1
 
-    BUILD_NJOBS=$NATIVE_OS_NCPU
+    unset BUILD_NJOBS
 
-    DRYRUN=0
+    unset DRYRUN
 
     unset PROFILE
 
@@ -6757,12 +6771,16 @@ inspect_install_arguments() {
 
     unset SPECIFIED_DEVELOPER_DIR
 
+    unset DUMP_ENV
+    unset DUMP_NET
+    unset DUMP_XCINFO
+    unset DUMP_FORMULA
+
     unset DUMP_GO
     unset DUMP_CC
     unset DUMP_LD
 
-    unset DUMP_ENV
-    unset DUMP_NET
+    unset DUMP_UPPM
 
     unset DUMP_GMAKE
     unset DUMP_CMAKE
@@ -6776,12 +6794,15 @@ inspect_install_arguments() {
             -vv)
                 LOG_LEVEL="$LOG_LEVEL_VERY_VERBOSE"
 
+                DUMP_ENV=1
+                DUMP_NET=1
+                DUMP_UPPM=1
+                DUMP_XCINFO=1
+                DUMP_FORMULA=1
+
                 DUMP_GO=1
                 DUMP_CC=1
                 DUMP_LD=1
-
-                DUMP_ENV=1
-                DUMP_NET=1
 
                 DUMP_GMAKE=1
                 DUMP_CMAKE=1
@@ -6791,11 +6812,32 @@ inspect_install_arguments() {
                 ;;
             -v)
                 LOG_LEVEL="$LOG_LEVEL_VERBOSE"
+
+                DUMP_ENV=1
+                DUMP_NET=1
+                DUMP_UPPM=1
+                DUMP_XCINFO=1
+                DUMP_FORMULA=1
                 ;;
             -q)
                 LOG_LEVEL="$LOG_LEVEL_QUIET"
                 ;;
             -x) set -x
+                ;;
+            --dump-env)
+                DUMP_ENV=1
+                ;;
+            --dump-net)
+                DUMP_NET=1
+                ;;
+            --dump-uppm)
+                DUMP_UPPM=1
+                ;;
+            --dump-xcinfo)
+                DUMP_XCINFO=1
+                ;;
+            --dump-formula)
+                DUMP_FORMULA=1
                 ;;
             --dump-go)
                 DUMP_GO=1
@@ -6805,12 +6847,6 @@ inspect_install_arguments() {
                 ;;
             --dump-ld)
                 DUMP_LD=1
-                ;;
-            --dump-env)
-                DUMP_ENV=1
-                ;;
-            --dump-net)
-                DUMP_NET=1
                 ;;
             --dump-ninja)
                 DUMP_NINJA=1
@@ -6877,7 +6913,7 @@ inspect_install_arguments() {
         __inspect_xcode_info "$SPECIFIED_DEVELOPER_DIR"
     fi
 
-    if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
+    if [ "$DUMP_XCINFO" = 1 ] ; then
         __println_xcode_info
     fi
 
@@ -7965,6 +8001,18 @@ ${COLOR_GREEN}xcpkg install <PACKAGE-NAME|PACKAGE-SPEC>... [INSTALL-OPTIONS]${CO
         ${COLOR_BLUE}-x${COLOR_OFF}
             set -x
 
+        ${COLOR_BLUE}--dump-env${COLOR_OFF}
+            print all environment variables before starting to build.
+
+        ${COLOR_BLUE}--dump-net${COLOR_OFF}
+            show detailed http messages.
+
+        ${COLOR_BLUE}--dump-xcinfo${COLOR_OFF}
+            show xcode information.
+
+        ${COLOR_BLUE}--dump-formula${COLOR_OFF}
+            show formula content.
+
         ${COLOR_BLUE}--dump-go${COLOR_OFF}
             pass -x argument to go build command.
 
@@ -7974,11 +8022,8 @@ ${COLOR_GREEN}xcpkg install <PACKAGE-NAME|PACKAGE-SPEC>... [INSTALL-OPTIONS]${CO
         ${COLOR_BLUE}--dump-ld${COLOR_OFF}
             pass -Wl,-v argument to linker.
 
-        ${COLOR_BLUE}--dump-env${COLOR_OFF}
-            print all environment variables before starting to build.
-
-        ${COLOR_BLUE}--dump-net${COLOR_OFF}
-            show detailed http messages.
+        ${COLOR_BLUE}--dump-uppm${COLOR_OFF}
+            pass -v argument to uppm command.
 
         ${COLOR_BLUE}--dump-ninja${COLOR_OFF}
             pass -v argument to ninja command.
@@ -8083,7 +8128,7 @@ XCPKG="$0"
 
 XCPKG_PATH="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
 
-XCPKG_ACTION="$*"
+XCPKG_ARGS="$*"
 
 XCPKG_VERSION=0.20.1
 
