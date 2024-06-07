@@ -82,12 +82,16 @@ list_size() {
     printf '%s\n' "$#"
 }
 
-is_integer() {
+isInteger() {
     case "${1#[+-]}" in
         (*[!0123456789]*) return 1 ;;
         ('')              return 1 ;;
         (*)               return 0 ;;
     esac
+}
+
+isCrossBuild() {
+    [ "$CROSS_COMPILING" = 1 ]
 }
 
 bppend_to_PATH() {
@@ -104,7 +108,7 @@ bppend_to_ACLOCAL_PATH() {
     esac
 }
 
-sed_in_place() {
+sedInPlace() {
     if [ "${SED_VERBOSE:-0}" = 1 ] ; then
         if [ -z "$SED" ] ; then
             SED="$(command -v gsed || command -v sed)" || abort 1 "command not found: gsed"
@@ -1029,7 +1033,7 @@ filetype_from_url() {
     fi
 
     if [ -n "$PACKAGE_GIT_NTH" ] ; then
-        is_integer "$PACKAGE_GIT_NTH" || abort "the value of git-nth mapping should be an integer."
+        isInteger "$PACKAGE_GIT_NTH" || abort "the value of git-nth mapping should be an integer."
     fi
 
     #########################################################################################
@@ -3289,10 +3293,10 @@ EOF
 
     case $1 in
         libz)
-            sed_in_place 's|/share/pkgconfig|/lib/pkgconfig|' CMakeLists.txt
+            sedInPlace 's|/share/pkgconfig|/lib/pkgconfig|' CMakeLists.txt
             ;;
         texinfo)
-            sed_in_place '/libintl/d' tp/Texinfo/XS/parsetexi/api.c
+            sedInPlace '/libintl/d' tp/Texinfo/XS/parsetexi/api.c
             ;;
         python3)
             unset PYTHONHOME
@@ -4113,7 +4117,7 @@ $DOT_CONTENT
                             for GIT_SUBMODULE_URL in $GIT_SUBMODULE_URLS
                             do
                                 GIT_SUBMODULE_URI="$("$XCPKG_URL_TRANSFORM" "$GIT_SUBMODULE_URL")"
-                                sed_in_place "s|$GIT_SUBMODULE_URL|$GIT_SUBMODULE_URI|" "$GIT_SUBMODULE_PATH"
+                                sedInPlace "s|$GIT_SUBMODULE_URL|$GIT_SUBMODULE_URI|" "$GIT_SUBMODULE_PATH"
                             done
                         done
                     fi
@@ -4285,7 +4289,7 @@ $DOT_CONTENT
             run chmod a+x "$FILEPATH"
 
             if [ "$FILENAME" = 'config.sub' ] ; then
-                sed_in_place 's/arm64-*/arm64-*|arm64e-*/g' "$FILEPATH"
+                sedInPlace 's/arm64-*/arm64-*|arm64e-*/g' "$FILEPATH"
             fi
 
             find "$PACKAGE_BSCRIPT_DIR" -name "$FILENAME" -exec cp -vf "$FILEPATH" {} \;
@@ -5010,7 +5014,7 @@ $PACKAGE_DOPATCH
 
     # https://github.com/golang/go/issues/65568
     if [ -f go.mod ] ; then
-        sed_in_place 's|^go 1.22$|go 1.22.0|' go.mod
+        sedInPlace 's|^go 1.22$|go 1.22.0|' go.mod
     fi
 
     #########################################################################################
@@ -5557,42 +5561,42 @@ __tweak_pc_files() {
 
     for pcfile in $PC_FILES
     do
-        sed_in_place "s|$PACKAGE_INSTALL_DIR|\${pcfiledir}/../..|g" "$pcfile"
+        sedInPlace "s|$PACKAGE_INSTALL_DIR|\${pcfiledir}/../..|g" "$pcfile"
 
         # https://gcc.gnu.org/onlinedocs/gcc/Directory-Options.html
-        sed_in_place "s|-I${XCPKG_HOME}[^' ]*||g"   "$pcfile"
-        sed_in_place "s|-L${XCPKG_HOME}[^' ]*||g"   "$pcfile"
-        sed_in_place "s|-R[^' ]*||g"                "$pcfile"
-        sed_in_place "s|-F[^' ]*||g"                "$pcfile"
-        sed_in_place "s|-idirafter[^' ]*||g"        "$pcfile"
-        sed_in_place "s|-isysroot [^' ]*||g"        "$pcfile"
-        sed_in_place "s|-arch [^' ]*||g"            "$pcfile"
-        sed_in_place 's|-flto||g'                   "$pcfile"
-        sed_in_place 's|-Wl,--strip-debug||g'       "$pcfile"
-        sed_in_place 's|-Wl,-search_paths_first||g' "$pcfile"
+        sedInPlace "s|-I${XCPKG_HOME}[^' ]*||g"   "$pcfile"
+        sedInPlace "s|-L${XCPKG_HOME}[^' ]*||g"   "$pcfile"
+        sedInPlace "s|-R[^' ]*||g"                "$pcfile"
+        sedInPlace "s|-F[^' ]*||g"                "$pcfile"
+        sedInPlace "s|-idirafter[^' ]*||g"        "$pcfile"
+        sedInPlace "s|-isysroot [^' ]*||g"        "$pcfile"
+        sedInPlace "s|-arch [^' ]*||g"            "$pcfile"
+        sedInPlace 's|-flto||g'                   "$pcfile"
+        sedInPlace 's|-Wl,--strip-debug||g'       "$pcfile"
+        sedInPlace 's|-Wl,-search_paths_first||g' "$pcfile"
 
-        sed_in_place "s|-mmacosx-version-min=[^' ]*||g" "$pcfile"
+        sedInPlace "s|-mmacosx-version-min=[^' ]*||g" "$pcfile"
 
-        sed_in_place "s|${XCPKG_HOME}/.*/lib\(.*\)\.dylib|-l\1|g" "$pcfile"
-        sed_in_place "s|${XCPKG_HOME}/.*/lib\(.*\)\.a|-l\1|g"     "$pcfile"
+        sedInPlace "s|${XCPKG_HOME}/.*/lib\(.*\)\.dylib|-l\1|g" "$pcfile"
+        sedInPlace "s|${XCPKG_HOME}/.*/lib\(.*\)\.a|-l\1|g"     "$pcfile"
 
         if grep 'Libs.private:' "$pcfile" > /dev/null ; then
             if grep 'Libs:' "$pcfile" > /dev/null ; then
                 LIBS_PRIVATE_CONTENT=$(sed -n '/Libs.private:/p' "$pcfile" | cut -c14-)
-                sed_in_place "/Libs:/s|\$|$LIBS_PRIVATE_CONTENT|" "$pcfile"
-                sed_in_place '/Libs.private:/d' "$pcfile"
+                sedInPlace "/Libs:/s|\$|$LIBS_PRIVATE_CONTENT|" "$pcfile"
+                sedInPlace '/Libs.private:/d' "$pcfile"
             else
-                sed_in_place 's|Libs.private:|Libs:|' "$pcfile"
+                sedInPlace 's|Libs.private:|Libs:|' "$pcfile"
             fi
         fi
 
         if grep 'Requires.private:' "$pcfile" > /dev/null ; then
             if grep 'Requires:' "$pcfile" > /dev/null ; then
                 REQUIRES_PRIVATE_CONTENT=$(sed -n '/Requires.private:/p' "$pcfile" | cut -c18-)
-                sed_in_place "/Requires:/s|\$|$REQUIRES_PRIVATE_CONTENT|" "$pcfile"
-                sed_in_place '/Requires.private:/d' "$pcfile"
+                sedInPlace "/Requires:/s|\$|$REQUIRES_PRIVATE_CONTENT|" "$pcfile"
+                sedInPlace '/Requires.private:/d' "$pcfile"
             else
-                sed_in_place 's|Requires.private:|Requires:|' "$pcfile"
+                sedInPlace 's|Requires.private:|Requires:|' "$pcfile"
             fi
         fi
     done
@@ -5869,7 +5873,7 @@ configure_only() {
         CONFIGURE="$PACKAGE_BSCRIPT_DIR/configure"
 
         if [ "$CROSS_COMPILING" = 1 ] ; then
-            sed_in_place 's/cross_compiling=no/cross_compiling=yes/g' "$CONFIGURE"
+            sedInPlace 's/cross_compiling=no/cross_compiling=yes/g' "$CONFIGURE"
         fi
 
         if run $CONFIGURE $CONFIGURE_ARGS $@ $CONFIGURE_ENVS ; then
@@ -5890,8 +5894,8 @@ configure_only() {
     if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
         for Makefile in $(find "$PACKAGE_BSCRIPT_DIR" -name Makefile)
         do
-            sed_in_place 's|\t@|\t|g'     "$Makefile"
-            sed_in_place 's|@echo|echo|g' "$Makefile"
+            sedInPlace 's|\t@|\t|g'     "$Makefile"
+            sedInPlace 's|@echo|echo|g' "$Makefile"
         done
         unset Makefile
     fi
@@ -6877,7 +6881,7 @@ inspect_install_arguments() {
                 ;;
             --jobs=*)
                 BUILD_NJOBS="${1#*=}"
-                is_integer "$BUILD_NJOBS" || abort 1 "--jobs=INTEGER argument's value must be an integer."
+                isInteger "$BUILD_NJOBS" || abort 1 "--jobs=INTEGER argument's value must be an integer."
                 ;;
             --disable-ccache)
                 ENABLE_CCACHE=0
@@ -8130,7 +8134,7 @@ XCPKG_PATH="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
 
 XCPKG_ARGS="$*"
 
-XCPKG_VERSION=0.20.1
+XCPKG_VERSION=0.21.0
 
 XCPKG_OFFICIAL_FORMULA_REPO_URL='https://github.com/leleliu008/xcpkg-formula-repository-official-core'
 
