@@ -588,9 +588,10 @@ a xcpkg formula's file content only has one level mapping and shall has followin
 |||
 |`CROSS_COMPILING`|value shall be 0 or 1. indicates whether is cross-compiling.|
 |||
-|`XCPKG`|the name or path of `xcpkg` that is being passed into.|
-|`XCPKG_PATH`|the full path of `xcpkg` that is being passed into or resolved.|
-|`XCPKG_ARGS`|the arguments of `xcpkg` that is being passed into.|
+|`XCPKG_ARG0`|the 1st arguments of `xcpkg` that you've supplied.|
+|`XCPKG_ARG1`|the 2nd arguments of `xcpkg` that you've supplied.|
+|`XCPKG_ARGV`|the all arguments of `xcpkg` that you've supplied.|
+|`XCPKG_PATH`|the full path of `xcpkg` that you're running.|
 |`XCPKG_HOME`|the home directory of `xcpkg` that you're running.|
 |`XCPKG_VERSION`|the version of `xcpkg` that you're running.|
 |||

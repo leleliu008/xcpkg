@@ -1056,7 +1056,7 @@ filetype_from_url() {
             ;;
         file://*)
             PACKAGE_SRC_FILEPATH=$(printf '%s\n' "$PACKAGE_SRC_URL" | cut -c8-)
-            PACKAGE_SRC_FILENAME="$(basename "$PACKAGE_SRC_FILEPATH")"
+            PACKAGE_SRC_FILENAME="${PACKAGE_SRC_FILEPATH##*/}"
             PACKAGE_SRC_FILETYPE="$(filetype_from_url "$PACKAGE_SRC_FILENAME")"
             ;;
         *)  PACKAGE_SRC_FILETYPE="$(filetype_from_url "$PACKAGE_SRC_URL")"
@@ -2246,7 +2246,7 @@ EOF
 
 # __show_packages_depended_by_the_given_package <PACKAGE-NAME> [-t <d2|dot|box|svg|png>] [-o <OUTPUT-PATH>]
 __show_packages_depended_by_the_given_package() {
-    [ -z "$1" ] && abort 1 "$XCPKG depends <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>], <PACKAGE-NAME> is unspecified."
+    [ -z "$1" ] && abort 1 "$XCPKG_ARG0 depends <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>], <PACKAGE-NAME> is unspecified."
 
     PACKAGE_NAME="$1"
 
@@ -2264,18 +2264,18 @@ __show_packages_depended_by_the_given_package() {
                 case $1 in
                     d2|dot|box|svg|png)
                         OUTPUT_TYPE="$1" ;;
-                    '') abort 1 "$XCPKG depends <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>], -t option is given but <OUTPUT-TYPE> is unspecified." ;;
-                    *)  abort 1 "$XCPKG depends <PACKAGE-NAME> [-t <OUTPUT-TYPE>], unsupported <OUTPUT-TYPE>: $1, <OUTPUT-TYPE> should be one of d2|dot|box|svg|png"
+                    '') abort 1 "$XCPKG_ARG0 depends <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>], -t option is given but <OUTPUT-TYPE> is unspecified." ;;
+                    *)  abort 1 "$XCPKG_ARG0 depends <PACKAGE-NAME> [-t <OUTPUT-TYPE>], unsupported <OUTPUT-TYPE>: $1, <OUTPUT-TYPE> should be one of d2|dot|box|svg|png"
                 esac
                 ;;
             -o) shift
                 if [ -z "$1" ] ; then
-                    abort 1 "$XCPKG depends <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>], -o option is given but <OUTPUT-PATH> is unspecified."
+                    abort 1 "$XCPKG_ARG0 depends <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>], -o option is given but <OUTPUT-PATH> is unspecified."
                 else
                     OUTPUT_PATH="$1"
                 fi
                 ;;
-            *)  abort 1 "$XCPKG depends <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>] [--keep-session-dir], unrecognized option: $1"
+            *)  abort 1 "$XCPKG_ARG0 depends <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>] [--keep-session-dir], unrecognized option: $1"
         esac
         shift
     done
@@ -2619,7 +2619,7 @@ __fetch_resources_of_the_given_package() {
                 GIT_BRANCH_NAME=master
                 GIT_REF_SPEC="+HEAD:refs/remotes/origin/master"
             else
-                GIT_BRANCH_NAME="$(basename "$PACKAGE_GIT_REF")"
+                GIT_BRANCH_NAME="${PACKAGE_GIT_REF##*/}"
                 GIT_REF_SPEC="+$PACKAGE_GIT_REF:refs/remotes/origin/$GIT_BRANCH_NAME"
             fi
         else
@@ -2737,19 +2737,19 @@ __fetch_resources_of_the_given_package() {
             -t) shift
 
                 if [ -z "$1" ] ; then
-                    abort 1 "$XCPKG pack <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>], -t option is specified but <OUTPUT-TYPE> is unspecified."
+                    abort 1 "$XCPKG_ARG0 pack <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>], -t option is specified but <OUTPUT-TYPE> is unspecified."
                 else
                     OUTPUT_TYPE="$1"
                 fi
 
                 case $OUTPUT_TYPE in
                     zip|tar.gz|tar.xz|tar.lz|tar.bz2) ;;
-                    *) abort 1 "$XCPKG pack <PACKAGE-NAME> [-t <OUTPUT-TYPE>], unsupported <OUTPU-TYPE>: $OUTPUT_TYPE, <OUTPU-TYPE> should be one of zip|tar.gz|tar.xz|tar.lz|tar.bz2"
+                    *) abort 1 "$XCPKG_ARG0 pack <PACKAGE-NAME> [-t <OUTPUT-TYPE>], unsupported <OUTPU-TYPE>: $OUTPUT_TYPE, <OUTPU-TYPE> should be one of zip|tar.gz|tar.xz|tar.lz|tar.bz2"
                 esac
                 ;;
             -o) shift
                 if [ -z "$1" ] ; then
-                    abort 1 "$XCPKG pack <PACKAGE-NAME> [-t <OUTPU-TYPE>] [-o <OUTPUT-PATH>], -o option is specified but <OUTPUT-PATH> is unspecified."
+                    abort 1 "$XCPKG_ARG0 pack <PACKAGE-NAME> [-t <OUTPU-TYPE>] [-o <OUTPUT-PATH>], -o option is specified but <OUTPUT-PATH> is unspecified."
                 else
                     OUTPUT_PATH="$1"
                 fi
@@ -2760,7 +2760,7 @@ __fetch_resources_of_the_given_package() {
                     EXCLUDES="$EXCLUDES $EXCLUDE"
                 fi
                 ;;
-            *)  abort 1 "$XCPKG pack <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>] [--keep-session-dir], unrecognized option: $1"
+            *)  abort 1 "$XCPKG_ARG0 pack <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>] [--keep-session-dir], unrecognized option: $1"
         esac
         shift
     done
@@ -3410,7 +3410,8 @@ __install_the_given_package() {
 
     #########################################################################################
 
-    cat <<EOF
+    if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
+        cat <<EOF
      TIMESTAMP_UNIX = $TIMESTAMP_UNIX
 
      NATIVE_OS_KIND = $NATIVE_OS_KIND
@@ -3425,8 +3426,9 @@ __install_the_given_package() {
 DEVELOPER_DIR       = $DEVELOPER_DIR
 XCODE_VERSION       = $XCODE_VERSION
 
-XCPKG               = $XCPKG
-XCPKG_ARGS          = $XCPKG_ARGS
+XCPKG_ARG0          = $XCPKG_ARG0
+XCPKG_ARG1          = $XCPKG_ARG1
+XCPKG_ARGV          = $XCPKG_ARGV
 XCPKG_PATH          = $XCPKG_PATH
 XCPKG_HOME          = $XCPKG_HOME
 XCPKG_VERSION       = $XCPKG_VERSION
@@ -3440,6 +3442,7 @@ XCPKG_URL_TRANSFORM = $XCPKG_URL_TRANSFORM
    KEEP_SESSION_DIR = $KEEP_SESSION_DIR
 EXPORT_COMPILE_COMMANDS_JSON = $EXPORT_COMPILE_COMMANDS_JSON
 EOF
+    fi
 
     #########################################################################################
 
@@ -3509,25 +3512,24 @@ EOF
 
     #########################################################################################
 
-    cat <<EOF
+    if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
+        cat <<EOF
 PACKAGE_WORKING_DIR = $PACKAGE_WORKING_DIR
 PACKAGE_BCACHED_DIR = $PACKAGE_BCACHED_DIR
 PACKAGE_INSTALL_DIR = $PACKAGE_INSTALL_DIR
 EOF
+    fi
 
     #########################################################################################
 
-    step "onstart"
-
-    if [ -z "$PACKAGE_ONSTART" ] ; then
-        note "onstart mapping was not found in formula, skipped."
-    else
+    [ -n "$PACKAGE_ONSTART" ] && {
+        step "onstart"
         eval "
 onstart() {
 $PACKAGE_ONSTART
 }"
         onstart
-    fi
+    }
 
     #########################################################################################
 
@@ -4060,7 +4062,7 @@ $DOT_CONTENT
 
     #########################################################################################
 
-    step "fetch source/patches/resources"
+    step "fetch resources"
 
     case $PACKAGE_SRC_URL in
         '')
@@ -4078,7 +4080,7 @@ $DOT_CONTENT
                         GIT_BRANCH_NAME=master
                         GIT_REF_SPEC="+HEAD:refs/remotes/origin/master"
                     else
-                        GIT_BRANCH_NAME="$(basename "$PACKAGE_GIT_REF")"
+                        GIT_BRANCH_NAME="${PACKAGE_GIT_REF##*/}"
                         GIT_REF_SPEC="+$PACKAGE_GIT_REF:refs/remotes/origin/$GIT_BRANCH_NAME"
                     fi
                 else
@@ -4145,7 +4147,7 @@ $DOT_CONTENT
 
     #########################################################################################
 
-    step "unpack/copy source/patches/resources to the proper location"
+    step "unpack/copy resources"
 
     if [ -n "$PACKAGE_SRC_FILEPATH" ] ; then
         case $PACKAGE_SRC_FILETYPE in
@@ -4273,7 +4275,7 @@ $DOT_CONTENT
     # https://www.gnu.org/software/gettext/manual/html_node/config_002eguess.html
     # https://git.savannah.gnu.org/cgit/config.git/tree/
 
-    step "replace config.sub and config.guess with the latest version"
+    step "update config.{sub,guess}"
 
     {
         [ "$PACKAGE_USE_BSYSTEM_AUTOGENSH" = 1 ] ||
@@ -4298,11 +4300,9 @@ $DOT_CONTENT
 
     #########################################################################################
 
-    step "onready"
+    [ -n "$PACKAGE_ONREADY" ] && {
+        step "onready"
 
-    if [ -z "$PACKAGE_ONREADY" ] ; then
-        note "onready mapping was not found in formula, skipped."
-    else
         if [ "$PWD" != "$PACKAGE_BSCRIPT_DIR" ] ; then
             run     cd "$PACKAGE_BSCRIPT_DIR"
         fi
@@ -4312,15 +4312,13 @@ onready() {
 $PACKAGE_ONREADY
 }"
         onready
-    fi
+    }
 
     #########################################################################################
 
-    step "build for native"
+    if [ -n "$PACKAGE_DO12345" ] ; then
+        step "build for native"
 
-    if [ -z "$PACKAGE_DO12345" ] ; then
-        note "do12345 mapping was not found in formula, skipped."
-    else
         NATIVE_BUILD_NEEDED=1
 
         NATIVE_INSTALLED_VERSION_TXT_FILEPATH="$NATIVE_PACKAGE_INSTALLED_ROOT/$PACKAGE_NAME/version.txt"
@@ -4640,7 +4638,7 @@ $PACKAGE_DO12345
     # https://www.freedesktop.org/wiki/Software/pkg-config/CrossCompileProposal
     unset PKG_CONFIG_SYSROOT_DIR
 
-    if [ "$DUMP_PKG_CONFIG" = 1 ] ; then
+    if [ "$DEBUG_PKG_CONFIG" = 1 ] ; then
         export PKG_CONFIG_DEBUG_SPEW='set'
     fi
 
@@ -4724,7 +4722,7 @@ $PACKAGE_DO12345
             release) CMAKE_BUILD_TYPE=Release ;;
         esac
 
-        if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
+        if [ "$DUMP_CMAKE" = 1 ] ; then
             CMAKE_VERBOSE_MAKEFILE=ON
             CMAKE_COLOR_MAKEFILE=ON
             CMAKE_INSTALL_MESSAGE=ALWAYS
@@ -4735,7 +4733,7 @@ $PACKAGE_DO12345
         fi
 
         # https://cmake.org/cmake/help/latest/variable/CMAKE_FIND_DEBUG_MODE.html
-        if [ "$DUMP_CMAKE" = 1 ] ; then
+        if [ "$DEBUG_CMAKE" = 1 ] ; then
             CMAKE_FIND_DEBUG_MODE=ON
         else
             CMAKE_FIND_DEBUG_MODE=OFF
@@ -4948,16 +4946,14 @@ $PACKAGE_DO12345
 
     #########################################################################################
 
-    step "create symbolic links named as the C/C++ compiler point to ccache"
+    [ "$CCACHE_ENABLED" = 1 ] && {
+        step "setup ccache"
 
-    if [ "$CCACHE_ENABLED" = 1 ] ; then
-        run ln -sf "$CCACHE" "$PACKAGE_INSTALLING_BIN_DIR/$(basename "$CC")"
-        run ln -sf "$CCACHE" "$PACKAGE_INSTALLING_BIN_DIR/$(basename "$CXX")"
+        run ln -sf "$CCACHE" "$PACKAGE_INSTALLING_BIN_DIR/${CC##*/}"
+        run ln -sf "$CCACHE" "$PACKAGE_INSTALLING_BIN_DIR/${CXX##*/}"
 
         "$CCACHE" -s > "$PACKAGE_WORKING_DIR/ccache-s.txt"
-    else
-        note "ccache is disabled, skipped."
-    fi
+    }
 
     #########################################################################################
 
@@ -4994,15 +4990,13 @@ $PACKAGE_DO12345
         done
     fi
 
-    if [ -z "$PACKAGE_DOPATCH" ] ; then
-        note "dopatch mapping was not found in formula, skipped."
-    else
+    [ -n "$PACKAGE_DOPATCH" ] && {
         eval "
 dopatch() {
 $PACKAGE_DOPATCH
 }"
         dopatch
-    fi
+    }
 
     #########################################################################################
 
@@ -5060,11 +5054,9 @@ $PACKAGE_DOPATCH
 
     #########################################################################################
 
-    step "prepare for target"
+    [ -n "$PACKAGE_PREPARE" ] && {
+        step "prepare for target"
 
-    if [ -z "$PACKAGE_PREPARE" ] ; then
-        note "prepare mapping was not found in formula, skipped."
-    else
         if [ "$PWD" != "$PACKAGE_BSCRIPT_DIR" ] ; then
             run     cd "$PACKAGE_BSCRIPT_DIR"
         fi
@@ -5074,7 +5066,7 @@ prepare() {
 $PACKAGE_PREPARE
 }"
         prepare
-    fi
+    }
 
     #########################################################################################
 
@@ -5106,23 +5098,23 @@ $PACKAGE_DOBUILD
 
     [   -d "$PACKAGE_INSTALL_DIR" ] || abort 1 "nothing was installed."
 
+    step "change to the install directory"
+
     run cd "$PACKAGE_INSTALL_DIR"
 
     [ -z "$(ls)" ]                  && abort 1 "nothing was installed."
 
     #########################################################################################
 
-    step "do some tweaks"
+    [ -n "$PACKAGE_DOTWEAK" ] && {
+        step "do some tweaks"
 
-    if [ -z "$PACKAGE_DOTWEAK" ] ; then
-        note "dotweak mapping was not found in formula, skipped."
-    else
         eval "
 dotweak() {
 $PACKAGE_DOTWEAK
 }"
         dotweak
-    fi
+    }
 
     #########################################################################################
 
@@ -5258,17 +5250,15 @@ $PACKAGE_DOTWEAK
 
     #########################################################################################
 
-    step "onfinal"
+    [ -n "$PACKAGE_ONFINAL" ] && {
+        step "onfinal"
 
-    if [ -z "$PACKAGE_ONFINAL" ] ; then
-        note "onfinal mapping was not found in formula, skipped."
-    else
         eval "
 onfinal() {
 $PACKAGE_ONFINAL
 }"
         onfinal
-    fi
+    }
 
     #########################################################################################
 
@@ -5360,11 +5350,13 @@ __check_mach_o_files() {
 
         RUNPATHs=$(otool -l "$FILEPATH" | grep LC_RPATH    -A2 | grep path | sed 's|^[[:space:]]*||' | cut -d ' ' -f2)
 
-        cat <<EOF
+        if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
+            cat <<EOF
 FILEPATH = $FILEPATH
 DYLIB_ID = $DYLIB_ID
 RUNPATHs = $RUNPATHs
 EOF
+        fi
 
         #######################################################################
 
@@ -5449,10 +5441,12 @@ EOF
         #return 0
     fi
 
-    cat <<EOF
+    if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
+        cat <<EOF
 FILEPATH = $1
 NEEDEDs  = $NEEDEDs
 EOF
+    fi
 
     for NEEDED in $NEEDEDs
     do
@@ -5891,7 +5885,7 @@ configure_only() {
         fi
     fi
 
-    if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
+    if [ "$DUMP_GMAKE" = 1 ] ; then
         for Makefile in $(find "$PACKAGE_BSCRIPT_DIR" -name Makefile)
         do
             sedInPlace 's|\t@|\t|g'     "$Makefile"
@@ -5904,7 +5898,7 @@ configure_only() {
 configure() {
     configure_only "$@" &&
     gmakew clean &&
-    gmakew V=1   &&
+    gmakew &&
     gmakew install
 }
 
@@ -5913,11 +5907,17 @@ configure() {
 # {{{ gmakew
 
 gmakew() {
-    if [ "$DUMP_GMAKE" = 1 ] ; then
-        run "$GMAKE -w -j$BUILD_NJOBS --debug V=1 $*"
-    else
-        run "$GMAKE -w -j$BUILD_NJOBS $*"
+    GMAKE_ARGS="-w -j$BUILD_NJOBS"
+
+    if [ "$DEBUG_GMAKE" = 1 ] ; then
+        GMAKE_ARGS="$GMAKE_ARGS --debug"
     fi
+
+    if [ "$DUMP_GMAKE" = 1 ] ; then
+        GMAKE_ARGS="$GMAKE_ARGS V=1"
+    fi
+
+    run "$GMAKE" "$GMAKE_ARGS" "$@"
 }
 
 # }}}
@@ -5925,10 +5925,10 @@ gmakew() {
 # {{{ ninjaw
 
 ninjaw() {
-    if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
-        run "$NINJA -j $BUILD_NJOBS -v $*"
+    if [ "$DUMP_NINJA" = 1 ] ; then
+        run "$NINJA" -j "$BUILD_NJOBS" -v "$@"
     else
-        run "$NINJA -j $BUILD_NJOBS    $*"
+        run "$NINJA" -j "$BUILD_NJOBS"    "$@"
     fi
 }
 
@@ -5965,7 +5965,7 @@ cmakew() {
             CMAKE_GENERATOR='Unix Makefiles'
         fi
 
-        if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
+        if [ "$DUMP_CMAKE" = 1 ] ; then
             CMAKE_VERBOSE_MAKEFILE=ON
             CMAKE_COLOR_MAKEFILE=ON
         else
@@ -5973,7 +5973,7 @@ cmakew() {
             CMAKE_COLOR_MAKEFILE=OFF
         fi
 
-        if [ "$DUMP_CMAKE" = 1 ] ; then
+        if [ "$DEBUG_CMAKE" = 1 ] ; then
             CMAKE_FIND_DEBUG_MODE=ON
         else
             CMAKE_FIND_DEBUG_MODE=OFF
@@ -6080,7 +6080,7 @@ endif()
 
 set(CMAKE_INSTALL_MESSAGE "$CMAKE_INSTALL_MESSAGE")
 EOF
-        [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] && {
+        [ "$DUMP_CMAKE" = 1 ] && {
             run bat --language=cmake --paging=never --style=numbers,grid "$CMAKE_TOOLCHAIN_FILE"
         }
 
@@ -6093,7 +6093,7 @@ EOF
             # https://cmake.org/cmake/help/latest/variable/CMAKE_FIND_LIBRARY_SUFFIXES.html
             printf 'set(CMAKE_FIND_LIBRARY_SUFFIXES ".a" ".dylib")\n' > "$CMAKE_PROJECT_INCLUDE"
 
-            if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
+            if [ "$DUMP_CMAKE" = 1 ] ; then
                 run bat --language=cmake --paging=never --style=plain "$CMAKE_PROJECT_INCLUDE"
             fi
         fi
@@ -6157,8 +6157,14 @@ xmakew() {
         esac
     done
 
-    if [ "$DUMP_XMAKE" = 1 ] && [ -z "$XMAKE_CONFIG_OPTION_vD" ]; then
-        XMAKE_CONFIG_OPTIONS="$XMAKE_CONFIG_OPTION_vD -vD"
+    if [ "$DEBUG_XMAKE" = 1 ] ; then
+        if [ -z "$XMAKE_CONFIG_OPTION_vD" ]; then
+            XMAKE_CONFIG_OPTIONS="$XMAKE_CONFIG_OPTIONS -vD"
+        fi
+    else
+        if [ "$DUMP_XMAKE" = 1 ] ; then
+            XMAKE_CONFIG_OPTIONS="$XMAKE_CONFIG_OPTIONS -v"
+        fi
     fi
 
     if [ -z "$XMAKE_CONFIG_OPTION_CLEAN" ] ; then
@@ -6256,7 +6262,7 @@ EOF
         MESON_SETUP_ARGS="$MESON_SETUP_ARGS --prefer-static"
     fi
 
-    if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
+    if [ "$DUMP_MESON" = 1 ] ; then
         MESON_COMPILE_ARGS="$MESON_COMPILE_ARGS -v"
     fi
 
@@ -6312,7 +6318,7 @@ cargow() {
 
             CARGO_BUILD_ARGS="$@"
 
-            if [ -z "$CARGO_BUILD_ARG_VV" ] && [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
+            if [ -z "$CARGO_BUILD_ARG_VV" ] && [ "$DUMP_CARGO" = 1 ] ; then
                 CARGO_BUILD_ARGS="$CARGO_BUILD_ARGS -vv"
             fi
 
@@ -6348,7 +6354,7 @@ cargow() {
 
             CARGO_INSTALL_ARGS="$@"
 
-            if [ -z "$CARGO_INSTALL_ARG_VV" ] && [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
+            if [ -z "$CARGO_INSTALL_ARG_VV" ] && [ "$DUMP_CARGO" = 1 ] ; then
                 CARGO_INSTALL_ARGS="$CARGO_INSTALL_ARGS -vv"
             fi
 
@@ -6391,7 +6397,7 @@ cargow() {
 
             CARGO_CINSTALL_ARGS="$@"
 
-            if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
+            if [ "$DUMP_CARGO" = 1 ] ; then
                 if [ -z "$CARGO_CINSTALL_ARG_Q" ] && [ -z "$CARGO_CINSTALL_ARG_V" ] && [ -z "$CARGO_CINSTALL_ARG_VV" ] ; then
                     CARGO_CINSTALL_ARGS="$CARGO_CINSTALL_ARGS -vv"
                 fi
@@ -6420,7 +6426,7 @@ cargow() {
 # {{{ gow
 
 gow() {
-    if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
+    if [ "$DUMP_GO" = 1 ] ; then
         run "go env | bat --language=bash --paging=never --style=plain"
     fi
 
@@ -6467,7 +6473,7 @@ gow() {
     GO_BUILD_ARGS='-trimpath'
 
     if [ -z "$GO_BUILD_ARGV_V" ] ; then
-        if [ "$LOG_LEVEL" -gt 0 ] ; then
+        if [ "$DUMP_GO" = 1 ] ; then
             GO_BUILD_ARGS="$GO_BUILD_ARGS -v"
         fi
     else
@@ -6475,7 +6481,7 @@ gow() {
     fi
 
     if [ -z "$GO_BUILD_ARGV_X" ] ; then
-        if [ "$DUMP_GO" = 1 ] ; then
+        if [ "$DEBUG_GO" = 1 ] ; then
             GO_BUILD_ARGS="$GO_BUILD_ARGS -x"
         fi
     else
@@ -6751,13 +6757,13 @@ inspect_install_arguments() {
     LOG_LEVEL_VERBOSE=2
     LOG_LEVEL_VERY_VERBOSE=3
 
-    LOG_LEVEL=1
-
-    unset BUILD_NJOBS
-
     unset DRYRUN
 
     unset PROFILE
+
+    unset LOG_LEVEL
+
+    unset BUILD_NJOBS
 
     unset ENABLE_LTO
 
@@ -6776,7 +6782,7 @@ inspect_install_arguments() {
     unset SPECIFIED_DEVELOPER_DIR
 
     unset DUMP_ENV
-    unset DUMP_NET
+    unset DUMP_HTTP
     unset DUMP_XCINFO
     unset DUMP_FORMULA
 
@@ -6786,20 +6792,29 @@ inspect_install_arguments() {
 
     unset DUMP_UPPM
 
+    unset DUMP_CARGO
+    unset DUMP_MESON
     unset DUMP_GMAKE
     unset DUMP_CMAKE
     unset DUMP_XMAKE
     unset DUMP_NINJA
-    unset DUMP_PKG_CONFIG
+
+    unset DEBUG_GO
+    unset DEBUG_GMAKE
+    unset DEBUG_CMAKE
+    unset DEBUG_XMAKE
+    unset DEBUG_PKG_CONFIG
 
     while [ -n "$1" ]
     do
         case $1 in
-            -vv)
-                LOG_LEVEL="$LOG_LEVEL_VERY_VERBOSE"
+            -x) set -x ;;
+            -q) LOG_LEVEL=0 ;;
+            -v)
+                LOG_LEVEL=2
 
                 DUMP_ENV=1
-                DUMP_NET=1
+                DUMP_HTTP=1
                 DUMP_UPPM=1
                 DUMP_XCINFO=1
                 DUMP_FORMULA=1
@@ -6808,31 +6823,44 @@ inspect_install_arguments() {
                 DUMP_CC=1
                 DUMP_LD=1
 
+                DUMP_CARGO=1
+                DUMP_MESON=1
                 DUMP_GMAKE=1
                 DUMP_CMAKE=1
                 DUMP_XMAKE=1
                 DUMP_NINJA=1
-                DUMP_PKG_CONFIG=1
                 ;;
-            -v)
-                LOG_LEVEL="$LOG_LEVEL_VERBOSE"
+            -vv)
+                LOG_LEVEL=3
 
                 DUMP_ENV=1
-                DUMP_NET=1
+                DUMP_HTTP=1
                 DUMP_UPPM=1
                 DUMP_XCINFO=1
                 DUMP_FORMULA=1
-                ;;
-            -q)
-                LOG_LEVEL="$LOG_LEVEL_QUIET"
-                ;;
-            -x) set -x
+
+                DUMP_GO=1
+                DUMP_CC=1
+                DUMP_LD=1
+
+                DUMP_CARGO=1
+                DUMP_MESON=1
+                DUMP_GMAKE=1
+                DUMP_CMAKE=1
+                DUMP_XMAKE=1
+                DUMP_NINJA=1
+
+                DEBUG_GO=1
+                DEBUG_GMAKE=1
+                DEBUG_CMAKE=1
+                DEBUG_XMAKE=1
+                DEBUG_PKG_CONFIG=1
                 ;;
             --dump-env)
                 DUMP_ENV=1
                 ;;
-            --dump-net)
-                DUMP_NET=1
+            --dump-http)
+                DUMP_HTTP=1
                 ;;
             --dump-uppm)
                 DUMP_UPPM=1
@@ -6861,9 +6889,32 @@ inspect_install_arguments() {
             --dump-cmake)
                 DUMP_CMAKE=1
                 ;;
-            --dump-pkg-config)
-                DUMP_PKG_CONFIG=1
+            --dump-xmake)
+                DUMP_XMAKE=1
                 ;;
+            --dump-meson)
+                DUMP_MESON=1
+                ;;
+            --dump-cargo)
+                DUMP_CARGO=1
+                ;;
+
+            --debug-go)
+                DEBUG_GO=1
+                ;;
+            --debug-gmake)
+                DEBUG_GMAKE=1
+                ;;
+            --debug-cmake)
+                DEBUG_CMAKE=1
+                ;;
+            --debug-xmake)
+                DEBUG_XMAKE=1
+                ;;
+            --debug-pkg-config)
+                DEBUG_PKG_CONFIG=1
+                ;;
+
             --upgrade)
                 REQUEST_TO_UPGRADE_IF_COULD_BE=1
                 ;;
@@ -6939,19 +6990,15 @@ inspect_install_arguments() {
 
     #########################################################################################
 
-    if [ "$DUMP_CC" = 1 ] ; then
-        # this environment variable is used by target-wrapper-*
-        export XCPKG_VERBOSE=1
-    fi
-
-    if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
-        SED_VERBOSE=1
-    fi
-
-    if [ "$LOG_LEVEL" -eq "$LOG_LEVEL_QUIET" ] ; then
-        exec 1>/dev/null
-        exec 2>&1
-    fi
+    case $LOG_LEVEL in
+        '') LOG_LEVEL=1 ;;
+        0)
+            exec 1>/dev/null
+            exec 2>&1
+            ;;
+        1)  ;;
+        *)  SED_VERBOSE=1
+    esac
 
     #########################################################################################
 
@@ -7016,6 +7063,13 @@ inspect_install_arguments() {
 
     #########################################################################################
 
+    if [ "$DUMP_CC" = 1 ] ; then
+        # this environment variable is used by target-wrapper-*
+        export XCPKG_VERBOSE=1
+    fi
+
+    #########################################################################################
+
     # these environment variable is used by wrapper-native-*
     export XCPKG_COMPILER_ARGS_FOR_BUILD="-isysroot $SYSROOT_FOR_BUILD -mmacosx-version-min=$NATIVE_OS_VERS -arch $NATIVE_OS_ARCH -Qunused-arguments"
 
@@ -7072,7 +7126,7 @@ inspect_install_arguments() {
 __install_the_given_packages() {
     inspect_install_arguments "$@"
 
-    [ -z "$SPECIFIED_PACKAGE_SPEC_LIST" ] && abort 1 "$XCPKG install <PACKAGE-SPEC|PACKAGE-NAME>..., <|PACKAGE-SPEC|PACKAGE-NAME> is unspecified."
+    [ -z "$SPECIFIED_PACKAGE_SPEC_LIST" ] && abort 1 "$XCPKG_ARG0 install <PACKAGE-SPEC|PACKAGE-NAME>..., <|PACKAGE-SPEC|PACKAGE-NAME> is unspecified."
 
     #########################################################################################
 
@@ -7187,12 +7241,12 @@ __install_the_given_packages() {
                     if is_package__outdated "$PACKAGE_SPEC" ; then
                         (__install_the_given_package "$PACKAGE_SPEC")
                     else
-                        if [ "$LOG_LEVEL" -gt 0 ] ; then
+                        if [ "$LOG_LEVEL" -ne 0 ] ; then
                             printf "$COLOR_GREEN%-10s$COLOR_OFF already have been installed and is up-to-date.\n" "$PACKAGE_SPEC"
                         fi
                     fi
                 else
-                    if [ "$LOG_LEVEL" -gt 0 ] ; then
+                    if [ "$LOG_LEVEL" -ne 0 ] ; then
                         printf "$COLOR_GREEN%-10s$COLOR_OFF already have been installed.\n" "$PACKAGE_SPEC"
                     fi
                 fi
@@ -7603,7 +7657,7 @@ __uninstall_the_given_packages() {
         esac
     done
 
-    ZSH_COMPLETIONS_SCRIPT_FILENAME="_$(basename "$XCPKG")"
+    ZSH_COMPLETIONS_SCRIPT_FILENAME="${XCPKG_ARG0##*/}"
 
     if [ -n "$OUTPUT_DIR" ] ; then
         ZSH_COMPLETIONS_SCRIPT_OUT_FILEPATH="$OUTPUT_DIR/$ZSH_COMPLETIONS_SCRIPT_FILENAME"
@@ -7997,10 +8051,12 @@ ${COLOR_GREEN}xcpkg install <PACKAGE-NAME|PACKAGE-SPEC>... [INSTALL-OPTIONS]${CO
         ${COLOR_BLUE}-v${COLOR_OFF}
             verbose mode. many messages will be output to terminal.
 
+            This option is equivalent to --dump-* options all are supplied.
+
         ${COLOR_BLUE}-vv${COLOR_OFF}
             very verbose mode. many many messages will be output to terminal.
 
-            This option is equivalent to --dump-* options all are supplied.
+            This option is equivalent to --dump-* and --debug-* options all are supplied.
 
         ${COLOR_BLUE}-x${COLOR_OFF}
             set -x
@@ -8008,8 +8064,8 @@ ${COLOR_GREEN}xcpkg install <PACKAGE-NAME|PACKAGE-SPEC>... [INSTALL-OPTIONS]${CO
         ${COLOR_BLUE}--dump-env${COLOR_OFF}
             print all environment variables before starting to build.
 
-        ${COLOR_BLUE}--dump-net${COLOR_OFF}
-            show detailed http messages.
+        ${COLOR_BLUE}--dump-http${COLOR_OFF}
+            show http request/response.
 
         ${COLOR_BLUE}--dump-xcinfo${COLOR_OFF}
             show xcode information.
@@ -8018,7 +8074,7 @@ ${COLOR_GREEN}xcpkg install <PACKAGE-NAME|PACKAGE-SPEC>... [INSTALL-OPTIONS]${CO
             show formula content.
 
         ${COLOR_BLUE}--dump-go${COLOR_OFF}
-            pass -x argument to go build command.
+            pass -v argument to go build command.
 
         ${COLOR_BLUE}--dump-cc${COLOR_OFF}
             pass -v argument to clang command.
@@ -8033,12 +8089,33 @@ ${COLOR_GREEN}xcpkg install <PACKAGE-NAME|PACKAGE-SPEC>... [INSTALL-OPTIONS]${CO
             pass -v argument to ninja command.
 
         ${COLOR_BLUE}--dump-gmake${COLOR_OFF}
-            pass --debug argument to gmake command.
+            pass V=1 argument to gmake command.
 
         ${COLOR_BLUE}--dump-cmake${COLOR_OFF}
+            set(CMAKE_VERBOSE_MAKEFILE ON)
+
+        ${COLOR_BLUE}--dump-xmake${COLOR_OFF}
+            pass -v argument to xmake command.
+
+        ${COLOR_BLUE}--dump-meson${COLOR_OFF}
+            pass -v argument to meson command.
+
+        ${COLOR_BLUE}--dump-cargo${COLOR_OFF}
+            pass -v argument to cargo command.
+
+        ${COLOR_BLUE}--debug-go${COLOR_OFF}
+            pass -x argument to go build command.
+
+        ${COLOR_BLUE}--debug-gmake${COLOR_OFF}
+            pass --debug argument to gmake command.
+
+        ${COLOR_BLUE}--debug-cmake${COLOR_OFF}
             set(CMAKE_FIND_DEBUG_MODE ON)
 
-        ${COLOR_BLUE}--dump-pkg-config${COLOR_OFF}
+        ${COLOR_BLUE}--debug-xmake${COLOR_OFF}
+            pass -vD argument to xmake command.
+
+        ${COLOR_BLUE}--debug-pkg-config${COLOR_OFF}
             export PKG_CONFIG_DEBUG_SPEW=1
 
         ${COLOR_BLUE}--profile=<debug|release>${COLOR_OFF}
@@ -8128,13 +8205,13 @@ fi
 
 ##################################################################################
 
-XCPKG="$0"
+XCPKG_VERSION=0.21.1
 
-XCPKG_PATH="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
+XCPKG_ARG0="$0"
+XCPKG_ARG1="$1"
+XCPKG_ARGV="$0 $*"
 
-XCPKG_ARGS="$*"
-
-XCPKG_VERSION=0.21.0
+XCPKG_PATH="$(cd "$(dirname "$0")" && pwd)/${0##*/}"
 
 XCPKG_OFFICIAL_FORMULA_REPO_URL='https://github.com/leleliu008/xcpkg-formula-repository-official-core'
 
@@ -8271,7 +8348,7 @@ export ACLOCAL_PATH="$XCPKG_CORE_DIR/share/aclocal"
 if [ -f "$XCPKG_CORE_DIR/env.sh" ] ; then
     .   "$XCPKG_CORE_DIR/env.sh"
 else
-    abort 1 "please run ${COLOR_GREEN}$XCPKG setup${COLOR_OFF} command first, then try again."
+    abort 1 "please run ${COLOR_GREEN}$XCPKG_ARG0 setup${COLOR_OFF} command first, then try again."
 fi
 
 ##################################################################################
