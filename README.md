@@ -8,7 +8,7 @@ A package builder/manager for [Xcode](https://developer.apple.com/xcode) to buil
 
 - Please do NOT place your own files under `~/.xcpkg` directory, as `xcpkg` will change files under `~/.xcpkg` directory without notice.
 
-- Please do NOT run `xcpkg` command in parallel to avoid generating dirty data.
+- Please do NOT run `xcpkg` command in parallel so as not to generate dirty data.
 
 ## Using xcpkg via GitHub Actions
 
@@ -350,7 +350,7 @@ all relevant directories and files are located under `~/.xcpkg` directory.
     xcpkg cleanup
     ```
 
-## environment variables
+## influential environment variables
 
 - **HOME**
 
@@ -435,7 +435,61 @@ all relevant directories and files are located under `~/.xcpkg` directory.
     export XCPKG_DEFAULT_TARGET=MacOSX-10.15-x86_64
     ```
 
-**Note:** some commonly used environment variables are override by this software, these are `CC`, `CXX`, `CPP`, `AS`, `AR`, `LD`, `CFLAGS`, `CPPFLAGS`, `LDFLAGS`, `PKG_CONFIG_LIBDIR`, `PKG_CONFIG_PATH`, `ACLOCAL_PATH`
+## environment variables unset by this software
+
+|ENV|used by|
+|-|-|
+|`SDKROOT`|`clang` `clang++`|
+|`MACOSX_DEPLOYMENT_TARGET`|`clang` `clang++`|
+|`WATCHOS_DEPLOYMENT_TARGET`|`clang` `clang++`|
+|`IPHONEOS_DEPLOYMENT_TARGET`|`clang` `clang++`|
+|`TARGET_ARCH`|`gmake`|
+
+## environment variables override by this software
+
+|ENV|used by|
+|-|-|
+|`CC`|`configure`|
+|`CXX`|`configure`|
+|`CPP`|`configure`|
+|`AS`|`configure`|
+|`AR`|`configure`|
+|`LD`|`configure`|
+|`CFLAGS`|`configure`|
+|`CXXFLAGS`|`configure`|
+|`CPPFLAGS`|`configure`|
+|`LDFLAGS`|`configure`|
+|`LIBS`|`configure`|
+|||
+|`CMAKE_GENERATOR`|`cmake`|
+|`CMAKE_BUILD_PARALLEL_LEVEL`|`cmake`|
+|`CMAKE_EXPORT_COMPILE_COMMANDS`|`cmake`|
+|||
+|`RUST_BACKTRACE`|`cargo`|
+|`RUSTFLAGS`|`cargo`|
+|`CARGO_BUILD_JOBS`|`cargo`|
+|`CARGO_BUILD_TARGET`|`cargo`|
+|`CARGO_BUILD_TARGET_DIR`|`cargo`|
+|||
+|`CGO_ENABLED`|`go`|
+|`CGO_CFLAGS`|`go`|
+|`CGO_CXXFLAGS`|`go`|
+|`CGO_CPPFLAGS`|`go`|
+|`CGO_LDFLAGS`|`go`|
+|`GO111MODULE`|`go`|
+|`GOOS`|`go`|
+|`GOARCH`|`go`|
+|||
+|`PKG_CONFIG_LIBDIR`|`pkg-config`|
+|`PKG_CONFIG_PATH`|`pkg-config`|
+|`PKG_CONFIG_DEBUG_SPEW`|`pkg-config`|
+|||
+|`ACLOCAL_PATH`|`aclocal`|
+|`XDG_DATA_DIRS`|`g-ir-scanner`|
+|`XML_CATALOG_FILES`|`xsltproc`|
+|`PERL_MM_USE_DEFAULT`|`cpan`|
+|`BAT_THEME`|`bat`|
+|`IFS`|`shell`|
 
 ## xcpkg formula scheme
 
