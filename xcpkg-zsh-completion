@@ -168,34 +168,35 @@ function _xcpkg() {
                         '--profile=-[specify build profile]:profile:(debug release)' \
                         '--developer-dir=-[specify the developer dir]:developer-dir:{_files -/}' \
                         '-j[specify the number of jobs you can run in parallel]:jobs:(1 2 3 4 5 6 7 8 9)' \
-                        '-U[upgrade if it could be]' \
+                        '-U[upgrade if possible]' \
                         '-K[keep the session directory even if successfully installed]' \
                         '-E[export compile_commands.json]' \
                         '--disable-ccache[do not use ccache]' \
+                        '-v-env[show all environment variables before starting to build]' \
+                        '-v-http[show http request/response]' \
+                        '-v-xcode[show xcode information]' \
+                        '-v-formula[show formula content]' \
+                        '-v-go[pass -v argument to go build command]' \
+                        '-v-uppm[pass -v argument to uppm command]' \
+                        '-v-cargo[pass -v argument to cargo command]' \
+                        '-v-meson[pass -v argument to meson command]' \
+                        '-v-ninja[pass -v argument to ninja command]' \
+                        '-v-gmake[pass V=1 argument to gmake command]' \
+                        '-v-xmake[pass -v argument to xmake command]' \
+                        '-v-cmake[pass -DCMAKE_VERBOSE_MAKEFILE argument to cmake command]' \
+                        '-x-sh[set -x to debug current running shell]' \
+                        '-x-cc[pass -v argument to clang command]' \
+                        '-x-ld[pass -Wl,-v argument to linker]' \
+                        '-x-go[pass -x argument to go build command]' \
+                        '-x-cargo[pass -vv argument to cargo command]' \
+                        '-x-gmake[pass --debug argument to gmake command]' \
+                        '-x-cmake[pass -DCMAKE_FIND_DEBUG_MODE=ON argument to cmake command]' \
+                        '-x-xmake[pass -vD argument to xmake command]' \
+                        '-x-pkg-config[export PKG_CONFIG_DEBUG_SPEW=1]' \
                         + '(verbose_level)' \
-                        '-vv[very verbose mode. equivalent to --dump-* and --debug-* options all are supplied]' \
-                        '-v[verbose mode. equivalent to --dump-* options all are supplied]' \
-                        '-q[silent mode.]' \
-                        '-x[set -x]' \
-                        '--dump-env[print all environment variables before starting to build]' \
-                        '--dump-http[show http request/response]' \
-                        '--dump-xcinfo[show xcode information]' \
-                        '--dump-formula[show formula content]' \
-                        '--dump-go[pass -v argument to go build command]' \
-                        '--dump-cc[pass -v argument to clang command]' \
-                        '--dump-ld[pass -Wl,-v argument to linker]' \
-                        '--dump-uppm[pass -v argument to uppm command]' \
-                        '--dump-ninja[pass -v argument to ninja command]' \
-                        '--dump-meson[pass -v argument to meson command]' \
-                        '--dump-cargo[pass -vv argument to cargo command]' \
-                        '--dump-gmake[pass V=1 argument to gmake command]' \
-                        '--dump-xmake[pass -v argument to xmake command]' \
-                        '--dump-cmake[pass -DCMAKE_VERBOSE_MAKEFILE argument to cmake command]' \
-                        '--debug-go[pass -x argument to go build command]' \
-                        '--debug-gmake[pass --debug argument to gmake command]' \
-                        '--debug-cmake[pass -DCMAKE_FIND_DEBUG_MODE=ON argument to cmake command]' \
-                        '--debug-xmake[pass -vD argument to xmake command]' \
-                        '--debug-pkg-config[export PKG_CONFIG_DEBUG_SPEW=1]'
+                        '-x[very verbose mode. equivalent to -v-* and -x-* options all are supplied]' \
+                        '-v[verbose mode. equivalent to -v-* options all are supplied]' \
+                        '-q[silent mode.]'
                     ;;
                 reinstall)
                     _arguments \
@@ -204,34 +205,35 @@ function _xcpkg() {
                         '--profile=-[specify build profile]:profile:(debug release)' \
                         '--developer-dir=-[specify the developer dir]:developer-dir:{_files -/}' \
                         '-j[specify the number of jobs you can run in parallel]:jobs:(1 2 3 4 5 6 7 8 9)' \
-                        '-U[upgrade if it could be]' \
+                        '-U[upgrade if possible]' \
                         '-K[keep the session directory even if successfully installed]' \
                         '-E[export compile_commands.json]' \
                         '--disable-ccache[do not use ccache]' \
+                        '-v-env[show all environment variables before starting to build]' \
+                        '-v-http[show http request/response]' \
+                        '-v-xcode[show xcode information]' \
+                        '-v-formula[show formula content]' \
+                        '-v-go[pass -v argument to go build command]' \
+                        '-v-uppm[pass -v argument to uppm command]' \
+                        '-v-ninja[pass -v argument to ninja command]' \
+                        '-v-meson[pass -v argument to meson command]' \
+                        '-v-cargo[pass -v argument to cargo command]' \
+                        '-v-gmake[pass V=1 argument to gmake command]' \
+                        '-v-xmake[pass -v argument to xmake command]' \
+                        '-v-cmake[pass -DCMAKE_VERBOSE_MAKEFILE argument to cmake command]' \
+                        '-x-sh[set -x to debug current running shell]' \
+                        '-x-go[pass -x argument to go build command]' \
+                        '-x-cc[pass -v argument to clang command]' \
+                        '-x-ld[pass -Wl,-v argument to linker]' \
+                        '-x-cargo[pass -vv argument to cargo command]' \
+                        '-x-gmake[pass --debug argument to gmake command]' \
+                        '-x-cmake[pass -DCMAKE_FIND_DEBUG_MODE=ON argument to cmake command]' \
+                        '-x-xmake[pass -vD argument to xmake command]' \
+                        '-x-pkg-config[export PKG_CONFIG_DEBUG_SPEW=1]' \
                         + '(verbose_level)' \
-                        '-vv[very verbose mode. equivalent to --dump-* and --debug-* options all are supplied]' \
-                        '-v[verbose mode. equivalent to --dump-* options all are supplied]' \
-                        '-q[silent mode.]' \
-                        '-x[set -x]' \
-                        '--dump-env[print all environment variables before starting to build]' \
-                        '--dump-http[show http request/response]' \
-                        '--dump-xcinfo[show xcode information]' \
-                        '--dump-formula[show formula content]' \
-                        '--dump-go[pass -v argument to go build command]' \
-                        '--dump-cc[pass -v argument to clang command]' \
-                        '--dump-ld[pass -Wl,-v argument to linker]' \
-                        '--dump-uppm[pass -v argument to uppm command]' \
-                        '--dump-ninja[pass -v argument to ninja command]' \
-                        '--dump-meson[pass -v argument to meson command]' \
-                        '--dump-cargo[pass -vv argument to cargo command]' \
-                        '--dump-gmake[pass V=1 argument to gmake command]' \
-                        '--dump-xmake[pass -v argument to xmake command]' \
-                        '--dump-cmake[pass -DCMAKE_VERBOSE_MAKEFILE argument to cmake command]' \
-                        '--debug-go[pass -x argument to go build command]' \
-                        '--debug-gmake[pass --debug argument to gmake command]' \
-                        '--debug-cmake[pass -DCMAKE_FIND_DEBUG_MODE=ON argument to cmake command]' \
-                        '--debug-xmake[pass -vD argument to xmake command]' \
-                        '--debug-pkg-config[export PKG_CONFIG_DEBUG_SPEW=1]'
+                        '-x[very verbose mode. equivalent to -v-* and -x-* options all are supplied]' \
+                        '-v[verbose mode. equivalent to -v-* options all are supplied]' \
+                        '-q[silent mode.]'
                     ;;
                 upgrade)
                     _arguments \
@@ -240,34 +242,35 @@ function _xcpkg() {
                         '--profile=-[specify build profile]:profile:(debug release)' \
                         '--developer-dir=-[specify the developer dir]:developer-dir:{_files -/}' \
                         '-j[specify the number of jobs you can run in parallel]:jobs:(1 2 3 4 5 6 7 8 9)' \
-                        '-U[upgrade if it could be]' \
+                        '-U[upgrade if possible]' \
                         '-K[keep the session directory even if successfully installed]' \
                         '-E[export compile_commands.json]' \
                         '--disable-ccache[do not use ccache]' \
+                        '-v-env[show all environment variables before starting to build]' \
+                        '-v-http[show http request/response]' \
+                        '-v-xcode[show xcode information]' \
+                        '-v-formula[show formula content]' \
+                        '-v-go[pass -v argument to go build command]' \
+                        '-v-uppm[pass -v argument to uppm command]' \
+                        '-v-ninja[pass -v argument to ninja command]' \
+                        '-v-meson[pass -v argument to meson command]' \
+                        '-v-cargo[pass -v argument to cargo command]' \
+                        '-v-gmake[pass V=1 argument to gmake command]' \
+                        '-v-xmake[pass -v argument to xmake command]' \
+                        '-v-cmake[pass -DCMAKE_VERBOSE_MAKEFILE argument to cmake command]' \
+                        '-x-sh[set -x to debug current running shell]' \
+                        '-x-cc[pass -v argument to clang command]' \
+                        '-x-ld[pass -Wl,-v argument to linker]' \
+                        '-x-go[pass -x argument to go build command]' \
+                        '-x-cargo[pass -vv argument to cargo command]' \
+                        '-x-gmake[pass --debug argument to gmake command]' \
+                        '-x-cmake[pass -DCMAKE_FIND_DEBUG_MODE=ON argument to cmake command]' \
+                        '-x-xmake[pass -vD argument to xmake command]' \
+                        '-x-pkg-config[export PKG_CONFIG_DEBUG_SPEW=1]' \
                         + '(verbose_level)' \
-                        '-vv[very verbose mode. equivalent to --dump-* and --debug-* options all are supplied]' \
-                        '-v[verbose mode. equivalent to --dump-* options all are supplied]' \
-                        '-q[silent mode.]' \
-                        '-x[set -x]' \
-                        '--dump-env[print all environment variables before starting to build]' \
-                        '--dump-http[show http request/response]' \
-                        '--dump-xcinfo[show xcode information]' \
-                        '--dump-formula[show formula content]' \
-                        '--dump-go[pass -v argument to go build command]' \
-                        '--dump-cc[pass -v argument to clang command]' \
-                        '--dump-ld[pass -Wl,-v argument to linker]' \
-                        '--dump-uppm[pass -v argument to uppm command]' \
-                        '--dump-ninja[pass -v argument to ninja command]' \
-                        '--dump-meson[pass -v argument to meson command]' \
-                        '--dump-cargo[pass -vv argument to cargo command]' \
-                        '--dump-gmake[pass V=1 argument to gmake command]' \
-                        '--dump-xmake[pass -v argument to xmake command]' \
-                        '--dump-cmake[pass -DCMAKE_VERBOSE_MAKEFILE argument to cmake command]' \
-                        '--debug-go[pass -x argument to go build command]' \
-                        '--debug-gmake[pass --debug argument to gmake command]' \
-                        '--debug-cmake[pass -DCMAKE_FIND_DEBUG_MODE=ON argument to cmake command]' \
-                        '--debug-xmake[pass -vD argument to xmake command]' \
-                        '--debug-pkg-config[export PKG_CONFIG_DEBUG_SPEW=1]'
+                        '-x[very verbose mode. equivalent to -v-* and -x-* options all are supplied]' \
+                        '-v[verbose mode. equivalent to -v-* options all are supplied]' \
+                        '-q[silent mode.]'
                     ;;
                 uninstall)
                     _arguments '*:package-name:_xcpkg_installed_packages'

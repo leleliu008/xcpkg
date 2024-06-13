@@ -4434,14 +4434,14 @@ $PACKAGE_DO12345
 
     ##############################################
 
-    if [ "$DUMP_CC" = 1 ] ; then
+    if [ "$DEBUG_CC" = 1 ] ; then
         CCFLAGS="$CCFLAGS -v"
         XXFLAGS="$XXFLAGS -v"
         OCFLAGS="$OCFLAGS -v"
         OXFLAGS="$OXFLAGS -v"
     fi
 
-    if [ "$DUMP_CC" = 1 ] ; then
+    if [ "$DEBUG_LD" = 1 ] ; then
         LDFLAGS="$LDFLAGS -Wl,-v"
     fi
 
@@ -6311,6 +6311,10 @@ cargow() {
             CARGO_BUILD_ARGS="$@"
 
             if [ -z "$CARGO_BUILD_ARG_VV" ] && [ "$DUMP_CARGO" = 1 ] ; then
+                CARGO_BUILD_ARGS="$CARGO_BUILD_ARGS -v"
+            fi
+
+            if [ -z "$CARGO_BUILD_ARG_VV" ] && [ "$DEBUG_CARGO" = 1 ] ; then
                 CARGO_BUILD_ARGS="$CARGO_BUILD_ARGS -vv"
             fi
 
@@ -6347,6 +6351,10 @@ cargow() {
             CARGO_INSTALL_ARGS="$@"
 
             if [ -z "$CARGO_INSTALL_ARG_VV" ] && [ "$DUMP_CARGO" = 1 ] ; then
+                CARGO_INSTALL_ARGS="$CARGO_INSTALL_ARGS -v"
+            fi
+
+            if [ -z "$CARGO_INSTALL_ARG_VV" ] && [ "$DEBUG_CARGO" = 1 ] ; then
                 CARGO_INSTALL_ARGS="$CARGO_INSTALL_ARGS -vv"
             fi
 
@@ -6390,6 +6398,12 @@ cargow() {
             CARGO_CINSTALL_ARGS="$@"
 
             if [ "$DUMP_CARGO" = 1 ] ; then
+                if [ -z "$CARGO_CINSTALL_ARG_Q" ] && [ -z "$CARGO_CINSTALL_ARG_V" ] && [ -z "$CARGO_CINSTALL_ARG_VV" ] ; then
+                    CARGO_CINSTALL_ARGS="$CARGO_CINSTALL_ARGS -v"
+                fi
+            fi
+
+            if [ "$DEBUG_CARGO" = 1 ] ; then
                 if [ -z "$CARGO_CINSTALL_ARG_Q" ] && [ -z "$CARGO_CINSTALL_ARG_V" ] && [ -z "$CARGO_CINSTALL_ARG_VV" ] ; then
                     CARGO_CINSTALL_ARGS="$CARGO_CINSTALL_ARGS -vv"
                 fi
@@ -6775,23 +6789,22 @@ inspect_install_arguments() {
 
     unset DUMP_ENV
     unset DUMP_HTTP
-    unset DUMP_XCINFO
+    unset DUMP_UPPM
+    unset DUMP_XCODE
     unset DUMP_FORMULA
 
     unset DUMP_GO
-    unset DUMP_CC
-    unset DUMP_LD
-
-    unset DUMP_UPPM
-
     unset DUMP_CARGO
     unset DUMP_MESON
+    unset DUMP_NINJA
     unset DUMP_GMAKE
     unset DUMP_CMAKE
     unset DUMP_XMAKE
-    unset DUMP_NINJA
 
+    unset DEBUG_CC
+    unset DEBUG_LD
     unset DEBUG_GO
+    unset DEBUG_CARGO
     unset DEBUG_GMAKE
     unset DEBUG_CMAKE
     unset DEBUG_XMAKE
@@ -6800,21 +6813,16 @@ inspect_install_arguments() {
     while [ -n "$1" ]
     do
         case $1 in
-            -x) set -x ;;
             -q) LOG_LEVEL=0 ;;
-            -v)
-                LOG_LEVEL=2
+            -v) LOG_LEVEL=2
 
                 DUMP_ENV=1
                 DUMP_HTTP=1
                 DUMP_UPPM=1
-                DUMP_XCINFO=1
+                DUMP_XCODE=1
                 DUMP_FORMULA=1
 
                 DUMP_GO=1
-                DUMP_CC=1
-                DUMP_LD=1
-
                 DUMP_CARGO=1
                 DUMP_MESON=1
                 DUMP_GMAKE=1
@@ -6822,88 +6830,90 @@ inspect_install_arguments() {
                 DUMP_XMAKE=1
                 DUMP_NINJA=1
                 ;;
-            -vv)
-                LOG_LEVEL=3
+            -x) LOG_LEVEL=3
 
                 DUMP_ENV=1
                 DUMP_HTTP=1
                 DUMP_UPPM=1
-                DUMP_XCINFO=1
+                DUMP_XCODE=1
                 DUMP_FORMULA=1
 
-                DUMP_GO=1
-                DUMP_CC=1
-                DUMP_LD=1
-
-                DUMP_CARGO=1
                 DUMP_MESON=1
+                DUMP_NINJA=1
                 DUMP_GMAKE=1
                 DUMP_CMAKE=1
                 DUMP_XMAKE=1
-                DUMP_NINJA=1
 
+                DEBUG_CC=1
+                DEBUG_LD=1
                 DEBUG_GO=1
+                DEBUG_CARGO=1
                 DEBUG_GMAKE=1
                 DEBUG_CMAKE=1
                 DEBUG_XMAKE=1
                 DEBUG_PKG_CONFIG=1
                 ;;
-            --dump-env)
+            -v-env)
                 DUMP_ENV=1
                 ;;
-            --dump-http)
+            -v-http)
                 DUMP_HTTP=1
                 ;;
-            --dump-uppm)
+            -v-uppm)
                 DUMP_UPPM=1
                 ;;
-            --dump-xcinfo)
-                DUMP_XCINFO=1
+            -v-xcode)
+                DUMP_XCODE=1
                 ;;
-            --dump-formula)
+            -v-formula)
                 DUMP_FORMULA=1
                 ;;
-            --dump-go)
+            -v-go)
                 DUMP_GO=1
                 ;;
-            --dump-cc)
-                DUMP_CC=1
-                ;;
-            --dump-ld)
-                DUMP_LD=1
-                ;;
-            --dump-ninja)
+            -v-ninja)
                 DUMP_NINJA=1
                 ;;
-            --dump-gmake)
+            -v-gmake)
                 DUMP_GMAKE=1
                 ;;
-            --dump-cmake)
+            -v-cmake)
                 DUMP_CMAKE=1
                 ;;
-            --dump-xmake)
+            -v-xmake)
                 DUMP_XMAKE=1
                 ;;
-            --dump-meson)
+            -v-meson)
                 DUMP_MESON=1
                 ;;
-            --dump-cargo)
+            -v-cargo)
                 DUMP_CARGO=1
                 ;;
-
-            --debug-go)
+            -x-sh)
+                set -x
+                ;;
+            -x-cc)
+                DEBUG_CC=1
+                ;;
+            -x-ld)
+                DEBUG_LD=1
+                ;;
+            -x-go)
                 DEBUG_GO=1
                 ;;
-            --debug-gmake)
+            -x-cargo)
+                DEBUG_CARGO=1
+                ;;
+            -x-gmake)
                 DEBUG_GMAKE=1
                 ;;
-            --debug-cmake)
+            -x-cmake)
                 DEBUG_CMAKE=1
                 ;;
-            --debug-xmake)
+            -x-xmake)
                 DEBUG_XMAKE=1
                 ;;
-            --debug-pkg-config)
+            -x-pkg-config)
                 DEBUG_PKG_CONFIG=1
                 ;;
 
@@ -6956,7 +6966,7 @@ inspect_install_arguments() {
         __inspect_xcode_info "$SPECIFIED_DEVELOPER_DIR"
     fi
 
-    if [ "$DUMP_XCINFO" = 1 ] ; then
+    if [ "$DUMP_XCODE" = 1 ] ; then
         __println_xcode_info
     fi
 
@@ -7051,7 +7061,7 @@ inspect_install_arguments() {
 
     #########################################################################################
 
-    if [ "$DUMP_CC" = 1 ] ; then
+    if [ "$DEBUG_CC" = 1 ] ; then
         # this environment variable is used by target-wrapper-*
         export XCPKG_VERBOSE=1
     fi
@@ -7067,13 +7077,13 @@ inspect_install_arguments() {
     export  CPPFLAGS_FOR_BUILD=''
     export   LDFLAGS_FOR_BUILD=''
 
-    if [ "$DUMP_CC" = 1 ] ; then
+    if [ "$DEBUG_CC" = 1 ] ; then
           CFLAGS_FOR_BUILD="$CFLAGS_FOR_BUILD -v"
         CXXFLAGS_FOR_BUILD="$CXXFLAGS_FOR_BUILD -v"
        OBJCFLAGS_FOR_BUILD="$OBJCFLAGS_FOR_BUILD -v"
     fi
 
-    if [ "$DUMP_LD" = 1 ] ; then
+    if [ "$DEBUG_LD" = 1 ] ; then
          LDFLAGS_FOR_BUILD="$LDFLAGS_FOR_BUILD -Wl,-v"
     fi
 
@@ -8050,7 +8060,7 @@ ${COLOR_GREEN}xcpkg install <PACKAGE-NAME|PACKAGE-SPEC>... [INSTALL-OPTIONS]${CO
             export compile_commands.json
 
         ${COLOR_BLUE}-U${COLOR_OFF}
-            upgrade packages if posible.
+            upgrade packages if possible.
 
         ${COLOR_BLUE}-K${COLOR_OFF}
             keep the session directory even if this package is successfully installed.
@@ -8061,71 +8071,74 @@ ${COLOR_GREEN}xcpkg install <PACKAGE-NAME|PACKAGE-SPEC>... [INSTALL-OPTIONS]${CO
         ${COLOR_BLUE}-v${COLOR_OFF}
             verbose mode. many messages will be output to terminal.
 
-            This option is equivalent to --dump-* options all are supplied.
-
-        ${COLOR_BLUE}-vv${COLOR_OFF}
-            very verbose mode. many many messages will be output to terminal.
-
-            This option is equivalent to --dump-* and --debug-* options all are supplied.
+            This option is equivalent to -v-* options all are supplied.
 
         ${COLOR_BLUE}-x${COLOR_OFF}
-            set -x
+            very verbose mode. many many messages will be output to terminal.
 
-        ${COLOR_BLUE}--dump-env${COLOR_OFF}
-            print all environment variables before starting to build.
+            This option is equivalent to -v-* and -x-* options all are supplied.
 
-        ${COLOR_BLUE}--dump-http${COLOR_OFF}
+        ${COLOR_BLUE}-v-env${COLOR_OFF}
+            show all environment variables before starting to build.
+
+        ${COLOR_BLUE}-v-http${COLOR_OFF}
             show http request/response.
 
-        ${COLOR_BLUE}--dump-xcinfo${COLOR_OFF}
+        ${COLOR_BLUE}-v-xcode${COLOR_OFF}
             show xcode information.
 
-        ${COLOR_BLUE}--dump-formula${COLOR_OFF}
+        ${COLOR_BLUE}-v-formula${COLOR_OFF}
             show formula content.
 
-        ${COLOR_BLUE}--dump-go${COLOR_OFF}
+        ${COLOR_BLUE}-v-go${COLOR_OFF}
             pass -v argument to go build command.
 
-        ${COLOR_BLUE}--dump-cc${COLOR_OFF}
-            pass -v argument to clang command.
-
-        ${COLOR_BLUE}--dump-ld${COLOR_OFF}
-            pass -Wl,-v argument to linker.
-
-        ${COLOR_BLUE}--dump-uppm${COLOR_OFF}
+        ${COLOR_BLUE}-v-uppm${COLOR_OFF}
             pass -v argument to uppm command.
 
-        ${COLOR_BLUE}--dump-ninja${COLOR_OFF}
-            pass -v argument to ninja command.
-
-        ${COLOR_BLUE}--dump-gmake${COLOR_OFF}
-            pass V=1 argument to gmake command.
-
-        ${COLOR_BLUE}--dump-cmake${COLOR_OFF}
-            set(CMAKE_VERBOSE_MAKEFILE ON)
-
-        ${COLOR_BLUE}--dump-xmake${COLOR_OFF}
-            pass -v argument to xmake command.
-
-        ${COLOR_BLUE}--dump-meson${COLOR_OFF}
-            pass -v argument to meson command.
-
-        ${COLOR_BLUE}--dump-cargo${COLOR_OFF}
+        ${COLOR_BLUE}-v-cargo${COLOR_OFF}
             pass -v argument to cargo command.
 
-        ${COLOR_BLUE}--debug-go${COLOR_OFF}
+        ${COLOR_BLUE}-v-meson${COLOR_OFF}
+            pass -v argument to meson command.
+
+        ${COLOR_BLUE}-v-ninja${COLOR_OFF}
+            pass -v argument to ninja command.
+
+        ${COLOR_BLUE}-v-gmake${COLOR_OFF}
+            pass V=1 argument to gmake command.
+
+        ${COLOR_BLUE}-v-cmake${COLOR_OFF}
+            set(CMAKE_VERBOSE_MAKEFILE ON)
+
+        ${COLOR_BLUE}-v-xmake${COLOR_OFF}
+            pass -v argument to xmake command.
+
+        ${COLOR_BLUE}-x-sh${COLOR_OFF}
+            set -x to debug current running shell.
+
+        ${COLOR_BLUE}-x-cc${COLOR_OFF}
+            pass -v argument to clang command.
+
+        ${COLOR_BLUE}-x-ld${COLOR_OFF}
+            pass -Wl,-v argument to linker.
+
+        ${COLOR_BLUE}-x-go${COLOR_OFF}
             pass -x argument to go build command.
 
-        ${COLOR_BLUE}--debug-gmake${COLOR_OFF}
+        ${COLOR_BLUE}-x-cargo${COLOR_OFF}
+            pass -vv argument to cargo command.
+
+        ${COLOR_BLUE}-x-gmake${COLOR_OFF}
             pass --debug argument to gmake command.
 
-        ${COLOR_BLUE}--debug-cmake${COLOR_OFF}
+        ${COLOR_BLUE}-x-cmake${COLOR_OFF}
             set(CMAKE_FIND_DEBUG_MODE ON)
 
-        ${COLOR_BLUE}--debug-xmake${COLOR_OFF}
+        ${COLOR_BLUE}-x-xmake${COLOR_OFF}
             pass -vD argument to xmake command.
 
-        ${COLOR_BLUE}--debug-pkg-config${COLOR_OFF}
+        ${COLOR_BLUE}-x-pkg-config${COLOR_OFF}
             export PKG_CONFIG_DEBUG_SPEW=1
 
         ${COLOR_BLUE}--disable-ccache${COLOR_OFF}
@@ -8190,7 +8203,7 @@ fi
 
 ##################################################################################
 
-XCPKG_VERSION=0.22.0
+XCPKG_VERSION=0.22.1
 
 XCPKG_ARG0="$0"
 XCPKG_ARG1="$1"
