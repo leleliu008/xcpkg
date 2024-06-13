@@ -3380,15 +3380,13 @@ EOF
 # {{{ __install_the_given_package
 
 __install_the_given_package_onexit() {
-    if [ "$DRYRUN" != 1 ] ; then
-        is_package_installed "$PACKAGE_SPEC" || {
-            abort 1 "package installation failure: $PACKAGE_SPEC\n"
+    is_package_installed "$PACKAGE_SPEC" || {
+        abort 1 "package installation failure: $PACKAGE_SPEC\n"
 
-            if [ -n "$PACKAGE_WORKING_DIR"] ; then
-                printf '%b\n' "${COLOR_RED}you would probably want to figure out want had happeded, please change to the working directory: $PACKAGE_WORKING_DIR${COLOR_OFF}"
-            fi
-        }
-    fi
+        if [ -n "$PACKAGE_WORKING_DIR"] ; then
+            printf '%b\n' "${COLOR_RED}you would probably want to figure out want had happeded, please change to the working directory: $PACKAGE_WORKING_DIR${COLOR_OFF}"
+        fi
+    }
 }
 
 # Note: this function must run in a subshell
@@ -3436,7 +3434,6 @@ XCPKG_URL_TRANSFORM = $XCPKG_URL_TRANSFORM
 
           LOG_LEVEL = $LOG_LEVEL
             PROFILE = $PROFILE
-             DRYRUN = $DRYRUN
      CCACHE_ENABLED = $CCACHE_ENABLED
     CROSS_COMPILING = $CROSS_COMPILING
    KEEP_SESSION_DIR = $KEEP_SESSION_DIR
@@ -4265,13 +4262,6 @@ $DOT_CONTENT
 
     #########################################################################################
 
-    [ "$DRYRUN" = 1 ] && {
-        [ -z "$SHELL" ] || SHELL=$(command -v zsh || command -v bash || command -v sh) || abort 1 "none of zsh|bash|sh shell found in your system."
-        exec "$SHELL"
-    }
-
-    #########################################################################################
-
     # https://www.gnu.org/software/gettext/manual/html_node/config_002eguess.html
     # https://git.savannah.gnu.org/cgit/config.git/tree/
 
@@ -4286,13 +4276,15 @@ $DOT_CONTENT
         do
             FILEPATH="$SESSION_DIR/$FILENAME"
 
-            wfetch "https://git.savannah.gnu.org/cgit/config.git/plain/$FILENAME" -o "$FILEPATH"
+            [ -f "$FILEPATH" ] || {
+                wfetch "https://git.savannah.gnu.org/cgit/config.git/plain/$FILENAME" -o "$FILEPATH"
 
-            run chmod a+x "$FILEPATH"
+                run chmod a+x "$FILEPATH"
 
-            if [ "$FILENAME" = 'config.sub' ] ; then
-                sedInPlace 's/arm64-*/arm64-*|arm64e-*/g' "$FILEPATH"
-            fi
+                if [ "$FILENAME" = 'config.sub' ] ; then
+                    sedInPlace 's/arm64-*/arm64-*|arm64e-*/g' "$FILEPATH"
+                fi
+            }
 
             find "$PACKAGE_BSCRIPT_DIR" -name "$FILENAME" -exec cp -vf "$FILEPATH" {} \;
         done
@@ -6757,8 +6749,6 @@ inspect_install_arguments() {
     LOG_LEVEL_VERBOSE=2
     LOG_LEVEL_VERY_VERBOSE=3
 
-    unset DRYRUN
-
     unset PROFILE
 
     unset LOG_LEVEL
@@ -6780,6 +6770,8 @@ inspect_install_arguments() {
     unset SPECIFIED_PACKAGE_LIST
 
     unset SPECIFIED_DEVELOPER_DIR
+
+    unset SPECIFIED_TARGET
 
     unset DUMP_ENV
     unset DUMP_HTTP
@@ -6915,25 +6907,6 @@ inspect_install_arguments() {
                 DEBUG_PKG_CONFIG=1
                 ;;
 
-            --upgrade)
-                REQUEST_TO_UPGRADE_IF_COULD_BE=1
-                ;;
-            --dry-run)
-                DRYRUN=1
-                ;;
-            --keep-session-dir)
-                REQUEST_TO_KEEP_SESSION_DIR=1
-                ;;
-            --export-compile-commands-json)
-                REQUEST_TO_EXPORT_COMPILE_COMMANDS_JSON=1
-                ;;
-            --profile=*)
-                PROFILE="${1#*=}"
-                ;;
-            --jobs=*)
-                BUILD_NJOBS="${1#*=}"
-                isInteger "$BUILD_NJOBS" || abort 1 "--jobs=INTEGER argument's value must be an integer."
-                ;;
             --disable-ccache)
                 ENABLE_CCACHE=0
                 ;;
@@ -6950,9 +6923,24 @@ inspect_install_arguments() {
                     *)  abort 1 "--strip=<VALUE>, VALUE must be one of no, all, debug, unneeded"
                 esac
                 ;;
+            --target=*)
+                SPECIFIED_TARGET="${1#*=}"
+                ;;
             --developer-dir=*)
                 SPECIFIED_DEVELOPER_DIR="${1#*=}"
                 ;;
+            --profile=*)
+                PROFILE="${1#*=}"
+                ;;
+            -j) shift
+                isInteger "$1" || abort 1 "-j <N>, <N> must be an integer."
+                BUILD_NJOBS="$1"
+                ;;
+
+            -K) REQUEST_TO_KEEP_SESSION_DIR=1 ;;
+            -U) REQUEST_TO_UPGRADE_IF_COULD_BE=1 ;;
+            -E) REQUEST_TO_EXPORT_COMPILE_COMMANDS_JSON=1 ;;
+
             -*) abort 1 "unrecognized option: $1"
                 ;;
             *)  SPECIFIED_PACKAGE_LIST="$SPECIFIED_PACKAGE_LIST $1"
@@ -8042,8 +8030,30 @@ ${COLOR_GREEN}xcpkg install <PACKAGE-NAME|PACKAGE-SPEC>... [INSTALL-OPTIONS]${CO
 
             If --developer-dir=<DEVELOPER_DIR> is unspecified, the environment variable ${COLOR_RED}DEVELOPER_DIR${COLOR_OFF} is honored, if the environment variable DEVELOPER_DIR is not set, it would be determined by running command ${COLOR_PURPLE}xcode-select -p${COLOR_OFF}
 
-        ${COLOR_BLUE}--jobs=N${COLOR_OFF}
+        ${COLOR_BLUE}--profile=<debug|release>${COLOR_OFF}
+            specify the build profile.
+
+            debug:
+                  CFLAGS: -O0 -g
+                CXXFLAGS: -O0 -g
+
+            release:
+                  CFLAGS: -Os
+                CXXFLAGS: -Os
+                CPPFLAGS: -DNDEBUG
+                 LDFLAGS: -flto -Wl,-S
+
+        ${COLOR_BLUE}-j <N>${COLOR_OFF}
             specify the number of jobs you can run in parallel.
+
+        ${COLOR_BLUE}-E${COLOR_OFF}
+            export compile_commands.json
+
+        ${COLOR_BLUE}-U${COLOR_OFF}
+            upgrade packages if posible.
+
+        ${COLOR_BLUE}-K${COLOR_OFF}
+            keep the session directory even if this package is successfully installed.
 
         ${COLOR_BLUE}-q${COLOR_OFF}
             silent mode. no any messages will be output to terminal.
@@ -8118,33 +8128,8 @@ ${COLOR_GREEN}xcpkg install <PACKAGE-NAME|PACKAGE-SPEC>... [INSTALL-OPTIONS]${CO
         ${COLOR_BLUE}--debug-pkg-config${COLOR_OFF}
             export PKG_CONFIG_DEBUG_SPEW=1
 
-        ${COLOR_BLUE}--profile=<debug|release>${COLOR_OFF}
-            specify the build profile.
-
-            debug:
-                  CFLAGS: -O0 -g
-                CXXFLAGS: -O0 -g
-
-            release:
-                  CFLAGS: -Os
-                CXXFLAGS: -Os
-                CPPFLAGS: -DNDEBUG
-                 LDFLAGS: -flto -Wl,-S
-
         ${COLOR_BLUE}--disable-ccache${COLOR_OFF}
             do not use ccache.
-
-        ${COLOR_BLUE}--export-compile-commands-json${COLOR_OFF}
-            generates compile_commands.json
-
-        ${COLOR_BLUE}--upgrade${COLOR_OFF}
-            If this package has been already installed, then it will be upgraded if it could be.
-
-        ${COLOR_BLUE}--dry-run${COLOR_OFF}
-            do not actually install the package.
-
-        ${COLOR_BLUE}--keep-session-dir${COLOR_OFF}
-            do not delete the session directory even if this package is successfully installed.
 
 ${COLOR_GREEN}xcpkg reinstall <PACKAGE-SPEC>... [INSTALL-OPTIONS]${COLOR_OFF}
     reinstall the given packages.
@@ -8205,7 +8190,7 @@ fi
 
 ##################################################################################
 
-XCPKG_VERSION=0.21.1
+XCPKG_VERSION=0.22.0
 
 XCPKG_ARG0="$0"
 XCPKG_ARG1="$1"
@@ -8450,11 +8435,79 @@ case $1 in
     run)
         shift
 
-        case $1 in
-            uppm) shift; "$UPPM" "$@" ;;
-            '')   abort 1 'no command is supplied to run.' ;;
-            *)    "$@"
-        esac
+        [ -z "$1" ] && abort 1 'no command is supplied to run.'
+
+        [ "$1" = uppm ] && {
+            shift
+            "$UPPM" "$@"
+            exit
+        }
+
+        DIRS1="$(find "$UPPM_HOME/installed"           -maxdepth 1 -mindepth 1 -type d)"
+        DIRS2="$(find "$NATIVE_PACKAGE_INSTALLED_ROOT" -maxdepth 1 -mindepth 1 -type l)"
+        DIRS3="$(find "$XCPKG_PACKAGE_INSTALLED_ROOT/$NATIVE_OS_NAME-$NATIVE_OS_VERS-$NATIVE_OS_ARCH"  -maxdepth 1 -mindepth 1 -type l)"
+
+        for DIR in $DIRS1 $DIRS2 $DIRS3
+        do
+            if [ -d  "$DIR/bin" ] ; then
+                PATH="$DIR/bin:$PATH"
+            fi
+
+            if [ -d  "$DIR/sbin" ] ; then
+                PATH="$DIR/sbin:$PATH"
+            fi
+
+            if [ -d  "$DIR/include" ] ; then
+                CPPFLAGS="-I$DIR/include $CPPFLAGS"
+            fi
+
+            if [ -d  "$DIR/lib" ] ; then
+                LDFLAGS="-L$DIR/lib -Wl,-rpath,$DIR/lib $LDFLAGS"
+            fi
+
+            if [ -d  "$DIR/lib/pkgconfig" ] ; then
+                PKG_CONFIG_PATH="$DIR/lib/pkgconfig:$PKG_CONFIG_PATH"
+            fi
+
+            SHARED="$DIR/share"
+
+            if [ -d "$SHARED" ] ; then
+                if [ -d "$SHARED/pkgconfig" ] ; then
+                    PKG_CONFIG_PATH="$SHARED/pkgconfig:$PKG_CONFIG_PATH"
+                fi
+
+                if [ -d  "$SHARED/aclocal" ] ; then
+                    ACLOCAL_PATH="$SHARED/aclocal:$ACLOCAL_PATH"
+                fi
+
+                # https://gi.readthedocs.io/en/latest/tools/g-ir-scanner.html#environment-variables
+                # https://help.gnome.org/admin//system-admin-guide/2.32/mimetypes-database.html.en
+
+                for item in gir-1.0 mime
+                do
+                    if [ -d "$SHARED/$item" ] ; then
+                        if [ -z "$XDG_DATA_DIRS" ] ; then
+                            XDG_DATA_DIRS="$SHARED"
+                        else
+                            XDG_DATA_DIRS="$SHARED:$XDG_DATA_DIRS"
+                        fi
+
+                        break
+                    fi
+                done
+            fi
+        done
+
+        export CPPFLAGS
+        export CFLAGS
+        export LDFLAG
+        export PKG_CONFIG_PATH
+        export ACLOCAL_PATH
+        export XDG_DATA_DIRS
+
+        export -p
+
+        "$@"
         ;;
 
     *)  abort 1 "unrecognized argument: $1"

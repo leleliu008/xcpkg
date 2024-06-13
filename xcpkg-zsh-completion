@@ -148,7 +148,7 @@ function _xcpkg() {
                         '1:package-name:_xcpkg_installed_packages' \
                         '-t[specify output type]:output-type:(zip tar.gz tar.xz tar.lz tar.bz2)' \
                         '-o[specify output filepath or directory]:output-path:_files' \
-                        '--keep-session-dir[do not delete the session directory even if successfully packed]'
+                        '--keep-session-dir[keep the session directory even if successfully packed]'
                     ;;
                 tree)
                     _arguments \
@@ -164,18 +164,18 @@ function _xcpkg() {
                 install)
                     _arguments \
                         ':package-name:_xcpkg_available_packages' \
-                        '--target=-[specify which target to be built for]:target:()' \
-                        '--jobs=-[specify the number of jobs you can run in parallel]:jobs:(1 2 3 4 5 6 7 8 9)' \
-                        '--upgrade[upgrade if it could be]' \
-                        '--dry-run[dry-run]' \
-                        '--keep-session-dir[do not delete the session directory even if successfully installed]' \
+                        '--target=-[specify the target to be built for]:target:(MacOSX-10.15-x86_64 MacOSX-13.0-arm64 iPhoneOS-12.0-arm64)' \
                         '--profile=-[specify build profile]:profile:(debug release)' \
-                        '--export-compile-commands-json[generates compile_commands.json]' \
+                        '--developer-dir=-[specify the developer dir]:developer-dir:{_files -/}' \
+                        '-j[specify the number of jobs you can run in parallel]:jobs:(1 2 3 4 5 6 7 8 9)' \
+                        '-U[upgrade if it could be]' \
+                        '-K[keep the session directory even if successfully installed]' \
+                        '-E[export compile_commands.json]' \
                         '--disable-ccache[do not use ccache]' \
                         + '(verbose_level)' \
-                        '-vv[very verbose mode. many many messages will be output to terminal]' \
-                        '-v[verbose mode. many messages will be output to terminal]' \
-                        '-q[silent mode. no any messages will be output to terminal]' \
+                        '-vv[very verbose mode. equivalent to --dump-* and --debug-* options all are supplied]' \
+                        '-v[verbose mode. equivalent to --dump-* options all are supplied]' \
+                        '-q[silent mode.]' \
                         '-x[set -x]' \
                         '--dump-env[print all environment variables before starting to build]' \
                         '--dump-http[show http request/response]' \
@@ -200,17 +200,18 @@ function _xcpkg() {
                 reinstall)
                     _arguments \
                         ':package-name:_xcpkg_installed_packages' \
-                        '--target=-[specify which target to be built for]:target:()' \
-                        '--jobs=-[specify the number of jobs you can run in parallel]:jobs:(1 2 3 4 5 6 7 8 9)' \
-                        '--dry-run[dry-run]' \
-                        '--keep-session-dir[do not delete the session directory even if successfully installed]' \
+                        '--target=-[specify the target to be built for]:target:(MacOSX-10.15-x86_64 MacOSX-13.0-arm64 iPhoneOS-12.0-arm64)' \
                         '--profile=-[specify build profile]:profile:(debug release)' \
-                        '--export-compile-commands-json[generates compile_commands.json]' \
+                        '--developer-dir=-[specify the developer dir]:developer-dir:{_files -/}' \
+                        '-j[specify the number of jobs you can run in parallel]:jobs:(1 2 3 4 5 6 7 8 9)' \
+                        '-U[upgrade if it could be]' \
+                        '-K[keep the session directory even if successfully installed]' \
+                        '-E[export compile_commands.json]' \
                         '--disable-ccache[do not use ccache]' \
                         + '(verbose_level)' \
-                        '-vv[very verbose mode. many many messages will be output to terminal]' \
-                        '-v[verbose mode. many messages will be output to terminal]' \
-                        '-q[silent mode. no any messages will be output to terminal]' \
+                        '-vv[very verbose mode. equivalent to --dump-* and --debug-* options all are supplied]' \
+                        '-v[verbose mode. equivalent to --dump-* options all are supplied]' \
+                        '-q[silent mode.]' \
                         '-x[set -x]' \
                         '--dump-env[print all environment variables before starting to build]' \
                         '--dump-http[show http request/response]' \
@@ -235,17 +236,18 @@ function _xcpkg() {
                 upgrade)
                     _arguments \
                         ':package-name:_xcpkg_outdated_packages' \
-                        '--target=-[specify which target to be built for]:target:()' \
-                        '--jobs=-[specify the number of jobs you can run in parallel]:jobs:(1 2 3 4 5 6 7 8 9)' \
-                        '--dry-run[dry-run]' \
-                        '--keep-session-dir[do not delete the session directory even if successfully installed]' \
+                        '--target=-[specify the target to be built for]:target:(MacOSX-10.15-x86_64 MacOSX-13.0-arm64 iPhoneOS-12.0-arm64)' \
                         '--profile=-[specify build profile]:profile:(debug release)' \
-                        '--export-compile-commands-json[generates compile_commands.json]' \
+                        '--developer-dir=-[specify the developer dir]:developer-dir:{_files -/}' \
+                        '-j[specify the number of jobs you can run in parallel]:jobs:(1 2 3 4 5 6 7 8 9)' \
+                        '-U[upgrade if it could be]' \
+                        '-K[keep the session directory even if successfully installed]' \
+                        '-E[export compile_commands.json]' \
                         '--disable-ccache[do not use ccache]' \
                         + '(verbose_level)' \
-                        '-vv[very verbose mode. many many messages will be output to terminal]' \
-                        '-v[verbose mode. many messages will be output to terminal]' \
-                        '-q[silent mode. no any messages will be output to terminal]' \
+                        '-vv[very verbose mode. equivalent to --dump-* and --debug-* options all are supplied]' \
+                        '-v[verbose mode. equivalent to --dump-* options all are supplied]' \
+                        '-q[silent mode.]' \
                         '-x[set -x]' \
                         '--dump-env[print all environment variables before starting to build]' \
                         '--dump-http[show http request/response]' \

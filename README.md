@@ -220,7 +220,7 @@ all relevant directories and files are located under `~/.xcpkg` directory.
 
     ```bash
     xcpkg install curl
-    xcpkg install curl --upgrade
+    xcpkg install curl -U
     xcpkg install curl --target=iPhoneOS-12.0-arm64
     xcpkg install curl --developer-dir=/Applications/Xcode12.app/Contents/Developer
     xcpkg install iPhoneOS-12.0-arm64/curl
