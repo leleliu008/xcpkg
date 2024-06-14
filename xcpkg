@@ -8518,7 +8518,7 @@ case $1 in
         export ACLOCAL_PATH
         export XDG_DATA_DIRS
 
-        export -p
+        #export -p
 
         "$@"
         ;;
