@@ -109,7 +109,7 @@ bppend_to_ACLOCAL_PATH() {
 }
 
 sedInPlace() {
-    if [ "${SED_VERBOSE:-0}" = 1 ] ; then
+    if [ "${DUMP_SED:-0}" = 1 ] ; then
         if [ -z "$SED" ] ; then
             SED="$(command -v gsed || command -v sed)" || abort 1 "command not found: gsed"
         fi
@@ -6775,7 +6775,7 @@ inspect_install_arguments() {
 
     unset ENABLE_CCACHE
 
-    unset REQUEST_TO_UPGRADE_IF_COULD_BE
+    unset REQUEST_TO_UPGRADE_IF_POSSIBLE
 
     unset REQUEST_TO_EXPORT_COMPILE_COMMANDS_JSON
 
@@ -6788,6 +6788,7 @@ inspect_install_arguments() {
     unset SPECIFIED_TARGET
 
     unset DUMP_ENV
+    unset DUMP_SED
     unset DUMP_HTTP
     unset DUMP_UPPM
     unset DUMP_XCODE
@@ -6816,6 +6817,7 @@ inspect_install_arguments() {
             -q) LOG_LEVEL=0 ;;
             -v) LOG_LEVEL=2
 
+                DUMP_SED=1
                 DUMP_ENV=1
                 DUMP_HTTP=1
                 DUMP_UPPM=1
@@ -6832,6 +6834,7 @@ inspect_install_arguments() {
                 ;;
             -x) LOG_LEVEL=3
 
+                DUMP_SED=1
                 DUMP_ENV=1
                 DUMP_HTTP=1
                 DUMP_UPPM=1
@@ -6948,7 +6951,7 @@ inspect_install_arguments() {
                 ;;
 
             -K) REQUEST_TO_KEEP_SESSION_DIR=1 ;;
-            -U) REQUEST_TO_UPGRADE_IF_COULD_BE=1 ;;
+            -U) REQUEST_TO_UPGRADE_IF_POSSIBLE=1 ;;
             -E) REQUEST_TO_EXPORT_COMPILE_COMMANDS_JSON=1 ;;
 
             -*) abort 1 "unrecognized option: $1"
@@ -6988,15 +6991,14 @@ inspect_install_arguments() {
 
     #########################################################################################
 
-    case $LOG_LEVEL in
-        '') LOG_LEVEL=1 ;;
-        0)
-            exec 1>/dev/null
-            exec 2>&1
-            ;;
-        1)  ;;
-        *)  SED_VERBOSE=1
-    esac
+    if [ "$LOG_LEVEL" = 0 ] ; then
+        exec 1>/dev/null
+        exec 2>&1
+    else
+        if [ -z "$LOG_LEVEL" ] ; then
+            LOG_LEVEL=1
+        fi
+    fi
 
     #########################################################################################
 
@@ -7064,6 +7066,8 @@ inspect_install_arguments() {
     if [ "$DEBUG_CC" = 1 ] ; then
         # this environment variable is used by target-wrapper-*
         export XCPKG_VERBOSE=1
+    else
+        unset  XCPKG_VERBOSE
     fi
 
     #########################################################################################
@@ -8203,7 +8207,7 @@ fi
 
 ##################################################################################
 
-XCPKG_VERSION=0.22.1
+XCPKG_VERSION=0.22.2
 
 XCPKG_ARG0="$0"
 XCPKG_ARG1="$1"
