@@ -315,18 +315,22 @@ wfetch() {
 
     case $FETCH_TOOL in
         curl)
-            unset CURL_OPTIONS
+            CURL_OPTIONS='--fail --retry 20 --retry-delay 30 --location'
+
+            if [ "$DUMP_HTTP" = 1 ] ; then
+                CURL_OPTIONS="$CURL_OPTIONS -v"
+            fi
 
             if [ "$FETCH_SILENT" = 1 ] ; then
-                CURL_OPTIONS='--no-progress-meter'
+                CURL_OPTIONS="$CURL_OPTIONS --no-progress-meter"
             fi
 
             if [ -n "$SSL_CERT_FILE" ] ; then
-                CURL_OPTIONS="--cacert $SSL_CERT_FILE"
+                CURL_OPTIONS="$CURL_OPTIONS --cacert $SSL_CERT_FILE"
             fi
 
-            run "curl $CURL_OPTIONS --fail --retry 20 --retry-delay 30 --location -o '$FETCH_BUFFER_FILEPATH' '$FETCH_URL'" ||
-            run "curl $CURL_OPTIONS --fail --retry 20 --retry-delay 30 --location -o '$FETCH_BUFFER_FILEPATH' '$FETCH_URI'"
+            run "curl $CURL_OPTIONS -o '$FETCH_BUFFER_FILEPATH' '$FETCH_URL'" ||
+            run "curl $CURL_OPTIONS -o '$FETCH_BUFFER_FILEPATH' '$FETCH_URI'"
             ;;
         wget)
             run "wget --timeout=60 -O '$FETCH_BUFFER_FILEPATH' '$FETCH_URL'" ||
@@ -4714,7 +4718,7 @@ $PACKAGE_DO12345
             release) CMAKE_BUILD_TYPE=Release ;;
         esac
 
-        if [ "$DUMP_CMAKE" = 1 ] ; then
+        if [ "$VERBOSE_CMAKE" = 1 ] ; then
             CMAKE_VERBOSE_MAKEFILE=ON
             CMAKE_COLOR_MAKEFILE=ON
             CMAKE_INSTALL_MESSAGE=ALWAYS
@@ -5877,7 +5881,7 @@ configure_only() {
         fi
     fi
 
-    if [ "$DUMP_GMAKE" = 1 ] ; then
+    if [ "$VERBOSE_GMAKE" = 1 ] ; then
         for Makefile in $(find "$PACKAGE_BSCRIPT_DIR" -name Makefile)
         do
             sedInPlace 's|\t@|\t|g'     "$Makefile"
@@ -5905,7 +5909,7 @@ gmakew() {
         GMAKE_ARGS="$GMAKE_ARGS --debug"
     fi
 
-    if [ "$DUMP_GMAKE" = 1 ] ; then
+    if [ "$VERBOSE_GMAKE" = 1 ] ; then
         GMAKE_ARGS="$GMAKE_ARGS V=1"
     fi
 
@@ -5917,7 +5921,7 @@ gmakew() {
 # {{{ ninjaw
 
 ninjaw() {
-    if [ "$DUMP_NINJA" = 1 ] ; then
+    if [ "$VERBOSE_NINJA" = 1 ] ; then
         run "$NINJA" -j "$BUILD_NJOBS" -v "$@"
     else
         run "$NINJA" -j "$BUILD_NJOBS"    "$@"
@@ -5957,7 +5961,7 @@ cmakew() {
             CMAKE_GENERATOR='Unix Makefiles'
         fi
 
-        if [ "$DUMP_CMAKE" = 1 ] ; then
+        if [ "$VERBOSE_CMAKE" = 1 ] ; then
             CMAKE_VERBOSE_MAKEFILE=ON
             CMAKE_COLOR_MAKEFILE=ON
         else
@@ -6072,7 +6076,7 @@ endif()
 
 set(CMAKE_INSTALL_MESSAGE "$CMAKE_INSTALL_MESSAGE")
 EOF
-        [ "$DUMP_CMAKE" = 1 ] && {
+        [ "$VERBOSE_CMAKE" = 1 ] && {
             run bat --language=cmake --paging=never --style=numbers,grid "$CMAKE_TOOLCHAIN_FILE"
         }
 
@@ -6085,7 +6089,7 @@ EOF
             # https://cmake.org/cmake/help/latest/variable/CMAKE_FIND_LIBRARY_SUFFIXES.html
             printf 'set(CMAKE_FIND_LIBRARY_SUFFIXES ".a" ".dylib")\n' > "$CMAKE_PROJECT_INCLUDE"
 
-            if [ "$DUMP_CMAKE" = 1 ] ; then
+            if [ "$VERBOSE_CMAKE" = 1 ] ; then
                 run bat --language=cmake --paging=never --style=plain "$CMAKE_PROJECT_INCLUDE"
             fi
         fi
@@ -6154,7 +6158,7 @@ xmakew() {
             XMAKE_CONFIG_OPTIONS="$XMAKE_CONFIG_OPTIONS -vD"
         fi
     else
-        if [ "$DUMP_XMAKE" = 1 ] ; then
+        if [ "$VERBOSE_XMAKE" = 1 ] ; then
             XMAKE_CONFIG_OPTIONS="$XMAKE_CONFIG_OPTIONS -v"
         fi
     fi
@@ -6254,7 +6258,7 @@ EOF
         MESON_SETUP_ARGS="$MESON_SETUP_ARGS --prefer-static"
     fi
 
-    if [ "$DUMP_MESON" = 1 ] ; then
+    if [ "$VERBOSE_MESON" = 1 ] ; then
         MESON_COMPILE_ARGS="$MESON_COMPILE_ARGS -v"
     fi
 
@@ -6310,7 +6314,7 @@ cargow() {
 
             CARGO_BUILD_ARGS="$@"
 
-            if [ -z "$CARGO_BUILD_ARG_VV" ] && [ "$DUMP_CARGO" = 1 ] ; then
+            if [ -z "$CARGO_BUILD_ARG_VV" ] && [ "$VERBOSE_CARGO" = 1 ] ; then
                 CARGO_BUILD_ARGS="$CARGO_BUILD_ARGS -v"
             fi
 
@@ -6350,7 +6354,7 @@ cargow() {
 
             CARGO_INSTALL_ARGS="$@"
 
-            if [ -z "$CARGO_INSTALL_ARG_VV" ] && [ "$DUMP_CARGO" = 1 ] ; then
+            if [ -z "$CARGO_INSTALL_ARG_VV" ] && [ "$VERBOSE_CARGO" = 1 ] ; then
                 CARGO_INSTALL_ARGS="$CARGO_INSTALL_ARGS -v"
             fi
 
@@ -6397,7 +6401,7 @@ cargow() {
 
             CARGO_CINSTALL_ARGS="$@"
 
-            if [ "$DUMP_CARGO" = 1 ] ; then
+            if [ "$VERBOSE_CARGO" = 1 ] ; then
                 if [ -z "$CARGO_CINSTALL_ARG_Q" ] && [ -z "$CARGO_CINSTALL_ARG_V" ] && [ -z "$CARGO_CINSTALL_ARG_VV" ] ; then
                     CARGO_CINSTALL_ARGS="$CARGO_CINSTALL_ARGS -v"
                 fi
@@ -6432,7 +6436,7 @@ cargow() {
 # {{{ gow
 
 gow() {
-    if [ "$DUMP_GO" = 1 ] ; then
+    if [ "$VERBOSE_GO" = 1 ] ; then
         run "go env | bat --language=bash --paging=never --style=plain"
     fi
 
@@ -6479,7 +6483,7 @@ gow() {
     GO_BUILD_ARGS='-trimpath'
 
     if [ -z "$GO_BUILD_ARGV_V" ] ; then
-        if [ "$DUMP_GO" = 1 ] ; then
+        if [ "$VERBOSE_GO" = 1 ] ; then
             GO_BUILD_ARGS="$GO_BUILD_ARGS -v"
         fi
     else
@@ -6781,9 +6785,9 @@ inspect_install_arguments() {
 
     unset REQUEST_TO_KEEP_SESSION_DIR
 
-    unset SPECIFIED_PACKAGE_LIST
-
     unset SPECIFIED_DEVELOPER_DIR
+
+    unset SPECIFIED_PACKAGE_LIST
 
     unset SPECIFIED_TARGET
 
@@ -6794,13 +6798,13 @@ inspect_install_arguments() {
     unset DUMP_XCODE
     unset DUMP_FORMULA
 
-    unset DUMP_GO
-    unset DUMP_CARGO
-    unset DUMP_MESON
-    unset DUMP_NINJA
-    unset DUMP_GMAKE
-    unset DUMP_CMAKE
-    unset DUMP_XMAKE
+    unset VERBOSE_GO
+    unset VERBOSE_CARGO
+    unset VERBOSE_MESON
+    unset VERBOSE_NINJA
+    unset VERBOSE_GMAKE
+    unset VERBOSE_CMAKE
+    unset VERBOSE_XMAKE
 
     unset DEBUG_CC
     unset DEBUG_LD
@@ -6824,13 +6828,13 @@ inspect_install_arguments() {
                 DUMP_XCODE=1
                 DUMP_FORMULA=1
 
-                DUMP_GO=1
-                DUMP_CARGO=1
-                DUMP_MESON=1
-                DUMP_GMAKE=1
-                DUMP_CMAKE=1
-                DUMP_XMAKE=1
-                DUMP_NINJA=1
+                VERBOSE_GO=1
+                VERBOSE_CARGO=1
+                VERBOSE_MESON=1
+                VERBOSE_GMAKE=1
+                VERBOSE_CMAKE=1
+                VERBOSE_XMAKE=1
+                VERBOSE_NINJA=1
                 ;;
             -x) LOG_LEVEL=3
 
@@ -6841,11 +6845,11 @@ inspect_install_arguments() {
                 DUMP_XCODE=1
                 DUMP_FORMULA=1
 
-                DUMP_MESON=1
-                DUMP_NINJA=1
-                DUMP_GMAKE=1
-                DUMP_CMAKE=1
-                DUMP_XMAKE=1
+                VERBOSE_MESON=1
+                VERBOSE_NINJA=1
+                VERBOSE_GMAKE=1
+                VERBOSE_CMAKE=1
+                VERBOSE_XMAKE=1
 
                 DEBUG_CC=1
                 DEBUG_LD=1
@@ -6872,25 +6876,25 @@ inspect_install_arguments() {
                 DUMP_FORMULA=1
                 ;;
             -v-go)
-                DUMP_GO=1
-                ;;
-            -v-ninja)
-                DUMP_NINJA=1
-                ;;
-            -v-gmake)
-                DUMP_GMAKE=1
-                ;;
-            -v-cmake)
-                DUMP_CMAKE=1
-                ;;
-            -v-xmake)
-                DUMP_XMAKE=1
-                ;;
-            -v-meson)
-                DUMP_MESON=1
+                VERBOSE_GO=1
                 ;;
             -v-cargo)
-                DUMP_CARGO=1
+                VERBOSE_CARGO=1
+                ;;
+            -v-meson)
+                VERBOSE_MESON=1
+                ;;
+            -v-ninja)
+                VERBOSE_NINJA=1
+                ;;
+            -v-gmake)
+                VERBOSE_GMAKE=1
+                ;;
+            -v-cmake)
+                VERBOSE_CMAKE=1
+                ;;
+            -v-xmake)
+                VERBOSE_XMAKE=1
                 ;;
             -x-sh)
                 set -x
@@ -8207,7 +8211,7 @@ fi
 
 ##################################################################################
 
-XCPKG_VERSION=0.22.2
+XCPKG_VERSION=0.22.3
 
 XCPKG_ARG0="$0"
 XCPKG_ARG1="$1"
