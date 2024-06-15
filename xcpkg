@@ -5102,9 +5102,11 @@ $PACKAGE_DOBUILD
 
     #########################################################################################
 
-    [ -n "$PACKAGE_DOTWEAK" ] && {
-        step "do some tweaks"
+    step "dotweak for target"
 
+    __tweak_pc_files
+
+    [ -n "$PACKAGE_DOTWEAK" ] && {
         eval "
 dotweak() {
 $PACKAGE_DOTWEAK
@@ -5124,15 +5126,10 @@ $PACKAGE_DOTWEAK
 
     #########################################################################################
 
-    step "tweak .pc files"
-    __tweak_pc_files
-
-    #########################################################################################
-
     unset PACKAGE_NEEDED_EXTERNAL_DYLIBS
     unset PACKAGE_EXECUTABLES_NEED_SET_RPATH
 
-    step "check Mach-O files"
+    step "docheck for target"
     __check_mach_o_files
 
     #########################################################################################
@@ -5236,18 +5233,10 @@ $PACKAGE_DOTWEAK
 
     #########################################################################################
 
-    cd "$PACKAGE_INSTALL_DIR"
-
-    step "generate MANIFEST.txt"
-    __generate_manifest_of_the_given_package "$1"
-
-    step "generate RECEIPT.yml"
-    __generate_receipt_of_the_given_package "$1"
-
-    #########################################################################################
-
     [ -n "$PACKAGE_ONFINAL" ] && {
         step "onfinal"
+
+        cd "$PACKAGE_INSTALL_DIR"
 
         eval "
 onfinal() {
@@ -5255,6 +5244,16 @@ $PACKAGE_ONFINAL
 }"
         onfinal
     }
+
+    #########################################################################################
+
+    cd "$PACKAGE_INSTALL_DIR"
+
+    step "generate MANIFEST.txt"
+    __generate_manifest_of_the_given_package "$1"
+
+    step "generate RECEIPT.yml"
+    __generate_receipt_of_the_given_package "$1"
 
     #########################################################################################
 
@@ -5543,11 +5542,6 @@ __tweak_pc_files() {
             fi
         fi
     done
-
-    [ -z "$PC_FILES" ] && {
-        note "no .pc files installed, skipped"
-        return 0
-    }
 
     for pcfile in $PC_FILES
     do
@@ -8211,7 +8205,7 @@ fi
 
 ##################################################################################
 
-XCPKG_VERSION=0.22.3
+XCPKG_VERSION=0.22.4
 
 XCPKG_ARG0="$0"
 XCPKG_ARG1="$1"
