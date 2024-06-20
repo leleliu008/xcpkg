@@ -781,26 +781,33 @@ __sync_available_formula_repositories() {
   __path_of_formula_of_the_given_package() {
     [ -z "$1" ] && abort 1 "__path_of_formula_of_the_given_package <PACKAGE-NAME>, <PACKAGE-NAME> is unspecified."
 
+    for FORMULA_SEARCH_DIR in $XCPKG_FORMULA_SEARCH_DIRS
+    do
+        FORMULA_FILEPATH="$FORMULA_SEARCH_DIR/$1.yml"
+
+        if [ -f           "$FORMULA_FILEPATH" ] ; then
+            printf '%s\n' "$FORMULA_FILEPATH"
+            return 0
+        fi
+    done
+
     [ -d "$XCPKG_FORMULA_REPO_ROOT" ] || return 0
 
-    AVAILABLE_FORMULA_REPOSITORY_NAMES=
+    FORMULA_REPOSITORY_NAMES=
 
     for item in $(cd "$XCPKG_FORMULA_REPO_ROOT" && ls)
     do
         if [ -f "$XCPKG_FORMULA_REPO_ROOT/$item/.xcpkg-formula-repo.yml" ] ; then
-            AVAILABLE_FORMULA_REPOSITORY_NAMES="$AVAILABLE_FORMULA_REPOSITORY_NAMES $item"
+            FORMULA_REPOSITORY_NAMES="$FORMULA_REPOSITORY_NAMES $item"
         fi
     done
 
-    for FORMULA_REPOSITORY_NAME in $AVAILABLE_FORMULA_REPOSITORY_NAMES
+    for FORMULA_REPOSITORY_NAME in $FORMULA_REPOSITORY_NAMES
     do
-        if [ -e           "$XCPKG_FORMULA_REPO_ROOT/$FORMULA_REPOSITORY_NAME/formula/$NATIVE_OS_TYPE/$1.yml" ] ; then
-            printf '%s\n' "$XCPKG_FORMULA_REPO_ROOT/$FORMULA_REPOSITORY_NAME/formula/$NATIVE_OS_TYPE/$1.yml"
-            return 0
-        fi
+        FORMULA_FILEPATH="$XCPKG_FORMULA_REPO_ROOT/$FORMULA_REPOSITORY_NAME/formula/$1.yml"
 
-        if [ -e           "$XCPKG_FORMULA_REPO_ROOT/$FORMULA_REPOSITORY_NAME/formula/$1.yml" ] ; then
-            printf '%s\n' "$XCPKG_FORMULA_REPO_ROOT/$FORMULA_REPOSITORY_NAME/formula/$1.yml"
+        if [ -f           "$FORMULA_FILEPATH" ] ; then
+            printf '%s\n' "$FORMULA_FILEPATH"
             return 0
         fi
     done
@@ -1685,16 +1692,16 @@ __list_available_package_names() {
     [ -d "$XCPKG_FORMULA_REPO_ROOT" ] || return 0
 
     {
-        AVAILABLE_FORMULA_REPOSITORY_NAMES=
+        FORMULA_REPOSITORY_NAMES=
 
         for item in $(cd "$XCPKG_FORMULA_REPO_ROOT" && ls)
         do
             if [ -f "$XCPKG_FORMULA_REPO_ROOT/$item/.xcpkg-formula-repo.yml" ] ; then
-                AVAILABLE_FORMULA_REPOSITORY_NAMES="$AVAILABLE_FORMULA_REPOSITORY_NAMES $item"
+                FORMULA_REPOSITORY_NAMES="$FORMULA_REPOSITORY_NAMES $item"
             fi
         done
 
-        for FORMULA_REPOSITORY_NAME in $AVAILABLE_FORMULA_REPOSITORY_NAMES
+        for FORMULA_REPOSITORY_NAME in $FORMULA_REPOSITORY_NAMES
         do
             FORMULA_SEARCH_DIR="$XCPKG_FORMULA_REPO_ROOT/$FORMULA_REPOSITORY_NAME/formula"
 
@@ -2702,15 +2709,9 @@ __fetch_resources_of_the_given_package() {
         abort 1 "package '$PACKAGE_SPEC' is not installed."
     fi
 
-    FILEPATHS="$(find "$PACKAGE_INSTALLED_DIR/.xcpkg" -type f)"
+    cd "$PACKAGE_INSTALLED_DIR/.xcpkg"
 
-    for fp in $FILEPATHS
-    do
-        case $fp in
-            *.png) ;;
-            *) run bat "$fp" ;;
-        esac
-    done
+    fzf --preview='bat --color=always --theme=Dracula {}' --preview-window='right:75%'
 }
 
 # }}}
@@ -3009,6 +3010,8 @@ EOF
 # this function must run in subshell
 # __install_native_package <PACKAGE-NAME>
   __install_native_package() {
+    unset NATIVE_PACKAGE_SRC_URI
+
     case $1 in
         '') abort 1 "__install_native_package <PACKAGE-NAME> , <PACKAGE-NAME> is unspecified."
             ;;
@@ -3034,8 +3037,9 @@ EOF
             NATIVE_PACKAGE_BUILD_CONFIG_ARGS='-DINSTALL_EXECUTABLES=OFF -DINSTALL_LIBRARIES=ON -DBUILD_STATIC_LIBS=ON -DBUILD_SHARED_LIBS=OFF'
             ;;
         perl)
-            NATIVE_PACKAGE_SRC_URL='https://cpan.metacpan.org/authors/id/R/RJ/RJBS/perl-5.38.0.tar.xz'
-            NATIVE_PACKAGE_SRC_SHA='eca551caec3bc549a4e590c0015003790bdd1a604ffe19cc78ee631d51f7072e'
+            NATIVE_PACKAGE_SRC_URL='https://cpan.metacpan.org/authors/id/P/PE/PEVANS/perl-5.38.2.tar.xz'
+            NATIVE_PACKAGE_SRC_URI='https://distfiles.macports.org/perl5.38/perl-5.38.2.tar.xz'
+            NATIVE_PACKAGE_SRC_SHA='d91115e90b896520e83d4de6b52f8254ef2b70a8d545ffab33200ea9f1cf29e8'
             NATIVE_PACKAGE_DEPENDENCIES=
             NATIVE_PACKAGE_USE_BSYSTEM_NAME='configure'
             NATIVE_PACKAGE_BUILD_CONFIG_ARGS=
@@ -3287,7 +3291,7 @@ EOF
     run install -d "$NATIVE_PACKAGE_WORKING_DIR/src"
     run cd         "$NATIVE_PACKAGE_WORKING_DIR"
 
-    wfetch "$NATIVE_PACKAGE_SRC_URL" --sha256="$NATIVE_PACKAGE_SRC_SHA" -o "$NATIVE_PACKAGE_SRC_FILEPATH"
+    wfetch "$NATIVE_PACKAGE_SRC_URL" --uri="$NATIVE_PACKAGE_SRC_URI" --sha256="$NATIVE_PACKAGE_SRC_SHA" -o "$NATIVE_PACKAGE_SRC_FILEPATH"
 
     run bsdtar xvf "$XCPKG_DOWNLOADS_DIR/$NATIVE_PACKAGE_SRC_FILENAME" --strip-components=1 --no-same-owner -C src
 
@@ -6779,6 +6783,8 @@ inspect_install_arguments() {
 
     unset REQUEST_TO_KEEP_SESSION_DIR
 
+    unset SPECIFIED_FORMULA_SEARCH_DIRS
+
     unset SPECIFIED_DEVELOPER_DIR
 
     unset SPECIFIED_PACKAGE_LIST
@@ -6947,7 +6953,14 @@ inspect_install_arguments() {
                 isInteger "$1" || abort 1 "-j <N>, <N> must be an integer."
                 BUILD_NJOBS="$1"
                 ;;
-
+            -I) shift
+                [ -z "$1" ] && abort 1 "-I <FORMULA-SEARCH-DIR> , <FORMULA-SEARCH-DIR> is unspecified."
+                [ -e "$1" ] || abort 1 "'$1' was expected to be exist, but it was not."
+                [ -d "$1" ] || abort 1 "'$1' was expected to be a directory, but it was not."
+                FORMULA_SEARCH_DIR="$(realpath "$1")"
+                SPECIFIED_FORMULA_SEARCH_DIRS="$SPECIFIED_FORMULA_SEARCH_DIRS
+$FORMULA_SEARCH_DIR"
+                ;;
             -K) REQUEST_TO_KEEP_SESSION_DIR=1 ;;
             -U) REQUEST_TO_UPGRADE_IF_POSSIBLE=1 ;;
             -E) REQUEST_TO_EXPORT_COMPILE_COMMANDS_JSON=1 ;;
@@ -7158,7 +7171,7 @@ __install_the_given_packages() {
 
             __load_formula_of_the_given_package "$PACKAGE_NAME"
 
-            cp "$PACKAGE_FORMULA_FILEPATH" "$SESSION_DIR/$PACKAGE_NAME.yml"
+            cp -L "$PACKAGE_FORMULA_FILEPATH" "$SESSION_DIR/$PACKAGE_NAME.yml"
 
             eval "PACKAGE_DEP_PKG_${PACKAGE_NAME_UPPERCASE_UNDERSCORE}='$PACKAGE_DEP_PKG'"
 
@@ -7302,7 +7315,7 @@ __reinstall_the_given_packages() {
 
             __load_formula_of_the_given_package "$PACKAGE_NAME"
 
-            cp "$PACKAGE_FORMULA_FILEPATH" "$SESSION_DIR/$PACKAGE_NAME.yml"
+            cp -L "$PACKAGE_FORMULA_FILEPATH" "$SESSION_DIR/$PACKAGE_NAME.yml"
 
             eval "PACKAGE_DEP_PKG_${PACKAGE_NAME_UPPERCASE_UNDERSCORE}='$PACKAGE_DEP_PKG'"
 
@@ -7441,7 +7454,7 @@ __upgrade_packages() {
 
             __load_formula_of_the_given_package "$PACKAGE_NAME"
 
-            cp "$PACKAGE_FORMULA_FILEPATH" "$SESSION_DIR/$PACKAGE_NAME.yml"
+            cp -L "$PACKAGE_FORMULA_FILEPATH" "$SESSION_DIR/$PACKAGE_NAME.yml"
 
             eval "PACKAGE_DEP_PKG_${PACKAGE_NAME_UPPERCASE_UNDERSCORE}='$PACKAGE_DEP_PKG'"
 
@@ -7834,7 +7847,7 @@ __setup_uppm() {
     unset UPPM_PACKAGE_EXEFIND_PATH
     unset UPPM_PACKAGE_ACLOCAL_PATH
 
-    for item in bash coreutils findutils gawk gsed grep git curl bsdtar tree bat jq yq d2 dot_static
+    for item in bash coreutils findutils gawk gsed grep git curl bsdtar tree fzf bat jq yq d2 dot_static
     do
         run ./uppm install "$item"
 
@@ -7908,7 +7921,7 @@ ${COLOR_GREEN}xcpkg -V${COLOR_OFF}
     show version of this command.
 
 ${COLOR_GREEN}xcpkg setup${COLOR_OFF}
-    install essential tools (e.g. uppm, bash, coreutils, findutils, gawk, gsed, grep, git, curl, bsdtar, tree, bat, jq, yq, d2, dot, etc) used by this shell script.
+    install essential tools (e.g. uppm, bash, coreutils, findutils, gawk, gsed, grep, git, curl, bsdtar, tree, fzf, bat, jq, yq, d2, dot, etc) used by this shell script.
 
 ${COLOR_GREEN}xcpkg env${COLOR_OFF}
     show basic information about this software.
@@ -8058,6 +8071,9 @@ ${COLOR_GREEN}xcpkg install <PACKAGE-NAME|PACKAGE-SPEC>... [INSTALL-OPTIONS]${CO
         ${COLOR_BLUE}-j <N>${COLOR_OFF}
             specify the number of jobs you can run in parallel.
 
+        ${COLOR_BLUE}-I <FORMULA-SEARCH-DIR>${COLOR_OFF}
+            specify the formula search directory. This option can be used multiple times.
+
         ${COLOR_BLUE}-E${COLOR_OFF}
             export compile_commands.json
 
@@ -8162,6 +8178,8 @@ ${COLOR_GREEN}xcpkg tree <PACKAGE-SPEC> [--dirsfirst | -L N]${COLOR_OFF}
 ${COLOR_GREEN}xcpkg logs <PACKAGE-SPEC>${COLOR_OFF}
     show logs of the given installed package.
 
+    This will launch fzf finder. press ESC key to quit.
+
 ${COLOR_GREEN}xcpkg pack <PACKAGE-SPEC> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>] [--exclude <PATH>] [--keep-session-dir]${COLOR_OFF}
     pack the given installed package.
 
@@ -8205,7 +8223,7 @@ fi
 
 ##################################################################################
 
-XCPKG_VERSION=0.22.4
+XCPKG_VERSION=0.22.5
 
 XCPKG_ARG0="$0"
 XCPKG_ARG1="$1"

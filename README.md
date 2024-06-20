@@ -116,6 +116,7 @@ all relevant directories and files are located under `~/.xcpkg` directory.
     - [yq](https://mikefarah.gitbook.io/yq/)
     - [d2](https://github.com/terrastruct/d2)
     - [dot](https://graphviz.org/doc/info/command.html)
+    - [fzf](https://github.com/junegunn/fzf)
     - [bat](https://github.com/sharkdp/bat)
 
 - **integrate `zsh-completion` script**
@@ -563,6 +564,10 @@ a xcpkg formula's file content only has one level mapping and shall has followin
 ||||
 |`caveats`|optional|multiple lines of plain text to be displayed after installation.|
 
+|phases of a package's installation|
+|-|
+|![phases](phases.svg)|
+
 |build system name|build script file name|
 |-|-|
 |`meson`|`meson.build`|
@@ -576,10 +581,6 @@ a xcpkg formula's file content only has one level mapping and shall has followin
 |`autogen`|`autogen.sh`|
 |`autotools`|`configure.ac`|
 |`configure`|`configure`|
-
-|phases of a package's installation|
-|-|
-|![phases](phases.svg)|
 
 **commands that can be used out of the box:**
 
