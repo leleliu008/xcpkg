@@ -3391,7 +3391,7 @@ __install_the_given_package_onexit() {
     is_package_installed "$PACKAGE_SPEC" || {
         abort 1 "package installation failure: $PACKAGE_SPEC\n"
 
-        if [ -n "$PACKAGE_WORKING_DIR"] ; then
+        if [ -n "$PACKAGE_WORKING_DIR"] && [ -d "$PACKAGE_WORKING_DIR"] ; then
             printf '%b\n' "${COLOR_RED}you would probably want to figure out want had happeded, please change to the working directory: $PACKAGE_WORKING_DIR${COLOR_OFF}"
         fi
     }
@@ -3478,30 +3478,6 @@ EOF
 
     #########################################################################################
 
-    step "create the working directory and change to it"
-
-    PACKAGE_WORKING_DIR="$SESSION_DIR/$PACKAGE_SPEC"
-    PACKAGE_BCACHED_DIR="$PACKAGE_WORKING_DIR/src/_"
-
-    PACKAGE_INSTALLING_SRC_DIR="$PACKAGE_WORKING_DIR/src"
-    PACKAGE_INSTALLING_FIX_DIR="$PACKAGE_WORKING_DIR/fix"
-    PACKAGE_INSTALLING_RES_DIR="$PACKAGE_WORKING_DIR/res"
-    PACKAGE_INSTALLING_BIN_DIR="$PACKAGE_WORKING_DIR/bin"
-    PACKAGE_INSTALLING_LIB_DIR="$PACKAGE_WORKING_DIR/lib"
-    PACKAGE_INSTALLING_INC_DIR="$PACKAGE_WORKING_DIR/include"
-
-    install -d "$PACKAGE_INSTALLING_SRC_DIR"
-    install -d "$PACKAGE_INSTALLING_FIX_DIR"
-    install -d "$PACKAGE_INSTALLING_RES_DIR"
-    install -d "$PACKAGE_INSTALLING_BIN_DIR"
-    install -d "$PACKAGE_INSTALLING_INC_DIR"
-    install -d "$PACKAGE_INSTALLING_LIB_DIR"
-    install -d "$PACKAGE_BCACHED_DIR"
-
-    run cd "$PACKAGE_WORKING_DIR"
-
-    #########################################################################################
-
     PACKAGE_INSTALL_UTS=
     PACKAGE_INSTALL_UTS="$(date +%s)"
 
@@ -3513,6 +3489,12 @@ $PACKAGE_SPEC:$$:$PACKAGE_INSTALL_UTS
 EOF
 } | cut -d ' ' -f1)"
 
+    #########################################################################################
+
+    PACKAGE_WORKING_DIR="$SESSION_DIR/$PACKAGE_SPEC"
+    PACKAGE_BSCRIPT_DIR="$PACKAGE_WORKING_DIR/src/$PACKAGE_BSCRIPT"
+    PACKAGE_BSCRIPT_DIR="${PACKAGE_BSCRIPT_DIR%/}"
+    PACKAGE_BCACHED_DIR="$PACKAGE_WORKING_DIR/src/_"
     PACKAGE_INSTALL_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$TARGET_PLATFORM_SPEC/$PACKAGE_INSTALL_SHA"
 
     #########################################################################################
@@ -3520,10 +3502,29 @@ EOF
     if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
         cat <<EOF
 PACKAGE_WORKING_DIR = $PACKAGE_WORKING_DIR
+PACKAGE_BSCRIPT_DIR = $PACKAGE_BSCRIPT_DIR
 PACKAGE_BCACHED_DIR = $PACKAGE_BCACHED_DIR
 PACKAGE_INSTALL_DIR = $PACKAGE_INSTALL_DIR
 EOF
     fi
+
+    #########################################################################################
+
+    step "create the working directory and change to it"
+
+    run install -d "$PACKAGE_WORKING_DIR"
+    run         cd "$PACKAGE_WORKING_DIR"
+
+    run install -d src/_ fix res bin lib include
+
+    #########################################################################################
+
+    PACKAGE_INSTALLING_SRC_DIR="$PACKAGE_WORKING_DIR/src"
+    PACKAGE_INSTALLING_FIX_DIR="$PACKAGE_WORKING_DIR/fix"
+    PACKAGE_INSTALLING_RES_DIR="$PACKAGE_WORKING_DIR/res"
+    PACKAGE_INSTALLING_BIN_DIR="$PACKAGE_WORKING_DIR/bin"
+    PACKAGE_INSTALLING_LIB_DIR="$PACKAGE_WORKING_DIR/lib"
+    PACKAGE_INSTALLING_INC_DIR="$PACKAGE_WORKING_DIR/include"
 
     #########################################################################################
 
@@ -4251,9 +4252,6 @@ $DOT_CONTENT
     done
 
     #########################################################################################
-
-    PACKAGE_BSCRIPT_DIR="$PACKAGE_INSTALLING_SRC_DIR/$PACKAGE_BSCRIPT"
-    PACKAGE_BSCRIPT_DIR="${PACKAGE_BSCRIPT_DIR%/}"
 
     if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
         step "tree files of the installing top directory"
@@ -5305,7 +5303,7 @@ __check_mach_o_files() {
 
     for FILEPATH in $FILEPATHs
     do
-        [ -e "$FILEPATH" ] || continue
+        [ -f "$FILEPATH" ] || continue
 
         FILE_HEADER_ACTUAL=
         FILE_HEADER_ACTUAL="$(hexdump -n 16 -v -e '1/1 "%02X" ""' "$FILEPATH")"
@@ -5401,18 +5399,18 @@ EOF
 
         #######################################################################
 
-        __check_NEEDED "$FILEPATH" "$EXECUTABLE"
+        __check_needed_dylibs "$FILEPATH" "$EXECUTABLE"
     done
 
     unset IFS
 }
 
-# __find_NEEDED <MACH-O-FILE-NAME>
-  __find_NEEDED() {
+# __find_needed_dylibs <MACH-O-FILE-NAME>
+  __find_needed_dylibs() {
     NEEDED_FILEPATH="$PACKAGE_LIBRARY_DIR/$1"
     NEEDED_FILEPATH_TYPE=1
 
-    if [ ! -e "$NEEDED_FILEPATH" ] ; then
+    if [ ! -f "$NEEDED_FILEPATH" ] ; then
         NEEDED_FILEPATH=
         NEEDED_FILEPATH_TYPE=2
 
@@ -5420,7 +5418,7 @@ EOF
         do
             NEEDED_FILEPATH="$DEPENDENT_PACKAGE_INSTALL_DIR/lib/$1"
 
-            if [ -e "$NEEDED_FILEPATH" ] ; then
+            if [ -f "$NEEDED_FILEPATH" ] ; then
                 break
             else
                 NEEDED_FILEPATH=
@@ -5429,8 +5427,8 @@ EOF
     fi
 }
 
-# __check_NEEDED <MACH-O-FILE-PATH> <IS-EXECUTABLE>
-  __check_NEEDED() {
+# __check_needed_dylibs <MACH-O-FILE-PATH> <IS-EXECUTABLE>
+  __check_needed_dylibs() {
     # a \n-separated list
     NEEDEDs=$(otool -l "$1" | grep LC_LOAD_DYLIB -A2 | grep name | sed 's|^[[:space:]]*||' | cut -d ' ' -f2)
 
@@ -5453,7 +5451,7 @@ EOF
             @rpath/libclang_rt*)
                 ;;
             @rpath/*)
-                __find_NEEDED "${NEEDED#*/}"
+                __find_needed_dylibs "${NEEDED#*/}"
 
                 if [ -z "$NEEDED_FILEPATH" ] ; then
                     abort 1 "$NEEDED was not found, which is needed by $1"
@@ -5469,7 +5467,7 @@ $NEEDED_FILEPATH"
 $1|$NEEDED_FILEPATH_TYPE"
                 fi
 
-                __check_NEEDED "$NEEDED_FILEPATH" 0
+                __check_needed_dylibs "$NEEDED_FILEPATH" 0
                 ;;
             @loader_path/*)
                 ;;
@@ -5508,7 +5506,7 @@ $1|2"
             lib*.dylib)
                 run install_name_tool -change "$NEEDED" "@rpath/$NEEDED" "$1"
 
-                __find_NEEDED "$NEEDED"
+                __find_needed_dylibs "$NEEDED"
 
                 if [ -z "$NEEDED_FILEPATH" ] ; then
                     abort 1 "$NEEDED was not found, which is needed by $1"
@@ -5524,7 +5522,7 @@ $NEEDED_FILEPATH"
 $1|$NEEDED_FILEPATH_TYPE"
                 fi
 
-                __check_NEEDED "$NEEDED_FILEPATH" 0
+                __check_needed_dylibs "$NEEDED_FILEPATH" 0
                 ;;
             #*)  abort 1 "unexpected runtime dependency: $NEEDED , which is needed by $1"
         esac
@@ -8223,7 +8221,7 @@ fi
 
 ##################################################################################
 
-XCPKG_VERSION=0.22.5
+XCPKG_VERSION=0.22.6
 
 XCPKG_ARG0="$0"
 XCPKG_ARG1="$1"
