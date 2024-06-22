@@ -2286,7 +2286,7 @@ __show_packages_depended_by_the_given_package() {
                     OUTPUT_PATH="$1"
                 fi
                 ;;
-            *)  abort 1 "$XCPKG_ARG0 depends <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>] [--keep-session-dir], unrecognized option: $1"
+            *)  abort 1 "$XCPKG_ARG0 depends <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>], unrecognized option: $1"
         esac
         shift
     done
@@ -2719,7 +2719,7 @@ __fetch_resources_of_the_given_package() {
 # {{{ xcpkg pack
 
 # examples:
-# __pack_the_given_installed_package <PACKAGE-NAME> [-t <zip|tar.gz|tar.xz|tar.lz|tar.bz2>] [-o <OUTPUT-PATH>] [--exclude=<PATH>] [--keep-session-dir]
+# __pack_the_given_installed_package <PACKAGE-NAME> [-t <zip|tar.gz|tar.xz|tar.lz|tar.bz2>] [-o <OUTPUT-PATH>] [--exclude=<PATH>] [-K]
 # __pack_the_given_installed_package    autoconf     -t tar.xz
   __pack_the_given_installed_package() {
     __load_receipt_of_the_given_package "$1"
@@ -2736,7 +2736,7 @@ __fetch_resources_of_the_given_package() {
     while [ -n "$1" ]
     do
         case $1 in
-            --keep-session-dir)
+            -K)
                 KEEP_SESSION_DIR=1
                 ;;
             -t) shift
@@ -2765,7 +2765,7 @@ __fetch_resources_of_the_given_package() {
                     EXCLUDES="$EXCLUDES $EXCLUDE"
                 fi
                 ;;
-            *)  abort 1 "$XCPKG_ARG0 pack <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>] [--keep-session-dir], unrecognized option: $1"
+            *)  abort 1 "$XCPKG_ARG0 pack <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>] [-K], unrecognized option: $1"
         esac
         shift
     done
@@ -2877,7 +2877,7 @@ __fetch_resources_of_the_given_package() {
 
     if [ "$KEEP_SESSION_DIR" = 1 ] ; then
         echo
-        note "the session directory '$SESSION_DIR' is not deleted as --keep-session-dir option is specified."
+        note "the session directory '$SESSION_DIR' is not deleted as -K option is specified."
     else
         run rm -rf "$SESSION_DIR"
     fi
@@ -3515,7 +3515,7 @@ EOF
     run install -d "$PACKAGE_WORKING_DIR"
     run         cd "$PACKAGE_WORKING_DIR"
 
-    run install -d src/_ fix res bin lib include
+    run install -d src/_ fix res bin lib include stub
 
     #########################################################################################
 
@@ -3525,6 +3525,46 @@ EOF
     PACKAGE_INSTALLING_BIN_DIR="$PACKAGE_WORKING_DIR/bin"
     PACKAGE_INSTALLING_LIB_DIR="$PACKAGE_WORKING_DIR/lib"
     PACKAGE_INSTALLING_INC_DIR="$PACKAGE_WORKING_DIR/include"
+
+    #########################################################################################
+
+    # https://developer.apple.com/library/archive/documentation/System/Conceptual/ManPages_iPhoneOS/man3/system.3.html
+    if [ "$TARGET_PLATFORM_NAME" = iPhoneOS ] ; then
+        cat > stub/system.c <<EOF
+#ifndef STUB_SYSTEM_C
+#define STUB_SYSTEM_C
+
+#include <stdlib.h>
+#include <unistd.h>
+#include <spawn.h>
+#include <sys/wait.h>
+
+extern char **environ;
+
+#ifdef __cplusplus
+    extern "C" {
+#endif
+
+__attribute__((unused))
+static int stub_system(const char * cmd) {
+    char* const argv[4] = {(char*)"sh", (char*)"-c", (char*)cmd, NULL};
+    pid_t pid;
+    int status = posix_spawn(&pid, "/bin/sh", NULL, NULL, argv, environ);
+    if (0 == status) {
+        return waitpid(pid, &status, 0);
+    }
+    return status;
+}
+
+#define system(x) stub_system(x)
+
+#ifdef __cplusplus
+    }
+#endif
+
+#endif
+EOF
+    fi
 
     #########################################################################################
 
@@ -5279,7 +5319,7 @@ $PACKAGE_ONFINAL
 
     #########################################################################################
 
-    [ "$REQUEST_TO_KEEP_SESSION_DIR" != 1 ] && {
+    [ "$KEEP_SESSION_DIR" != 1 ] && {
         step "delete the working directory"
         run rm -rf "$PACKAGE_WORKING_DIR"
     }
@@ -6521,54 +6561,6 @@ gow() {
     done
 }
 
-
-# }}}
-##############################################################################
-# {{{ system(3) stub
-
-inject_stub_system() {
-    cat > "$PACKAGE_BSCRIPT_DIR/stub-system.c" <<EOF
-#ifndef SYSTEM_STUB_C
-#define SYSTEM_STUB_C
-
-#include <stdlib.h>
-#include <unistd.h>
-#include <spawn.h>
-#include <sys/wait.h>
-
-extern char **environ;
-
-#ifdef __cplusplus
-    extern "C" {
-#endif
-
-__attribute__((unused))
-static int stub_system(const char * cmd) {
-    char* const argv[4] = {(char*)"sh", (char*)"-c", (char*)cmd, NULL};
-    pid_t pid;
-    int status = posix_spawn(&pid, "/bin/sh", NULL, NULL, argv, environ);
-    if (0 == status) {
-        return waitpid(pid, &status, 0);
-    }
-    return status;
-}
-
-#define system(x) stub_system(x)
-
-#ifdef __cplusplus
-    }
-#endif
-
-#endif
-EOF
-    for item in "$@"
-    do
-        printf '%s\n' "inject $PACKAGE_BSCRIPT_DIR/stub-system.c -> $item"
-        cat "$PACKAGE_BSCRIPT_DIR/stub-system.c" "$item" > "$item.bak" || return 1
-        mv "$item.bak" "$item" || return 1
-    done
-}
-
 # }}}
 ##############################################################################
 # {{{ inspect_package_spec
@@ -6775,11 +6767,11 @@ inspect_install_arguments() {
 
     unset ENABLE_CCACHE
 
-    unset REQUEST_TO_UPGRADE_IF_POSSIBLE
+    unset UPGRADE_IF_POSSIBLE
 
-    unset REQUEST_TO_EXPORT_COMPILE_COMMANDS_JSON
+    unset EXPORT_COMPILE_COMMANDS_JSON
 
-    unset REQUEST_TO_KEEP_SESSION_DIR
+    unset KEEP_SESSION_DIR
 
     unset SPECIFIED_FORMULA_SEARCH_DIRS
 
@@ -6959,9 +6951,9 @@ inspect_install_arguments() {
                 SPECIFIED_FORMULA_SEARCH_DIRS="$SPECIFIED_FORMULA_SEARCH_DIRS
 $FORMULA_SEARCH_DIR"
                 ;;
-            -K) REQUEST_TO_KEEP_SESSION_DIR=1 ;;
-            -U) REQUEST_TO_UPGRADE_IF_POSSIBLE=1 ;;
-            -E) REQUEST_TO_EXPORT_COMPILE_COMMANDS_JSON=1 ;;
+            -K) KEEP_SESSION_DIR=1 ;;
+            -U) UPGRADE_IF_POSSIBLE=1 ;;
+            -E) EXPORT_COMPILE_COMMANDS_JSON=1 ;;
 
             -*) abort 1 "unrecognized option: $1"
                 ;;
@@ -8178,7 +8170,7 @@ ${COLOR_GREEN}xcpkg logs <PACKAGE-SPEC>${COLOR_OFF}
 
     This will launch fzf finder. press ESC key to quit.
 
-${COLOR_GREEN}xcpkg pack <PACKAGE-SPEC> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>] [--exclude <PATH>] [--keep-session-dir]${COLOR_OFF}
+${COLOR_GREEN}xcpkg pack <PACKAGE-SPEC> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>] [--exclude <PATH>] [-K]${COLOR_OFF}
     pack the given installed package.
 
     <OUTPUT-TYPE> must ends with one of tar.gz tar.xz tar.lz tar.bz2 zip
@@ -8196,6 +8188,8 @@ ${COLOR_GREEN}xcpkg pack <PACKAGE-SPEC> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>] [-
     If -t <OUTPUT-TYPE> option is unspecified, <OUTPUT-TYPE> would be assigned to .tar.xz
 
     <PATH> is relative to installed root directory.
+
+    -K option means keep the session directory even if this package is successfully packed.
     "
 }
 
@@ -8221,7 +8215,7 @@ fi
 
 ##################################################################################
 
-XCPKG_VERSION=0.22.6
+XCPKG_VERSION=0.22.7
 
 XCPKG_ARG0="$0"
 XCPKG_ARG1="$1"

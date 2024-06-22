@@ -148,7 +148,7 @@ function _xcpkg() {
                         '1:package-name:_xcpkg_installed_packages' \
                         '-t[specify output type]:output-type:(zip tar.gz tar.xz tar.lz tar.bz2)' \
                         '-o[specify output filepath or directory]:output-path:_files' \
-                        '--keep-session-dir[keep the session directory even if successfully packed]'
+                        '-K[keep the session directory even if successfully packed]'
                     ;;
                 tree)
                     _arguments \
