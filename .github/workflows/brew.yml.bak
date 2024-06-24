@@ -66,10 +66,8 @@ jobs:
       - run: xcpkg --version
       - run: xcpkg -V
 
-      - run: xcpkg env
-      - run: xcpkg env -v
+      - run: xcpkg about
 
-      - run: xcpkg buildinfo
       - run: xcpkg sysinfo
 
       - run: xcpkg setup -v
@@ -206,8 +204,7 @@ jobs:
       - run: xcpkg --version
       - run: xcpkg -V
 
-      - run: xcpkg env
-      - run: xcpkg env -v
+      - run: xcpkg about
 
       - run: xcpkg buildinfo
       - run: xcpkg sysinfo

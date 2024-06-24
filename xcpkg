@@ -7903,7 +7903,7 @@ ${COLOR_GREEN}xcpkg -V${COLOR_OFF}
 ${COLOR_GREEN}xcpkg setup${COLOR_OFF}
     install essential tools (e.g. uppm, bash, coreutils, findutils, gawk, gsed, grep, git, curl, bsdtar, tree, fzf, bat, jq, yq, d2, dot, etc) used by this shell script.
 
-${COLOR_GREEN}xcpkg env${COLOR_OFF}
+${COLOR_GREEN}xcpkg about${COLOR_OFF}
     show basic information about this software.
 
 ${COLOR_GREEN}xcpkg sysinfo${COLOR_OFF}
@@ -8213,7 +8213,7 @@ fi
 
 ##################################################################################
 
-XCPKG_VERSION=0.22.8
+XCPKG_VERSION=0.22.9
 
 XCPKG_ARG0="$0"
 XCPKG_ARG1="$1"
@@ -8293,8 +8293,14 @@ case $1 in
         printf '%s\n' "$XCPKG_VERSION"
         exit
         ;;
-     env)
-        cat <<EOF
+     about)
+        if command -v bat > /dev/null ; then
+            VIEWER='bat --language=yaml --paging=never --color=always --theme=Dracula --style=plain'
+        else
+            VIEWER=cat
+        fi
+
+        $VIEWER <<EOF
 xcpkg.version : $XCPKG_VERSION
 xcpkg.homedir : $XCPKG_HOME
 xcpkg.exepath : $XCPKG_PATH

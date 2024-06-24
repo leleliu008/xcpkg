@@ -64,7 +64,7 @@ all relevant directories and files are located under `~/.xcpkg` directory.
 - **show basic information about this software**
 
     ```bash
-    xcpkg env
+    xcpkg about
     ```
 
 - **show basic information about your current running operation system**
