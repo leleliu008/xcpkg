@@ -176,9 +176,11 @@ version_match() {
 
 # wfetch <URL> [--uri=<URL-MIRROR>] [--sha256=<SHA256>] [-o <OUTPUT-PATH>] [-q] [--no-buffer]
 #
-# If -o <OUTPUT-PATH> option is specified, the result will be written to file, otherwise, the result will be written to stdout.
+# If -o <OUTPUT-PATH> option is unspecified, the result will be written to <OUTPUT-PATH>/$(basename <URL>)
 #
-# If <OUTPUT-PATH> is . .. ./ ../ or ends with slash(/), then it will be treated as a directory, otherwise, it will be treated as a filepath.
+# If <OUTPUT-PATH> is -, the result will be written to stdout.
+#
+# If <OUTPUT-PATH> is . .. or ends with slash(/), then it will be treated as a directory, otherwise, it will be treated as a filepath.
 #
 # If <OUTPUT-PATH> is treated as a directory, then it will be expanded to <OUTPUT-PATH>/$(basename <URL>)
 #
@@ -253,10 +255,10 @@ wfetch() {
     fi
 
     case $FETCH_PATH in
-        '')
+        -)
             FETCH_BUFFER_FILEPATH='-'
             ;;
-        .)
+        .|'')
             FETCH_OUTPUT_DIR='.'
             FETCH_OUTPUT_FILEPATH="$FETCH_OUTPUT_DIR/${FETCH_URL##*/}"
             ;;
@@ -2719,7 +2721,7 @@ __fetch_resources_of_the_given_package() {
 # {{{ xcpkg pack
 
 # examples:
-# __pack_the_given_installed_package <PACKAGE-NAME> [-t <zip|tar.gz|tar.xz|tar.lz|tar.bz2>] [-o <OUTPUT-PATH>] [--exclude=<PATH>] [-K]
+# __pack_the_given_installed_package <PACKAGE-NAME> [-t <zip|tar.gz|tar.xz|tar.lz|tar.bz2>] [-o <OUTPUT-PATH>] [--exclude <PATH>] [-K]
 # __pack_the_given_installed_package    autoconf     -t tar.xz
   __pack_the_given_installed_package() {
     __load_receipt_of_the_given_package "$1"
@@ -2759,10 +2761,13 @@ __fetch_resources_of_the_given_package() {
                     OUTPUT_PATH="$1"
                 fi
                 ;;
-            --exclude=*)
-                EXCLUDE="${1#*=}"
-                if [ -n "$EXCLUDE" ] ; then
-                    EXCLUDES="$EXCLUDES $EXCLUDE"
+            --exclude)
+                shift
+
+                if [ -n "$1" ] ; then
+                    abort 1 "$XCPKG_ARG0 pack <PACKAGE-NAME> [--exclude <PATH>], --exclude option is specified but <PATH> is unspecified."
+                else
+                    EXCLUDES="$EXCLUDES $1"
                 fi
                 ;;
             *)  abort 1 "$XCPKG_ARG0 pack <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>] [-K], unrecognized option: $1"
@@ -7777,23 +7782,6 @@ __setup() {
 
 # use commands: uname curl tar xz cut
 __setup_uppm() {
-    for FETCH_TOOL in curl wget http lynx aria2c axel
-    do
-        if command -v "$FETCH_TOOL" > /dev/null ; then
-            break
-        else
-            unset FETCH_TOOL
-        fi
-    done
-
-    if [ -z "$FETCH_TOOL" ] ; then
-        abort 1 "no any fetch tool[curl, wget, http, lynx, aria2c, axel] found."
-    else
-        unset FETCH_TOOL
-    fi
-
-    ##################################################################################
-
     SESSION_DIR="$XCPKG_HOME/run/$$/core"
 
     run rm -rf     "$SESSION_DIR"
@@ -7803,13 +7791,13 @@ __setup_uppm() {
     ##################################################################################
 
     # https://curl.se/docs/caextract.html
-    wfetch 'https://curl.se/ca/cacert.pem' -o . --no-buffer
+    wfetch 'https://curl.se/ca/cacert.pem' --no-buffer
 
     export SSL_CERT_FILE="$PWD/cacert.pem"
 
     ##################################################################################
 
-    wfetch 'https://raw.githubusercontent.com/leleliu008/xcpkg/master/xcpkg-core-latest-release-version' -o . --no-buffer
+    wfetch 'https://raw.githubusercontent.com/leleliu008/xcpkg/master/xcpkg-core-latest-release-version' --no-buffer
 
     ##################################################################################
 
@@ -7825,7 +7813,7 @@ __setup_uppm() {
     XCPKG_CORE_LATEST_RELEASE_VERSION="$(cat xcpkg-core-latest-release-version)"
     XCPKG_CORE_LATEST_RELEASE_ARCHIVE="xcpkg-core-${XCPKG_CORE_LATEST_RELEASE_VERSION}-macos-${X}-${NATIVE_OS_ARCH}.tar.xz"
 
-    wfetch "https://github.com/leleliu008/xcpkg/releases/download/xcpkg-core-${XCPKG_CORE_LATEST_RELEASE_VERSION}/${XCPKG_CORE_LATEST_RELEASE_ARCHIVE}" -o . --no-buffer
+    wfetch "https://github.com/leleliu008/xcpkg/releases/download/xcpkg-core-${XCPKG_CORE_LATEST_RELEASE_VERSION}/${XCPKG_CORE_LATEST_RELEASE_ARCHIVE}" --no-buffer
 
     run tar xvf "$XCPKG_CORE_LATEST_RELEASE_ARCHIVE" --strip-components=1 --no-same-owner
 
@@ -7859,7 +7847,9 @@ __setup_uppm() {
     UPPM_PACKAGE_EXEFIND_PATH="${UPPM_PACKAGE_EXEFIND_PATH#':'}"
     UPPM_PACKAGE_ACLOCAL_PATH="${UPPM_PACKAGE_ACLOCAL_PATH#':'}"
 
-    cat > env.sh <<EOF
+    ##################################################################################
+
+    cat > init.rc <<EOF
 export ACLOCAL_PATH="$UPPM_PACKAGE_ACLOCAL_PATH:\$ACLOCAL_PATH"
 export PATH="$UPPM_PACKAGE_EXEFIND_PATH:\$PATH"
 
@@ -7993,22 +7983,20 @@ ${COLOR_GREEN}xcpkg info-installed <PACKAGE-SPEC> [--json | --yaml | <KEY>]${COL
     show information of the given installed package.
 
 
-${COLOR_GREEN}xcpkg depends <PACKAGE-NAME> [-t <dot|box|svg|png>] [-o <OUTPUT-PATH>]${COLOR_OFF}
+${COLOR_GREEN}xcpkg depends <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>]${COLOR_OFF}
     show the packages that are depended by the given package.
 
-    <OUTPUT-TYPE> must be one of d2 dot box svg png
+    <OUTPUT-TYPE> must be any one of d2 dot box svg png
 
     <OUTPUT-PATH> can be either the filepath or directory.
 
-    If -o <OUTPUT-PATH> option is specified, the result will be written to file, otherwise, the result will be written to stdout.
-
-    If <OUTPUT-PATH> is . .. ./ ../ or ends with slash(/), then it will be treated as a directory, otherwise, it will be treated as a filepath.
+    If <OUTPUT-PATH> is . .. or ends with slash(/), then it will be treated as a directory, otherwise, it will be treated as a filepath.
 
     If <OUTPUT-PATH> is treated as a directory, then it will be expanded to <OUTPUT-PATH>/<PACKAGE-NAME>-dependencies.<OUTPUT-TYPE>
 
-    If <OUTPUT-PATH> is treated as a filepath, and if -t <OUTPUT-TYPE> option is not given, if <OUTPUT-PATH> ends with one of .dot|.box|.svg|.png, <OUTPUT-TYPE> will be the <OUTPUT-PATH> suffix, otherwise, <OUTPUT-TYPE> will be box.
+    If -o <OUTPUT-PATH> option is unspecified, the result will be written to stdout.
 
-    If -t <OUTPUT-TYPE> and -o <OUTPUT-PATH> options both are not given, <OUTPU-TYPE> will be box and output to stdout.
+    If -t <OUTPUT-TYPE> option is unspecified, and if <OUTPUT-PATH> ends with one of .d2 .dot .box .svg .png, <OUTPUT-TYPE> will be the <OUTPUT-PATH> suffix, otherwise, <OUTPUT-TYPE> will be box.
 
 
 ${COLOR_GREEN}xcpkg fetch <PACKAGE-NAME>${COLOR_OFF}
@@ -8170,26 +8158,36 @@ ${COLOR_GREEN}xcpkg logs <PACKAGE-SPEC>${COLOR_OFF}
 
     This will launch fzf finder. press ESC key to quit.
 
-${COLOR_GREEN}xcpkg pack <PACKAGE-SPEC> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>] [--exclude <PATH>] [-K]${COLOR_OFF}
+${COLOR_GREEN}xcpkg pack <PACKAGE-SPEC> [OPTIONS]${COLOR_OFF}
     pack the given installed package.
 
-    <OUTPUT-TYPE> must ends with one of tar.gz tar.xz tar.lz tar.bz2 zip
+    ${COLOR_BLUE}-t <OUTPUT-TYPE>${COLOR_OFF}
+        must be any one of tar.gz tar.xz tar.lz tar.bz2 zip
 
-    <OUTPUT-PATH> can be either the filepath or directory which indicates where the packed archive file would be written to.
+        If this option is unspecified, <OUTPUT-TYPE> would be assigned to .tar.xz
 
-    If <OUTPUT-PATH> is . .. ./ ../ or ends with slash(/), then it would be treated as a directory, otherwise, it would be treated as a filepath.
+    ${COLOR_BLUE}-o <OUTPUT-PATH>${COLOR_OFF}
+        specify where the packed archive file would be written to.
 
-    If <OUTPUT-PATH> is treated as a filepath, then it must ends with one of .tar.gz .tar.xz .tar.lz .tar.bz2 .tgz .txz .tlz .tbz2 .zip , in this case, -t <OUTPUT-TYPE> option would be ignored if it also is specified.
+        <OUTPUT-PATH> can be either the filepath or directory.
 
-    If <OUTPUT-PATH> is treated as a directory, then it would be expanded to <OUTPUT-PATH>/<PACKAGE-NAME>-<PACKAGE-VERSION>-<TARGET-PLATFORM-NAME>-<TARGET-PLATFORM-ARCH><OUTPUT-TYPE>
+        If <OUTPUT-PATH> is . .. or ends with slash(/), then it would be treated as a directory, otherwise, it would be treated as a filepath.
 
-    If -o <OUTPUT-PATH> option is unspecified, <OUTPUT-PATH> would be assigned to ./<PACKAGE-NAME>-<PACKAGE-VERSION>-<TARGET-PLATFORM-NAME>-<TARGET-PLATFORM-ARCH><OUTPUT-TYPE>
+        If <OUTPUT-PATH> is treated as a filepath, then it must end with one of .tar.gz .tar.xz .tar.lz .tar.bz2 .tgz .txz .tlz .tbz2 .zip , in this case, -t <OUTPUT-TYPE> option would be ignored if it also is specified.
 
-    If -t <OUTPUT-TYPE> option is unspecified, <OUTPUT-TYPE> would be assigned to .tar.xz
+        If <OUTPUT-PATH> is treated as a directory, then it would be expanded to <OUTPUT-PATH>/<PACKAGE-NAME>-<PACKAGE-VERSION>-<TARGET><OUTPUT-TYPE>
 
-    <PATH> is relative to installed root directory.
+        If this option is unspecified, <OUTPUT-PATH> would be current directory.
 
-    -K option means keep the session directory even if this package is successfully packed.
+    ${COLOR_BLUE}--exclude <PATH>${COLOR_OFF}
+        exclude file that isn't mean to be packed into the archive file.
+
+        <PATH> is relative to the installed root directory.
+
+        this option can be used multiple times.
+
+    ${COLOR_BLUE}-K${COLOR_OFF}
+        keep the session directory even if this package is successfully packed.
     "
 }
 
@@ -8215,7 +8213,7 @@ fi
 
 ##################################################################################
 
-XCPKG_VERSION=0.22.7
+XCPKG_VERSION=0.22.8
 
 XCPKG_ARG0="$0"
 XCPKG_ARG1="$1"
@@ -8355,8 +8353,8 @@ export ACLOCAL_PATH="$XCPKG_CORE_DIR/share/aclocal"
 
 ##################################################################################
 
-if [ -f "$XCPKG_CORE_DIR/env.sh" ] ; then
-    .   "$XCPKG_CORE_DIR/env.sh"
+if [ -f "$XCPKG_CORE_DIR/init.rc" ] ; then
+    .   "$XCPKG_CORE_DIR/init.rc"
 else
     abort 1 "please run ${COLOR_GREEN}$XCPKG_ARG0 setup${COLOR_OFF} command first, then try again."
 fi
