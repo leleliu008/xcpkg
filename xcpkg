@@ -3102,11 +3102,19 @@ __install_the_given_package() {
     STATIC_LIBRARY_SUFFIX=.a
     SHARED_LIBRARY_SUFFIX=.dylib
 
+    #########################################################################################
+
     if [ "$TARGET_PLATFORM_NAME-$TARGET_PLATFORM_ARCH" = "$NATIVE_OS_NAME-$NATIVE_OS_ARCH" ] ; then
         CROSS_COMPILING=0
     else
         CROSS_COMPILING=1
     fi
+
+    #########################################################################################
+
+    # these two variable might be set in formula file to control cmakew's behavor
+    unset CMAKE_BUILD_TARGETS
+    unset CMAKE_INSTALL_COMPONENTS
 
     #########################################################################################
 
@@ -5834,9 +5842,22 @@ EOF
             -DCMAKE_TOOLCHAIN_FILE="$CMAKE_TOOLCHAIN_FILE" \
             -DCMAKE_VERBOSE_MAKEFILE="$CMAKE_VERBOSE_MAKEFILE" \
             -DCMAKE_COLOR_MAKEFILE="$CMAKE_COLOR_MAKEFILE" \
-            "$CMAKE_CONFIG_OPTIONS_EXTRA" "$@" &&
-        run "$CMAKE" --build   "$PACKAGE_BCACHED_DIR" -- "-j$BUILD_NJOBS" &&
-        run "$CMAKE" --install "$PACKAGE_BCACHED_DIR"
+            "$CMAKE_CONFIG_OPTIONS_EXTRA" "$@"
+
+        if [ -z "$CMAKE_BUILD_TARGETS" ] ; then
+            run "$CMAKE" --build   "$PACKAGE_BCACHED_DIR"
+        else
+            run "$CMAKE" --build   "$PACKAGE_BCACHED_DIR" --target "$CMAKE_BUILD_TARGETS"
+        fi
+
+        if [ -z "$CMAKE_INSTALL_COMPONENTS" ] ; then
+            run "$CMAKE" --install "$PACKAGE_BCACHED_DIR"
+        else
+            for component in $CMAKE_INSTALL_COMPONENTS
+            do
+            run "$CMAKE" --install "$PACKAGE_BCACHED_DIR" --component "$component"
+            done
+        fi
     fi
 }
 
@@ -7889,7 +7910,7 @@ fi
 
 ##################################################################################
 
-XCPKG_VERSION=0.22.10
+XCPKG_VERSION=0.22.11
 
 XCPKG_ARG0="$0"
 XCPKG_ARG1="$1"
