@@ -1101,10 +1101,6 @@ filetype_from_url() {
         abort 1 "summary mapping not found in $PACKAGE_FORMULA_FILEPATH"
     fi
 
-    if [ -z "$PACKAGE_WEB_URL" ] && [ -z "$PACKAGE_GIT_URL" ] ; then
-        abort 1 "neither web-url nor git-url mapping was found in $PACKAGE_FORMULA_FILEPATH"
-    fi
-
     if [ -n "$PACKAGE_FIX_URL" ] && [ -n "$PACKAGE_PATCHES" ] ; then
         abort 1 "fix-url and patches mapping shouldn't be used together in $PACKAGE_FORMULA_FILEPATH"
     fi
@@ -1124,45 +1120,79 @@ filetype_from_url() {
 
     #########################################################################################
 
-    case $PACKAGE_SRC_URL in
-        '')
-            if [ -n "$PACKAGE_GIT_URL" ] ; then
-                PACKAGE_SRC_FILETYPE=.git
-                PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP git"
-            fi
-            ;;
-        dir://*)
-            PACKAGE_SRC_FILETYPE=.dir
-            PACKAGE_SRC_FILEPATH=$(printf '%s\n' "$PACKAGE_SRC_URL" | cut -c7-)
-            ;;
-        file://*)
-            PACKAGE_SRC_FILEPATH=$(printf '%s\n' "$PACKAGE_SRC_URL" | cut -c8-)
-            PACKAGE_SRC_FILENAME="${PACKAGE_SRC_FILEPATH##*/}"
-            PACKAGE_SRC_FILETYPE="$(filetype_from_url "$PACKAGE_SRC_FILENAME")"
-            ;;
-        *)  PACKAGE_SRC_FILETYPE="$(filetype_from_url "$PACKAGE_SRC_URL")"
-            PACKAGE_SRC_FILENAME="$PACKAGE_SRC_SHA$PACKAGE_SRC_FILETYPE"
-            PACKAGE_SRC_FILEPATH="$XCPKG_DOWNLOADS_DIR/$PACKAGE_SRC_FILENAME"
+    if [ -n "$PACKAGE_SRC_URL" ] ; then
+        case $PACKAGE_SRC_URL in
+            dir://*)
+                PACKAGE_SRC_FILETYPE=.dir
+                PACKAGE_SRC_FILEPATH=$(printf '%s\n' "$PACKAGE_SRC_URL" | cut -c7-)
 
-            if [ -z "$PACKAGE_SRC_SHA" ] ; then
-                abort 1 "src-sha mapping not found in $PACKAGE_FORMULA_FILEPATH"
-            fi
+                if [ -z "$PACKAGE_VERSION" ] ; then
+                    PACKAGE_VERSION="$(date -u -d "@$TIMESTAMP_UNIX" '+%Y.%m.%d')"
+                fi
+                ;;
+            file://*)
+                PACKAGE_SRC_FILEPATH=$(printf '%s\n' "$PACKAGE_SRC_URL" | cut -c8-)
+                PACKAGE_SRC_FILENAME="$(basename "$PACKAGE_SRC_FILEPATH")"
+                PACKAGE_SRC_FILETYPE="$(filetype_from_url "$PACKAGE_SRC_FILENAME")"
+
+                if [ -z "$PACKAGE_VERSION" ] ; then
+                    PACKAGE_VERSION="$(date -u -d "@$TIMESTAMP_UNIX" '+%Y.%m.%d')"
+                fi
+                ;;
+            *)  PACKAGE_SRC_FILETYPE="$(filetype_from_url "$PACKAGE_SRC_URL")"
+                PACKAGE_SRC_FILENAME="$PACKAGE_SRC_SHA$PACKAGE_SRC_FILETYPE"
+                PACKAGE_SRC_FILEPATH="$PPKG_DOWNLOADS_DIR/$PACKAGE_SRC_FILENAME"
+
+                if [ -z "$PACKAGE_SRC_SHA" ] ; then
+                    abort 1 "src-sha mapping not found in $PACKAGE_FORMULA_FILEPATH"
+                fi
+
+                if [ -z "$PACKAGE_GIT_URL" ] ; then
+                    case $PACKAGE_SRC_URL in
+                        https://github.com/*/*/releases/*)
+                            PACKAGE_GIT_URL="${PACKAGE_SRC_URL%%/releases/*}"
+                            ;;
+                        https://github.com/*/*/archive/*)
+                            PACKAGE_GIT_URL="${PACKAGE_SRC_URL%%/archive/*}"
+                            ;;
+                        https://gitlab.com/*/*/-/archive/*)
+                            PACKAGE_GIT_URL="${PACKAGE_SRC_URL%%/-/archive/*}"
+                            ;;
+                    esac
+                fi
+
+                if [ -z "$PACKAGE_VERSION" ] ; then
+                    PACKAGE_VERSION="$(basename "$PACKAGE_SRC_URL" | tr '_@' - | sed -e 's|\.tar\.[glx]z$||' -e 's|\.tar\.bz2$||' -e 's|\.t[glx]z$||' -e 's|\.zip$||' -e 's|-stable||' -e 's|-source||' -e 's|[-.]src$||' -e 's|\.orig||' | awk -F- '{print $NF}')"
+                    case $PACKAGE_VERSION in
+                        '') abort 1 "version mapping not found in $PACKAGE_FORMULA_FILEPATH" ;;
+                        v*) PACKAGE_VERSION=$(printf '%s\n' "$PACKAGE_VERSION" | cut -c2-)
+                    esac
+                fi
+
+                PACKAGE_NEED_CURL=1
+
+                case $PACKAGE_SRC_FILETYPE in
+                    .zip|.txz|.tgz|.tlz|.tbz2|.crate)
+                        PACKAGE_NEED_BTAR=1
+                esac
+        esac
+    else
+        if [ -n "$PACKAGE_GIT_URL" ] ; then
+            PACKAGE_SRC_FILETYPE=.git
 
             if [ -z "$PACKAGE_VERSION" ] ; then
-                PACKAGE_VERSION="$(basename "$PACKAGE_SRC_URL" | tr '_@' - | sed -e 's|\.tar\.[glx]z$||' -e 's|\.tar\.bz2$||' -e 's|\.t[glx]z$||' -e 's|\.zip$||' -e 's|-stable||' -e 's|-source||' -e 's|[-.]src$||' -e 's|\.orig||' | awk -F- '{print $NF}')"
-                case $PACKAGE_VERSION in
-                    '') abort 1 "version mapping not found in $PACKAGE_FORMULA_FILEPATH" ;;
-                    v*) PACKAGE_VERSION=$(printf '%s\n' "$PACKAGE_VERSION" | cut -c2-)
-                esac
+                PACKAGE_VERSION="$(date -u -d "@$TIMESTAMP_UNIX" '+%Y.%m.%d')"
             fi
 
-            PACKAGE_NEED_CURL=1
+            PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP git"
+        fi
+    fi
 
-            case $PACKAGE_SRC_FILETYPE in
-                .zip|.txz|.tgz|.tlz|.tbz2|.crate)
-                    PACKAGE_NEED_BTAR=1
-            esac
-    esac
+    #########################################################################################
+
+    if [ -z "$PACKAGE_WEB_URL" ] && [ -z "$PACKAGE_GIT_URL" ] ; then
+        abort 1 "neither web-url nor git-url mapping was found in $PACKAGE_FORMULA_FILEPATH"
+    fi
 
     #########################################################################################
 
@@ -1374,29 +1404,13 @@ filetype_from_url() {
 
     sed -i "1i pkgname: $PACKAGE_NAME" "$PACKAGE_RECEIPT_FILEPATH"
 
-    grep -q '^pkgtype: ' "$PACKAGE_RECEIPT_FILEPATH" || {
-        sed -i "/^pkgname:/a pkgtype: $PACKAGE_PKGTYPE" "$PACKAGE_RECEIPT_FILEPATH"
-    }
-
-    grep -q '^version: ' "$PACKAGE_RECEIPT_FILEPATH" || {
-        sed -i "/^pkgtype:/a version: $PACKAGE_VERSION" "$PACKAGE_RECEIPT_FILEPATH"
-    }
-
-    grep -q '^web-url: ' "$PACKAGE_RECEIPT_FILEPATH" || {
-        sed -i "/^git-url:/i web-url: $PACKAGE_GIT_URL" "$PACKAGE_RECEIPT_FILEPATH"
-    }
-
-    grep -q '^bsystem: ' "$PACKAGE_RECEIPT_FILEPATH" || {
-        sed -i "/^install:/i bsystem: $PACKAGE_BSYSTEM" "$PACKAGE_RECEIPT_FILEPATH"
-    }
-
-    grep -q '^binbstd: ' "$PACKAGE_RECEIPT_FILEPATH" || {
-        sed -i "/^bsystem:/a binbstd: $PACKAGE_BINBSTD" "$PACKAGE_RECEIPT_FILEPATH"
-    }
-
-    grep -q '^parallel: ' "$PACKAGE_RECEIPT_FILEPATH" || {
-        sed -i "\$a parallel: $PACKAGE_PARALLEL" "$PACKAGE_RECEIPT_FILEPATH"
-    }
+    grep -q '^pkgtype: ' "$PACKAGE_RECEIPT_FILEPATH" || sed -i "/^pkgname:/a pkgtype: $PACKAGE_PKGTYPE" "$PACKAGE_RECEIPT_FILEPATH"
+    grep -q '^version: ' "$PACKAGE_RECEIPT_FILEPATH" || sed -i "/^pkgtype:/a version: $PACKAGE_VERSION" "$PACKAGE_RECEIPT_FILEPATH"
+    grep -q '^web-url: ' "$PACKAGE_RECEIPT_FILEPATH" || sed -i "/^summary:/a web-url: $PACKAGE_GIT_URL" "$PACKAGE_RECEIPT_FILEPATH"
+    grep -q '^git-url: ' "$PACKAGE_RECEIPT_FILEPATH" || sed -i "/^web-url:/a git-url: $PACKAGE_GIT_URL" "$PACKAGE_RECEIPT_FILEPATH"
+    grep -q '^bsystem: ' "$PACKAGE_RECEIPT_FILEPATH" || sed -i "/^install:/i bsystem: $PACKAGE_BSYSTEM" "$PACKAGE_RECEIPT_FILEPATH"
+    grep -q '^binbstd: ' "$PACKAGE_RECEIPT_FILEPATH" || sed -i "/^bsystem:/a binbstd: $PACKAGE_BINBSTD" "$PACKAGE_RECEIPT_FILEPATH"
+    grep -q '^parallel: ' "$PACKAGE_RECEIPT_FILEPATH" || sed -i "\$a parallel: $PACKAGE_PARALLEL" "$PACKAGE_RECEIPT_FILEPATH"
 
     [ -n "$PACKAGE_GIT_SHA" ] && {
         grep -q '^git-sha: ' "$PACKAGE_RECEIPT_FILEPATH" || {
@@ -7909,7 +7923,7 @@ fi
 
 ##################################################################################
 
-XCPKG_VERSION=0.22.12
+XCPKG_VERSION=0.22.13
 
 XCPKG_ARG0="$0"
 XCPKG_ARG1="$1"
