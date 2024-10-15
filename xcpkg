@@ -122,6 +122,73 @@ sedInPlace() {
     fi
 }
 
+# git_checkout <URL> --ref-from=<FROM> --ref-to=<TO> --depth=<N> -B <CHECKOUT-BRANCH-NAME> -C <WORKDIR> --recursive
+git_checkout() {
+    OLDCWD="$PWD"
+
+    unset GIT_FETCH_FROM_URL
+    unset GIT_FETCH_FROM_REF
+    unset GIT_FETCH_TO___REF
+    unset GIT_FETCH_DEPTH
+    unset GIT_FETCH_SUBMODULE_RECURSIVE
+    unset GIT_CHECKOUT_BRANCH_NAME
+    unset GIT_WORK_DIR
+
+    if [ -z "$XCPKG_URL_TRANSFORM" ] ; then
+        GIT_FETCH_FROM_URL="$1"
+    else
+        GIT_FETCH_FROM_URL="$("$XCPKG_URL_TRANSFORM" "$1")"
+    fi
+
+    shift
+
+    while [ -n "$1" ]
+    do
+        case $1 in
+            --ref-from=*)
+                GIT_FETCH_FROM_REF="${1#*=}"
+                ;;
+            --ref-to=*)
+                GIT_FETCH_TO___REF="${1#*=}"
+                ;;
+            --depth=*)
+                GIT_FETCH_DEPTH="${1#*=}"
+                ;;
+            -B) shift
+                GIT_CHECKOUT_BRANCH_NAME="${1#*=}"
+                ;;
+            -C) shift
+                GIT_WORK_DIR="$1"
+                ;;
+            --recursive)
+                GIT_FETCH_SUBMODULE_RECURSIVE=1
+                ;;
+        esac
+        shift
+    done
+
+    [ -z "$GIT_FETCH_DEPTH" ] && GIT_FETCH_DEPTH=1
+    [ -z "$GIT_FETCH_FROM_REF" ] && GIT_FETCH_FROM_REF='HEAD'
+    [ -z "$GIT_FETCH_TO___REF" ] && GIT_FETCH_TO___REF='refs/remotes/origin/master'
+
+    [ -z "$GIT_CHECKOUT_BRANCH_NAME" ] && GIT_CHECKOUT_BRANCH_NAME="${GIT_FETCH_TO___REF##*/}"
+
+    if [    -n "$GIT_WORK_DIR" ] ; then
+        [   -d "$GIT_WORK_DIR" ] || run install -d "$GIT_WORK_DIR"
+        run cd "$GIT_WORK_DIR"
+    fi
+
+    run git -c init.defaultBranch=master init
+    run git remote add origin "$GIT_FETCH_FROM_URL"
+    run git -c protocol.version=2 fetch --progress --depth="$GIT_FETCH_DEPTH" origin "$GIT_FETCH_FROM_REF:$GIT_FETCH_TO___REF"
+    run git checkout --progress --force -B "$GIT_CHECKOUT_BRANCH_NAME" "$GIT_FETCH_TO___REF"
+
+    git_submodule_update_recursive
+
+    run cd "$OLDCWD"
+}
+
+
 git_submodule_update_recursive() {
     if [ -z "$1" ] ; then
         GIT_REPO_ROOT_DIR="$PWD"
@@ -1434,14 +1501,14 @@ filetype_from_url() {
 builtby: xcpkg-$XCPKG_VERSION
 builtat: $TIMESTAMP_UNIX
 buildon:
-    os-arch: $NATIVE_OS_ARCH
-    os-kind: $NATIVE_OS_KIND
-    os-type: $NATIVE_OS_TYPE
-    os-name: $NATIVE_OS_NAME
-    os-vers: $NATIVE_OS_VERS
-    os-ncpu: $NATIVE_OS_NCPU
-    os-euid: $NATIVE_OS_EUID
-    os-egid: $NATIVE_OS_EGID
+    os-arch: $NATIVE_PLATFORM_ARCH
+    os-kind: $NATIVE_PLATFORM_KIND
+    os-type: $NATIVE_PLATFORM_TYPE
+    os-name: $NATIVE_PLATFORM_NAME
+    os-vers: $NATIVE_PLATFORM_VERS
+    os-ncpu: $NATIVE_PLATFORM_NCPU
+    os-euid: $NATIVE_PLATFORM_EUID
+    os-egid: $NATIVE_PLATFORM_EGID
 builtfor: $TARGET_PLATFORM_SPEC
 profile: $PROFILE
 EOF
@@ -3118,7 +3185,7 @@ __install_the_given_package() {
 
     #########################################################################################
 
-    if [ "$TARGET_PLATFORM_NAME-$TARGET_PLATFORM_ARCH" = "$NATIVE_OS_NAME-$NATIVE_OS_ARCH" ] ; then
+    if [ "$TARGET_PLATFORM_NAME-$TARGET_PLATFORM_ARCH" = "$NATIVE_PLATFORM_NAME-$NATIVE_PLATFORM_ARCH" ] ; then
         CROSS_COMPILING=0
     else
         CROSS_COMPILING=1
@@ -3134,16 +3201,16 @@ __install_the_given_package() {
 
     if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
         cat <<EOF
-     TIMESTAMP_UNIX = $TIMESTAMP_UNIX
+NATIVE_PLATFORM_KIND = $NATIVE_PLATFORM_KIND
+NATIVE_PLATFORM_TYPE = $NATIVE_PLATFORM_TYPE
+NATIVE_PLATFORM_NAME = $NATIVE_PLATFORM_NAME
+NATIVE_PLATFORM_VERS = $NATIVE_PLATFORM_VERS
+NATIVE_PLATFORM_ARCH = $NATIVE_PLATFORM_ARCH
+NATIVE_PLATFORM_NCPU = $NATIVE_PLATFORM_NCPU
+NATIVE_PLATFORM_EUID = $NATIVE_PLATFORM_EUID
+NATIVE_PLATFORM_EGID = $NATIVE_PLATFORM_EGID
 
-     NATIVE_OS_KIND = $NATIVE_OS_KIND
-     NATIVE_OS_TYPE = $NATIVE_OS_TYPE
-     NATIVE_OS_NAME = $NATIVE_OS_NAME
-     NATIVE_OS_VERS = $NATIVE_OS_VERS
-     NATIVE_OS_ARCH = $NATIVE_OS_ARCH
-     NATIVE_OS_NCPU = $NATIVE_OS_NCPU
-     NATIVE_OS_EUID = $NATIVE_OS_EUID
-     NATIVE_OS_EGID = $NATIVE_OS_EGID
+     TIMESTAMP_UNIX = $TIMESTAMP_UNIX
 
 DEVELOPER_DIR       = $DEVELOPER_DIR
 XCODE_VERSION       = $XCODE_VERSION
@@ -3187,7 +3254,7 @@ EOF
     #########################################################################################
 
     if [ "$PACKAGE_PARALLEL" = 1 ] ; then
-        BUILD_NJOBS="$NATIVE_OS_NCPU"
+        BUILD_NJOBS="$NATIVE_PLATFORM_NCPU"
     else
         BUILD_NJOBS=1
     fi
@@ -6391,9 +6458,9 @@ gow() {
 
                 case $XCPKG_DEFAULT_TARGET in
                     '')
-                        TARGET_PLATFORM_NAME="$NATIVE_OS_NAME"
-                        TARGET_PLATFORM_VERS="$NATIVE_OS_VERS"
-                        TARGET_PLATFORM_ARCH="$NATIVE_OS_ARCH"
+                        TARGET_PLATFORM_NAME="$NATIVE_PLATFORM_NAME"
+                        TARGET_PLATFORM_VERS="$NATIVE_PLATFORM_VERS"
+                        TARGET_PLATFORM_ARCH="$NATIVE_PLATFORM_ARCH"
 
                         TARGET_PLATFORM_SPEC="$TARGET_PLATFORM_NAME-$TARGET_PLATFORM_VERS-$TARGET_PLATFORM_ARCH"
 
@@ -6765,7 +6832,7 @@ $FORMULA_SEARCH_DIR"
     STRINGS_FOR_BUILD="$XCODE_STRINGS"
     OBJDUMP_FOR_BUILD="$XCODE_OBJDUMP"
 
-    eval "SYSROOT_FOR_BUILD=\"\$XCODE_${NATIVE_OS_NAME}_SDKROOT\""
+    eval "SYSROOT_FOR_BUILD=\"\$XCODE_${NATIVE_PLATFORM_NAME}_SDKROOT\""
 
     for TOOL in CC OBJC CXX CPP AS AR RANLIB LD NM STRIP SIZE STRINGS OBJDUMP SYSROOT
     do
@@ -6784,7 +6851,7 @@ $FORMULA_SEARCH_DIR"
     #########################################################################################
 
     # these environment variable is used by wrapper-native-*
-    export XCPKG_COMPILER_ARGS_FOR_BUILD="-isysroot $SYSROOT_FOR_BUILD -mmacosx-version-min=$NATIVE_OS_VERS -arch $NATIVE_OS_ARCH -Qunused-arguments"
+    export XCPKG_COMPILER_ARGS_FOR_BUILD="-isysroot $SYSROOT_FOR_BUILD -mmacosx-version-min=$NATIVE_PLATFORM_VERS -arch $NATIVE_PLATFORM_ARCH -Qunused-arguments"
 
     export    CFLAGS_FOR_BUILD=''
     export OBJCFLAGS_FOR_BUILD=''
@@ -7521,7 +7588,7 @@ __setup_uppm() {
     esac
 
     XCPKG_CORE_LATEST_RELEASE_VERSION="$(cat xcpkg-core-latest-release-version)"
-    XCPKG_CORE_LATEST_RELEASE_ARCHIVE="xcpkg-core-${XCPKG_CORE_LATEST_RELEASE_VERSION}-macos-${X}-${NATIVE_OS_ARCH}.tar.xz"
+    XCPKG_CORE_LATEST_RELEASE_ARCHIVE="xcpkg-core-${XCPKG_CORE_LATEST_RELEASE_VERSION}-macos-${X}-${NATIVE_PLATFORM_ARCH}.tar.xz"
 
     wfetch "https://github.com/leleliu008/xcpkg/releases/download/xcpkg-core-${XCPKG_CORE_LATEST_RELEASE_VERSION}/${XCPKG_CORE_LATEST_RELEASE_ARCHIVE}" --no-buffer
 
@@ -7923,7 +7990,7 @@ fi
 
 ##################################################################################
 
-XCPKG_VERSION=0.22.13
+XCPKG_VERSION=0.23.0
 
 XCPKG_ARG0="$0"
 XCPKG_ARG1="$1"
@@ -7977,14 +8044,14 @@ fi
 
 ##################################################################################
 
-NATIVE_OS_KIND=darwin
-NATIVE_OS_TYPE=macos
-NATIVE_OS_NAME=MacOSX
-NATIVE_OS_VERS="$(sw_vers -productVersion)"
-NATIVE_OS_ARCH="$(uname -m)"
-NATIVE_OS_NCPU="$(sysctl -n machdep.cpu.thread_count)"
-NATIVE_OS_EUID="$(id -u)"
-NATIVE_OS_EGID="$(id -g)"
+NATIVE_PLATFORM_KIND=darwin
+NATIVE_PLATFORM_TYPE=macos
+NATIVE_PLATFORM_NAME=MacOSX
+NATIVE_PLATFORM_VERS="$(sw_vers -productVersion)"
+NATIVE_PLATFORM_ARCH="$(uname -m)"
+NATIVE_PLATFORM_NCPU="$(sysctl -n machdep.cpu.thread_count)"
+NATIVE_PLATFORM_EUID="$(id -u)"
+NATIVE_PLATFORM_EGID="$(id -g)"
 
 ##################################################################################
 
@@ -8026,13 +8093,13 @@ EOF
         ;;
     sysinfo)
         cat <<EOF
-sysinfo.ncpu: $NATIVE_OS_NCPU
-sysinfo.arch: $NATIVE_OS_ARCH
-sysinfo.kind: $NATIVE_OS_KIND
-sysinfo.type: $NATIVE_OS_TYPE
-sysinfo.vers: $NATIVE_OS_VERS
-sysinfo.euid: $NATIVE_OS_EUID
-sysinfo.egid: $NATIVE_OS_EGID
+sysinfo.ncpu: $NATIVE_PLATFORM_NCPU
+sysinfo.arch: $NATIVE_PLATFORM_ARCH
+sysinfo.kind: $NATIVE_PLATFORM_KIND
+sysinfo.type: $NATIVE_PLATFORM_TYPE
+sysinfo.vers: $NATIVE_PLATFORM_VERS
+sysinfo.euid: $NATIVE_PLATFORM_EUID
+sysinfo.egid: $NATIVE_PLATFORM_EGID
 EOF
         exit
         ;;
@@ -8200,7 +8267,7 @@ case $1 in
             DIRS2="$(find "$ROOT2" -maxdepth 1 -mindepth 1 -type l)"
         fi
 
-        ROOT3="$XCPKG_PACKAGE_INSTALLED_ROOT/$NATIVE_OS_NAME-$NATIVE_OS_VERS-$NATIVE_OS_ARCH"
+        ROOT3="$XCPKG_PACKAGE_INSTALLED_ROOT/$NATIVE_PLATFORM_NAME-$NATIVE_PLATFORM_VERS-$NATIVE_PLATFORM_ARCH"
 
         if [ -d "$ROOT3" ] ; then
             DIRS3="$(find "$ROOT3" -maxdepth 1 -mindepth 1 -type l)"

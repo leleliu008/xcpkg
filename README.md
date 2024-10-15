@@ -428,7 +428,7 @@ all relevant directories and files are located under `~/.xcpkg` directory.
 
     **TARGET-PLATFORM-VERSION** : indicates which platform version was built with.
 
-    To simplify the usage, you are allowed to omit `<TARGET-PLATFORM>/`. If `<TARGET-PLATFORM>/` is omitted, environment variable `XCPKG_DEFAULT_TARGET` would be checked, if this environment variable is not set, then your current running os target will be used as the default.
+    To simplify the usage, you are allowed to omit `<TARGET-PLATFORM>/`. If `<TARGET-PLATFORM>/` is omitted, environment variable `XCPKG_DEFAULT_TARGET` would be checked, if this environment variable is not set, then your current running platform target will be used as the default.
 
     **Example**:
 
@@ -627,14 +627,14 @@ a xcpkg formula's file content only has one level mapping and shall has followin
 |-|-|
 |`TIMESTAMP_UNIX`|the unix timestamp of this action.|
 |||
-|`NATIVE_OS_KIND`|current running os kind. value shall be `darwin`|
-|`NATIVE_OS_TYPE`|current running os type. value shall be `macos`|
-|`NATIVE_OS_NAME`|current running os name. value shall be `MacOSX`|
-|`NATIVE_OS_VERS`|current running os version.|
-|`NATIVE_OS_ARCH`|current running os arch. value might be any one of `x86_64`, `arm64`, etc|
-|`NATIVE_OS_NCPU`|current running os's cpu core count.|
-|`NATIVE_OS_EUID`|current running os's effective user ID.|
-|`NATIVE_OS_EGID`|current running os's effective group ID.|
+|`NATIVE_PLATFORM_KIND`|current running platform kind. value shall be `darwin`|
+|`NATIVE_PLATFORM_TYPE`|current running platform type. value shall be `macos`|
+|`NATIVE_PLATFORM_NAME`|current running platform name. value shall be `MacOSX`|
+|`NATIVE_PLATFORM_VERS`|current running platform version.|
+|`NATIVE_PLATFORM_ARCH`|current running platform arch. value might be any one of `x86_64`, `arm64`, etc|
+|`NATIVE_PLATFORM_NCPU`|current running platform's cpu core count.|
+|`NATIVE_PLATFORM_EUID`|current running platform's effective user ID.|
+|`NATIVE_PLATFORM_EGID`|current running platform's effective group ID.|
 |||
 |`TARGET_PLATFORM_NAME`|target platform name that is built for. value shall be any one of `AppleTVOS` `AppleTVSimulator` `DriverKit` `MacOSX` `WatchOS` `WatchSimulator` `iPhoneOS` `iPhoneSimulator`|
 |`TARGET_PLATFORM_VERS`|target platform version that is built with.|
