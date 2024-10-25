@@ -3561,85 +3561,90 @@ $DOT_CONTENT
 
     #########################################################################################
 
-    # these native packages would be installed by uppm
-    PACKAGE_DEP_UPP_T1='pkg-config tree'
+    if [ "$PACKAGE_USE_BSYSTEM_GMAKE" = 1 ] && [ "$EXPORT_COMPILE_COMMANDS_JSON" = 1 ] && [ "$BEAR_ENABLED" = 1 ] ; then
+        PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP bear"
+    fi
 
-    # these native packages are not relocatable and would be fetched to a fixed location /opt/non-relocatable-*
-    PACKAGE_DEP_UPP_T2=
+    if [ "$CCACHE_ENABLED" = 1 ] ; then
+        PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP ccache"
+    fi
 
-    for item in $PACKAGE_DEP_UPP
+    #########################################################################################
+
+    step "install needed packages via uppm"
+
+    run "$UPPM" env
+    run "$UPPM" update
+
+    unset UPPM_INSTALL_ARGS
+
+    if [ "$DUMP_UPPM" = 1 ] ; then
+        UPPM_INSTALL_ARGS=-v
+    fi
+
+    # these native packages are not relocatable
+    # they would be fetched to a fixed location /opt/non-relocatable-* or built from source locally
+    unset PACKAGE_DEP_UPP_T2
+
+    for UPPM_PACKAGE_NAME in $PACKAGE_DEP_UPP pkg-config tree
     do
-        case $item in
-            swig|ruby|python3|perl|autoconf|automake|autotools|libtool|texinfo|help2man|intltool)
-                PACKAGE_DEP_UPP_T2="$PACKAGE_DEP_UPP_T2 $item" ;;
-            *)  PACKAGE_DEP_UPP_T1="$PACKAGE_DEP_UPP_T1 $item" ;;
+        case $UPPM_PACKAGE_NAME in
+            perl|autotools|autoconf|automake|libtool|texinfo|help2man|intltool)
+                PACKAGE_DEP_UPP_T2="$PACKAGE_DEP_UPP_T2 $UPPM_PACKAGE_NAME"
+                continue
+        esac
+
+        run "$UPPM" install "$UPPM_PACKAGE_NAME" $UPPM_INSTALL_ARGS
+
+        UPPM_PACKAGE_INSTALLED_DIR="$("$UPPM" info "$UPPM_PACKAGE_NAME" installed-dir)"
+
+        if [ -d  "$UPPM_PACKAGE_INSTALLED_DIR/bin" ] ; then
+            PATH="$UPPM_PACKAGE_INSTALLED_DIR/bin:$PATH"
+        fi
+
+        if [ -d  "$UPPM_PACKAGE_INSTALLED_DIR/sbin" ] ; then
+            PATH="$UPPM_PACKAGE_INSTALLED_DIR/sbin:$PATH"
+        fi
+
+        if [ -d          "$UPPM_PACKAGE_INSTALLED_DIR/share/aclocal" ] ; then
+            ACLOCAL_PATH="$UPPM_PACKAGE_INSTALLED_DIR/share/aclocal:$ACLOCAL_PATH"
+        fi
+
+        case $UPPM_PACKAGE_NAME in
+            swig)
+                # https://www.swig.org/Doc4.0/Library.html
+                X="$(ls $UPPM_PACKAGE_INSTALLED_DIR/share/swig/*/swig.swg)"
+                export SWIG_LIB="${X%/*}"
+                ;;
+            file)
+                export MAGIC="$UPPM_PACKAGE_INSTALLED_DIR/share/misc/magic.mgc"
+                ;;
+            docbook-xsl)
+                # http://xmlsoft.org/xslt/xsltproc.html
+                export XML_CATALOG_FILES="$UPPM_PACKAGE_INSTALLED_DIR/catalog.xml"
+                printf '%s\n' "XML_CATALOG_FILES=$XML_CATALOG_FILES"
         esac
     done
 
     #########################################################################################
 
-    if [ "$PACKAGE_USE_BSYSTEM_GMAKE" = 1 ] && [ "$EXPORT_COMPILE_COMMANDS_JSON" = 1 ] && [ "$BEAR_ENABLED" = 1 ] ; then
-        PACKAGE_DEP_UPP_T1="$PACKAGE_DEP_UPP_T1 bear"
-    fi
-
-    if [ "$CCACHE_ENABLED" = 1 ] ; then
-        PACKAGE_DEP_UPP_T1="$PACKAGE_DEP_UPP_T1 ccache"
-    fi
-
-    PACKAGE_DEP_UPP_T1="${PACKAGE_DEP_UPP_T1#' '}"
-
-    #########################################################################################
-
-    [ -n "$PACKAGE_DEP_UPP_T1" ] && {
-        PACKAGE_DEP_UPP_T1="$(printf '%s\n' $PACKAGE_DEP_UPP_T1 | sort | uniq)"
-
-        step "install needed packages via uppm"
-
-        run "$UPPM" env
-        run "$UPPM" update
-
-        unset UPPM_INSTALL_ARGS
-
-        if [ "$DUMP_UPPM" = 1 ] ; then
-            UPPM_INSTALL_ARGS=-v
-        fi
-
-        for UPPM_PACKAGE_NAME in $PACKAGE_DEP_UPP_T1
-        do
-            run "$UPPM" install "$UPPM_PACKAGE_NAME" $UPPM_INSTALL_ARGS
-
-            UPPM_PACKAGE_INSTALLED_DIR="$("$UPPM" info "$UPPM_PACKAGE_NAME" installed-dir)"
-
-            if [ -d  "$UPPM_PACKAGE_INSTALLED_DIR/bin" ] ; then
-                PATH="$UPPM_PACKAGE_INSTALLED_DIR/bin:$PATH"
-            fi
-
-            if [ -d  "$UPPM_PACKAGE_INSTALLED_DIR/sbin" ] ; then
-                PATH="$UPPM_PACKAGE_INSTALLED_DIR/sbin:$PATH"
-            fi
-
-            if [ -d          "$UPPM_PACKAGE_INSTALLED_DIR/share/aclocal" ] ; then
-                ACLOCAL_PATH="$UPPM_PACKAGE_INSTALLED_DIR/share/aclocal:$ACLOCAL_PATH"
-            fi
-
-            if [ "$UPPM_PACKAGE_NAME" = 'docbook-xsl' ] ; then
-                # http://xmlsoft.org/xslt/xsltproc.html
-                export XML_CATALOG_FILES="$UPPM_PACKAGE_INSTALLED_DIR/catalog.xml"
-                printf '%s\n' "XML_CATALOG_FILES=$XML_CATALOG_FILES"
-            fi
-        done
-    }
-
-    #########################################################################################
-
     [ -n "$PACKAGE_DEP_UPP_T2" ] && {
-        T="macos-${NATIVE_PLATFORM_VERS%%.*}.0-$NATIVE_PLATFORM_ARCH"
+        step "install needed packages (non-relocatable)"
 
-        NON_RELOCATEABLE_BINARY_PACKAGE_NAME="non-relocatable-binary-packages-2024.10.12-$T"
+        case "${NATIVE_PLATFORM_VERS%%.*}" in
+            10) X='10.15' ;;
+            11) X='11.0'  ;;
+            12) X='12.0'  ;;
+            13) X='13.0'  ;;
+            14) X='14.0'  ;;
+            *)  X='14.0'  ;;
+        esac
+
+        NON_RELOCATEABLE_BINARY_PACKAGE_NAME="non-relocatable-binary-packages-2024.10.25-macos-$X-$NATIVE_PLATFORM_ARCH"
         NON_RELOCATEABLE_BINARY_PACKAGE_INSTALL_DIR="/opt/$NON_RELOCATEABLE_BINARY_PACKAGE_NAME"
 
         if [ ! -f "$NON_RELOCATEABLE_BINARY_PACKAGE_INSTALL_DIR/ok" ] ; then
-            wfetch "https://github.com/leleliu008/non-relocatable-binary-packages/releases/download/2024.10.12/$NON_RELOCATEABLE_BINARY_PACKAGE_NAME.tar.xz"
+            wfetch "https://github.com/leleliu008/non-relocatable-binary-packages/releases/download/2024.10.25/$NON_RELOCATEABLE_BINARY_PACKAGE_NAME.tar.xz"
             run sudo install -d -g `id -g` -o `id -u` "$NON_RELOCATEABLE_BINARY_PACKAGE_INSTALL_DIR"
             run bsdtar xPf "$NON_RELOCATEABLE_BINARY_PACKAGE_NAME.tar.xz"
             run touch "$NON_RELOCATEABLE_BINARY_PACKAGE_INSTALL_DIR/ok"
@@ -3681,13 +3686,20 @@ $DOT_CONTENT
         done
 
         if [ -n "$PACKAGE_DEP_PLM_T1" ] ; then
-            T="macos-${NATIVE_PLATFORM_VERS%%.*}.0-$NATIVE_PLATFORM_ARCH"
+            case "${NATIVE_PLATFORM_VERS%%.*}" in
+                10) X='10.15' ;;
+                11) X='11.0'  ;;
+                12) X='12.0'  ;;
+                13) X='13.0'  ;;
+                14) X='14.0'  ;;
+                *)  X='14.0'  ;;
+            esac
 
-            NON_RELOCATEABLE_BINARY_PACKAGE_NAME="non-relocatable-binary-packages-2024.10.12-$T"
+            NON_RELOCATEABLE_BINARY_PACKAGE_NAME="non-relocatable-binary-packages-2024.10.25-macos-$X-$NATIVE_PLATFORM_ARCH"
             NON_RELOCATEABLE_BINARY_PACKAGE_INSTALL_DIR="/opt/$NON_RELOCATEABLE_BINARY_PACKAGE_NAME"
 
             if [ ! -f "$NON_RELOCATEABLE_BINARY_PACKAGE_INSTALL_DIR/ok" ] ; then
-                wfetch "https://github.com/leleliu008/non-relocatable-binary-packages/releases/download/2024.10.12/$NON_RELOCATEABLE_BINARY_PACKAGE_NAME.tar.xz"
+                wfetch "https://github.com/leleliu008/non-relocatable-binary-packages/releases/download/2024.10.25/$NON_RELOCATEABLE_BINARY_PACKAGE_NAME.tar.xz"
                 run sudo install -d -g `id -g` -o `id -u` "$NON_RELOCATEABLE_BINARY_PACKAGE_INSTALL_DIR"
                 run bsdtar xPf "$NON_RELOCATEABLE_BINARY_PACKAGE_NAME.tar.xz"
                 run touch "$NON_RELOCATEABLE_BINARY_PACKAGE_INSTALL_DIR/ok"
@@ -5658,7 +5670,7 @@ configure_only() {
         if run $CONFIGURE $CONFIGURE_ARGS $@ $CONFIGURE_ENVS ; then
             echo
         else
-            # https://docs.github.com/en/actions/learn-github-actions/environment-variables#default-environment-variables
+            # https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/store-information-in-variables#default-environment-variables
             if [ "$GITHUB_ACTIONS" = true ] ; then
                 if [ -f "$PACKAGE_BCACHED_DIR/config.log" ] ; then
                     run cat "$PACKAGE_BCACHED_DIR/config.log"
@@ -7562,7 +7574,7 @@ __setup_uppm() {
 
     ##################################################################################
 
-    case $(sw_vers -productVersion | cut -d. -f1) in
+    case "${NATIVE_PLATFORM_VERS%%.*}" in
         10) X='10.15' ;;
         11) X='11.0'  ;;
         12) X='12.0'  ;;
@@ -7610,7 +7622,7 @@ __setup_uppm() {
 
     ##################################################################################
 
-    cat > init.rc <<EOF
+    cat > init.sh <<EOF
 export ACLOCAL_PATH="$UPPM_PACKAGE_ACLOCAL_PATH:\$ACLOCAL_PATH"
 export PATH="$UPPM_PACKAGE_EXEFIND_PATH:\$PATH"
 
@@ -7974,7 +7986,7 @@ fi
 
 ##################################################################################
 
-XCPKG_VERSION=0.24.0
+XCPKG_VERSION=0.25.0
 
 XCPKG_ARG0="$0"
 XCPKG_ARG1="$1"
@@ -8120,8 +8132,8 @@ export ACLOCAL_PATH="$XCPKG_CORE_DIR/share/aclocal"
 
 ##################################################################################
 
-if [ -f "$XCPKG_CORE_DIR/init.rc" ] ; then
-    .   "$XCPKG_CORE_DIR/init.rc"
+if [ -f "$XCPKG_CORE_DIR/init.sh" ] ; then
+    .   "$XCPKG_CORE_DIR/init.sh"
 else
     abort 1 "please run ${COLOR_GREEN}$XCPKG_ARG0 setup${COLOR_OFF} command first, then try again."
 fi
