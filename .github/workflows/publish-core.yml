@@ -45,7 +45,7 @@ jobs:
 
           for f in *.c
           do
-            o="out/${item%.c}"
+            o="out/${f%.c}"
             $CC $CFLAGS -std=c99 -Os -flto -o "$o" "$f"
             strip "$o"
           done
