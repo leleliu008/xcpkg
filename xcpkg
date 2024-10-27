@@ -7580,7 +7580,7 @@ __setup_uppm() {
         12) X='12.0'  ;;
         13) X='13.0'  ;;
         14) X='14.0'  ;;
-        *)  X='14.0'  ;;
+        *)  X='15.0'  ;;
     esac
 
     XCPKG_CORE_LATEST_RELEASE_VERSION="$(cat xcpkg-core-latest-release-version)"
