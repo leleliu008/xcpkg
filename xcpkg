@@ -3638,6 +3638,7 @@ $DOT_CONTENT
             13) X='13.0'  ;;
             14) X='14.0'  ;;
             *)  X='14.0'  ;;
+            *)  X='15.0'  ;;
         esac
 
         NON_RELOCATEABLE_BINARY_PACKAGE_NAME="non-relocatable-binary-packages-2024.10.25-macos-$X-$NATIVE_PLATFORM_ARCH"
