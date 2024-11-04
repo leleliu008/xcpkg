@@ -5525,7 +5525,14 @@ install_mans() {
 ##############################################################################
 # {{{ configure
 
-configure_only() {
+configure() {
+    unset CONFIGURE_ONLY
+
+    if [ "$1" = only ] ; then
+        CONFIGURE_ONLY=1
+        shift
+    fi
+
     export FORCE_UNSAFE_CONFIGURE=1
 
     export ac_cv_func_malloc_0_nonnull=yes
@@ -5691,13 +5698,12 @@ configure_only() {
         done
         unset Makefile
     fi
-}
 
-configure() {
-    configure_only "$@" &&
-    gmakew clean &&
-    gmakew &&
-    gmakew install
+    if [ "$CONFIGURE_ONLY" != 1 ] ; then
+        gmakew clean
+        gmakew
+        gmakew install
+    fi
 }
 
 # }}}
