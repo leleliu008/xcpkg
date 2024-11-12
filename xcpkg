@@ -3584,12 +3584,11 @@ $DOT_CONTENT
 
     unset PACKAGE_DEP_UPP_LIBZ
     unset PACKAGE_DEP_UPP_LIBOPENSSL
-    unset PACKAGE_DEP_UPP_PYTHON3
 
-    # these native packages are not relocatable
-    # they would be fetched to a fixed location /opt/non-relocatable-* or built from source locally
+    # these native packages are not relocatable and would be fetched to a fixed location /opt/non-relocatable-*
     unset PACKAGE_DEP_UPP_T2
 
+    # these native packages would be built from source locally
     unset PACKAGE_DEP_XBUILDER
 
     #########################################################################################
@@ -3599,134 +3598,93 @@ $DOT_CONTENT
     run "$UPPM" about
     run "$UPPM" update
 
-    if [ -n "$SYSPM" ] ; then
-        run "$UPPM" install $PACKAGE_DEP_UPP pkg-config patchelf tree
-    else
-        unset UPPM_INSTALL_ARGS
+    unset UPPM_INSTALL_ARGS
 
-        if [ "$DUMP_UPPM" = 1 ] ; then
-            UPPM_INSTALL_ARGS=-v
-        fi
-
-        for UPPM_PACKAGE_NAME in $PACKAGE_DEP_UPP pkg-config patchelf tree
-        do
-            case $UPPM_PACKAGE_NAME in
-                libz)
-                    PACKAGE_DEP_UPP_LIBZ=1
-                    PACKAGE_DEP_XBUILDER="$PACKAGE_DEP_XBUILDER libz"
-                    UPPM_PACKAGE_NAME=gmake
-                    ;;
-                libopenssl)
-                    PACKAGE_DEP_UPP_LIBOPENSSL=1
-                    PACKAGE_DEP_XBUILDER="$PACKAGE_DEP_XBUILDER libopenssl"
-                    UPPM_PACKAGE_NAME=gmake
-                    ;;
-                perl|autoconf|automake|libtool|texinfo|help2man|intltool)
-                    PACKAGE_DEP_UPP_T2="$PACKAGE_DEP_UPP_T2 $UPPM_PACKAGE_NAME"
-                    continue
-                    ;;
-                python3)
-                    PACKAGE_DEP_UPP_PYTHON3=1
-                    continue
-                    ;;
-                itstool)
-                    PACKAGE_DEP_UPP_PYTHON3=1
-                    PACKAGE_DEP_XBUILDER="$PACKAGE_DEP_XBUILDER itstool"
-                    UPPM_PACKAGE_NAME=gm4
-                    ;;
-                cmake)
-                    if [ "$NATIVE_PLATFORM_TYPE" = netbsd ] ; then
-                        run $sudo pkgin -y update
-                        run $sudo pkgin -y install cmake
-                        continue
-                    fi
-            esac
-
-            run "$UPPM" install "$UPPM_PACKAGE_NAME" $UPPM_INSTALL_ARGS
-
-            UPPM_PACKAGE_INSTALLED_DIR="$UPPM_HOME/installed/$UPPM_PACKAGE_NAME"
-
-            if [ -d  "$UPPM_PACKAGE_INSTALLED_DIR/bin" ] ; then
-                PATH="$UPPM_PACKAGE_INSTALLED_DIR/bin:$PATH"
-            fi
-
-            if [ -d  "$UPPM_PACKAGE_INSTALLED_DIR/sbin" ] ; then
-                PATH="$UPPM_PACKAGE_INSTALLED_DIR/sbin:$PATH"
-            fi
-
-            if [ -d          "$UPPM_PACKAGE_INSTALLED_DIR/share/aclocal" ] ; then
-                ACLOCAL_PATH="$UPPM_PACKAGE_INSTALLED_DIR/share/aclocal:$ACLOCAL_PATH"
-            fi
-
-            case $UPPM_PACKAGE_NAME in
-                swig)
-                    # https://www.swig.org/Doc4.0/Library.html
-                    X="$(ls $UPPM_PACKAGE_INSTALLED_DIR/share/swig/*/swig.swg)"
-                    export SWIG_LIB="${X%/*}"
-                    ;;
-                file)
-                    export MAGIC="$UPPM_PACKAGE_INSTALLED_DIR/share/misc/magic.mgc"
-                    ;;
-                docbook-xsl)
-                    # http://xmlsoft.org/xslt/xsltproc.html
-                    export XML_CATALOG_FILES="$UPPM_PACKAGE_INSTALLED_DIR/catalog.xml"
-                    printf '%s\n' "XML_CATALOG_FILES=$XML_CATALOG_FILES"
-            esac
-        done
+    if [ "$DUMP_UPPM" = 1 ] ; then
+        UPPM_INSTALL_ARGS=-v
     fi
 
-    #########################################################################################
+    for UPPM_PACKAGE_NAME in $PACKAGE_DEP_UPP pkg-config patchelf tree
+    do
+        case $UPPM_PACKAGE_NAME in
+            libz)
+                PACKAGE_DEP_UPP_LIBZ=1
+                PACKAGE_DEP_XBUILDER="$PACKAGE_DEP_XBUILDER libz"
+                continue
+                ;;
+            libopenssl)
+                PACKAGE_DEP_UPP_LIBOPENSSL=1
+                PACKAGE_DEP_XBUILDER="$PACKAGE_DEP_XBUILDER libopenssl"
+                continue
+                ;;
+            autotools)
+                PACKAGE_DEP_UPP_T2="$PACKAGE_DEP_UPP_T2 perl autoconf automake"
+                UPPM_PACKAGE_NAME=gm4
+                ;;
+            perl|autoconf|automake|libtool|texinfo|help2man|intltool)
+                PACKAGE_DEP_UPP_T2="$PACKAGE_DEP_UPP_T2 $UPPM_PACKAGE_NAME"
+                continue
+                ;;
+            itstool)
+                PACKAGE_DEP_XBUILDER="$PACKAGE_DEP_XBUILDER itstool"
+                UPPM_PACKAGE_NAME=gm4
+                ;;
+        esac
 
-    [ "$PACKAGE_DEP_UPP_PYTHON3" = 1 ] && {
-        if [ "$NATIVE_PLATFORM_TYPE" = macos ] ; then
-            T="macos-${NATIVE_PLATFORM_VERS%%.*}.0-$NATIVE_PLATFORM_ARCH"
-        else
-            T="$NATIVE_PLATFORM_SPEC"
+        run "$UPPM" install "$UPPM_PACKAGE_NAME" $UPPM_INSTALL_ARGS
+
+        UPPM_PACKAGE_INSTALLED_DIR="$UPPM_HOME/installed/$UPPM_PACKAGE_NAME"
+
+        if [ -d  "$UPPM_PACKAGE_INSTALLED_DIR/bin" ] ; then
+            PATH="$UPPM_PACKAGE_INSTALLED_DIR/bin:$PATH"
         fi
 
-        PYTHON3_DISTRIBUTION_VERSION='2024.11.08'
-        PYTHON3_DISTRIBUTION_FILENAME_PREFIX="python-distribution-$PYTHON3_DISTRIBUTION_VERSION-$T"
-        PYTHON3_DISTRIBUTION_INSTALL_DIR="$NATIVE_PACKAGE_INSTALLED_ROOT/python3"
-
-        if [ ! -f "$PYTHON3_DISTRIBUTION_INSTALL_DIR/ok" ] ; then
-            wfetch "https://github.com/leleliu008/python-distribution/releases/download/$PYTHON3_DISTRIBUTION_VERSION/$PYTHON3_DISTRIBUTION_FILENAME_PREFIX.tar.xz"
-            run install -d "$PYTHON3_DISTRIBUTION_INSTALL_DIR"
-            run bsdtar xf  "$PYTHON3_DISTRIBUTION_FILENAME_PREFIX.tar.xz" -C "$PYTHON3_DISTRIBUTION_INSTALL_DIR" --strip-components=1
-            run touch "$PYTHON3_DISTRIBUTION_INSTALL_DIR/ok"
-            cd -
+        if [ -d  "$UPPM_PACKAGE_INSTALLED_DIR/sbin" ] ; then
+            PATH="$UPPM_PACKAGE_INSTALLED_DIR/sbin:$PATH"
         fi
 
-        export PATH="$PYTHON3_DISTRIBUTION_INSTALL_DIR/bin:$PATH"
-        export PKG_CONFIG_PATH="$PYTHON3_DISTRIBUTION_INSTALL_DIR/lib/pkgconfig:$PKG_CONFIG_PATH"
-    }
+        if [ -d          "$UPPM_PACKAGE_INSTALLED_DIR/share/aclocal" ] ; then
+            ACLOCAL_PATH="$UPPM_PACKAGE_INSTALLED_DIR/share/aclocal:$ACLOCAL_PATH"
+        fi
+
+        case $UPPM_PACKAGE_NAME in
+            swig)
+                # https://www.swig.org/Doc4.0/Library.html
+                X="$(ls $UPPM_PACKAGE_INSTALLED_DIR/share/swig/*/swig.swg)"
+                export SWIG_LIB="${X%/*}"
+                ;;
+            file)
+                export MAGIC="$UPPM_PACKAGE_INSTALLED_DIR/share/misc/magic.mgc"
+                ;;
+            docbook-xsl)
+                # http://xmlsoft.org/xslt/xsltproc.html
+                export XML_CATALOG_FILES="$UPPM_PACKAGE_INSTALLED_DIR/catalog.xml"
+                printf '%s\n' "XML_CATALOG_FILES=$XML_CATALOG_FILES"
+        esac
+    done
 
     #########################################################################################
 
     [ -n "$PACKAGE_DEP_UPP_T2" ] && {
         if [ "$GITHUB_ACTIONS" = true ] ; then
-            case $NATIVE_PLATFORM_TYPE in
-                macos)
-                    NATIVE_PLATFORM_VERS_MAJOR="${NATIVE_PLATFORM_VERS%%.*}"
+            NATIVE_PLATFORM_VERS_MAJOR="${NATIVE_PLATFORM_VERS%%.*}"
 
-                    if [ "$NATIVE_PLATFORM_VERS_MAJOR" -le 10 ] ; then
-                        X='10.15'
-                    elif [ "$NATIVE_PLATFORM_VERS_MAJOR" -ge 15 ] ; then
-                        X='15.0'
-                    else
-                        X="$NATIVE_PLATFORM_VERS_MAJOR.0"
-                    fi
+            if [ "$NATIVE_PLATFORM_VERS_MAJOR" -le 10 ] ; then
+                X='10.15'
+            elif [ "$NATIVE_PLATFORM_VERS_MAJOR" -ge 15 ] ; then
+                X='15.0'
+            else
+                X="$NATIVE_PLATFORM_VERS_MAJOR.0"
+            fi
 
-                    T="macos-$X-$NATIVE_PLATFORM_ARCH"
-                    ;;
-                *)  T="$NATIVE_PLATFORM_SPEC"
-            esac
+            T="macos-$X-$NATIVE_PLATFORM_ARCH"
 
             NON_RELOCATEABLE_BINARY_PACKAGE_NAME="non-relocatable-binary-packages-2024.10.27-$T"
             NON_RELOCATEABLE_BINARY_PACKAGE_INSTALL_DIR="/opt/$NON_RELOCATEABLE_BINARY_PACKAGE_NAME"
 
             if [ ! -f "$NON_RELOCATEABLE_BINARY_PACKAGE_INSTALL_DIR/ok" ] ; then
                 wfetch "https://github.com/leleliu008/non-relocatable-binary-packages/releases/download/2024.10.27/$NON_RELOCATEABLE_BINARY_PACKAGE_NAME.tar.xz"
-                run $sudo install -d -g `id -g` -o `id -u` "$NON_RELOCATEABLE_BINARY_PACKAGE_INSTALL_DIR"
+                run sudo install -d -g `id -g` -o `id -u` "$NON_RELOCATEABLE_BINARY_PACKAGE_INSTALL_DIR"
                 run bsdtar xPf "$NON_RELOCATEABLE_BINARY_PACKAGE_NAME.tar.xz"
                 run touch "$NON_RELOCATEABLE_BINARY_PACKAGE_INSTALL_DIR/ok"
             fi
@@ -8092,7 +8050,7 @@ fi
 
 ##################################################################################
 
-XCPKG_VERSION=0.26.1
+XCPKG_VERSION=0.26.2
 
 XCPKG_ARG0="$0"
 XCPKG_ARG1="$1"
