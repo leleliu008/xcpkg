@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-14, macos-13, macos-12]
+        os: [macos-15, macos-14, macos-13]
 
     runs-on: ${{ matrix.os }}
 
@@ -144,7 +144,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-14, macos-13, macos-12]
+        os: [macos-15, macos-14, macos-13]
 
     runs-on: ${{ matrix.os }}
 
