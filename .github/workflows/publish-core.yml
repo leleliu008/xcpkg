@@ -34,14 +34,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - run: curl -LO https://raw.githubusercontent.com/leleliu008/xcpkg/master/xcpkg
+      - run: chmod a+x xcpkg
+      - run: ./xcpkg setup
+      - run: ./xcpkg update
+      - run: ./xcpkg install MacOSX-${{ matrix.target-version }}-${{ matrix.target-arch }}/uppm@0.15.4
+      - run: ./xcpkg bundle  MacOSX-${{ matrix.target-version }}-${{ matrix.target-arch }}/uppm@0.15.4
+
+      - run: install -d out/
+
       - run: |
           set -ex
 
           CC="$(xcrun --sdk macosx --find clang)"
           SYSROOT="$(xcrun --sdk macosx --show-sdk-path)"
           CFLAGS="-isysroot $SYSROOT -mmacosx-version-min=${{ matrix.target-version }} -arch ${{ matrix.target-arch }} -Qunused-arguments"
-
-          install -d out/
 
           for f in *.c
           do
@@ -52,20 +59,11 @@ jobs:
 
       - run: curl -LO https://raw.githubusercontent.com/adobe-fonts/source-code-pro/release/OTF/SourceCodePro-Light.otf
 
-      - run: curl -LO https://raw.githubusercontent.com/leleliu008/xcpkg/master/xcpkg
-      - run: chmod a+x xcpkg
-      - run: ./xcpkg setup
-      - run: ./xcpkg update
-      - run: ./xcpkg install MacOSX-${{ matrix.target-version }}-${{ matrix.target-arch }}/uppm@0.15.4
-      - run: ./xcpkg pack    MacOSX-${{ matrix.target-version }}-${{ matrix.target-arch }}/uppm@0.15.4
-
       - run: tar vxf uppm*.tar.xz -C out --strip-components=1
-      - run: mv out/bin/uppm out/
-      - run: rm -rf out/bin
-      - run: rm -rf out/share
-      - run: rm -rf out/.xcpkg
-      - run: mv *.otf out/
-      - run: mv fonts.conf out/
+
+      - run: mv out/bin/uppm *.otf fonts.conf out/
+
+      - run: rm -rf out/bin/ out/share/ out/.xcpkg/
 
       - run: |
           DIRNAME="xcpkg-core-${{ needs.base.outputs.release-version }}-macos-${{ matrix.target-version }}-${{ matrix.target-arch }}"
@@ -74,8 +72,8 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: xcpkg-core-macos-${{ matrix.target-version }}-${{ matrix.target-arch }}.tar.xz
-          path: xcpkg-core-*.tar.xz
+          name: xcpkg-core-${{ needs.base.outputs.release-version }}-macos-${{ matrix.target-version }}-${{ matrix.target-arch }}.tar.xz
+          path: xcpkg-core-${{ needs.base.outputs.release-version }}-macos-${{ matrix.target-version }}-${{ matrix.target-arch }}.tar.xz
 
 
   publish:

@@ -331,18 +331,16 @@ all relevant directories and files are located under `~/.xcpkg` directory.
     xcpkg logs iPhoneOS-12.0-arm64/curl
     ```
 
-- **pack the given installed package**
+- **bundle the given installed package into a single archive file**
 
     ```bash
-    xcpkg pack curl
-    xcpkg pack iPhoneOS-12.0-arm64/curl
-    xcpkg pack iPhoneOS-12.0-arm64/curl -t tar.xz
-    xcpkg pack iPhoneOS-12.0-arm64/curl -t tar.gz
-    xcpkg pack iPhoneOS-12.0-arm64/curl -t tar.lz
-    xcpkg pack iPhoneOS-12.0-arm64/curl -t tar.bz2
-    xcpkg pack iPhoneOS-12.0-arm64/curl -t zip
-    xcpkg pack iPhoneOS-12.0-arm64/curl -t zip -o a/
-    xcpkg pack iPhoneOS-12.0-arm64/curl -o a/x.zip
+    xcpkg bundle iPhoneOS-12.0-arm64/curl .tar.xz
+    xcpkg bundle iPhoneOS-12.0-arm64/curl .tar.gz
+    xcpkg bundle iPhoneOS-12.0-arm64/curl .tar.lz
+    xcpkg bundle iPhoneOS-12.0-arm64/curl .tar.bz2
+    xcpkg bundle iPhoneOS-12.0-arm64/curl .zip
+    xcpkg bundle iPhoneOS-12.0-arm64/curl a/.zip
+    xcpkg bundle iPhoneOS-12.0-arm64/curl a/x.zip
     ```
 
 - **delete the unused cached files**

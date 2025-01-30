@@ -1063,7 +1063,7 @@ filetype_from_url() {
 
     unset PACKAGE_ONSTART
     unset PACKAGE_ONREADY
-    unset PACKAGE_ONFINAL
+    unset PACKAGE_DOEXTRA
 
     unset PACKAGE_DO12345
     unset PACKAGE_DOPATCH
@@ -1145,7 +1145,7 @@ filetype_from_url() {
 
     PACKAGE_ONSTART="$(yq '.onstart | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
     PACKAGE_ONREADY="$(yq '.onready | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
-    PACKAGE_ONFINAL="$(yq '.onfinal | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
+    PACKAGE_DOEXTRA="$(yq '.doextra | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
 
     PACKAGE_DO12345="$(yq '.do12345 | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
     PACKAGE_DOPATCH="$(yq '.dopatch | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
@@ -1406,8 +1406,8 @@ filetype_from_url() {
     [ -n "$PACKAGE_DEP_PYM" ]                && PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP python3"
     [ -n "$PACKAGE_DEP_PLM" ]                && PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP perl gmake"
 
-    [ "$PACKAGE_USE_BSYSTEM_AUTOGENSH" = 1 ] && PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP gmake autotools"
-    [ "$PACKAGE_USE_BSYSTEM_AUTOTOOLS" = 1 ] && PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP gmake autotools"
+    [ "$PACKAGE_USE_BSYSTEM_AUTOGENSH" = 1 ] && PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP automake"
+    [ "$PACKAGE_USE_BSYSTEM_AUTOTOOLS" = 1 ] && PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP automake"
     [ "$PACKAGE_USE_BSYSTEM_CONFIGURE" = 1 ] && PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP gmake"
     [ "$PACKAGE_USE_BSYSTEM_MESON"     = 1 ] && PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP python3"
     [ "$PACKAGE_USE_BSYSTEM_MESON"     = 1 ] && PACKAGE_DEP_PYM="$PACKAGE_DEP_PYM meson"
@@ -1565,7 +1565,7 @@ EOF
 
     unset RECEIPT_PACKAGE_ONSTART
     unset RECEIPT_PACKAGE_ONREADY
-    unset RECEIPT_PACKAGE_ONFINAL
+    unset RECEIPT_PACKAGE_DOEXTRA
 
     unset RECEIPT_PACKAGE_DO12345
     unset RECEIPT_PACKAGE_DOPATCH
@@ -1633,7 +1633,7 @@ EOF
 
     RECEIPT_PACKAGE_ONSTART="$(yq '.onstart | select(. != null)' "$PACKAGE_RECEIPT_FILEPATH")"
     RECEIPT_PACKAGE_ONREADY="$(yq '.onready | select(. != null)' "$PACKAGE_RECEIPT_FILEPATH")"
-    RECEIPT_PACKAGE_ONFINAL="$(yq '.onfinal | select(. != null)' "$PACKAGE_RECEIPT_FILEPATH")"
+    RECEIPT_PACKAGE_DOEXTRA="$(yq '.doextra | select(. != null)' "$PACKAGE_RECEIPT_FILEPATH")"
 
     RECEIPT_PACKAGE_DO12345="$(yq '.do12345 | select(. != null)' "$PACKAGE_RECEIPT_FILEPATH")"
     RECEIPT_PACKAGE_DOPATCH="$(yq '.dopatch | select(. != null)' "$PACKAGE_RECEIPT_FILEPATH")"
@@ -1963,7 +1963,7 @@ __search_packages() {
         --arg dep_plm "$PACKAGE_DEP_PLM" \
         --arg onstart "$PACKAGE_ONSTART" \
         --arg onready "$PACKAGE_ONREADY" \
-        --arg onfinal "$PACKAGE_ONFINAL" \
+        --arg doextra "$PACKAGE_DOEXTRA" \
         --arg do12345 "$PACKAGE_DO12345" \
         --arg dopatch "$PACKAGE_DOPATCH" \
         --arg prepare "$PACKAGE_PREPARE" \
@@ -2014,7 +2014,7 @@ __search_packages() {
     "developer":$developer,
     "onstart":$onstart,
     "onready":$onready,
-    "onfinal":$onfinal,
+    "doextra":$doextra,
     "do12345":$do12345,
     "dopatch":$dopatch,
     "prepare":$prepare,
@@ -2163,9 +2163,9 @@ EOF
             __load_formula_of_the_given_package "$1"
             printf '%s\n' "$PACKAGE_ONREADY"
             ;;
-        onfinal)
+        doextra)
             __load_formula_of_the_given_package "$1"
-            printf '%s\n' "$PACKAGE_ONFINAL"
+            printf '%s\n' "$PACKAGE_DOEXTRA"
             ;;
         do12345)
             __load_formula_of_the_given_package "$1"
@@ -2335,7 +2335,7 @@ EOF
         --arg dep_plm "$RECEIPT_PACKAGE_DEP_PLM" \
         --arg onstart "$RECEIPT_PACKAGE_ONSTART" \
         --arg onready "$RECEIPT_PACKAGE_ONREADY" \
-        --arg onfinal "$RECEIPT_PACKAGE_ONFINAL" \
+        --arg doextra "$RECEIPT_PACKAGE_DOEXTRA" \
         --arg do12345 "$RECEIPT_PACKAGE_DO12345" \
         --arg dopatch "$RECEIPT_PACKAGE_DOPATCH" \
         --arg prepare "$RECEIPT_PACKAGE_PREPARE" \
@@ -2389,7 +2389,7 @@ EOF
     "developer":$developer,
     "onstart":$onstart,
     "onready":$onready,
-    "onfinal":$onfinal,
+    "doextra":$doextra,
     "do12345":$do12345,
     "dopatch":$dopatch,
     "prepare":$prepare,
@@ -2868,20 +2868,66 @@ __fetch_resources_of_the_given_package() {
 
 # }}}
 ##############################################################################
-# {{{ xcpkg pack
+# {{{ xcpkg bundle
 
-# examples:
-# __pack_the_given_installed_package <PACKAGE-NAME> [-t <zip|tar.gz|tar.xz|tar.lz|tar.bz2>] [-o <OUTPUT-PATH>] [--exclude <PATH>] [-K]
-# __pack_the_given_installed_package    autoconf     -t tar.xz
-  __pack_the_given_installed_package() {
+# __bundle_the_given_installed_package <PACKAGE-SPEC> [<OUTPUT-DIR>][<OUTPUT-FILENAME-PREFIX>]<BUNDLE-TYPE>] [--exclude <EXCLUDE-PATH>] [-K]
+  __bundle_the_given_installed_package() {
     __load_receipt_of_the_given_package "$1"
 
-    shift
+    #######################################################
 
-    ###########################################################################################
-
+    unset OUTPUT_DIR
     unset OUTPUT_PATH
     unset OUTPUT_TYPE
+    unset OUTPUT_NAME
+
+    case $2 in
+        '') abort 1 "$XCPKG_ARG0 bundle <PACKAGE-SPEC> [<OUTPUT-DIR>][<OUTPUT-FILENAME-PREFIX>]<BUNDLE-TYPE>], forth argument is unspecified."
+            ;;
+        */*)
+            OUTPUT_DIR="${2%/*}"
+            [ -z "$OUTPUT_DIR" ] && OUTPUT_DIR=/
+            OUTPUT_NAME="${2##*/}"
+            ;;
+        *)  OUTPUT_NAME="$2"
+    esac
+
+    case $OUTPUT_NAME in
+        '') abort 1 "$XCPKG_ARG0 bundle <PACKAGE-SPEC> [<OUTPUT-DIR>][<OUTPUT-FILENAME-PREFIX>]<BUNDLE-TYPE>, <BUNDLE-TYPE> is unspecified."
+            ;;
+        *.tar.gz)
+            OUTPUT_TYPE=.tar.gz
+            ;;
+        *.tar.xz)
+            OUTPUT_TYPE=.tar.xz
+            ;;
+        *.tar.lz)
+            OUTPUT_TYPE=.tar.lz
+            ;;
+        *.tar.bz2)
+            OUTPUT_TYPE=.tar.bz2
+            ;;
+        *.zip)
+            OUTPUT_TYPE=.zip
+            ;;
+        *)  abort 1 "$XCPKG_ARG0 bundle <PACKAGE-SPEC> [<OUTPUT-DIR>][<OUTPUT-FILENAME-PREFIX>]<BUNDLE-TYPE>, invalid forth argument: $2"
+    esac
+
+    if [ "$OUTPUT_NAME" = "$OUTPUT_TYPE" ] ; then
+        if [ -z "$OUTPUT_DIR"  ] ; then
+            OUTPUT_PATH=.
+        else
+            OUTPUT_PATH="$OUTPUT_DIR/"
+        fi
+    else
+        OUTPUT_PATH="$2"
+    fi
+
+    #######################################################
+
+    shift 2
+
+    unset REQUEST_TO_KEEP_SESSION_DIR
 
     unset EXCLUDES
 
@@ -2889,43 +2935,24 @@ __fetch_resources_of_the_given_package() {
     do
         case $1 in
             -K)
-                KEEP_SESSION_DIR=1
-                ;;
-            -t) shift
-
-                if [ -z "$1" ] ; then
-                    abort 1 "$XCPKG_ARG0 pack <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>], -t option is specified but <OUTPUT-TYPE> is unspecified."
-                else
-                    OUTPUT_TYPE="$1"
-                fi
-
-                case $OUTPUT_TYPE in
-                    zip|tar.gz|tar.xz|tar.lz|tar.bz2) ;;
-                    *) abort 1 "$XCPKG_ARG0 pack <PACKAGE-NAME> [-t <OUTPUT-TYPE>], unsupported <OUTPU-TYPE>: $OUTPUT_TYPE, <OUTPU-TYPE> should be one of zip|tar.gz|tar.xz|tar.lz|tar.bz2"
-                esac
-                ;;
-            -o) shift
-                if [ -z "$1" ] ; then
-                    abort 1 "$XCPKG_ARG0 pack <PACKAGE-NAME> [-t <OUTPU-TYPE>] [-o <OUTPUT-PATH>], -o option is specified but <OUTPUT-PATH> is unspecified."
-                else
-                    OUTPUT_PATH="$1"
-                fi
+                REQUEST_TO_KEEP_SESSION_DIR=1
                 ;;
             --exclude)
                 shift
-
-                if [ -n "$1" ] ; then
-                    abort 1 "$XCPKG_ARG0 pack <PACKAGE-NAME> [--exclude <PATH>], --exclude option is specified but <PATH> is unspecified."
+                if [ -z "$1" ] ; then
+                    abort 1 "$XCPKG_ARG0 bundle <PACKAGE-SPEC> [<OUTPUT-DIR>][<OUTPUT-FILENAME-PREFIX>]<BUNDLE-TYPE>] [--exclude <PATH>], --exclude option is specified but <PATH> is unspecified."
                 else
                     EXCLUDES="$EXCLUDES $1"
                 fi
                 ;;
-            *)  abort 1 "$XCPKG_ARG0 pack <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>] [-K], unrecognized option: $1"
+            *)  abort 1 "$XCPKG_ARG0 bundle <PACKAGE-SPEC> [<OUTPUT-DIR>][<OUTPUT-FILENAME-PREFIX>]<BUNDLE-TYPE>] [--portable], unrecognized option: $1"
         esac
         shift
     done
 
-    ###########################################################################################
+    #######################################################
+
+    OLDCWD="$PWD"
 
     SESSION_DIR="$XCPKG_HOME/run/$$"
 
@@ -2933,104 +2960,48 @@ __fetch_resources_of_the_given_package() {
     run install -d "$SESSION_DIR"
     run cd         "$SESSION_DIR"
 
-    if [ -z "$EXCLUDES" ] ; then
-        run ln -s "$PACKAGE_INSTALLED_DIR" packed
-    else
-        run install -d packed
+    #######################################################
 
-        run cp -r "$PACKAGE_INSTALLED_DIR/." packed/
+    if [ -n "$EXCLUDES" ] ; then
+        run install -d bundle.d/
+
+        run cp -r "$PACKAGE_INSTALLED_DIR/." bundle.d/
 
         for EXCLUDE in $EXCLUDES
         do
-            run rm -rf "packed/$EXCLUDE"
+            run rm -rf "bundle.d/$EXCLUDE"
         done
+    else
+        run ln -s "$PACKAGE_INSTALLED_DIR" bundle.d
     fi
 
     ###########################################################################################
 
-    if [ -z "$OUTPUT_TYPE" ] ; then
-        case $OUTPUT_PATH in
-            *.tar.gz|*.tgz)
-                OUTPUT_TYPE=tar.gz
-                ;;
-            *.tar.xz|*.txz)
-                OUTPUT_TYPE=tar.xz
-                ;;
-            *.tar.lz|*.tlz)
-                OUTPUT_TYPE=tar.lz
-                ;;
-            *.tar.bz2|*.tbz2)
-                OUTPUT_TYPE=tar.bz2
-                ;;
-            *.zip)
-                OUTPUT_TYPE=zip
-                ;;
-            *.7z)
-                OUTPUT_TYPE=7z
-                ;;
-            *)  OUTPUT_TYPE=tar.xz
-        esac
-    fi
+    BUNDLE_DIR_NAME="${RECEIPT_PACKAGE_PKGNAME%@*}-$RECEIPT_PACKAGE_VERSION-$RECEIPT_PACKAGE_BUILTFOR_PLATFORM"
 
-    ###########################################################################################
+    BUNDLE_DIR_NAME="$BUNDLE_DIR_NAME.$RECEIPT_PACKAGE_PROFILE"
 
-    case $RECEIPT_PACKAGE_BUILTFOR_PLATFORM_NAME in
-        iPhoneOS)
-            TARGET_PLATFORM_CANONICAL_NAME=ios
-            ;;
-        iPhoneSimulator)
-            TARGET_PLATFORM_CANONICAL_NAME=iosSimulator
-            ;;
-        WatchOS)
-            TARGET_PLATFORM_CANONICAL_NAME=watchos
-            ;;
-        WatchSimulator)
-            TARGET_PLATFORM_CANONICAL_NAME=watchosSimulator
-            ;;
-        AppleTVOS)
-            TARGET_PLATFORM_CANONICAL_NAME=tvos
-            ;;
-        AppleTVSimulator)
-            TARGET_PLATFORM_CANONICAL_NAME=tvosSimulator
-            ;;
-        MacOSX)
-            TARGET_PLATFORM_CANONICAL_NAME=macos
-            ;;
-        *)  TARGET_PLATFORM_CANONICAL_NAME="$RECEIPT_PACKAGE_BUILTFOR_PLATFORM_NAME"
-    esac
+    OUTPUT_FILENAME="$BUNDLE_DIR_NAME$OUTPUT_TYPE"
 
-    PACKED_DIR_NAME="$RECEIPT_PACKAGE_PKGNAME-$RECEIPT_PACKAGE_VERSION-$TARGET_PLATFORM_CANONICAL_NAME-$RECEIPT_PACKAGE_BUILTFOR_PLATFORM_VERS-$RECEIPT_PACKAGE_BUILTFOR_PLATFORM_ARCH"
+    #######################################################
 
-    ###########################################################################################
+    run mv bundle.d "$BUNDLE_DIR_NAME"
 
-    OUTPUT_FILENAME="$PACKED_DIR_NAME.$OUTPUT_TYPE"
-
-    run mv packed "$PACKED_DIR_NAME"
-
-    run bsdtar cvaf "$OUTPUT_FILENAME" "$PACKED_DIR_NAME/*" "$PACKED_DIR_NAME/.xcpkg"
+    run bsdtar cvaf "$OUTPUT_FILENAME" "$BUNDLE_DIR_NAME/*" "$BUNDLE_DIR_NAME/.xcpkg"
 
     run du -sh "$OUTPUT_FILENAME"
 
-    run cd -
+    run cd "$OLDCWD"
 
-    ###########################################################################################
-
-    case $OUTPUT_PATH in
-        '') OUTPUT_PATH=.
-            ;;
-        */*)
-            OUTPUT_DIR="${OUTPUT_PATH%/*}"
-
-            [ -d "$OUTPUT_DIR" ] || run install -d "$OUTPUT_DIR"
-    esac
-
-    ###########################################################################################
+    if [ -n "$OUTPUT_DIR" ] && [ "$OUTPUT_DIR" != . ] && [ "$OUTPUT_DIR" != .. ] && [ "$OUTPUT_DIR" != / ] && [ ! -d "$OUTPUT_DIR" ] ; then
+        run install -d "$OUTPUT_DIR"
+    fi
 
     run mv "$SESSION_DIR/$OUTPUT_FILENAME" "$OUTPUT_PATH"
 
-    ###########################################################################################
+    #######################################################
 
-    if [ "$KEEP_SESSION_DIR" = 1 ] ; then
+    if [ "$REQUEST_TO_KEEP_SESSION_DIR" = 1 ] ; then
         echo
         note "the session directory '$SESSION_DIR' is not deleted as -K option is specified."
     else
@@ -3158,14 +3129,368 @@ EOF
     done
 }
 
-xbuilder() {
-    XBUILDER="$SESSION_DIR/xbuilder"
+# https://www.gnu.org/software/gettext/manual/html_node/config_002eguess.html
+# https://git.savannah.gnu.org/cgit/config.git/tree/
+# __update_config_sub_guess <ROOT_DIR>
+  __update_config_sub_guess() {
+    CONFIG_FILE_DIR="$SESSION_DIR/config.git"
 
-    if [ ! -f "$XBUILDER" ] ; then
-        wfetch 'https://raw.githubusercontent.com/leleliu008/ppkg/refs/heads/master/xbuilder' -o "$XBUILDER" --no-buffer
+    if [ ! -d "$CONFIG_FILE_DIR" ] ; then
+        if [ -f "$SESSION_DIR/config.sub" ] && [ -f "$SESSION_DIR/config.guess" ] ; then
+            CONFIG_FILE_DIR="$SESSION_DIR"
+        else
+            if run git clone --depth 1 https://git.savannah.gnu.org/git/config.git "$CONFIG_FILE_DIR" ; then
+                if [ "$TARGET_PLATFORM_ARCH" = arm64e ] ; then
+                    gsed -i 's/arm64-*/arm64-*|arm64e-*/g' "$CONFIG_FILE_DIR/config.sub"
+                fi
+            else
+                if  run curl -L -o "$SESSION_DIR/_config.sub"   'https://git.savannah.gnu.org/cgit/config.git/plain/config.sub'   &&
+                    run curl -L -o "$SESSION_DIR/_config.guess" 'https://git.savannah.gnu.org/cgit/config.git/plain/config.guess' ; then
+
+                    if [ "$TARGET_PLATFORM_ARCH" = arm64e ] ; then
+                        gsed -i 's/arm64-*/arm64-*|arm64e-*/g' "$SESSION_DIR/_config.sub"
+                    fi
+
+                    run chmod +x   "$SESSION_DIR/_config.guess"
+                    run chmod +x   "$SESSION_DIR/_config.sub"
+
+                    run mv "$SESSION_DIR/_config.guess" "$SESSION_DIR/config.guess"
+                    run mv "$SESSION_DIR/_config.sub"   "$SESSION_DIR/config.sub"
+
+                    CONFIG_FILE_DIR="$SESSION_DIR"
+                else
+                    CONFIG_FILE_DIR="$XCPKG_CORE_DIR"
+                fi
+            fi
+        fi
     fi
 
-    run sh "$XBUILDER" install "$@" --prefix="$NATIVE_PACKAGE_INSTALLED_ROOT" --download-dir="$XCPKG_DOWNLOADS_DIR" --session-dir="$SESSION_DIR/native"
+    find "$1" -name config.sub   -exec cp -vf "$CONFIG_FILE_DIR/config.sub"   {} \;
+    find "$1" -name config.guess -exec cp -vf "$CONFIG_FILE_DIR/config.guess" {} \;
+}
+
+# should run in subshell
+install_the_given_native_package() {
+    [ -z "$1" ] && abort 1 "install_the_given_native_package <PACKAGE-NAME> , <PACKAGE-NAME> is unspecified."
+
+    unset PACKAGE_SRC_URL
+    unset PACKAGE_SRC_URI
+    unset PACKAGE_SRC_SHA
+
+    unset PACKAGE_DEP_BIN
+    unset PACKAGE_DEP_PKG
+
+    unset PACKAGE_DOPATCH
+    unset PACKAGE_INSTALL
+    unset PACKAGE_DOTWEAK
+
+    if [ "$1" = 'perl-XML-Parser' ] ; then
+        native_package_info_perl_XML_Parser
+    else
+        native_package_info_$1
+    fi
+
+    #########################################################################################
+
+    for PACKAGE_DEPENDENCY in $PACKAGE_DEP_PKG
+    do
+        (install_the_given_native_package "$PACKAGE_DEPENDENCY")
+    done
+
+    #########################################################################################
+
+    printf '\n%b\n' "${COLOR_PURPLE}=>> install native package : $1${COLOR_OFF}"
+
+    if [ -f "$NATIVE_PACKAGE_INSTALLED_ROOT/$1/receipt.txt" ] ; then
+        note "native package '$1' already has been installed, skipped."
+        return 0
+    fi
+
+    #########################################################################################
+
+    PACKAGE_INSTALL_UTS=
+    PACKAGE_INSTALL_UTS="$(date +%s)"
+
+    PACKAGE_INSTALL_SHA=
+    PACKAGE_INSTALL_SHA="$(
+{
+    sha256sum <<EOF
+$1:$PACKAGE_SRC_URL:$$:$PACKAGE_INSTALL_UTS
+EOF
+} | cut -d ' ' -f1)"
+
+    #########################################################################################
+
+    PACKAGE_INSTALL_DIR="$NATIVE_PACKAGE_INSTALLED_ROOT/$PACKAGE_INSTALL_SHA"
+
+    PACKAGE_SRC_FILETYPE="$(filetype_from_url "$PACKAGE_SRC_URL")"
+    PACKAGE_SRC_FILENAME="$PACKAGE_SRC_SHA$PACKAGE_SRC_FILETYPE"
+    PACKAGE_SRC_FILEPATH="$XCPKG_DOWNLOADS_DIR/$PACKAGE_SRC_FILENAME"
+
+    PACKAGE_WORKING_DIR="$SESSION_DIR/native/$1"
+
+    #########################################################################################
+
+    # override the default search directory (usually /usr/lib/pkgconfig:/usr/share/pkgconfig)
+    # because we only want to use our own
+    export PKG_CONFIG_LIBDIR="$PACKAGE_WORKING_DIR/lib/pkgconfig"
+    export PKG_CONFIG_PATH="$PACKAGE_WORKING_DIR/lib/pkgconfig:$PKG_CONFIG_PATH"
+    export ACLOCAL_PATH="$PACKAGE_WORKING_DIR/share/aclocal"
+    export CPPFLAGS="-I$PACKAGE_WORKING_DIR/include $CPPFLAGS"
+    export LDFLAGS="-L$PACKAGE_WORKING_DIR/lib -Wl,-rpath,$PACKAGE_INSTALL_DIR/lib $LDFLAGS"
+
+    for DEPENDENT_PACKAGE_NAME in $PACKAGE_DEP_PKG
+    do
+        DEPENDENT_PACKAGE_INSTALLED_DIR="$NATIVE_PACKAGE_INSTALLED_ROOT/$DEPENDENT_PACKAGE_NAME"
+
+        if [ -d  "$DEPENDENT_PACKAGE_INSTALLED_DIR/include" ] ; then
+            CPPFLAGS="-I$DEPENDENT_PACKAGE_INSTALLED_DIR/include $CPPFLAGS"
+        fi
+
+        if [ -d  "$DEPENDENT_PACKAGE_INSTALLED_DIR/lib" ] ; then
+            LDFLAGS="-L$DEPENDENT_PACKAGE_INSTALLED_DIR/lib -Wl,-rpath,$DEPENDENT_PACKAGE_INSTALLED_DIR/lib $LDFLAGS"
+        fi
+
+        if [ -d  "$DEPENDENT_PACKAGE_INSTALLED_DIR/bin" ] ; then
+            PATH="$DEPENDENT_PACKAGE_INSTALLED_DIR/bin:$PATH"
+        fi
+
+        if [ -d  "$DEPENDENT_PACKAGE_INSTALLED_DIR/sbin" ] ; then
+            PATH="$DEPENDENT_PACKAGE_INSTALLED_DIR/sbin:$PATH"
+        fi
+
+        if [ -d          "$DEPENDENT_PACKAGE_INSTALLED_DIR/share/aclocal" ] ; then
+            ACLOCAL_PATH="$DEPENDENT_PACKAGE_INSTALLED_DIR/share/aclocal:$ACLOCAL_PATH"
+        fi
+
+        for d in lib share
+        do
+            DEPENDENT_PACKAGE_PKGCONF_DIR="$DEPENDENT_PACKAGE_INSTALLED_DIR/$d/pkgconfig"
+
+            if [ -d "$DEPENDENT_PACKAGE_PKGCONF_DIR" ] ; then
+                PKG_CONFIG_PATH="$DEPENDENT_PACKAGE_PKGCONF_DIR:$PKG_CONFIG_PATH"
+            fi
+        done
+    done
+
+    #########################################################################################
+
+    wfetch "$PACKAGE_SRC_URL" --uri="$PACKAGE_SRC_URI" --sha256="$PACKAGE_SRC_SHA" -o "$PACKAGE_SRC_FILEPATH"
+
+    #########################################################################################
+
+    run install -d "$PACKAGE_WORKING_DIR/src"
+    run cd         "$PACKAGE_WORKING_DIR/src"
+
+    #########################################################################################
+
+    run bsdtar xf "$PACKAGE_SRC_FILEPATH" --strip-components=1 --no-same-owner
+
+    #########################################################################################
+
+    if [ -n  "$PACKAGE_DOPATCH" ] ; then
+        eval "$PACKAGE_DOPATCH"
+    fi
+
+    #########################################################################################
+
+    if [ -z "$PACKAGE_INSTALL" ] ; then
+        abort 1 "PACKAGE_INSTALL variable is not set for native package '$1'"
+    fi
+
+    case "${PACKAGE_INSTALL%% *}" in
+        configure)
+            __update_config_sub_guess .
+            PACKAGE_INSTALL="run ./$PACKAGE_INSTALL --prefix=$PACKAGE_INSTALL_DIR && run gmake --jobs=$BUILD_NJOBS && run gmake install"
+            ;;
+        config)
+            PACKAGE_INSTALL="run ./$PACKAGE_INSTALL --prefix=$PACKAGE_INSTALL_DIR && run gmake --jobs=$BUILD_NJOBS && run gmake install_sw"
+            ;;
+        perl)
+            PACKAGE_INSTALL="run   $PACKAGE_INSTALL --prefix=$PACKAGE_INSTALL_DIR && run gmake --jobs=$BUILD_NJOBS && run gmake install && run install -d $PACKAGE_INSTALL_DIR"
+            ;;
+        cmake)
+            PACKAGE_INSTALL="run $PACKAGE_INSTALL -DCMAKE_INSTALL_PREFIX=$PACKAGE_INSTALL_DIR -DENABLE_TESTING=OFF -DCMAKE_VERBOSE_MAKEFILE=ON -DCMAKE_BUILD_TYPE=Release -G Ninja -S . -B build.d && run cmake --build build.d -- -j$BUILD_NJOBS && run cmake --install build.d"
+            ;;
+    esac
+
+    eval "$PACKAGE_INSTALL"
+
+    #########################################################################################
+
+    run cd "$PACKAGE_INSTALL_DIR"
+
+    #########################################################################################
+
+    if [ -n  "$PACKAGE_DOTWEAK" ] ; then
+        eval "$PACKAGE_DOTWEAK"
+    fi
+
+    #########################################################################################
+
+    run cd "$PACKAGE_INSTALL_DIR"
+
+    #########################################################################################
+
+    cat > toolchain.txt <<EOF
+     CC='$CC'
+    CXX='$CXX'
+     AS='$AS'
+     LD='$LD'
+     AR='$AR'
+ RANLIB='$RANLIB'
+SYSROOT='$SYSROOT'
+EOF
+
+    #########################################################################################
+
+    cat > receipt.txt <<EOF
+src-url: $PACKAGE_SRC_URL
+src-uri: $PACKAGE_SRC_URI
+src-sha: $PACKAGE_SRC_SHA
+dep-pkg: $PACKAGE_DEP_PKG
+install: $PACKAGE_INSTALL
+builtat: $PACKAGE_INSTALL_UTS
+builton:
+    os-arch: $NATIVE_PLATFORM_ARCH
+    os-kind: $NATIVE_PLATFORM_KIND
+    os-type: $NATIVE_PLATFORM_TYPE
+    os-libc: $NATIVE_PLATFORM_LIBC
+    os-code: $NATIVE_PLATFORM_CODE
+    os-name: $NATIVE_PLATFORM_NAME
+    os-vers: $NATIVE_PLATFORM_VERS
+    os-ncpu: $NATIVE_PLATFORM_NCPU
+    os-euid: $NATIVE_PLATFORM_EUID
+    os-egid: $NATIVE_PLATFORM_EGID
+EOF
+
+    #########################################################################################
+
+    run cd "$NATIVE_PACKAGE_INSTALLED_ROOT"
+    run ln -s -f -T "$PACKAGE_INSTALL_SHA" "$1"
+}
+
+native_package_info_libz() {
+    PACKAGE_SRC_URL='https://zlib.net/zlib-1.3.1.tar.gz'
+    PACKAGE_SRC_SHA='9a93b2b7dfdac77ceba5a558a580e74667dd6fede4585b91eefb60f03b72df23'
+    PACKAGE_DOPATCH='gsed -i "s|/share/pkgconfig|/lib/pkgconfig|" CMakeLists.txt'
+    PACKAGE_INSTALL='cmake -DZLIB_BUILD_EXAMPLES=OFF'
+}
+
+native_package_info_libopenssl() {
+    PACKAGE_SRC_URL='https://www.openssl.org/source/openssl-3.3.1.tar.gz'
+    PACKAGE_SRC_SHA='777cd596284c883375a2a7a11bf5d2786fc5413255efab20c50d6ffe6d020b7e'
+    PACKAGE_DEP_BIN='perl'
+    PACKAGE_INSTALL='config no-tests no-ssl3 no-ssl3-method no-zlib --libdir=lib --openssldir=etc/ssl'
+    # https://github.com/openssl/openssl/blob/master/INSTALL.md
+}
+
+native_package_info_libtool() {
+    PACKAGE_SRC_URL='https://ftp.gnu.org/gnu/libtool/libtool-2.4.7.tar.xz'
+    PACKAGE_SRC_SHA='4f7f217f057ce655ff22559ad221a0fd8ef84ad1fc5fcb6990cecc333aa1635d'
+    PACKAGE_INSTALL='configure --enable-ltdl-install'
+    PACKAGE_DEP_BIN='gm4'
+    PACKAGE_DOTWEAK='
+run ln -s libtool    bin/glibtool
+run ln -s libtoolize bin/glibtoolize
+'
+}
+
+native_package_info_autoconf() {
+    PACKAGE_SRC_URL='https://ftp.gnu.org/gnu/autoconf/autoconf-2.71.tar.gz'
+    PACKAGE_SRC_SHA='431075ad0bf529ef13cb41e9042c542381103e80015686222b8a9d4abef42a1c'
+    PACKAGE_DEP_BIN='perl'
+    PACKAGE_INSTALL='configure'
+}
+
+native_package_info_automake() {
+    PACKAGE_SRC_URL='https://ftp.gnu.org/gnu/automake/automake-1.16.5.tar.xz'
+    PACKAGE_SRC_SHA='f01d58cd6d9d77fbdca9eb4bbd5ead1988228fdb73d6f7a201f5f8d6b118b469'
+    PACKAGE_DEP_BIN='perl'
+    PACKAGE_DEP_PKG='autoconf'
+    PACKAGE_INSTALL='configure'
+}
+
+native_package_info_texinfo() {
+    PACKAGE_SRC_URL='https://ftp.gnu.org/gnu/texinfo/texinfo-7.2.tar.xz'
+    PACKAGE_SRC_SHA='0329d7788fbef113fa82cb80889ca197a344ce0df7646fe000974c5d714363a6'
+    PACKAGE_DEP_BIN='perl'
+    PACKAGE_DOPATCH='gsed -i "/libintl/d" tp/Texinfo/XS/parsetexi/api.c'
+    PACKAGE_INSTALL='configure --with-included-regex --enable-threads=posix --disable-nls'
+}
+
+native_package_info_help2man() {
+    PACKAGE_SRC_URL='https://ftp.gnu.org/gnu/help2man/help2man-1.49.3.tar.xz'
+    PACKAGE_SRC_SHA='4d7e4fdef2eca6afe07a2682151cea78781e0a4e8f9622142d9f70c083a2fd4f'
+    PACKAGE_DEP_BIN='perl'
+    PACKAGE_INSTALL='configure'
+}
+
+native_package_info_libexpat() {
+    PACKAGE_SRC_URL='https://github.com/libexpat/libexpat/releases/download/R_2_6_4/expat-2.6.4.tar.xz'
+    PACKAGE_SRC_SHA='a695629dae047055b37d50a0ff4776d1d45d0a4c842cf4ccee158441f55ff7ee'
+    PACKAGE_INSTALL='configure --disable-dependency-tracking --enable-static --enable-shared --without-xmlwf --without-tests --without-examples --without-docbook'
+}
+
+native_package_info_intltool() {
+    PACKAGE_SRC_URL='https://launchpad.net/intltool/trunk/0.51.0/+download/intltool-0.51.0.tar.gz'
+    PACKAGE_SRC_URI='https://fossies.org/linux/privat/intltool-0.51.0.tar.gz'
+    PACKAGE_SRC_SHA='67c74d94196b153b774ab9f89b2fa6c6ba79352407037c8c14d5aeb334e959cd'
+    PACKAGE_DEP_BIN='perl'
+    PACKAGE_DEP_PKG='libexpat perl-XML-Parser'
+    PACKAGE_INSTALL='configure'
+}
+
+native_package_info_perl_XML_Parser() {
+    PACKAGE_SRC_URL='https://cpan.metacpan.org/authors/id/T/TO/TODDR/XML-Parser-2.47.tar.gz'
+    PACKAGE_SRC_SHA='ad4aae643ec784f489b956abe952432871a622d4e2b5c619e8855accbfc4d1d8'
+    PACKAGE_DEP_BIN='perl'
+    PACKAGE_DEP_PKG='libexpat'
+    PACKAGE_DOPATCH='
+run export EXPATLIBPATH="$NATIVE_PACKAGE_INSTALLED_ROOT/libexpat/lib"
+run export EXPATINCPATH="$NATIVE_PACKAGE_INSTALLED_ROOT/libexpat/include"
+run gsed -i "\"/check_lib/a not_execute,\"" Makefile.PL
+'
+    if [ "$NATIVE_PLATFORM_KIND" = darwin ] ; then
+        PACKAGE_INSTALL='perl Makefile.PL'
+    else
+        PACKAGE_INSTALL='perl Makefile.PL LDDLFLAGS="\"-shared -L$NATIVE_PACKAGE_INSTALLED_ROOT/libexpat/lib -Wl,-rpath,$NATIVE_PACKAGE_INSTALLED_ROOT/libexpat/lib\""'
+    fi
+}
+
+native_package_info_libiconv() {
+    PACKAGE_SRC_URL='https://ftp.gnu.org/gnu/libiconv/libiconv-1.17.tar.gz'
+    PACKAGE_SRC_SHA='8f74213b56238c85a50a5329f77e06198771e70dd9a739779f4c02f65d971313'
+    PACKAGE_INSTALL='configure --disable-dependency-tracking --enable-static --enable-shared --enable-extra-encodings'
+}
+
+native_package_info_libxml2() {
+    PACKAGE_SRC_URL='https://download.gnome.org/sources/libxml2/2.12/libxml2-2.12.6.tar.xz'
+    PACKAGE_SRC_SHA='889c593a881a3db5fdd96cc9318c87df34eb648edfc458272ad46fd607353fbb'
+    PACKAGE_DEP_PKG='libz libiconv'
+    PACKAGE_INSTALL='configure --with-zlib --with-python --with-iconv="$NATIVE_PACKAGE_INSTALLED_ROOT/libiconv" --without-lzma --without-readline --without-coverage --without-debug --enable-ipv6 --enable-static --enable-shared LIBS=-liconv'
+}
+
+native_package_info_itstool() {
+    PACKAGE_SRC_URL='https://github.com/itstool/itstool/archive/2.0.7.tar.gz'
+    PACKAGE_SRC_SHA='fba78a37dc3535e4686c7f57407b97d03c676e3a57beac5fb2315162b0cc3176'
+    PACKAGE_DEP_BIN='perl python3'
+    PACKAGE_DEP_PKG='libxml2 autoconf automake'
+    PACKAGE_INSTALL='configure'
+    PACKAGE_DOPATCH='
+    run autoreconf -ivf
+    export PYTHON="$(command -v python3)"
+    export PYTHONPATH="$NATIVE_PACKAGE_INSTALLED_ROOT/libxml2/lib/python3.11/site-packages"
+    '
+    PACKAGE_DOTWEAK='
+run mv bin/itstool bin/itstool.py
+cat > bin/itstool <<EOF
+#!/bin/sh
+export PYTHONPATH="$PYTHONPATH"
+exec "$PYTHON" "$PACKAGE_INSTALL_DIR/bin/itstool.py" "\$@"
+EOF
+run chmod +x bin/itstool
+    '
 }
 
 
@@ -3576,14 +3901,11 @@ $DOT_CONTENT
 
     #########################################################################################
 
-    unset PACKAGE_DEP_UPP_LIBZ
-    unset PACKAGE_DEP_UPP_LIBOPENSSL
+    unset PACKAGE_DEP_AUX_LIBZ
+    unset PACKAGE_DEP_AUX_LIBOPENSSL
 
-    # these native packages are not relocatable and would be fetched to a fixed location /opt/non-relocatable-*
-    unset PACKAGE_DEP_UPP_T2
-
-    # these native packages would be built from source locally
-    unset PACKAGE_DEP_XBUILDER
+    # these native packages would be built from source locally due to they are not relocatable or libraries
+    unset PACKAGE_DEP_AUX_NEED_TO_BUILD_LOCALLY
 
     #########################################################################################
 
@@ -3592,137 +3914,133 @@ $DOT_CONTENT
     run "$UPPM" about
     run "$UPPM" update
 
-    unset UPPM_INSTALL_ARGS
+    if [ -n "$SYSPM" ] ; then
+        run "$UPPM" install $PACKAGE_DEP_UPP pkg-config patchelf tree
+    else
+        PACKAGE_DEP_AUX="$PACKAGE_DEP_UPP"
+        PACKAGE_DEP_UPP=
 
-    if [ "$DUMP_UPPM" = 1 ] ; then
-        UPPM_INSTALL_ARGS=-v
+        for UPPM_PACKAGE_NAME in $PACKAGE_DEP_AUX
+        do
+            case $UPPM_PACKAGE_NAME in
+                libz)
+                    PACKAGE_DEP_AUX_LIBZ=1
+                    PACKAGE_DEP_AUX_NEED_TO_BUILD_LOCALLY="$PACKAGE_DEP_AUX_NEED_TO_BUILD_LOCALLY libz"
+                    ;;
+                libopenssl)
+                    PACKAGE_DEP_AUX_LIBOPENSSL=1
+                    PACKAGE_DEP_AUX_NEED_TO_BUILD_LOCALLY="$PACKAGE_DEP_AUX_NEED_TO_BUILD_LOCALLY libopenssl"
+                    PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP perl gmake"
+                    ;;
+                automake)
+                    PACKAGE_DEP_AUX_NEED_TO_BUILD_LOCALLY="$PACKAGE_DEP_AUX_NEED_TO_BUILD_LOCALLY autoconf automake"
+                    PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP perl gmake gm4"
+                    ;;
+                autoconf|libtool|texinfo|help2man|intltool)
+                    PACKAGE_DEP_AUX_NEED_TO_BUILD_LOCALLY="$PACKAGE_DEP_AUX_NEED_TO_BUILD_LOCALLY $UPPM_PACKAGE_NAME"
+                    PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP perl gmake gm4"
+                    ;;
+                itstool)
+                    PACKAGE_DEP_AUX_NEED_TO_BUILD_LOCALLY="$PACKAGE_DEP_AUX_NEED_TO_BUILD_LOCALLY itstool"
+                    PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP perl python3 gmake gm4"
+                    ;;
+                *)  PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP $UPPM_PACKAGE_NAME"
+            esac
+        done
+
+        ####################################################################
+
+        unset UPPM_INSTALL_ARGS
+
+        if [ "$DUMP_UPPM" = 1 ] ; then
+            UPPM_INSTALL_ARGS=-v
+        fi
+
+        ####################################################################
+
+        for UPPM_PACKAGE_NAME in $PACKAGE_DEP_UPP pkg-config patchelf tree
+        do
+            run "$UPPM" install "$UPPM_PACKAGE_NAME" $UPPM_INSTALL_ARGS
+
+            UPPM_PACKAGE_INSTALLED_DIR="$UPPM_HOME/installed/$UPPM_PACKAGE_NAME"
+
+            if [ -d  "$UPPM_PACKAGE_INSTALLED_DIR/bin" ] ; then
+                PATH="$UPPM_PACKAGE_INSTALLED_DIR/bin:$PATH"
+            fi
+
+            if [ -d  "$UPPM_PACKAGE_INSTALLED_DIR/sbin" ] ; then
+                PATH="$UPPM_PACKAGE_INSTALLED_DIR/sbin:$PATH"
+            fi
+
+            if [ -d          "$UPPM_PACKAGE_INSTALLED_DIR/share/aclocal" ] ; then
+                ACLOCAL_PATH="$UPPM_PACKAGE_INSTALLED_DIR/share/aclocal:$ACLOCAL_PATH"
+            fi
+
+            for d in lib share
+            do
+                UPPM_PACKAGE_PKGCONF_DIR="$UPPM_PACKAGE_INSTALLED_DIR/$d/pkgconfig"
+
+                if [ -d "$UPPM_PACKAGE_PKGCONF_DIR" ] ; then
+                    PKG_CONFIG_PATH="$PKG_CONFIG_PATH:$UPPM_PACKAGE_PKGCONF_DIR"
+                    break
+                fi
+            done
+
+            case $UPPM_PACKAGE_NAME in
+                swig)
+                    # https://www.swig.org/Doc4.0/Library.html
+                    X="$(ls $UPPM_PACKAGE_INSTALLED_DIR/share/swig/*/swig.swg)"
+                    export SWIG_LIB="${X%/*}"
+                    ;;
+                file)
+                    export MAGIC="$UPPM_PACKAGE_INSTALLED_DIR/share/misc/magic.mgc"
+                    ;;
+                docbook-xsl)
+                    # http://xmlsoft.org/xslt/xsltproc.html
+                    export XML_CATALOG_FILES="$UPPM_PACKAGE_INSTALLED_DIR/catalog.xml"
+                    printf '%s\n' "XML_CATALOG_FILES=$XML_CATALOG_FILES"
+            esac
+        done
     fi
 
-    for UPPM_PACKAGE_NAME in $PACKAGE_DEP_UPP pkg-config patchelf tree
+    #########################################################################################
+
+    for NATIVE_PACKAGE_NAME in $PACKAGE_DEP_AUX_NEED_TO_BUILD_LOCALLY
     do
-        case $UPPM_PACKAGE_NAME in
-            libz)
-                PACKAGE_DEP_UPP_LIBZ=1
-                PACKAGE_DEP_XBUILDER="$PACKAGE_DEP_XBUILDER libz"
-                continue
-                ;;
-            libopenssl)
-                PACKAGE_DEP_UPP_LIBOPENSSL=1
-                PACKAGE_DEP_XBUILDER="$PACKAGE_DEP_XBUILDER libopenssl"
-                continue
-                ;;
-            autotools)
-                PACKAGE_DEP_UPP_T2="$PACKAGE_DEP_UPP_T2 perl autoconf automake"
-                UPPM_PACKAGE_NAME=gm4
-                ;;
-            perl|autoconf|automake|libtool|texinfo|help2man|intltool)
-                PACKAGE_DEP_UPP_T2="$PACKAGE_DEP_UPP_T2 $UPPM_PACKAGE_NAME"
-                continue
-                ;;
-            itstool)
-                PACKAGE_DEP_XBUILDER="$PACKAGE_DEP_XBUILDER itstool"
-                UPPM_PACKAGE_NAME=gm4
-                ;;
-        esac
+        (install_the_given_native_package "$NATIVE_PACKAGE_NAME")
 
-        run "$UPPM" install "$UPPM_PACKAGE_NAME" $UPPM_INSTALL_ARGS
+        NATIVE_PACKAGE_INSTALLED_DIR="$NATIVE_PACKAGE_INSTALLED_ROOT/$NATIVE_PACKAGE_NAME"
 
-        UPPM_PACKAGE_INSTALLED_DIR="$UPPM_HOME/installed/$UPPM_PACKAGE_NAME"
-
-        if [ -d  "$UPPM_PACKAGE_INSTALLED_DIR/bin" ] ; then
-            PATH="$UPPM_PACKAGE_INSTALLED_DIR/bin:$PATH"
+        if [ -d  "$NATIVE_PACKAGE_INSTALLED_DIR/include" ] ; then
+            CPPFLAGS_FOR_BUILD="$CPPFLAGS_FOR_BUILD -I$NATIVE_PACKAGE_INSTALLED_DIR/include"
         fi
 
-        if [ -d  "$UPPM_PACKAGE_INSTALLED_DIR/sbin" ] ; then
-            PATH="$UPPM_PACKAGE_INSTALLED_DIR/sbin:$PATH"
+        if [ -d  "$NATIVE_PACKAGE_INSTALLED_DIR/lib" ] ; then
+            LDFLAGS_FOR_BUILD="$LDFLAGS_FOR_BUILD -L$NATIVE_PACKAGE_INSTALLED_DIR/lib -Wl,-rpath,$NATIVE_PACKAGE_INSTALLED_DIR/lib"
         fi
 
-        if [ -d          "$UPPM_PACKAGE_INSTALLED_DIR/share/aclocal" ] ; then
-            ACLOCAL_PATH="$UPPM_PACKAGE_INSTALLED_DIR/share/aclocal:$ACLOCAL_PATH"
+        if [ -d  "$NATIVE_PACKAGE_INSTALLED_DIR/bin" ] ; then
+            PATH="$NATIVE_PACKAGE_INSTALLED_DIR/bin:$PATH"
         fi
 
-        case $UPPM_PACKAGE_NAME in
-            swig)
-                # https://www.swig.org/Doc4.0/Library.html
-                X="$(ls $UPPM_PACKAGE_INSTALLED_DIR/share/swig/*/swig.swg)"
-                export SWIG_LIB="${X%/*}"
-                ;;
-            file)
-                export MAGIC="$UPPM_PACKAGE_INSTALLED_DIR/share/misc/magic.mgc"
-                ;;
-            docbook-xsl)
-                # http://xmlsoft.org/xslt/xsltproc.html
-                export XML_CATALOG_FILES="$UPPM_PACKAGE_INSTALLED_DIR/catalog.xml"
-                printf '%s\n' "XML_CATALOG_FILES=$XML_CATALOG_FILES"
-        esac
-    done
-
-    #########################################################################################
-
-    [ -n "$PACKAGE_DEP_UPP_T2" ] && {
-        if [ "$GITHUB_ACTIONS" = true ] ; then
-            NATIVE_PLATFORM_VERS_MAJOR="${NATIVE_PLATFORM_VERS%%.*}"
-
-            if [ "$NATIVE_PLATFORM_VERS_MAJOR" -le 10 ] ; then
-                X='10.15'
-            elif [ "$NATIVE_PLATFORM_VERS_MAJOR" -ge 15 ] ; then
-                X='15.0'
-            else
-                X="$NATIVE_PLATFORM_VERS_MAJOR.0"
-            fi
-
-            T="macos-$X-$NATIVE_PLATFORM_ARCH"
-
-            NON_RELOCATEABLE_BINARY_PACKAGE_NAME="non-relocatable-binary-packages-2024.10.27-$T"
-            NON_RELOCATEABLE_BINARY_PACKAGE_INSTALL_DIR="/opt/$NON_RELOCATEABLE_BINARY_PACKAGE_NAME"
-
-            if [ ! -f "$NON_RELOCATEABLE_BINARY_PACKAGE_INSTALL_DIR/ok" ] ; then
-                wfetch "https://github.com/leleliu008/non-relocatable-binary-packages/releases/download/2024.10.27/$NON_RELOCATEABLE_BINARY_PACKAGE_NAME.tar.xz"
-                run sudo install -d -g `id -g` -o `id -u` "$NON_RELOCATEABLE_BINARY_PACKAGE_INSTALL_DIR"
-                run bsdtar xPf "$NON_RELOCATEABLE_BINARY_PACKAGE_NAME.tar.xz"
-                run touch "$NON_RELOCATEABLE_BINARY_PACKAGE_INSTALL_DIR/ok"
-            fi
-
-            export PATH="$NON_RELOCATEABLE_BINARY_PACKAGE_INSTALL_DIR/bin:$PATH"
-        else
-            PACKAGE_DEP_XBUILDER="$PACKAGE_DEP_XBUILDER $PACKAGE_DEP_UPP_T2"
+        if [ -d  "$NATIVE_PACKAGE_INSTALLED_DIR/sbin" ] ; then
+            PATH="$NATIVE_PACKAGE_INSTALLED_DIR/sbin:$PATH"
         fi
-    }
 
-    #########################################################################################
+        if [ -d          "$NATIVE_PACKAGE_INSTALLED_DIR/share/aclocal" ] ; then
+            ACLOCAL_PATH="$NATIVE_PACKAGE_INSTALLED_DIR/share/aclocal:$ACLOCAL_PATH"
+        fi
 
-    [ -n "$PACKAGE_DEP_XBUILDER" ] && {
-        run "$UPPM" install gmake
-
-        export PATH="$UPPM_HOME/installed/gmake/bin:$PATH"
-
-        xbuilder "$PACKAGE_DEP_XBUILDER"
-
-        for NATIVE_PACKAGE_NAME in $PACKAGE_DEP_XBUILDER
+        for d in lib share
         do
-            NATIVE_PACKAGE_INSTALLED_DIR="$NATIVE_PACKAGE_INSTALLED_ROOT/$NATIVE_PACKAGE_NAME"
+            NATIVE_PACKAGE_PKGCONF_DIR="$NATIVE_PACKAGE_INSTALLED_DIR/$d/pkgconfig"
 
-            if [ -d  "$NATIVE_PACKAGE_INSTALLED_DIR/include" ] ; then
-                CPPFLAGS_FOR_BUILD="$CPPFLAGS_FOR_BUILD -I$NATIVE_PACKAGE_INSTALLED_DIR/include"
-            fi
-
-            if [ -d  "$NATIVE_PACKAGE_INSTALLED_DIR/lib" ] ; then
-                LDFLAGS_FOR_BUILD="$LDFLAGS_FOR_BUILD -L$NATIVE_PACKAGE_INSTALLED_DIR/lib -Wl,-rpath,$NATIVE_PACKAGE_INSTALLED_DIR/lib"
-            fi
-
-            if [ -d  "$NATIVE_PACKAGE_INSTALLED_DIR/bin" ] ; then
-                PATH="$NATIVE_PACKAGE_INSTALLED_DIR/bin:$PATH"
-            fi
-
-            if [ -d  "$NATIVE_PACKAGE_INSTALLED_DIR/sbin" ] ; then
-                PATH="$NATIVE_PACKAGE_INSTALLED_DIR/sbin:$PATH"
-            fi
-
-            if [ -d          "$NATIVE_PACKAGE_INSTALLED_DIR/share/aclocal" ] ; then
-                ACLOCAL_PATH="$NATIVE_PACKAGE_INSTALLED_DIR/share/aclocal:$ACLOCAL_PATH"
+            if [ -d "$NATIVE_PACKAGE_PKGCONF_DIR" ] ; then
+                PKG_CONFIG_PATH="$PKG_CONFIG_PATH:$NATIVE_PACKAGE_PKGCONF_DIR"
+                break
             fi
         done
-    }
+    done
 
     #########################################################################################
 
@@ -3757,7 +4075,7 @@ $DOT_CONTENT
         done
 
         if [ -n "$PACKAGE_DEP_PLM_T1" ] ; then
-            xbuilder perl-XML-Parser
+            (install_the_given_native_package perl_XML_Parser)
         fi
 
         if [ -n "$PACKAGE_DEP_PLM_T2" ] ; then
@@ -4124,34 +4442,6 @@ $DOT_CONTENT
     fi
 
     #########################################################################################
-
-    # https://www.gnu.org/software/gettext/manual/html_node/config_002eguess.html
-    # https://git.savannah.gnu.org/cgit/config.git/tree/
-
-    step "update config.{sub,guess}"
-
-    {
-        [ "$PACKAGE_USE_BSYSTEM_AUTOGENSH" = 1 ] ||
-        [ "$PACKAGE_USE_BSYSTEM_AUTOTOOLS" = 1 ] ||
-        [ "$PACKAGE_USE_BSYSTEM_CONFIGURE" = 1 ]
-    } && {
-        for FILENAME in config.sub config.guess
-        do
-            FILEPATH="$SESSION_DIR/$FILENAME"
-
-            [ -f "$FILEPATH" ] || {
-                wfetch "https://git.savannah.gnu.org/cgit/config.git/plain/$FILENAME" -o "$FILEPATH"
-
-                run chmod a+x "$FILEPATH"
-
-                if [ "$FILENAME" = 'config.sub' ] ; then
-                    gsed -i 's/arm64-*/arm64-*|arm64e-*/g' "$FILEPATH"
-                fi
-            }
-
-            find "$PACKAGE_BSCRIPT_DIR" -name "$FILENAME" -exec cp -vf "$FILEPATH" {} \;
-        done
-    }
 
     #########################################################################################
 
@@ -4899,12 +5189,13 @@ $PACKAGE_DOPATCH
 
     #########################################################################################
 
-    [ "$TARGET_PLATFORM_ARCH" = arm64e ] && {
-        {
-            [ "$PACKAGE_USE_BSYSTEM_AUTOGENSH" = 1 ] ||
-            [ "$PACKAGE_USE_BSYSTEM_AUTOTOOLS" = 1 ] ||
-            [ "$PACKAGE_USE_BSYSTEM_CONFIGURE" = 1 ]
-        } && find . -name 'config.sub' -exec gsed -i 's/arm64-*/arm64-*|arm64e-*/g' '{}' \;
+    {
+        [ "$PACKAGE_USE_BSYSTEM_AUTOGENSH" = 1 ] ||
+        [ "$PACKAGE_USE_BSYSTEM_AUTOTOOLS" = 1 ] ||
+        [ "$PACKAGE_USE_BSYSTEM_CONFIGURE" = 1 ]
+    } && {
+        step "update config.{sub,guess}"
+        __update_config_sub_guess "$PACKAGE_BSCRIPT_DIR"
     }
 
     #########################################################################################
@@ -4953,19 +5244,34 @@ $PACKAGE_DOBUILD
 
     [   -d "$PACKAGE_INSTALL_DIR" ] || abort 1 "nothing was installed."
 
-    step "change to the install directory"
-
+    step "change to the installed directory"
     run cd "$PACKAGE_INSTALL_DIR"
 
     [ -z "$(ls)" ]                  && abort 1 "nothing was installed."
 
     #########################################################################################
 
-    step "dotweak for target"
+    [ -n "$PACKAGE_DOEXTRA" ] && {
+        step "doextra"
+
+        eval "
+doextra() {
+$PACKAGE_DOEXTRA
+}"
+        doextra
+    }
+
+    #########################################################################################
 
     __tweak_pc_files
 
+    #########################################################################################
+
     [ -n "$PACKAGE_DOTWEAK" ] && {
+        step "dotweak"
+
+        cd "$PACKAGE_INSTALL_DIR"
+
         eval "
 dotweak() {
 $PACKAGE_DOTWEAK
@@ -4975,84 +5281,83 @@ $PACKAGE_DOTWEAK
 
     #########################################################################################
 
-    PACKAGE_LIBRARY_DIR="$PACKAGE_INSTALL_DIR/lib"
+    run cd "$PACKAGE_INSTALL_DIR"
 
-    if [ -d  "$PACKAGE_LIBRARY_DIR" ] ; then
+    if [ -d  lib ] ; then
         # https://www.linuxfromscratch.org/blfs/view/stable-systemd/introduction/la-files.html
         # remove Libtool Archive (.la) files
-        find "$PACKAGE_LIBRARY_DIR" -maxdepth 1 -mindepth 1 \( -type f -or -type l \) -name '*.la' -exec rm '{}' \;
+        find lib -maxdepth 1 -mindepth 1 \( -type f -or -type l \) -name '*.la' -exec rm -v {} +
     fi
 
     #########################################################################################
 
-    unset PACKAGE_NEEDED_EXTERNAL_DYLIBS
-    unset PACKAGE_EXECUTABLES_NEED_SET_RPATH
-
-    step "docheck for target"
-    __check_mach_o_files
+    step "generate MANIFEST.txt"
+    run install -d .xcpkg
+    find -not -path . -a -not -path ./.xcpkg -a -not -path './.xcpkg/*' -printf '%y|%P\n' > .xcpkg/MANIFEST.txt
 
     #########################################################################################
 
-    [ -n "$PACKAGE_NEEDED_EXTERNAL_DYLIBS" ] && {
+    step "docheck"
+
+    unset NEEDED_SYSTEM_SHARED_LIBS
+    unset NEEDED_EXTERN_SHARED_LIBS
+
+    unset FILES_NEED_TO_SET_RPATH
+
+    __check_mach_o_files
+
+    [ -n "$NEEDED_EXTERN_SHARED_LIBS" ] && {
         step "copy dependent external shared libraries"
 
-        echo "PACKAGE_NEEDED_EXTERNAL_DYLIBS=$PACKAGE_NEEDED_EXTERNAL_DYLIBS"
+        echo "NEEDED_EXTERN_SHARED_LIBS=$NEEDED_EXTERN_SHARED_LIBS"
 
-        install -d .xcpkg/dependencies/lib
+        install -d -v .xcpkg/dependencies/lib
 
-        for f in $PACKAGE_NEEDED_EXTERNAL_DYLIBS
+        for f in $NEEDED_EXTERN_SHARED_LIBS
         do
-            cp -L -v "$f" .xcpkg/dependencies/lib/
+            n="${f##*/}"
+            F=".xcpkg/dependencies/lib/$n"
+
+            [ -f "$F" ] || {
+                cp -L -v "$f" .xcpkg/dependencies/lib/
+            }
         done
     }
 
-    #########################################################################################
-
-    [ -n "$PACKAGE_EXECUTABLES_NEED_SET_RPATH" ] && {
+    [ -n "$FILES_NEED_TO_SET_RPATH" ] && {
         step "set rpath for executables"
 
-        echo "PACKAGE_EXECUTABLES_NEED_SET_RPATH=$PACKAGE_EXECUTABLES_NEED_SET_RPATH"
+        KVs="$(printf '%s\n' "$FILES_NEED_TO_SET_RPATH" | sort | uniq)"
 
-        PACKAGE_EXECUTABLES_NEED_SET_RPATH="$(printf '%s\n' $PACKAGE_EXECUTABLES_NEED_SET_RPATH | sort | uniq)"
-
-        for item in $PACKAGE_EXECUTABLES_NEED_SET_RPATH
+        for KV in $KVs
         do
-            f="$(printf '%s\n' "$item" | cut -d '|' -f1)"
-            r="$(printf '%s\n' "$item" | cut -d '|' -f2)"
+            K="${KV%|*}"
+            V="${KV#*|}"
 
-            case $r in
-                1) X='lib' ;;
-                2) X='.xcpkg/dependencies/lib' ;;
-                *) X="$r"  ;;
-            esac
+            [ "$V" = 1 ] && V='.xcpkg/dependencies/lib'
 
-            RELATIVE_PATH="$(realpath -m --relative-to="${f%/*}" "$X")"
+            RELATIVE_PATH="$(realpath -m --relative-to="${K%/*}" "$V")"
 
-            run install_name_tool -add_rpath "@executable_path/$RELATIVE_PATH" "$f"
+            run install_name_tool -add_rpath "@executable_path/$RELATIVE_PATH" "$K" || true
         done
     }
 
     #########################################################################################
 
     [ "$PACKAGE_USE_BSYSTEM_CARGO" = 1 ] && {
-        rm -f "$PACKAGE_INSTALL_DIR/.crates.toml"
-        rm -f "$PACKAGE_INSTALL_DIR/.crates2.json"
+        run rm -f .crates.toml
+        run rm -f .crates2.json
     }
 
     #########################################################################################
 
-    PACKAGE_METAINFO_DIR="$PACKAGE_INSTALL_DIR/.xcpkg"
-
-    PACKAGE_MANIFEST_FILEPATH="$PACKAGE_METAINFO_DIR/MANIFEST.txt"
-    PACKAGE_RECEIPT_FILEPATH="$PACKAGE_METAINFO_DIR/RECEIPT.yml"
-
-    install -d "$PACKAGE_METAINFO_DIR"
+    run cd .xcpkg
 
     #########################################################################################
 
     for item in 'FAQ*' 'TODO*' 'NEWS*' 'THANKS*' 'README*' 'COPYING*' 'LICENSE*' 'AUTHORS*' 'CHANGES*' 'CHANGELOG*' 'CONTRIBUTORS*' 'CONTRIBUTING*'
     do
-        find "$PACKAGE_INSTALLING_SRC_DIR" -mindepth 1 -maxdepth 1 \( -type f -or -type l \) -iname "$item" -exec cp -L {} "$PACKAGE_METAINFO_DIR/" \;
+        find "$PACKAGE_INSTALLING_SRC_DIR" -mindepth 1 -maxdepth 1 \( -type f -or -type l \) -iname "$item" -exec cp -L {} . \;
     done
 
     #########################################################################################
@@ -5060,15 +5365,15 @@ $PACKAGE_DOTWEAK
     [ -n "$PACKAGE_DEP_PKG" ] && {
         step "install dependency graph files"
 
-        run mv "$PACKAGE_WORKING_DIR/dependencies.*" "$PACKAGE_METAINFO_DIR/"
+        run mv "$PACKAGE_WORKING_DIR/dependencies.*" .
 
         step "install dependency formulas"
 
-        install -d "$PACKAGE_METAINFO_DIR/dependencies"
+        install -d dependencies/
 
         for DEPENDENT_PACKAGE_NAME in $RECURSIVE_DEPENDENT_PACKAGE_NAMES
         do
-            cp "$SESSION_DIR/$DEPENDENT_PACKAGE_NAME.yml" "$PACKAGE_METAINFO_DIR/dependencies/"
+            cp "$SESSION_DIR/$DEPENDENT_PACKAGE_NAME.yml" dependencies/
         done
     }
 
@@ -5077,47 +5382,76 @@ $PACKAGE_DOTWEAK
     for dir in "$PACKAGE_BCACHED_DIR" "$PACKAGE_BSCRIPT_DIR"
     do
         if [ -f "$dir/config.log" ] ; then
-            mv  "$dir/config.log" "$PACKAGE_METAINFO_DIR/"
+            mv  "$dir/config.log" .
         fi
-    done
-
-    #########################################################################################
-
-    for dir in "$PACKAGE_BCACHED_DIR" "$PACKAGE_BSCRIPT_DIR"
-    do
         if [ -f "$dir/compile_commands.json" ] ; then
-            mv  "$dir/compile_commands.json" "$PACKAGE_METAINFO_DIR/"
+            mv  "$dir/compile_commands.json" .
         fi
     done
 
     #########################################################################################
-
-    [ -n "$PACKAGE_ONFINAL" ] && {
-        step "onfinal"
-
-        cd "$PACKAGE_INSTALL_DIR"
-
-        eval "
-onfinal() {
-$PACKAGE_ONFINAL
-}"
-        onfinal
-    }
-
-    #########################################################################################
-
-    cd "$PACKAGE_INSTALL_DIR"
-
-    step "generate MANIFEST.txt"
-    __generate_manifest_of_the_given_package "$1"
 
     step "generate RECEIPT.yml"
-    __generate_receipt_of_the_given_package "$1"
+
+    cp "$PACKAGE_FORMULA_FILEPATH" RECEIPT.yml
+
+    gsed -i '/^#src-url: dir:/d' RECEIPT.yml
+
+    gsed -i "1i pkgname: $PACKAGE_NAME" RECEIPT.yml
+
+    grep -q '^pkgtype: ' RECEIPT.yml || gsed -i "/^pkgname:/a pkgtype: $PACKAGE_PKGTYPE" RECEIPT.yml
+    grep -q '^version: ' RECEIPT.yml || gsed -i "/^pkgtype:/a version: $PACKAGE_VERSION" RECEIPT.yml
+    grep -q '^web-url: ' RECEIPT.yml || gsed -i "/^summary:/a web-url: $PACKAGE_GIT_URL" RECEIPT.yml
+    grep -q '^git-url: ' RECEIPT.yml || gsed -i "/^web-url:/a git-url: $PACKAGE_GIT_URL" RECEIPT.yml
+    grep -q '^bsystem: ' RECEIPT.yml || gsed -i "/^install:/i bsystem: $PACKAGE_BSYSTEM" RECEIPT.yml
+    grep -q '^binbstd: ' RECEIPT.yml || gsed -i "/^bsystem:/a binbstd: $PACKAGE_BINBSTD" RECEIPT.yml
+    grep -q '^parallel: ' RECEIPT.yml || printf "parallel: %s\n" "$PACKAGE_PARALLEL" >> RECEIPT.yml
+
+    [ -n "$PACKAGE_GIT_SHA" ] && {
+        grep -q '^git-sha: ' RECEIPT.yml || {
+            gsed -i "/^git-url:/a git-sha: $PACKAGE_GIT_SHA" RECEIPT.yml
+        }
+
+        grep -q '^git-sha: ' RECEIPT.yml || {
+            gsed -i "3i git-sha: $PACKAGE_GIT_SHA" RECEIPT.yml
+        }
+    }
+
+    [ -n "$PACKAGE_DEP_UPP" ] && {
+        if grep -q '^dep-upp: ' RECEIPT.yml ; then
+            gsed -i "/^dep-upp: /c dep-upp: $PACKAGE_DEP_UPP" RECEIPT.yml
+        else
+            gsed -i "/^bsystem: /i dep-upp: $PACKAGE_DEP_UPP" RECEIPT.yml
+        fi
+    }
+
+    cat >> RECEIPT.yml <<EOF
+profile: $PROFILE
+builtfor: $TARGET_PLATFORM_SPEC
+builtby: xcpkg-$XCPKG_VERSION
+builtat: $TIMESTAMP_UNIX
+builton:
+    os-arch: $NATIVE_PLATFORM_ARCH
+    os-kind: $NATIVE_PLATFORM_KIND
+    os-type: $NATIVE_PLATFORM_TYPE
+    os-code: $NATIVE_PLATFORM_CODE
+    os-name: $NATIVE_PLATFORM_NAME
+    os-vers: $NATIVE_PLATFORM_VERS
+    os-ncpu: $NATIVE_PLATFORM_NCPU
+    os-euid: $NATIVE_PLATFORM_EUID
+    os-egid: $NATIVE_PLATFORM_EGID
+EOF
 
     #########################################################################################
 
     step "generate index"
-    run ln -s -r -f -T "$PACKAGE_INSTALL_DIR" "$XCPKG_PACKAGE_INSTALLED_ROOT/$PACKAGE_SPEC"
+    run cd "$XCPKG_PACKAGE_INSTALLED_ROOT/$TARGET_PLATFORM_SPEC"
+    run ln -s -f -T "$PACKAGE_INSTALL_SHA" "$PACKAGE_NAME"
+
+    #########################################################################################
+
+    step "show installed files in tree-like format"
+    run tree --dirsfirst -a "$PACKAGE_INSTALL_DIR"
 
     #########################################################################################
 
@@ -5129,14 +5463,7 @@ $PACKAGE_ONFINAL
         run  ccache -s
     }
 
-    #########################################################################################
-
-    step "show installed files in tree-like format"
-    run tree --dirsfirst -a "$PACKAGE_INSTALL_DIR"
-
-    #########################################################################################
-
-    [ "$KEEP_SESSION_DIR" != 1 ] && {
+    [ "$REQUEST_TO_KEEP_SESSION_DIR" != 1 ] && {
         step "delete the working directory"
         run rm -rf "$PACKAGE_WORKING_DIR"
     }
@@ -5146,23 +5473,19 @@ $PACKAGE_ONFINAL
     printf '\n%b\n' "${COLOR_PURPLE}✅️  ${COLOR_OFF}${COLOR_GREEN}${1} was successfully installed.${COLOR_OFF}${COLOR_PURPLE}${COLOR_OFF}"
 
     if [ -n "$PACKAGE_CAVEATS" ] ; then
-        printf '\n%b\n' "${COLOR_YELLOW}⚠️  Caveats:\n\n$PACKAGE_CAVEATS${COLOR_OFF}" >&2
+        printf '\n%b\n' "${COLOR_YELLOW}⚠️  Caveats:${COLOR_OFF}\n\n$PACKAGE_CAVEATS" >&2
     fi
 }
 
 __check_mach_o_files() {
-    cd "$PACKAGE_INSTALL_DIR"
-
-    FILEPATHs="$(find -not -name . -type f)"
-
-    export IFS='
-'
-
-    for FILEPATH in $FILEPATHs
+    while read -r LINE
     do
+        FILETYPE="${LINE%%|*}"
+        FILEPATH="${LINE##*|}"
+
+        [ "$FILETYPE" = f ] || continue
         [ -f "$FILEPATH" ] || continue
 
-        FILE_HEADER_ACTUAL=
         FILE_HEADER_ACTUAL="$(hexdump -n 16 -v -e '1/1 "%02X" ""' "$FILEPATH")"
 
         unset LIBRARY
@@ -5203,6 +5526,8 @@ __check_mach_o_files() {
         DYLIB_ID=$(otool -l "$FILEPATH" | grep LC_ID_DYLIB -A2 | grep name | sed 's|^[[:space:]]*||' | cut -d ' ' -f2)
 
         RUNPATHs=$(otool -l "$FILEPATH" | grep LC_RPATH    -A2 | grep path | sed 's|^[[:space:]]*||' | cut -d ' ' -f2)
+
+        #######################################################################
 
         if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
             cat <<EOF
@@ -5257,42 +5582,48 @@ EOF
         #######################################################################
 
         __check_needed_dylibs "$FILEPATH" "$EXECUTABLE"
-    done
-
-    unset IFS
+    done < .xcpkg/MANIFEST.txt
 }
 
-# __find_needed_dylibs <MACH-O-FILE-NAME>
-  __find_needed_dylibs() {
-    NEEDED_FILEPATH="$PACKAGE_LIBRARY_DIR/$1"
-    NEEDED_FILEPATH_TYPE=1
+# __find_needed_shared_library <NEEDED_SHARED_LIBRARY_FILENAME>
+  __find_needed_shared_library() {
+    unset NEEDED_SHARED_LIBRARY_FILEPATH
 
-    if [ ! -f "$NEEDED_FILEPATH" ] ; then
-        NEEDED_FILEPATH=
-        NEEDED_FILEPATH_TYPE=2
+    if [ -d lib ] ; then
+        NEEDED_SHARED_LIBRARY_FILEPATH="lib/$NEEDED_SHARED_LIBRARY_FILENAME"
 
-        for DEPENDENT_PACKAGE_INSTALL_DIR in $RECURSIVE_DEPENDENT_PACKAGE_INSTALL_DIRS
-        do
-            NEEDED_FILEPATH="$DEPENDENT_PACKAGE_INSTALL_DIR/lib/$1"
-
-            if [ -f "$NEEDED_FILEPATH" ] ; then
-                break
-            else
-                NEEDED_FILEPATH=
-            fi
-        done
+        [ -f "$NEEDED_SHARED_LIBRARY_FILEPATH" ] || {
+            unset NEEDED_SHARED_LIBRARY_FILEPATH
+            NEEDED_SHARED_LIBRARY_FILEPATH="$(find lib \( -type f -or -type l \) -name "$NEEDED_SHARED_LIBRARY_FILENAME" -print -quit)"
+        }
     fi
+
+    if [ -n "$NEEDED_SHARED_LIBRARY_FILEPATH" ] ; then
+        return 0
+    fi
+
+    for DEPENDENT_PACKAGE_NAME in $RECURSIVE_DEPENDENT_PACKAGE_NAMES
+    do
+        NEEDED_SHARED_LIBRARY_ROOT_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$TARGET_PLATFORM_SPEC/$DEPENDENT_PACKAGE_NAME/lib"
+
+        [ -d "$NEEDED_SHARED_LIBRARY_ROOT_DIR" ] || continue
+
+        NEEDED_SHARED_LIBRARY_FILEPATH="$NEEDED_SHARED_LIBRARY_ROOT_DIR/$NEEDED_SHARED_LIBRARY_FILENAME"
+
+        [ -f "$NEEDED_SHARED_LIBRARY_FILEPATH" ] && break
+
+        NEEDED_SHARED_LIBRARY_FILEPATH="$(find "$NEEDED_SHARED_LIBRARY_ROOT_DIR" \( -type f -or -type l \) -name "$NEEDED_SHARED_LIBRARY_FILENAME" -print -quit)"
+
+        [ -n "$NEEDED_SHARED_LIBRARY_FILEPATH" ] && break
+    done
 }
 
 # __check_needed_dylibs <MACH-O-FILE-PATH> <IS-EXECUTABLE>
   __check_needed_dylibs() {
-    # a \n-separated list
     NEEDEDs=$(otool -l "$1" | grep LC_LOAD_DYLIB -A2 | grep name | sed 's|^[[:space:]]*||' | cut -d ' ' -f2)
 
     if [ -z "$NEEDEDs" ] ; then
-        abort 1 "no dependent shared libraries found in $1"
-        #warn "no dependent shared libraries found in $1"
-        #return 0
+        abort 1 "no needed shared libraries set for $1"
     fi
 
     if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
@@ -5305,81 +5636,100 @@ EOF
     for NEEDED in $NEEDEDs
     do
         case $NEEDED in
-            @rpath/libclang_rt*)
-                ;;
-            @rpath/*)
-                __find_needed_dylibs "${NEEDED#*/}"
-
-                if [ -z "$NEEDED_FILEPATH" ] ; then
-                    abort 1 "$NEEDED was not found, which is needed by $1"
-                fi
-
-                if [ "$NEEDED_FILEPATH_TYPE" = 2 ] ; then
-                    PACKAGE_NEEDED_EXTERNAL_DYLIBS="$PACKAGE_NEEDED_EXTERNAL_DYLIBS
-$NEEDED_FILEPATH"
-                fi
-
-                if [ "$2" = 1 ] ; then
-                    PACKAGE_EXECUTABLES_NEED_SET_RPATH="$PACKAGE_EXECUTABLES_NEED_SET_RPATH
-$1|$NEEDED_FILEPATH_TYPE"
-                fi
-
-                __check_needed_dylibs "$NEEDED_FILEPATH" 0
-                ;;
-            @loader_path/*)
-                ;;
-            @executable_path/*)
-                ;;
             /usr/lib/lib*.dylib)
                 ;;
             /usr/lib/swift/lib*.dylib)
                 ;;
             /System/Library/Frameworks/*)
                 ;;
-            /*)
-                NEEDED_DYLIB_FILENAME="${NEEDED##*/}"
+            /System/Library/PrivateFrameworks/*)
+                ;;
+            $PACKAGE_INSTALL_DIR/*)
+                NEEDED_SHARED_LIBRARY_FILENAME="${NEEDED##*/}"
 
-                run install_name_tool -change "$NEEDED" "@rpath/$NEEDED_DYLIB_FILENAME" "$1"
+                run install_name_tool -change "$NEEDED" "@rpath/$NEEDED_SHARED_LIBRARY_FILENAME" "$1"
 
-                NEEDED_DYLIB_DIR="${NEEDED%/*}"
+                NEEDED_SHARED_LIBRARY_DIR="${NEEDED%/*}"
 
-                case "$NEEDED_DYLIB_DIR" in
-                    "$PACKAGE_INSTALL_DIR"/*)
-                        if [ "$EXECUTABLE" = 1 ] ; then
-                            RELATIVE_PATH="${NEEDED_DYLIB_DIR#$PACKAGE_INSTALL_DIR/}"
-                            PACKAGE_EXECUTABLES_NEED_SET_RPATH="$PACKAGE_EXECUTABLES_NEED_SET_RPATH
+                if [ "$EXECUTABLE" = 1 ] ; then
+                    RELATIVE_PATH="${NEEDED_SHARED_LIBRARY_DIR#$PACKAGE_INSTALL_DIR/}"
+                    FILES_NEED_TO_SET_RPATH="$FILES_NEED_TO_SET_RPATH
 $1|$RELATIVE_PATH"
-                        fi
-                        ;;
-                    *)  PACKAGE_NEEDED_EXTERNAL_DYLIBS="$PACKAGE_NEEDED_EXTERNAL_DYLIBS
+                fi
+                ;;
+            /*)
+                NEEDED_SHARED_LIBRARY_FILENAME="${NEEDED##*/}"
+
+                run install_name_tool -change "$NEEDED" "@rpath/$NEEDED_SHARED_LIBRARY_FILENAME" "$1"
+
+                NEEDED_EXTERN_SHARED_LIBS="$NEEDED_EXTERN_SHARED_LIBS
 $NEEDED"
-                        if [ "$EXECUTABLE" = 1 ] ; then
-                            PACKAGE_EXECUTABLES_NEED_SET_RPATH="$PACKAGE_EXECUTABLES_NEED_SET_RPATH
-$1|2"
-                        fi
-                        ;;
-                esac
+                if [ "$EXECUTABLE" = 1 ] ; then
+                    FILES_NEED_TO_SET_RPATH="$FILES_NEED_TO_SET_RPATH
+$1|1"
+                fi
                 ;;
             lib*.dylib)
                 run install_name_tool -change "$NEEDED" "@rpath/$NEEDED" "$1"
 
-                __find_needed_dylibs "$NEEDED"
+                __find_needed_shared_library "$NEEDED"
 
-                if [ -z "$NEEDED_FILEPATH" ] ; then
+                if [ -z "$NEEDED_SHARED_LIBRARY_FILEPATH" ] ; then
                     abort 1 "$NEEDED was not found, which is needed by $1"
                 fi
 
-                if [ "$NEEDED_FILEPATH_TYPE" = 2 ] ; then
-                    PACKAGE_NEEDED_EXTERNAL_DYLIBS="$PACKAGE_NEEDED_EXTERNAL_DYLIBS
-$NEEDED_FILEPATH"
+                case $NEEDED_SHARED_LIBRARY_FILEPATH in
+                    /*)
+                        NEEDED_EXTERN_SHARED_LIBS="$NEEDED_EXTERN_SHARED_LIBS
+$NEEDED_SHARED_LIBRARY_FILEPATH"
+
+                        if [ "$2" = 1 ] ; then
+                            FILES_NEED_TO_SET_RPATH="$FILES_NEED_TO_SET_RPATH
+$1|1"
+                        fi
+                        ;;
+                    *)
+                        if [ "$2" = 1 ] ; then
+                            FILES_NEED_TO_SET_RPATH="$FILES_NEED_TO_SET_RPATH
+$1|${NEEDED_SHARED_LIBRARY_FILEPATH%/*}"
+                        fi
+                esac
+
+                __check_needed_dylibs "$NEEDED_SHARED_LIBRARY_FILEPATH" 0
+                ;;
+            @rpath/libclang_rt*)
+                ;;
+            @rpath/*)
+                NEEDED_SHARED_LIBRARY_FILENAME="${NEEDED#*/}"
+
+                __find_needed_shared_library "$NEEDED_SHARED_LIBRARY_FILENAME"
+
+                if [ -z "$NEEDED_SHARED_LIBRARY_FILEPATH" ] ; then
+                    abort 1 "$NEEDED was not found, which is needed by $1"
                 fi
 
-                if [ "$2" = 1 ] ; then
-                    PACKAGE_EXECUTABLES_NEED_SET_RPATH="$PACKAGE_EXECUTABLES_NEED_SET_RPATH
-$1|$NEEDED_FILEPATH_TYPE"
-                fi
+                case $NEEDED_SHARED_LIBRARY_FILEPATH in
+                    /*)
+                        NEEDED_EXTERN_SHARED_LIBS="$NEEDED_EXTERN_SHARED_LIBS
+$NEEDED_SHARED_LIBRARY_FILEPATH"
 
-                __check_needed_dylibs "$NEEDED_FILEPATH" 0
+                        if [ "$2" = 1 ] ; then
+                            FILES_NEED_TO_SET_RPATH="$FILES_NEED_TO_SET_RPATH
+$1|1"
+                        fi
+                        ;;
+                    *)
+                        if [ "$2" = 1 ] ; then
+                            FILES_NEED_TO_SET_RPATH="$FILES_NEED_TO_SET_RPATH
+$1|${NEEDED_SHARED_LIBRARY_FILEPATH%/*}"
+                        fi
+                esac
+
+                __check_needed_dylibs "$NEEDED_SHARED_LIBRARY_FILEPATH" 0
+                ;;
+            @loader_path/*)
+                ;;
+            @executable_path/*)
                 ;;
             #*)  abort 1 "unexpected runtime dependency: $NEEDED , which is needed by $1"
         esac
@@ -8030,36 +8380,28 @@ ${COLOR_GREEN}xcpkg logs <PACKAGE-SPEC>${COLOR_OFF}
 
     This will launch fzf finder. press ESC key to quit.
 
-${COLOR_GREEN}xcpkg pack <PACKAGE-SPEC> [OPTIONS]${COLOR_OFF}
-    pack the given installed package.
 
-    ${COLOR_BLUE}-t <OUTPUT-TYPE>${COLOR_OFF}
-        must be any one of tar.gz tar.xz tar.lz tar.bz2 zip
+${COLOR_GREEN}xcpkg bundle <PACKAGE-SPEC> [<OUTPUT-DIR>][<OUTPUT-FILENAME-PREFIX>]<BUNDLE-TYPE> [--exclude <PATH>] [-K]${COLOR_OFF}
+    bundle the given installed package into a single archive file.
 
-        If this option is unspecified, <OUTPUT-TYPE> would be assigned to .tar.xz
+    ${COLOR_BLUE}<OUTPUT-DIR>${COLOR_OFF}
+        If specified, should end with slash.
 
-    ${COLOR_BLUE}-o <OUTPUT-PATH>${COLOR_OFF}
-        specify where the packed archive file would be written to.
+    ${COLOR_BLUE}<OUTPUT-FILENAME-PREFIX>${COLOR_OFF}
+        If unspecified, use <PACKAGE-NAME>-<PACKAGE-VERSION>-<TARGET-PLATFORM-NAME>-<TARGET-PLATFORM-VERSION>-<TARGET-PLATFORM-ARCH> as default.
 
-        <OUTPUT-PATH> can be either the filepath or directory.
-
-        If <OUTPUT-PATH> is . .. or ends with slash(/), then it would be treated as a directory, otherwise, it would be treated as a filepath.
-
-        If <OUTPUT-PATH> is treated as a filepath, then it must end with one of .tar.gz .tar.xz .tar.lz .tar.bz2 .tgz .txz .tlz .tbz2 .zip , in this case, -t <OUTPUT-TYPE> option would be ignored if it also is specified.
-
-        If <OUTPUT-PATH> is treated as a directory, then it would be expanded to <OUTPUT-PATH>/<PACKAGE-NAME>-<PACKAGE-VERSION>-<TARGET><OUTPUT-TYPE>
-
-        If this option is unspecified, <OUTPUT-PATH> would be current directory.
+    ${COLOR_BLUE}<BUNDLE-TYPE>${COLOR_OFF}
+        should be any one of .tar.gz .tar.xz .tar.lz .tar.bz2 .zip
 
     ${COLOR_BLUE}--exclude <PATH>${COLOR_OFF}
-        exclude file that isn't mean to be packed into the archive file.
+        exclude file that is not mean to be bundled into the final file.
 
         <PATH> is relative to the installed root directory.
 
         this option can be used multiple times.
 
     ${COLOR_BLUE}-K${COLOR_OFF}
-        keep the session directory even if this package is successfully packed.
+        keep the session directory even if this package is successfully bundled.
     "
 }
 
@@ -8085,7 +8427,7 @@ fi
 
 ##################################################################################
 
-XCPKG_VERSION=0.26.4
+XCPKG_VERSION=0.26.5
 
 XCPKG_ARG0="$0"
 XCPKG_ARG1="$1"
@@ -8316,9 +8658,9 @@ case $1 in
     upgrade-self)
              shift; __upgrade_self "$XCPKG_UPGRAGE_URL" "$@" ;;
 
-    logs) shift; __logs_the_given_installed_package "$@" ;;
-    tree) shift; __tree_the_given_installed_package "$@" ;;
-    pack) shift; __pack_the_given_installed_package "$@" ;;
+    logs)   shift;   __logs_the_given_installed_package "$@" ;;
+    tree)   shift;   __tree_the_given_installed_package "$@" ;;
+    bundle) shift; __bundle_the_given_installed_package "$@" ;;
 
     integrate)
         shift

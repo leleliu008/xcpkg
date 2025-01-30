@@ -38,7 +38,7 @@ _xcpkg_actions=(
     'upgrade-self:upgrade this software.'
     'tree:list installed files of the given installed package in a tree-like format.'
     'logs:show logs of the given installed package.'
-    'pack:pack all the installed files of the given installed package to a single archive file.'
+    'bundle:bundle the given installed package into a single archive file.'
 )
 
 function _xcpkg_available_packages() {
@@ -143,12 +143,12 @@ function _xcpkg() {
                         '-t[specify output format]:output-type:(d2 dot box svg png)' \
                         '-o[specify output filepath or directory]:output-path:_files'
                     ;;
-                pack)
+                bundle)
                     _arguments \
                         '1:package-name:_xcpkg_installed_packages' \
-                        '-t[specify output type]:output-type:(zip tar.gz tar.xz tar.lz tar.bz2)' \
-                        '-o[specify output filepath or directory]:output-path:_files' \
-                        '-K[keep the session directory even if successfully packed]'
+                        ':output-path:_files' \
+                        '--exclude[specify exclude path]:exclude-path:_path_files -/' \
+                        '-K[do not delete the session directory even if exported successfully]'
                     ;;
                 tree)
                     _arguments \
