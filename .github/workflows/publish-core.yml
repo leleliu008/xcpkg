@@ -39,7 +39,7 @@ jobs:
       - run: ./xcpkg setup
       - run: ./xcpkg update
       - run: ./xcpkg install MacOSX-${{ matrix.target-version }}-${{ matrix.target-arch }}/uppm@0.15.4
-      - run: ./xcpkg bundle  MacOSX-${{ matrix.target-version }}-${{ matrix.target-arch }}/uppm@0.15.4
+      - run: ./xcpkg bundle  MacOSX-${{ matrix.target-version }}-${{ matrix.target-arch }}/uppm@0.15.4 .tar.xz
 
       - run: install -d out/
 
