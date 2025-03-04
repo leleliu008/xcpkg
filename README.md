@@ -556,7 +556,7 @@ a xcpkg formula's file content only has one level mapping and shall has followin
 ||||
 |`do12345`|optional|POSIX shell code to be run for native build.<br>It is running in a separated process.|
 |`dopatch`|optional|POSIX shell code to be run to apply patches manually.<br>`PWD` is `$PACKAGE_BSCRIPT_DIR`|
-|`prepare`|optional|POSIX shell code to be run to do some additional preparation.<br>`PWD` is `$PACKAGE_BSCRIPT_DIR`|
+|`dosetup`|optional|POSIX shell code to be run to do some preparation before installation.<br>`PWD` is `$PACKAGE_BSCRIPT_DIR`|
 |`install`|optional|POSIX shell code to be run when user run `xcpkg install <PKG>`. If this mapping is not present, `xcpkg` will run default install code according to `bsystem`.<br>`PWD` is `$PACKAGE_BSCRIPT_DIR` if `binbstd` is `0`, otherwise it is `$PACKAGE_BCACHED_DIR`|
 |`dotweak`|optional|POSIX shell code to be run to do some tweaks immediately after installing.<br>`PWD` is `$PACKAGE_INSTALL_DIR`|
 ||||

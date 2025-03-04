@@ -1,6 +1,6 @@
 #!/bin/sh
 
-# Copyright (c) 2021-2024 刘富频
+# Copyright (c) 2021-2025 刘富频
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -1067,7 +1067,7 @@ filetype_from_url() {
 
     unset PACKAGE_DO12345
     unset PACKAGE_DOPATCH
-    unset PACKAGE_PREPARE
+    unset PACKAGE_DOSETUP
     unset PACKAGE_DOBUILD
     unset PACKAGE_DOTWEAK
 
@@ -1149,7 +1149,7 @@ filetype_from_url() {
 
     PACKAGE_DO12345="$(yq '.do12345 | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
     PACKAGE_DOPATCH="$(yq '.dopatch | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
-    PACKAGE_PREPARE="$(yq '.prepare | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
+    PACKAGE_DOSETUP="$(yq '.dosetup | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
     PACKAGE_DOBUILD="$(yq '.install | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
     PACKAGE_DOTWEAK="$(yq '.dotweak | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
 
@@ -1569,7 +1569,7 @@ EOF
 
     unset RECEIPT_PACKAGE_DO12345
     unset RECEIPT_PACKAGE_DOPATCH
-    unset RECEIPT_PACKAGE_PREPARE
+    unset RECEIPT_PACKAGE_DOSETUP
     unset RECEIPT_PACKAGE_DOBUILD
     unset RECEIPT_PACKAGE_DOTWEAK
 
@@ -1637,7 +1637,7 @@ EOF
 
     RECEIPT_PACKAGE_DO12345="$(yq '.do12345 | select(. != null)' "$PACKAGE_RECEIPT_FILEPATH")"
     RECEIPT_PACKAGE_DOPATCH="$(yq '.dopatch | select(. != null)' "$PACKAGE_RECEIPT_FILEPATH")"
-    RECEIPT_PACKAGE_PREPARE="$(yq '.prepare | select(. != null)' "$PACKAGE_RECEIPT_FILEPATH")"
+    RECEIPT_PACKAGE_DOSETUP="$(yq '.dosetup | select(. != null)' "$PACKAGE_RECEIPT_FILEPATH")"
     RECEIPT_PACKAGE_DOBUILD="$(yq '.install | select(. != null)' "$PACKAGE_RECEIPT_FILEPATH")"
     RECEIPT_PACKAGE_DOTWEAK="$(yq '.dotweak | select(. != null)' "$PACKAGE_RECEIPT_FILEPATH")"
 
@@ -1966,7 +1966,7 @@ __search_packages() {
         --arg doextra "$PACKAGE_DOEXTRA" \
         --arg do12345 "$PACKAGE_DO12345" \
         --arg dopatch "$PACKAGE_DOPATCH" \
-        --arg prepare "$PACKAGE_PREPARE" \
+        --arg dosetup "$PACKAGE_DOSETUP" \
         --arg install "$PACKAGE_DOBUILD" \
         --arg dotweak "$PACKAGE_DOTWEAK" \
         --arg caveats "$PACKAGE_CAVEATS" \
@@ -2017,7 +2017,7 @@ __search_packages() {
     "doextra":$doextra,
     "do12345":$do12345,
     "dopatch":$dopatch,
-    "prepare":$prepare,
+    "dosetup":$dosetup,
     "install":$install,
     "dotweak":$dotweak,
     "caveats":$caveats
@@ -2175,9 +2175,9 @@ EOF
             __load_formula_of_the_given_package "$1"
             printf '%s\n' "$PACKAGE_DOPATCH"
             ;;
-        prepare)
+        dosetup)
             __load_formula_of_the_given_package "$1"
-            printf '%s\n' "$PACKAGE_PREPARE"
+            printf '%s\n' "$PACKAGE_DOSETUP"
             ;;
         install)
             __load_formula_of_the_given_package "$1"
@@ -2338,7 +2338,7 @@ EOF
         --arg doextra "$RECEIPT_PACKAGE_DOEXTRA" \
         --arg do12345 "$RECEIPT_PACKAGE_DO12345" \
         --arg dopatch "$RECEIPT_PACKAGE_DOPATCH" \
-        --arg prepare "$RECEIPT_PACKAGE_PREPARE" \
+        --arg dosetup "$RECEIPT_PACKAGE_DOSETUP" \
         --arg install "$RECEIPT_PACKAGE_DOBUILD" \
         --arg dotweak "$RECEIPT_PACKAGE_DOTWEAK" \
         --arg caveats "$RECEIPT_PACKAGE_CAVEATS" \
@@ -2392,7 +2392,7 @@ EOF
     "doextra":$doextra,
     "do12345":$do12345,
     "dopatch":$dopatch,
-    "prepare":$prepare,
+    "dosetup":$dosetup,
     "install":$install,
     "dotweak":$dotweak,
     "caveats":$caveats,
@@ -5200,18 +5200,18 @@ $PACKAGE_DOPATCH
 
     #########################################################################################
 
-    [ -n "$PACKAGE_PREPARE" ] && {
-        step "prepare for target"
+    [ -n "$PACKAGE_DOSETUP" ] && {
+        step "dosetup for target"
 
         if [ "$PWD" != "$PACKAGE_BSCRIPT_DIR" ] ; then
             run     cd "$PACKAGE_BSCRIPT_DIR"
         fi
 
         eval "
-prepare() {
-$PACKAGE_PREPARE
+dosetup() {
+$PACKAGE_DOSETUP
 }"
-        prepare
+        dosetup
     }
 
     #########################################################################################
@@ -8427,7 +8427,7 @@ fi
 
 ##################################################################################
 
-XCPKG_VERSION=0.26.5
+XCPKG_VERSION=0.27.0
 
 XCPKG_ARG0="$0"
 XCPKG_ARG1="$1"
