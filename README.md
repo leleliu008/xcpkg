@@ -444,7 +444,7 @@ all relevant directories and files are located under `~/.xcpkg` directory.
 |`IPHONEOS_DEPLOYMENT_TARGET`|`clang` `clang++`|
 |`TARGET_ARCH`|`gmake`|
 
-## environment variables override by this software
+## environment variables overridden by this software
 
 |ENV|used by|
 |-|-|

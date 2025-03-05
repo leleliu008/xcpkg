@@ -4874,7 +4874,7 @@ $PACKAGE_DO12345
         else
             CMAKE_VERBOSE_MAKEFILE=OFF
             CMAKE_COLOR_MAKEFILE=OFF
-            CMAKE_INSTALL_MESSAGE=NEVER
+            CMAKE_INSTALL_MESSAGE=ALWAYS
         fi
 
         # https://cmake.org/cmake/help/latest/variable/CMAKE_FIND_DEBUG_MODE.html
@@ -5283,10 +5283,10 @@ $PACKAGE_DOTWEAK
 
     run cd "$PACKAGE_INSTALL_DIR"
 
-    if [ -d  lib ] ; then
+    if [ -d lib ] ; then
         # https://www.linuxfromscratch.org/blfs/view/stable-systemd/introduction/la-files.html
         # remove Libtool Archive (.la) files
-        find lib -maxdepth 1 -mindepth 1 \( -type f -or -type l \) -name '*.la' -exec rm -v {} +
+        find -L lib -maxdepth 1 -mindepth 1 -type f -name '*.la' -exec rm -v {} +
     fi
 
     #########################################################################################
@@ -5357,7 +5357,7 @@ $PACKAGE_DOTWEAK
 
     for item in 'FAQ*' 'TODO*' 'NEWS*' 'THANKS*' 'README*' 'COPYING*' 'LICENSE*' 'AUTHORS*' 'CHANGES*' 'CHANGELOG*' 'CONTRIBUTORS*' 'CONTRIBUTING*'
     do
-        find "$PACKAGE_INSTALLING_SRC_DIR" -mindepth 1 -maxdepth 1 \( -type f -or -type l \) -iname "$item" -exec cp -L {} . \;
+        find -L "$PACKAGE_INSTALLING_SRC_DIR" -mindepth 1 -maxdepth 1 -type f -iname "$item" -exec cp -L {} . \;
     done
 
     #########################################################################################
@@ -5590,11 +5590,11 @@ EOF
     unset NEEDED_SHARED_LIBRARY_FILEPATH
 
     if [ -d lib ] ; then
-        NEEDED_SHARED_LIBRARY_FILEPATH="lib/$NEEDED_SHARED_LIBRARY_FILENAME"
+        NEEDED_SHARED_LIBRARY_FILEPATH="lib/$1"
 
         [ -f "$NEEDED_SHARED_LIBRARY_FILEPATH" ] || {
             unset NEEDED_SHARED_LIBRARY_FILEPATH
-            NEEDED_SHARED_LIBRARY_FILEPATH="$(find lib \( -type f -or -type l \) -name "$NEEDED_SHARED_LIBRARY_FILENAME" -print -quit)"
+            NEEDED_SHARED_LIBRARY_FILEPATH="$(find -L lib -type f -name "$1" -print -quit)"
         }
     fi
 
@@ -5608,11 +5608,11 @@ EOF
 
         [ -d "$NEEDED_SHARED_LIBRARY_ROOT_DIR" ] || continue
 
-        NEEDED_SHARED_LIBRARY_FILEPATH="$NEEDED_SHARED_LIBRARY_ROOT_DIR/$NEEDED_SHARED_LIBRARY_FILENAME"
+        NEEDED_SHARED_LIBRARY_FILEPATH="$NEEDED_SHARED_LIBRARY_ROOT_DIR/$1"
 
         [ -f "$NEEDED_SHARED_LIBRARY_FILEPATH" ] && break
 
-        NEEDED_SHARED_LIBRARY_FILEPATH="$(find "$NEEDED_SHARED_LIBRARY_ROOT_DIR" \( -type f -or -type l \) -name "$NEEDED_SHARED_LIBRARY_FILENAME" -print -quit)"
+        NEEDED_SHARED_LIBRARY_FILEPATH="$(find -L "$NEEDED_SHARED_LIBRARY_ROOT_DIR" -type f -name "$1" -print -quit)"
 
         [ -n "$NEEDED_SHARED_LIBRARY_FILEPATH" ] && break
     done
@@ -8427,7 +8427,7 @@ fi
 
 ##################################################################################
 
-XCPKG_VERSION=0.27.0
+XCPKG_VERSION=0.27.1
 
 XCPKG_ARG0="$0"
 XCPKG_ARG1="$1"
