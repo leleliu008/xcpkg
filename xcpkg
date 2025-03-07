@@ -3633,9 +3633,11 @@ EOF
 
     #########################################################################################
 
-    if [ "$PACKAGE_PKGTYPE" != lib ] ; then
+    if [ "$PACKAGE_PKGTYPE" = exe ] ; then
         # this environment variable is used by wrapper-target-*
         export XCPKG_CREATE_MOSTLY_STATICALLY_LINKED_EXECUTABLE=1
+    else
+        unset  XCPKG_CREATE_MOSTLY_STATICALLY_LINKED_EXECUTABLE
     fi
 
     #########################################################################################
@@ -5077,7 +5079,7 @@ $PACKAGE_DO12345
                     # https://docs.rs/openssl/latest/openssl/
                     export OPENSSL_DIR="$openssl_1_1_INSTALL_DIR"
 
-                    if [ "$PACKAGE_PKGTYPE" = exe ] ; then
+                    if [ "$XCPKG_CREATE_MOSTLY_STATICALLY_LINKED_EXECUTABLE" = 1 ] ; then
                         # https://github.com/sfackler/rust-openssl/blob/master/openssl-sys/build/main.rs
                         export OPENSSL_STATIC=1
                         export OPENSSL_NO_VENDOR=1
@@ -5087,27 +5089,27 @@ $PACKAGE_DO12345
                     # https://docs.rs/openssl/latest/openssl/
                     export OPENSSL_DIR="$openssl_dev_INSTALL_DIR"
 
-                    if [ "$PACKAGE_PKGTYPE" = exe ] ; then
+                    if [ "$XCPKG_CREATE_MOSTLY_STATICALLY_LINKED_EXECUTABLE" = 1 ] ; then
                         # https://github.com/sfackler/rust-openssl/blob/master/openssl-sys/build/main.rs
                         export OPENSSL_STATIC=1
                         export OPENSSL_NO_VENDOR=1
                     fi
                     ;;
                 libssh2)
-                    if [ "$PACKAGE_PKGTYPE" = exe ] ; then
+                    if [ "$XCPKG_CREATE_MOSTLY_STATICALLY_LINKED_EXECUTABLE" = 1 ] ; then
                         # https://github.com/alexcrichton/ssh2-rs/blob/master/libssh2-sys/build.rs
                         export LIBSSH2_SYS_USE_PKG_CONFIG=1
                     fi
                     ;;
                 libgit2)
-                    if [ "$PACKAGE_PKGTYPE" = exe ] ; then
+                    if [ "$XCPKG_CREATE_MOSTLY_STATICALLY_LINKED_EXECUTABLE" = 1 ] ; then
                         # https://github.com/rust-lang/git2-rs/blob/master/libgit2-sys/build.rs
                         export LIBGIT2_NO_VENDOR=1
                         export LIBGIT2_SYS_USE_PKG_CONFIG=1
                     fi
                     ;;
                 libz|zlib)
-                    if [ "$PACKAGE_PKGTYPE" = exe ] ; then
+                    if [ "$XCPKG_CREATE_MOSTLY_STATICALLY_LINKED_EXECUTABLE" = 1 ] ; then
                         # https://github.com/rust-lang/libz-sys/blob/main/build.rs
                         export LIBZ_SYS_STATIC=1
                     fi
@@ -5155,7 +5157,7 @@ $PACKAGE_DO12345
     #########################################################################################
 
     if [ -n "$RECURSIVE_DEPENDENT_PACKAGE_NAMES" ] ; then
-        if [ "$PACKAGE_PKGTYPE" = exe ] ; then
+        if [ "$XCPKG_CREATE_MOSTLY_STATICALLY_LINKED_EXECUTABLE" = 1 ] ; then
             step "copy dependent libraries to linker first search dir"
 
             for DEPENDENT_PACKAGE_INSTALL_DIR in $RECURSIVE_DEPENDENT_PACKAGE_INSTALL_DIRS
@@ -6390,7 +6392,7 @@ EOF
 
     unset CMAKE_PROJECT_INCLUDE
 
-    if [ "$PACKAGE_PKGTYPE" = exe ] ; then
+    if [ "$XCPKG_CREATE_MOSTLY_STATICALLY_LINKED_EXECUTABLE" = 1 ] ; then
         # https://cmake.org/cmake/help/latest/variable/CMAKE_PROJECT_INCLUDE.html
         CMAKE_PROJECT_INCLUDE="$PACKAGE_WORKING_DIR/project-after.cmake"
 
@@ -6574,7 +6576,7 @@ EOF
 
     MESON_SETUP_ARGS="$MESON_SETUP_ARGS -Ddefault_library=both"
 
-    if [ "$PACKAGE_PKGTYPE" = exe ] ; then
+    if [ "$XCPKG_CREATE_MOSTLY_STATICALLY_LINKED_EXECUTABLE" = 1 ] ; then
         MESON_SETUP_ARGS="$MESON_SETUP_ARGS --prefer-static"
     fi
 
@@ -8484,7 +8486,7 @@ fi
 
 ##################################################################################
 
-XCPKG_VERSION=0.27.2
+XCPKG_VERSION=0.27.3
 
 XCPKG_ARG0="$0"
 XCPKG_ARG1="$1"
