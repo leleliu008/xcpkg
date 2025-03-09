@@ -5693,6 +5693,8 @@ EOF
 
         [ -n "$NEEDED_SHARED_LIBRARY_FILEPATH" ] && break
     done
+
+    return 0
 }
 
 # __check_needed_dylibs <MACH-O-FILE-PATH> <IS-EXECUTABLE>
