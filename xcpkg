@@ -1531,6 +1531,9 @@ EOF
 
     unset RECEIPT_PACKAGE_PKGNAME
     unset RECEIPT_PACKAGE_PKGTYPE
+
+    unset RECEIPT_PACKAGE_PROFILE
+
     unset RECEIPT_PACKAGE_SUMMARY
     unset RECEIPT_PACKAGE_VERSION
     unset RECEIPT_PACKAGE_LICENSE
@@ -1595,6 +1598,9 @@ EOF
 
     RECEIPT_PACKAGE_PKGNAME="$(yq '.pkgname | select(. != null)' "$PACKAGE_RECEIPT_FILEPATH")"
     RECEIPT_PACKAGE_PKGTYPE="$(yq '.pkgtype | select(. != null)' "$PACKAGE_RECEIPT_FILEPATH")"
+
+    RECEIPT_PACKAGE_PROFILE="$(yq '.profile | select(. != null)' "$PACKAGE_RECEIPT_FILEPATH")"
+
     RECEIPT_PACKAGE_SUMMARY="$(yq '.summary | select(. != null)' "$PACKAGE_RECEIPT_FILEPATH")"
     RECEIPT_PACKAGE_LICENSE="$(yq '.license | select(. != null)' "$PACKAGE_RECEIPT_FILEPATH")"
     RECEIPT_PACKAGE_VERSION="$(yq '.version | select(. != null)' "$PACKAGE_RECEIPT_FILEPATH")"
@@ -6588,11 +6594,13 @@ c_args = $(to_meson_array $CFLAGS $CPPFLAGS)
 c_link_args = $(to_meson_array $LDFLAGS)
 cpp_args = $(to_meson_array $CXXFLAGS $CPPFLAGS)
 cpp_link_args = $(to_meson_array $LDFLAGS)
-EOF
-    if [ "$PACKAGE_USE_BSYSTEM_CMAKE" = 1 ] ; then
-        cat >> "$MESON_CROSS_FILE" <<EOF
 
 [properties]
+sys_root = ''
+EOF
+
+    if [ "$PACKAGE_USE_BSYSTEM_CMAKE" = 1 ] ; then
+        cat >> "$MESON_CROSS_FILE" <<EOF
 cmake_toolchain_file='$CMAKE_TOOLCHAIN_FILE'
 EOF
     fi
@@ -8511,7 +8519,7 @@ fi
 
 ##################################################################################
 
-XCPKG_VERSION=0.27.4
+XCPKG_VERSION=0.27.5
 
 XCPKG_ARG0="$0"
 XCPKG_ARG1="$1"
