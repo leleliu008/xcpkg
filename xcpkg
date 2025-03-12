@@ -4030,7 +4030,7 @@ $DOT_CONTENT
 
     ####################################################################
 
-    for UPPM_PACKAGE_NAME in $PACKAGE_DEP_UPP pkg-config patchelf tree
+    for UPPM_PACKAGE_NAME in $PACKAGE_DEP_UPP pkg-config tree
     do
         run "$UPPM" install "$UPPM_PACKAGE_NAME" $UPPM_INSTALL_ARGS
 
