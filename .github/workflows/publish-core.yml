@@ -50,9 +50,11 @@ jobs:
           SYSROOT="$(xcrun --sdk macosx --show-sdk-path)"
           CFLAGS="-isysroot $SYSROOT -mmacosx-version-min=${{ matrix.target-version }} -arch ${{ matrix.target-arch }} -Qunused-arguments"
 
+          cd core/
+
           for f in *.c
           do
-            o="out/${f%.c}"
+            o="../out/${f%.c}"
             $CC $CFLAGS -std=c99 -Os -flto -o "$o" "$f"
             strip "$o"
           done
