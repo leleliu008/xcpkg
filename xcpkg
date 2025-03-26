@@ -1176,6 +1176,8 @@ filetype_from_url() {
 
     PACKAGE_DEVELOPER="$(yq '.developer | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
 
+    PACKAGE_SUPPORT_BUILD_IN_PARALLEL="$(yq '.parallel | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
+
     #########################################################################################
 
     if [ -z "$PACKAGE_SUMMARY" ] ; then

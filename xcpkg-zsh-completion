@@ -126,12 +126,12 @@ function _xcpkg() {
                 info-available)
                     _arguments \
                         '1:package-name:_xcpkg_available_packages' \
-                        '2:key:(--yaml --json pkgtype summary version license web-url git-url git-sha git-ref git-nth src-url src-uri src-sha fix-url fix-uri fix-sha fix-opt res-url res-uri res-sha dep-pkg dep-upp dep-pym dep-plm ccflags xxflags ppflags ldflags bscript binbstd bsystem onstart onready onfinal dopatch prepare install dotweak caveats patches reslist symlink parallel developer)'
+                        '2:key:(--yaml --json pkgtype summary version license web-url git-url git-sha git-ref git-nth src-url src-uri src-sha fix-url fix-uri fix-sha fix-opt res-url res-uri res-sha dep-pkg dep-upp dep-pym dep-plm ccflags xxflags ppflags ldflags bscript binbstd bsystem dofetch do12345 dopatch prepare install doextra dotweak caveats patches reslist symlink parallel developer)'
                     ;;
                 info-installed)
                     _arguments \
                         '1:package-name:_xcpkg_installed_packages' \
-                        '2:key:(--yaml --json pkgtype summary version license web-url git-url git-sha git-ref git-nth src-url src-uri src-sha fix-url fix-uri fix-sha fix-opt res-url res-uri res-sha dep-pkg dep-upp dep-pym dep-plm ccflags xxflags ppflags ldflags bscript binbstd bsystem onstart onready onfinal dopatch prepare install dotweak caveats patches reslist symlink --prefix --files builtby builtat builtat-rfc-3339 builtat-rfc-3339-utc builtat-iso-8601 builtat-iso-8601-utc builtfor parallel developer)'
+                        '2:key:(--yaml --json pkgtype summary version license web-url git-url git-sha git-ref git-nth src-url src-uri src-sha fix-url fix-uri fix-sha fix-opt res-url res-uri res-sha dep-pkg dep-upp dep-pym dep-plm ccflags xxflags ppflags ldflags bscript binbstd bsystem dofetch do12345 dopatch prepare install doextra dotweak caveats patches reslist symlink --prefix --files builtby builtat builtat-rfc-3339 builtat-rfc-3339-utc builtat-iso-8601 builtat-iso-8601-utc builtfor parallel developer)'
                     ;;
                 fetch)
                     _arguments \
