@@ -544,22 +544,24 @@ a xcpkg formula's file content only has one level mapping and shall has followin
 |`ppflags`|optional|append to `CPPFLAGS`|
 |`ldflags`|optional|append to `LDFLAGS`|
 ||||
-|`bsystem`|optional|build system name.<br>values can be one or a combination of `autogen` `autotools` `configure` `cmake` `cmake+gmake` `cmake+ninja` `meson` `xmake` `gmake` `ninja` `cargo` `go` `rake`|
+|`bsystem`|optional|build system name.<br>values can be one or a combination of `autogen` `autotools` `configure` `cmake` `cmake+gmake` `cmake+ninja` `meson` `xmake` `gmake` `ninja` `cargo` `go` `gn` `rake` `waf`|
 |`bscript`|optional|the directory where the build script is located in, relative to `PACKAGE_WORKING_DIR`. build script such as `configure`, `Makefile`, `CMakeLists.txt`, `meson.build`, `Cargo.toml`, etc.|
 |`binbstd`|optional|whether to build in the directory where the build script is located in, otherwise build in other directory.<br>value shall be `0` or `1`. default value is `0`.|
-|`symlink`|optional|whether to symlink installed files to `$XCPKG_HOME/symlinked/*`.<br>value shall be `0` or `1`. default value is `1`.|
-|`movable`|optional|whether can be moved/copied to other locations.<br>value shall be `0` or `1`. default value is `1`.|
-|`parallel`|optional|whether to allow build system running jobs in parallel.<br>value shall be `0` or `1`. default value is `1`.|
+|`movable`|optional|whether the installed files can be moved/copied to other locations.|
 ||||
-|`onstart`|optional|POSIX shell code to be run when this package's formula is loaded.<br>`PWD` is `$PACKAGE_WORKING_DIR`|
-|`onready`|optional|POSIX shell code to be run when this package's needed resources all are ready.<br>`PWD` is `$PACKAGE_BSCRIPT_DIR`|
-|`onfinal`|optional|POSIX shell code to be run when this package is successfully installed.<br>`PWD` is `$PACKAGE_INSTALL_DIR`|
+|`disable`|optional|a space-separated list of feature names that are unsupported by this package.<br>feature name can be any one of `lto` `parallel`.<br>`lto` indicates this package does NOT support Link Time Optimization https://llvm.org/docs/LinkTimeOptimization.html.<br>`parallel` indicates this package does NOT support building in parallel.|
 ||||
-|`do12345`|optional|POSIX shell code to be run for native build.<br>It is running in a separated process.|
+|`linking`|optional|specify the linking method for executables. value shall be `static` or `shared`.<br>`static` means linking as many static libraries as possible into the executables.<br>`shared` means linking as many shared libraries as possible.<br>`static` is the default behavior if this mapping is not present.|
+||||
+|`dofetch`|optional|POSIX shell code to be run to take over the fetching process.<br>`PWD` is `$PACKAGE_WORKING_DIR`|
+|`do12345`|optional|POSIX shell code to be run for native build.<br>It would be run in a separate process.|
 |`dopatch`|optional|POSIX shell code to be run to apply patches manually.<br>`PWD` is `$PACKAGE_BSCRIPT_DIR`|
-|`dosetup`|optional|POSIX shell code to be run to do some preparation before installation.<br>`PWD` is `$PACKAGE_BSCRIPT_DIR`|
+|`prepare`|optional|POSIX shell code to be run to do some additional preparation.<br>`PWD` is `$PACKAGE_BSCRIPT_DIR`|
 |`install`|optional|POSIX shell code to be run when user run `xcpkg install <PKG>`. If this mapping is not present, `xcpkg` will run default install code according to `bsystem`.<br>`PWD` is `$PACKAGE_BSCRIPT_DIR` if `binbstd` is `0`, otherwise it is `$PACKAGE_BCACHED_DIR`|
-|`dotweak`|optional|POSIX shell code to be run to do some tweaks immediately after installing.<br>`PWD` is `$PACKAGE_INSTALL_DIR`|
+|`doextra`|optional|POSIX shell code to be run to do some extra works immediately after installing.<br>`PWD` is `$PACKAGE_INSTALL_DIR`|
+|`dotweak`|optional|POSIX shell code to be run to do some tweaks after `doextra`.<br>`PWD` is `$PACKAGE_INSTALL_DIR`|
+||||
+|`bindenv`|optional|bind environment variables to executables. multiple lines of formatted string `<KEY>=<VALUE>`. `%s` in `<VALUE>` represents the install directory.|
 ||||
 |`caveats`|optional|multiple lines of plain text to be displayed after installation.|
 
@@ -576,6 +578,7 @@ a xcpkg formula's file content only has one level mapping and shall has followin
 |`xmake`|`xmake.lua`|
 |`cargo`|`Cargo.toml`|
 |`go`|`go.mod`|
+|`gn`|`BUILD.gn`|
 |`rake`|`Rakefile`|
 |`autogen`|`autogen.sh`|
 |`autotools`|`configure.ac`|
