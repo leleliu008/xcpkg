@@ -3704,9 +3704,9 @@ EOF
     #########################################################################################
 
     if [ "$PACKAGE_PKGTYPE" = exe ] && [ "$PACKAGE_SUPPORT_CREATE_MOSTLY_STATICALLY_LINKED_EXECUTABLE" = 1 ] ; then
-        export PACKAGE_CREATE_MOSTLY_STATICALLY_LINKED_EXECUTABLE=1
+        export XCPKG_CREATE_MOSTLY_STATICALLY_LINKED_EXECUTABLE=1
     else
-        unset  PACKAGE_CREATE_MOSTLY_STATICALLY_LINKED_EXECUTABLE
+        unset  XCPKG_CREATE_MOSTLY_STATICALLY_LINKED_EXECUTABLE
     fi
 
     #########################################################################################
@@ -7029,7 +7029,7 @@ gow() {
                 case $XCPKG_DEFAULT_TARGET in
                     '')
                         TARGET_PLATFORM_NAME="$NATIVE_PLATFORM_NAME"
-                        TARGET_PLATFORM_VERS="$NATIVE_PLATFORM_VERS"
+                        TARGET_PLATFORM_VERS="${NATIVE_PLATFORM_VERS%.*}"
                         TARGET_PLATFORM_ARCH="$NATIVE_PLATFORM_ARCH"
 
                         TARGET_PLATFORM_SPEC="$TARGET_PLATFORM_NAME-$TARGET_PLATFORM_VERS-$TARGET_PLATFORM_ARCH"
