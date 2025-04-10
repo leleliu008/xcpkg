@@ -505,7 +505,6 @@ a xcpkg formula's file content only has one level mapping and shall has followin
 |KEY|required?|overview|
 |-|-|-|
 |`pkgtype`|optional|specify the package type. value shall be any one of `exe`, `lib`, `exe+lib`.<br>If this mapping is not present, `xcpkg` will determine the package type by package name, if a package name starts/ends with `lib`, it would be recognized as type `lib`, otherwise, it would be recognized as type `exe`|
-|`exetype`|optional|specify the exe type. value shall be `static` or `shared`.<br>`static` means linking as many static libraries as possible into the executables.<br>`shared` means linking as many shared libraries as possible.<br>`static` is the default behavior if this mapping is not present.<br>This mapping is only for `exe` type of package.|
 |`summary`|required|one sentence description of this package.|
 |`license`|optional|a space-separated list of [SPDX license short identifiers](https://spdx.github.io/spdx-spec/v2.3/SPDX-license-list/#a1-licenses-with-short-identifiers)|
 |`version`|optional|the version of this package.<br>If this mapping is not present, it will be calculated from `src-url`, if `src-url` is also not present, it will be calculated from running time as format `date +%Y.%m.%d`|
@@ -551,6 +550,7 @@ a xcpkg formula's file content only has one level mapping and shall has followin
 |`movable`|optional|whether the installed files can be moved/copied to other locations.<br>value shall be `0` or `1`. default value is `1`.|
 ||||
 |`ltoable`|optional|whether support [Link Time Optimization](https://llvm.org/docs/LinkTimeOptimization.html).<br>value shall be `0` or `1`. default value is `1`.|
+|`mslable`|optional|whether support creating Mostly Statically Linked executables.<br>value shall be `0` or `1`. default value is `1`.<br>This mapping is only for `exe` type of package.|
 |`parallel`|optional|whether support building in parallel.<br>value shall be `0` or `1`. default value is `1`.|
 ||||
 |`dofetch`|optional|POSIX shell code to be run to take over the fetching process.<br>`PWD` is `$PACKAGE_WORKING_DIR`|

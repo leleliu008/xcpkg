@@ -1100,12 +1100,8 @@ filetype_from_url() {
     # whether to build in build script directory, otherwise build in build dir
     unset PACKAGE_BINBSTD
 
-    unset PACKAGE_EXETYPE
-
     unset PACKAGE_LTOABLE
     unset PACKAGE_MOVABLE
-
-    unset PACKAGE_LTOABLE
 
     unset PACKAGE_SUPPORT_BUILD_IN_PARALLEL
     unset PACKAGE_SUPPORT_CREATE_MOSTLY_STATICALLY_LINKED_EXECUTABLE
@@ -1170,11 +1166,11 @@ filetype_from_url() {
     PACKAGE_PATCHES="$(yq '.patches | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
     PACKAGE_RESLIST="$(yq '.reslist | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
 
-    PACKAGE_EXETYPE="$(yq '.exetype | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
-
     PACKAGE_DEVELOPER="$(yq '.developer | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
 
     PACKAGE_SUPPORT_BUILD_IN_PARALLEL="$(yq '.parallel | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
+
+    PACKAGE_SUPPORT_CREATE_MOSTLY_STATICALLY_LINKED_EXECUTABLE="$(yq '.mslable | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
 
     #########################################################################################
 
@@ -1459,6 +1455,10 @@ filetype_from_url() {
         PACKAGE_SUPPORT_BUILD_IN_PARALLEL=1
     fi
 
+    if [ -z "$PACKAGE_SUPPORT_CREATE_MOSTLY_STATICALLY_LINKED_EXECUTABLE" ] ; then
+        PACKAGE_SUPPORT_CREATE_MOSTLY_STATICALLY_LINKED_EXECUTABLE=1
+    fi
+
     #########################################################################################
 
     PACKAGE_DEP_UPP="${PACKAGE_DEP_UPP#' '}"
@@ -1470,17 +1470,6 @@ filetype_from_url() {
             lib*) PACKAGE_PKGTYPE=lib ;;
             *lib) PACKAGE_PKGTYPE=lib ;;
                *) PACKAGE_PKGTYPE=exe ;;
-        esac
-    fi
-
-    #########################################################################################
-
-    if [ "$PACKAGE_PKGTYPE" = exe ] ; then
-        case $PACKAGE_EXETYPE in
-            '')     PACKAGE_SUPPORT_CREATE_MOSTLY_STATICALLY_LINKED_EXECUTABLE=1 ;;
-            static) PACKAGE_SUPPORT_CREATE_MOSTLY_STATICALLY_LINKED_EXECUTABLE=1 ;;
-            shared) PACKAGE_SUPPORT_CREATE_MOSTLY_STATICALLY_LINKED_EXECUTABLE=0 ;;
-            *) abort 1 "unrecognized exe type '$PACKAGE_EXETYPE' in $PACKAGE_FORMULA_FILEPATH"
         esac
     fi
 }
@@ -8544,7 +8533,7 @@ fi
 
 ##################################################################################
 
-XCPKG_VERSION=0.29.0
+XCPKG_VERSION=0.29.1
 
 XCPKG_ARG0="$0"
 XCPKG_ARG1="$1"
