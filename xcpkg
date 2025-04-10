@@ -1100,13 +1100,13 @@ filetype_from_url() {
     # whether to build in build script directory, otherwise build in build dir
     unset PACKAGE_BINBSTD
 
-    unset PACKAGE_LINKING
+    unset PACKAGE_EXETYPE
 
+    unset PACKAGE_LTOABLE
     unset PACKAGE_MOVABLE
 
-    unset PACKAGE_DISABLE
+    unset PACKAGE_LTOABLE
 
-    unset PACKAGE_SUPPORT_LTO
     unset PACKAGE_SUPPORT_BUILD_IN_PARALLEL
     unset PACKAGE_SUPPORT_CREATE_MOSTLY_STATICALLY_LINKED_EXECUTABLE
 
@@ -1148,16 +1148,13 @@ filetype_from_url() {
     PACKAGE_BSYSTEM="$(yq '.bsystem | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
     PACKAGE_BSCRIPT="$(yq '.bscript | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
     PACKAGE_BINBSTD="$(yq '.binbstd | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
+    PACKAGE_LTOABLE="$(yq '.ltoable | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
+    PACKAGE_MOVABLE="$(yq '.movable | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
 
     PACKAGE_CCFLAGS="$(yq '.ccflags | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
     PACKAGE_XXFLAGS="$(yq '.xxflags | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
     PACKAGE_PPFLAGS="$(yq '.ppflags | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
     PACKAGE_LDFLAGS="$(yq '.ldflags | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
-
-    PACKAGE_MOVABLE="$(yq '.movable | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
-    PACKAGE_DISABLE="$(yq '.disable | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
-
-    PACKAGE_DOEXTRA="$(yq '.doextra | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
 
     PACKAGE_DOFETCH="$(yq '.dofetch | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
     PACKAGE_DO12345="$(yq '.do12345 | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
@@ -1165,6 +1162,7 @@ filetype_from_url() {
     PACKAGE_PREPARE="$(yq '.prepare | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
     PACKAGE_DOBUILD="$(yq '.install | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
     PACKAGE_DOTWEAK="$(yq '.dotweak | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
+    PACKAGE_DOEXTRA="$(yq '.doextra | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
 
     PACKAGE_BINDENV="$(yq '.bindenv | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
     PACKAGE_CAVEATS="$(yq '.caveats | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
@@ -1172,7 +1170,7 @@ filetype_from_url() {
     PACKAGE_PATCHES="$(yq '.patches | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
     PACKAGE_RESLIST="$(yq '.reslist | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
 
-    PACKAGE_LINKING="$(yq '.linking | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
+    PACKAGE_EXETYPE="$(yq '.exetype | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
 
     PACKAGE_DEVELOPER="$(yq '.developer | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
 
@@ -1453,17 +1451,8 @@ filetype_from_url() {
 
     #########################################################################################
 
-    for item in $PACKAGE_DISABLE
-    do
-        case $item in
-            lto)      PACKAGE_SUPPORT_LTO=0 ;;
-            parallel) PACKAGE_SUPPORT_BUILD_IN_PARALLEL=0 ;;
-            *)  abort 1 "unrecognized disable item '$item' in $PACKAGE_FORMULA_FILEPATH"
-        esac
-    done
-
-    if [ -z "$PACKAGE_SUPPORT_LTO" ] ; then
-        PACKAGE_SUPPORT_LTO=1
+    if [ -z "$PACKAGE_LTOABLE" ] ; then
+        PACKAGE_LTOABLE=1
     fi
 
     if [ -z "$PACKAGE_SUPPORT_BUILD_IN_PARALLEL" ] ; then
@@ -1487,11 +1476,11 @@ filetype_from_url() {
     #########################################################################################
 
     if [ "$PACKAGE_PKGTYPE" = exe ] ; then
-        case $PACKAGE_LINKING in
+        case $PACKAGE_EXETYPE in
             '')     PACKAGE_SUPPORT_CREATE_MOSTLY_STATICALLY_LINKED_EXECUTABLE=1 ;;
             static) PACKAGE_SUPPORT_CREATE_MOSTLY_STATICALLY_LINKED_EXECUTABLE=1 ;;
             shared) PACKAGE_SUPPORT_CREATE_MOSTLY_STATICALLY_LINKED_EXECUTABLE=0 ;;
-            *) abort 1 "unrecognized linking method '$PACKAGE_LINKING' in $PACKAGE_FORMULA_FILEPATH"
+            *) abort 1 "unrecognized exe type '$PACKAGE_EXETYPE' in $PACKAGE_FORMULA_FILEPATH"
         esac
     fi
 }
@@ -1610,7 +1599,7 @@ EOF
     unset RECEIPT_PACKAGE_BSCRIPT
 
     unset RECEIPT_PACKAGE_MOVABLE
-    unset RECEIPT_PACKAGE_DISABLE
+    unset RECEIPT_PACKAGE_LTOABLE
     unset RECEIPT_PACKAGE_DOEXTRA
 
     unset RECEIPT_PACKAGE_DOFETCH
@@ -1684,7 +1673,7 @@ EOF
     RECEIPT_PACKAGE_LDFLAGS="$(yq '.ldflags | select(. != null)' "$PACKAGE_RECEIPT_FILEPATH")"
 
     RECEIPT_PACKAGE_MOVABLE="$(yq '.movable | select(. != null)' "$PACKAGE_RECEIPT_FILEPATH")"
-    RECEIPT_PACKAGE_DISABLE="$(yq '.disable | select(. != null)' "$PACKAGE_RECEIPT_FILEPATH")"
+    RECEIPT_PACKAGE_LTOABLE="$(yq '.ltoable | select(. != null)' "$PACKAGE_RECEIPT_FILEPATH")"
     RECEIPT_PACKAGE_DOEXTRA="$(yq '.doextra | select(. != null)' "$PACKAGE_RECEIPT_FILEPATH")"
 
     RECEIPT_PACKAGE_DOFETCH="$(yq '.dofetch | select(. != null)' "$PACKAGE_RECEIPT_FILEPATH")"
@@ -2015,7 +2004,7 @@ __search_packages() {
         --arg dep_pym "$PACKAGE_DEP_PYM" \
         --arg dep_plm "$PACKAGE_DEP_PLM" \
         --arg movable "$PACKAGE_MOVABLE" \
-        --arg disable "$PACKAGE_DISABLE" \
+        --arg ltoable "$PACKAGE_LTOABLE" \
         --arg dofetch "$PACKAGE_DOFETCH" \
         --arg do12345 "$PACKAGE_DO12345" \
         --arg dopatch "$PACKAGE_DOPATCH" \
@@ -2067,7 +2056,7 @@ __search_packages() {
     "ldflags":$ldflags,
     "developer":$developer,
     "movable":$movable,
-    "disable":$disable,
+    "ltoable":$ltoable,
     "dofetch":$dofetch,
     "do12345":$do12345,
     "dopatch":$dopatch,
@@ -2217,9 +2206,9 @@ EOF
             __load_formula_of_the_given_package "$1"
             printf '%s\n' "$PACKAGE_MOVABLE"
             ;;
-        disable)
+        ltoable)
             __load_formula_of_the_given_package "$1"
-            printf '%s\n' "$PACKAGE_DISABLE"
+            printf '%s\n' "$PACKAGE_LTOABLE"
             ;;
         dofetch)
             __load_formula_of_the_given_package "$1"
@@ -2401,7 +2390,7 @@ EOF
         --arg dep_pym "$RECEIPT_PACKAGE_DEP_PYM" \
         --arg dep_plm "$RECEIPT_PACKAGE_DEP_PLM" \
         --arg movable "$RECEIPT_PACKAGE_MOVABLE" \
-        --arg disable "$RECEIPT_PACKAGE_DISABLE" \
+        --arg ltoable "$RECEIPT_PACKAGE_LTOABLE" \
         --arg dofetch "$RECEIPT_PACKAGE_DOFETCH" \
         --arg do12345 "$RECEIPT_PACKAGE_DO12345" \
         --arg dopatch "$RECEIPT_PACKAGE_DOPATCH" \
@@ -2456,7 +2445,7 @@ EOF
     "ldflags":$ldflags,
     "developer":$developer,
     "movable":$movable,
-    "disable":$disable,
+    "ltoable":$ltoable,
     "dofetch":$dofetch,
     "do12345":$do12345,
     "dopatch":$dopatch,
@@ -3713,6 +3702,10 @@ EOF
 
     if [ "$PACKAGE_SUPPORT_BUILD_IN_PARALLEL" != 1 ] ; then
         BUILD_NJOBS=1
+    fi
+
+    if [ "$PACKAGE_LTOABLE" != 1 ] ; then
+        ENABLE_LTO=0
     fi
 
     #########################################################################################
@@ -8551,7 +8544,7 @@ fi
 
 ##################################################################################
 
-XCPKG_VERSION=0.28.0
+XCPKG_VERSION=0.29.0
 
 XCPKG_ARG0="$0"
 XCPKG_ARG1="$1"

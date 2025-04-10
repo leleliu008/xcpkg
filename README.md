@@ -504,8 +504,9 @@ a xcpkg formula's file content only has one level mapping and shall has followin
 
 |KEY|required?|overview|
 |-|-|-|
-|`pkgtype`|optional|indicates what type of this package. value shall be any one of `exe`, `lib`, `exe+lib`.<br>If this mapping is not present, `xcpkg` will determine the package type by package name, if a package name starts/ends with `lib`, it would be recognized as type `lib`, otherwise, it would be recognized as type `exe`|
-|`summary`|required|describe this package in one sentence.|
+|`pkgtype`|optional|specify the package type. value shall be any one of `exe`, `lib`, `exe+lib`.<br>If this mapping is not present, `xcpkg` will determine the package type by package name, if a package name starts/ends with `lib`, it would be recognized as type `lib`, otherwise, it would be recognized as type `exe`|
+|`exetype`|optional|specify the exe type. value shall be `static` or `shared`.<br>`static` means linking as many static libraries as possible into the executables.<br>`shared` means linking as many shared libraries as possible.<br>`static` is the default behavior if this mapping is not present.<br>This mapping is only for `exe` type of package.|
+|`summary`|required|one sentence description of this package.|
 |`license`|optional|a space-separated list of [SPDX license short identifiers](https://spdx.github.io/spdx-spec/v2.3/SPDX-license-list/#a1-licenses-with-short-identifiers)|
 |`version`|optional|the version of this package.<br>If this mapping is not present, it will be calculated from `src-url`, if `src-url` is also not present, it will be calculated from running time as format `date +%Y.%m.%d`|
 ||||
@@ -547,11 +548,10 @@ a xcpkg formula's file content only has one level mapping and shall has followin
 |`bsystem`|optional|build system name.<br>values can be one or a combination of `autogen` `autotools` `configure` `cmake` `cmake+gmake` `cmake+ninja` `meson` `xmake` `gmake` `ninja` `cargo` `go` `gn` `rake` `waf`|
 |`bscript`|optional|the directory where the build script is located in, relative to `PACKAGE_WORKING_DIR`. build script such as `configure`, `Makefile`, `CMakeLists.txt`, `meson.build`, `Cargo.toml`, etc.|
 |`binbstd`|optional|whether to build in the directory where the build script is located in, otherwise build in other directory.<br>value shall be `0` or `1`. default value is `0`.|
-|`movable`|optional|whether the installed files can be moved/copied to other locations.|
+|`movable`|optional|whether the installed files can be moved/copied to other locations.<br>value shall be `0` or `1`. default value is `1`.|
 ||||
-|`disable`|optional|a space-separated list of feature names that are unsupported by this package.<br>feature name can be any one of `lto` `parallel`.<br>`lto` indicates this package does NOT support Link Time Optimization https://llvm.org/docs/LinkTimeOptimization.html.<br>`parallel` indicates this package does NOT support building in parallel.|
-||||
-|`linking`|optional|specify the linking method for executables. value shall be `static` or `shared`.<br>`static` means linking as many static libraries as possible into the executables.<br>`shared` means linking as many shared libraries as possible.<br>`static` is the default behavior if this mapping is not present.|
+|`ltoable`|optional|whether support [Link Time Optimization](https://llvm.org/docs/LinkTimeOptimization.html).<br>value shall be `0` or `1`. default value is `1`.|
+|`parallel`|optional|whether support building in parallel.<br>value shall be `0` or `1`. default value is `1`.|
 ||||
 |`dofetch`|optional|POSIX shell code to be run to take over the fetching process.<br>`PWD` is `$PACKAGE_WORKING_DIR`|
 |`do12345`|optional|POSIX shell code to be run for native build.<br>It would be run in a separate process.|
