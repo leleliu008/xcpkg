@@ -2621,7 +2621,6 @@ static int xcpkg_build_for_native(
 
 static int xcpkg_install_package(
         const char * packageName,
-        const size_t packageNameLength,
         const char * targetPlatformSpec,
 
         const XCPKGFormula * formula,
@@ -2630,9 +2629,11 @@ static int xcpkg_install_package(
         const SysInfo * sysinfo,
 
         const char * cpp,
+
         const char * ccForNativeBuild,
         const char * cxxForNativeBuild,
         const char * objcForNativeBuild,
+
         const char * ccForTargetBuild,
         const char * cxxForTargetBuild,
         const char * objcForTargetBuild,
@@ -2658,43 +2659,35 @@ static int xcpkg_install_package(
         const size_t sessionDIRLength,
         const char * recursiveDependentPackageNamesString,
         const size_t recursiveDependentPackageNamesStringSize) {
-    fprintf(stderr, "%s=============== Installing%s %s%s%s %s===============%s\n", COLOR_PURPLE, COLOR_OFF, COLOR_GREEN, packageName, COLOR_OFF, COLOR_PURPLE, COLOR_OFF);
+    fprintf(stderr, "%s=============== Installing%s %s%s/%s%s %s===============%s\n", COLOR_PURPLE, COLOR_OFF, COLOR_GREEN, targetPlatformSpec, packageName, COLOR_OFF, COLOR_PURPLE, COLOR_OFF);
 
     const time_t ts = time(NULL);
 
-    size_t targetPlatformSpecLength = strlen(targetPlatformSpec);
+    const size_t packageNameLength = strlen(packageName);
 
-    const char * p = targetPlatformSpec;
+    const size_t targetPlatformSpecLength = strlen(targetPlatformSpec);
 
-    int m = 0;
-    int n = 0;
+    char p[targetPlatformSpecLength + 1];
 
-    int ret = xcpkg_inspect_target_platform_spec(p, &m, &n);
+    char * targetPlatformName = p;
+    char * targetPlatformVers = NULL;
+    char * targetPlatformArch = NULL;
 
-    if (ret != XCPKG_OK) {
-        return ret;
+    for (size_t i = 0; i < targetPlatformSpecLength; i++) {
+        p[i] = targetPlatformSpec[i];
+
+        if (p[i] == '-') {
+            p[i] = '\0';
+
+            if (targetPlatformVers == NULL) {
+                targetPlatformVers = p + i + 1;
+            } else if (targetPlatformArch == NULL) {
+                targetPlatformArch = p + i + 1;
+            }
+        }
     }
 
-    char targetPlatformName[m];
-
-    strncpy(targetPlatformName, p, m);
-    targetPlatformName[m] = '\0';
-
-    p += m + 1;
-
-    char targetPlatformVers[n];
-
-    strncpy(targetPlatformVers, p, n);
-    targetPlatformVers[n] = '\0';
-
-    p += n + 1;
-
-    int z = targetPlatformSpecLength - m - n;
-
-    char targetPlatformArch[z];
-
-    strncpy(targetPlatformArch, p, z);
-    targetPlatformArch[z] = '\0';
+    p[targetPlatformSpecLength] = '\0';
 
     printf("targetPlatformName=%s\n", targetPlatformName);
     printf("targetPlatformVers=%s\n", targetPlatformVers);
@@ -2719,7 +2712,7 @@ static int xcpkg_install_package(
     size_t strBufSize = packageNameLength + 50U;
     char   strBuf[strBufSize];
 
-    ret = snprintf(strBuf, strBufSize, "%s:%ld:%d", packageName, ts, getpid());
+    int ret = snprintf(strBuf, strBufSize, "%s:%ld:%d", packageName, ts, getpid());
 
     if (ret < 0) {
         perror(NULL);
@@ -5328,7 +5321,7 @@ int xcpkg_install(const char * packageName, const char * targetPlatformSpec, con
 
         //printf("%s:%zu:%s\n", packageName, recursiveDependentPackageNamesStringBufferSize, recursiveDependentPackageNamesStringBuffer);
 
-        ret = xcpkg_install_package(packageName, strlen(packageName), targetPlatformSpec, package->formula, installOptions, &toolchain, &sysinfo, cpp, ccForNativeBuild, cxxForNativeBuild, objcForNativeBuild, ccForTargetBuild, cxxForTargetBuild, objcForTargetBuild, extraCCFlags, extraCCFlags, "", extraLDFlags, extraCCFlags, extraLDFlags, uppmPackageInstalledRootDIR, uppmPackageInstalledRootDIRCapacity, xcpkgExeFilePath, xcpkgHomeDIR, xcpkgHomeDIRLength, xcpkgCoreDIR, xcpkgCoreDIRCapacity, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, sessionDIR, sessionDIRLength, (const char *)recursiveDependentPackageNamesStringBuffer, recursiveDependentPackageNamesStringBufferSize);
+        ret = xcpkg_install_package(packageName, targetPlatformSpec, package->formula, installOptions, &toolchain, &sysinfo, cpp, ccForNativeBuild, cxxForNativeBuild, objcForNativeBuild, ccForTargetBuild, cxxForTargetBuild, objcForTargetBuild, extraCCFlags, extraCCFlags, "", extraLDFlags, extraCCFlags, extraLDFlags, uppmPackageInstalledRootDIR, uppmPackageInstalledRootDIRCapacity, xcpkgExeFilePath, xcpkgHomeDIR, xcpkgHomeDIRLength, xcpkgCoreDIR, xcpkgCoreDIRCapacity, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, sessionDIR, sessionDIRLength, (const char *)recursiveDependentPackageNamesStringBuffer, recursiveDependentPackageNamesStringBufferSize);
 
         free(recursiveDependentPackageNamesStringBuffer);
         recursiveDependentPackageNamesStringBuffer = NULL;
