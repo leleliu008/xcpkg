@@ -33,7 +33,7 @@ jobs:
 
       - run:  |
           cmake \
-              -S . \
+              -S c \
               -B build.d \
               -G Ninja \
               -DCMAKE_TOOLCHAIN_FILE=$PWD/vcpkg/scripts/buildsystems/vcpkg.cmake \
@@ -153,7 +153,7 @@ jobs:
 
       - run:  |
           cmake \
-              -S . \
+              -S c \
               -B build.d \
               -G Ninja \
               -DCMAKE_TOOLCHAIN_FILE=$PWD/vcpkg/scripts/buildsystems/vcpkg.cmake \

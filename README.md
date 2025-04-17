@@ -1,6 +1,6 @@
 # xcpkg
 
-A package builder/manager for [Xcode](https://developer.apple.com/xcode) to build projects written in C, C++, Rust, Zig, Go, etc.
+A package builder/manager for [Xcode](https://developer.apple.com/xcode) to build projects written in C, C++, Rust, Zig, Go, Haskell, etc.
 
 ## Caveats
 

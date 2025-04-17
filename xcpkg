@@ -8212,7 +8212,7 @@ __help() {
 EOF
 
     printf '%b\n' "\
-${COLOR_GREEN}A package builder/manager for Xcode to build projects written in C, C++, Rust, Zig, Go, etc.${COLOR_OFF}
+${COLOR_GREEN}A package builder/manager for Xcode to build projects written in C, C++, Rust, Zig, Go, Haskell, etc.${COLOR_OFF}
 
 ${COLOR_GREEN}xcpkg <ACTION> [ARGUMENT...]${COLOR_OFF}
 
