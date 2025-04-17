@@ -156,6 +156,7 @@ static int check_if_is_a_empty_dir(const char * dirpath, bool * value) {
 // git fetch --progress origin +refs/heads/master:refs/remotes/origin/master
 // git checkout --progress --force -B master refs/remotes/origin/master
 int xcpkg_git_sync(const char * repositoryDIR, const char * remoteUrl, const char * remoteRefPath, const char * remoteTrackingRefPath, const char * checkoutToBranchName, const size_t fetchDepth) {
+    fprintf(stderr, "xcpkg_git_sync() repositoryDIR=%s remoteUrl=%s remoteRefPath=%s remoteTrackingRefPath=%s\n", repositoryDIR, remoteUrl, remoteRefPath, remoteTrackingRefPath);
     if ((repositoryDIR == NULL) || (repositoryDIR[0] == '\0')) {
         repositoryDIR = ".";
     }

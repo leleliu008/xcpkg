@@ -72,7 +72,7 @@ int xcpkg_formula_repo_add(const char * formulaRepoName, const char * formulaRep
     char   sessionDIR[PATH_MAX];
     size_t sessionDIRLength;
 
-    ret = xcpkg_home_dir(sessionDIR, &sessionDIRLength);
+    ret = xcpkg_session_dir(sessionDIR, &sessionDIRLength);
 
     if (ret != XCPKG_OK) {
         return ret;
@@ -132,11 +132,20 @@ int xcpkg_formula_repo_add(const char * formulaRepoName, const char * formulaRep
     size_t formulaRepoRootDIRLength = xcpkgHomeDIRLength + 9U;
     char   formulaRepoRootDIR[formulaRepoRootDIRLength];
 
-    ret = snprintf(formulaRepoRootDIR, formulaRepoRootDIRLength, "%s/repos.d", xcpkgHomeDIR);
+    for (size_t i = 0; i < xcpkgHomeDIRLength; i++) {
+        formulaRepoRootDIR[i] = xcpkgHomeDIR[i];
+    }
 
-    if (ret < 0) {
-        perror(NULL);
-        return XCPKG_ERROR;
+    char * p = formulaRepoRootDIR + xcpkgHomeDIRLength;
+
+    const char * s = "/repos.d";
+
+    for (int i = 0; ; i++) {
+        p[i] = s[i];
+
+        if (s[i] == '\0') {
+            break;
+        }
     }
 
     if (lstat(formulaRepoRootDIR, &st) == 0) {
