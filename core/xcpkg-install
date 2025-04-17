@@ -527,10 +527,14 @@ gmakew() {
         GMAKE_ARGS="$GMAKE_ARGS V=1"
     fi
 
+    GMAKE="$(command -v gmake)" || abort 1 'command not found: gmake'
+
     run "$GMAKE" "$GMAKE_ARGS" "$@"
 }
 
 ninjaw() {
+    NINJA="$(command -v ninja)" || abort 1 'command not found: ninja'
+
     if [ "$VERBOSE_NINJA" = 1 ] ; then
         run "$NINJA" -j "$BUILD_NJOBS" -v "$@"
     else
