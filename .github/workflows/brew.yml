@@ -1,10 +1,10 @@
-name: build via HomeBrew
+name: build with HomeBrew
 
 on:
   push:
-    branches: [ c ]
+    branches: [ master, dev ]
   pull_request:
-    branches: [ c ]
+    branches: [ master, dev ]
 
 jobs:
 
@@ -26,9 +26,9 @@ jobs:
           install -d "$MY_FORMULA_DIR"
           cat > "$MY_FORMULA_DIR/xcpkg.rb" <<EOF
           class Ppkg < Formula
-            desc     "A portable package manager for Unix-like system"
+            desc     "A package builder/manager for Xcode to build projects written in C, C++, Rust, Zig, Go, Haskell, etc"
             homepage "https://github.com/leleliu008/xcpkg"
-            head     "https://github.com/leleliu008/xcpkg.git", branch: "c"
+            head     "https://github.com/leleliu008/xcpkg.git", branch: "master"
             url      "https://github.com/leleliu008/xcpkg.git", revision: "${{ github.sha }}"
             version  "0.1000.2"
             license  "Apache-2.0"
@@ -66,7 +66,10 @@ jobs:
       - run: xcpkg --version
       - run: xcpkg -V
 
+      - run: xcpkg util printenv
+
       - run: xcpkg about
+      - run: xcpkg about -v
 
       - run: xcpkg sysinfo
 
@@ -110,11 +113,12 @@ jobs:
       - run: xcpkg info-installed libzip builtat-rfc-3339
       - run: xcpkg info-installed libzip version
 
-      - run: xcpkg bundle libzip .tar.gz
-      - run: xcpkg bundle libzip .tar.lz
-      - run: xcpkg bundle libzip .tar.xz
-      - run: xcpkg bundle libzip .tar.bz2
-      - run: xcpkg bundle libzip .zip
+      - run: xcpkg pack libzip
+      - run: xcpkg pack libzip -t tar.gz
+      - run: xcpkg pack libzip -t tar.lz
+      - run: xcpkg pack libzip -t tar.xz
+      - run: xcpkg pack libzip -t tar.bz2
+      - run: xcpkg pack libzip -t zip
 
       - run: |
           printf '%s\n' 'version: 1000' >> ~/.xcpkg/repos.d/official-core/formula/libzip.yml
@@ -137,7 +141,8 @@ jobs:
 
       - run: xcpkg cleanup
 
-        #- run: xcpkg upgrade-self
+      - run: xcpkg upgrade-self
+
 
   brew-sanitizer:
     strategy:
@@ -157,9 +162,9 @@ jobs:
           install -d "$MY_FORMULA_DIR"
           cat > "$MY_FORMULA_DIR/xcpkg.rb" <<EOF
           class Ppkg < Formula
-            desc     "A portable package manager for Unix-like system"
+            desc     "A package builder/manager for Xcode to build projects written in C, C++, Rust, Zig, Go, Haskell, etc"
             homepage "https://github.com/leleliu008/xcpkg"
-            head     "https://github.com/leleliu008/xcpkg.git", branch: "c"
+            head     "https://github.com/leleliu008/xcpkg.git", branch: "master"
             url      "https://github.com/leleliu008/xcpkg.git", revision: "${{ github.sha }}"
             version  "0.1000.2"
             license  "Apache-2.0"
@@ -203,9 +208,11 @@ jobs:
       - run: xcpkg --version
       - run: xcpkg -V
 
-      - run: xcpkg about
+      - run: xcpkg util printenv
 
-      - run: xcpkg buildinfo
+      - run: xcpkg about
+      - run: xcpkg about -v
+
       - run: xcpkg sysinfo
 
       - run: xcpkg setup -v
@@ -248,11 +255,12 @@ jobs:
       - run: xcpkg info-installed libzip builtat-rfc-3339
       - run: xcpkg info-installed libzip version
 
-      - run: xcpkg bundle libzip .tar.gz
-      - run: xcpkg bundle libzip .tar.lz
-      - run: xcpkg bundle libzip .tar.xz
-      - run: xcpkg bundle libzip .tar.bz2
-      - run: xcpkg bundle libzip .zip
+      - run: xcpkg bundle libzip
+      - run: xcpkg bundle libzip tar.gz
+      - run: xcpkg bundle libzip tar.lz
+      - run: xcpkg bundle libzip tar.xz
+      - run: xcpkg bundle libzip tar.bz2
+      - run: xcpkg bundle libzip zip
 
       - run: |
           printf '%s\n' 'version: 1000' >> ~/.xcpkg/repos.d/official-core/formula/libzip.yml
@@ -275,4 +283,4 @@ jobs:
 
       - run: xcpkg cleanup
 
-        #- run: xcpkg upgrade-self
+      - run: xcpkg upgrade-self

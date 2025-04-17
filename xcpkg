@@ -5847,32 +5847,31 @@ __tweak_pc_files() {
         fi
     done
 
+    # https://gcc.gnu.org/onlinedocs/gcc/Directory-Options.html
+
     for pcfile in $PC_FILES
     do
-        gsed -i "s|$PACKAGE_INSTALL_DIR|\${pcfiledir}/../..|g" "$pcfile"
-
-        # https://gcc.gnu.org/onlinedocs/gcc/Directory-Options.html
-        gsed -i "s|-I${XCPKG_HOME}[^' ]*||g"   "$pcfile"
-        gsed -i "s|-L${XCPKG_HOME}[^' ]*||g"   "$pcfile"
-        gsed -i "s|-R[^' ]*||g"                "$pcfile"
-        gsed -i "s|-F[^' ]*||g"                "$pcfile"
-        gsed -i "s|-idirafter[^' ]*||g"        "$pcfile"
-        gsed -i "s|-isysroot [^' ]*||g"        "$pcfile"
-        gsed -i "s|-arch [^' ]*||g"            "$pcfile"
-        gsed -i 's|-flto||g'                   "$pcfile"
-        gsed -i 's|-Wl,--strip-debug||g'       "$pcfile"
-        gsed -i 's|-Wl,-search_paths_first||g' "$pcfile"
-
-        gsed -i "s|-mmacosx-version-min=[^' ]*||g" "$pcfile"
-
-        gsed -i "s|${XCPKG_HOME}/.*/lib\(.*\)\.dylib|-l\1|g" "$pcfile"
-        gsed -i "s|${XCPKG_HOME}/.*/lib\(.*\)\.a|-l\1|g"     "$pcfile"
+        gsed -i \
+            -e "s|$PACKAGE_INSTALL_DIR|\${pcfiledir}/../..|g" \
+            -e "s|-I${XCPKG_HOME}[^' ]*||g" \
+            -e "s|-L${XCPKG_HOME}[^' ]*||g" \
+            -e "s|-R[^' ]*||g" \
+            -e "s|-F[^' ]*||g" \
+            -e "s|-idirafter[^' ]*||g" \
+            -e "s|-isysroot [^' ]*||g" \
+            -e "s|-arch [^' ]*||g" \
+            -e 's|-flto||g' \
+            -e 's|-Wl,--strip-debug||g' \
+            -e 's|-Wl,-search_paths_first||g' \
+            -e "s|-mmacosx-version-min=[^' ]*||g" \
+            -e "s|${XCPKG_HOME}/.*/lib\(.*\)\.dylib|-l\1|g" \
+            -e "s|${XCPKG_HOME}/.*/lib\(.*\)\.a|-l\1|g" \
+            "$pcfile"
 
         if grep 'Libs.private:' "$pcfile" > /dev/null ; then
             if grep 'Libs:' "$pcfile" > /dev/null ; then
                 LIBS_PRIVATE_CONTENT=$(sed -n '/Libs.private:/p' "$pcfile" | cut -c14-)
-                gsed -i "/Libs:/s|\$|$LIBS_PRIVATE_CONTENT|" "$pcfile"
-                gsed -i '/Libs.private:/d' "$pcfile"
+                gsed -i -e "/Libs:/s|\$|$LIBS_PRIVATE_CONTENT|" -e '/Libs.private:/d' "$pcfile"
             else
                 gsed -i 's|Libs.private:|Libs:|' "$pcfile"
             fi
@@ -5881,8 +5880,7 @@ __tweak_pc_files() {
         if grep 'Requires.private:' "$pcfile" > /dev/null ; then
             if grep 'Requires:' "$pcfile" > /dev/null ; then
                 REQUIRES_PRIVATE_CONTENT=$(sed -n '/Requires.private:/p' "$pcfile" | cut -c18-)
-                gsed -i "/Requires:/s|\$|$REQUIRES_PRIVATE_CONTENT|" "$pcfile"
-                gsed -i '/Requires.private:/d' "$pcfile"
+                gsed -i -e "/Requires:/s|\$|$REQUIRES_PRIVATE_CONTENT|" -e '/Requires.private:/d' "$pcfile"
             else
                 gsed -i 's|Requires.private:|Requires:|' "$pcfile"
             fi
