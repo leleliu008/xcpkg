@@ -90,8 +90,6 @@ int xcpkg_setup(const bool verbose) {
     if (ret < 0) {
         perror(NULL);
         return XCPKG_ERROR;
-    } else {
-        return XCPKG_OK;
     }
 
     //////////////////////////////////////////////////////////////////////////////////
