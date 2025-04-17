@@ -5069,7 +5069,7 @@ int xcpkg_install(const char * packageName, const char * targetPlatformSpec, con
 
     char objcForTargetBuild[capacity];
 
-    ret = snprintf(objcForNativeBuild, capacity, "%s/wrapper-target-objc", xcpkgCoreDIR);
+    ret = snprintf(objcForTargetBuild, capacity, "%s/wrapper-target-objc", xcpkgCoreDIR);
 
     if (ret < 0) {
         perror(NULL);

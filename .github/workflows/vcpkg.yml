@@ -161,7 +161,7 @@ jobs:
               -DCMAKE_INSTALL_PREFIX=./output \
               -DCMAKE_VERBOSE_MAKEFILE=ON \
               -DCMAKE_BUILD_TYPE=Debug \
-              -DCMAKE_C_COMPILER=clang \
+              -DCMAKE_C_COMPILER="$(brew --prefix llvm)/bin/clang" \
               -DCMAKE_C_FLAGS="-fsanitize=undefined -fsanitize=address -fsanitize=leak"
 
       - run:  cmake --build   build.d
