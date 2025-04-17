@@ -25,7 +25,7 @@ jobs:
           MY_FORMULA_DIR="$(brew --repository)/Library/Taps/leleliu008/homebrew-tmp/Formula"
           install -d "$MY_FORMULA_DIR"
           cat > "$MY_FORMULA_DIR/xcpkg.rb" <<EOF
-          class Ppkg < Formula
+          class Xpkg < Formula
             desc     "A package builder/manager for Xcode to build projects written in C, C++, Rust, Zig, Go, Haskell, etc"
             homepage "https://github.com/leleliu008/xcpkg"
             head     "https://github.com/leleliu008/xcpkg.git", branch: "master"
@@ -161,7 +161,7 @@ jobs:
           MY_FORMULA_DIR="$(brew --repository)/Library/Taps/leleliu008/homebrew-tmp/Formula"
           install -d "$MY_FORMULA_DIR"
           cat > "$MY_FORMULA_DIR/xcpkg.rb" <<EOF
-          class Ppkg < Formula
+          class Xpkg < Formula
             desc     "A package builder/manager for Xcode to build projects written in C, C++, Rust, Zig, Go, Haskell, etc"
             homepage "https://github.com/leleliu008/xcpkg"
             head     "https://github.com/leleliu008/xcpkg.git", branch: "master"
