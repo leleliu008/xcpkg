@@ -120,6 +120,14 @@ int xcpkg_setup(const bool verbose) {
         return abs(ret) + XCPKG_ERROR_ARCHIVE_BASE;
     }
 
+    ////////////////////////////////////////////////////////////////////////////////////////////
+
+    ret = xcpkg_http_fetch_to_file("https://raw.githubusercontent.com/leleliu008/xcpkg/master/core/xcpkg-install", "xcpkg-install", verbose, verbose);
+
+    if (ret != XCPKG_OK) {
+        return ret;
+    }
+
     //////////////////////////////////////////////////////////////////////////////////
 
     ret = xcpkg_http_fetch_to_file("https://curl.se/ca/cacert.pem", "cacert.pem", verbose, verbose);
