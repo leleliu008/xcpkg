@@ -1693,7 +1693,7 @@ int xcpkg_main(int argc, char* argv[]) {
 
         bool verbose = false;
 
-        for (int i = 3; i < argc; i++) {
+        for (int i = 4; i < argc; i++) {
             if (strcmp(argv[i], "-v") == 0) {
                 verbose = true;
             } else if (strcmp(argv[i], "-o") == 0) {
