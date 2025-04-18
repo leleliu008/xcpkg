@@ -1233,6 +1233,7 @@ static int install_dependent_packages_via_uppm(
 
         if (ret < 0) {
             perror(NULL);
+            puts("=========");
             return XCPKG_ERROR;
         }
 
@@ -4214,9 +4215,11 @@ static int xcpkg_install_package(
 
     //////////////////////////////////////////////////////////////////////////////
 
-    if (mkdir (packageMetaInfoDIR, S_IRWXU) != 0) {
-        perror(packageMetaInfoDIR);
-        return XCPKG_ERROR;
+    if (mkdir(packageMetaInfoDIR, S_IRWXU) != 0) {
+        if (errno != EEXIST) {
+            perror(packageMetaInfoDIR);
+            return XCPKG_ERROR;
+        }
     }
 
     //////////////////////////////////////////////////////////////////////////////
