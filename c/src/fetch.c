@@ -57,8 +57,6 @@ static int xcpkg_fetch_file(const char * url, const char * uri, const char * exp
         return ret;
     }
 
-    printf("==========>> fileNameExtension = %s\n", fileNameExtension);
-
     size_t fileNameCapacity = strlen(expectedSHA256SUM) + strlen(fileNameExtension) + 1U;
     char   fileName[fileNameCapacity];
 

@@ -523,8 +523,6 @@ int xcpkg_main(int argc, char* argv[]) {
                 installOptions.logLevel = XCPKGLogLevel_silent;
             } else if (strcmp(argv[i], "-v") == 0) {
                 installOptions.logLevel = XCPKGLogLevel_verbose;
-            } else if (strcmp(argv[i], "-vv") == 0) {
-                installOptions.logLevel = XCPKGLogLevel_very_verbose;
                 installOptions.verbose_net = true;
                 installOptions.verbose_env = true;
                 installOptions.verbose_cc  = true;
