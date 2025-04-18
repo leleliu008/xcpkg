@@ -335,17 +335,8 @@ static int uppm_receipt_check(UPPMReceipt * receipt, const char * receiptFilePat
 }
 
 
-int uppm_receipt_parse(const char * packageName, UPPMReceipt * * out) {
+int uppm_receipt_parse(const char * uppmHomeDIR, const size_t uppmHomeDIRLength, const char * packageName, UPPMReceipt * * out) {
     int ret = uppm_check_if_the_given_argument_matches_package_name_pattern(packageName);
-
-    if (ret != XCPKG_OK) {
-        return ret;
-    }
-
-    char   uppmHomeDIR[PATH_MAX];
-    size_t uppmHomeDIRLength;
-
-    ret = uppm_home_dir(uppmHomeDIR, &uppmHomeDIRLength);
 
     if (ret != XCPKG_OK) {
         return ret;

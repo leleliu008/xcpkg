@@ -269,18 +269,9 @@ static int uppm_record_installed_files(const char * installedDIRPath) {
     return ret;
 }
 
-static int uppm_install_internal(const char * packageName, const UPPMFormula * formula, const bool verbose, const bool force) {
-    char   uppmHomeDIR[PATH_MAX];
-    size_t uppmHomeDIRLength;
-
-    int ret = uppm_home_dir(uppmHomeDIR, &uppmHomeDIRLength);
-
-    if (ret != XCPKG_OK) {
-        return ret;
-    }
-
+static int uppm_install_internal(const char * uppmHomeDIR, const size_t uppmHomeDIRLength, const char * packageName, const UPPMFormula * formula, const bool verbose, const bool force) {
     if (!force) {
-        ret = uppm_check_if_the_given_package_is_installed(packageName);
+        int ret = uppm_check_if_the_given_package_is_installed(packageName, uppmHomeDIR, uppmHomeDIRLength);
 
         if (ret == XCPKG_OK) {
             fprintf(stderr, "uppm package '%s' already has been installed.\n", packageName);
@@ -303,7 +294,7 @@ static int uppm_install_internal(const char * packageName, const UPPMFormula * f
     size_t tmpStrCapacity = strlen(formula->bin_url) + 30U;
     char   tmpStr[tmpStrCapacity];
 
-    ret = snprintf(tmpStr, tmpStrCapacity, "%s|%ld|%d", formula->bin_url, time(NULL), getpid());
+    int ret = snprintf(tmpStr, tmpStrCapacity, "%s|%ld|%d", formula->bin_url, time(NULL), getpid());
 
     if (ret < 0) {
         perror(NULL);
@@ -432,7 +423,8 @@ static int uppm_install_internal(const char * packageName, const UPPMFormula * f
 
         if (strcmp(actualSHA256SUM, formula->bin_sha) == 0) {
             if (rename(tmpFilePath, binFilePath) == 0) {
-                printf("%s\n", binFilePath);
+                printf("%s -> %s\n", tmpFilePath, binFilePath);
+                //printf("%s\n", binFilePath);
             } else {
                 perror(binFilePath);
                 return XCPKG_ERROR;
@@ -750,10 +742,10 @@ static int uppm_install_internal(const char * packageName, const UPPMFormula * f
     }
 }
 
-int uppm_install(const char * packageName, const bool verbose, const bool force) {
+int uppm_install(const char * uppmHomeDIR, const size_t uppmHomeDIRLength, const char * packageName, const bool verbose, const bool force) {
     UPPMFormula * formula = NULL;
 
-    int ret = uppm_formula_lookup(packageName, &formula);
+    int ret = uppm_formula_lookup(uppmHomeDIR, uppmHomeDIRLength, packageName, &formula);
 
     if (ret != XCPKG_OK) {
         return ret;
@@ -780,7 +772,7 @@ int uppm_install(const char * packageName, const bool verbose, const bool force)
         }
 
         for (size_t i = 0; i < depPackageNameArrayListSize; i++) {
-            ret = uppm_install(depPackageNameArrayList[i], verbose, force);
+            ret = uppm_install(uppmHomeDIR, uppmHomeDIRLength, depPackageNameArrayList[i], verbose, force);
 
             if (ret != XCPKG_OK) {
                 uppm_formula_free(formula);
@@ -789,20 +781,20 @@ int uppm_install(const char * packageName, const bool verbose, const bool force)
         }
     }
 
-    ret = uppm_install_internal(packageName, formula, verbose, force);
+    ret = uppm_install_internal(uppmHomeDIR, uppmHomeDIRLength, packageName, formula, verbose, force);
 
     uppm_formula_free(formula);
 
     return ret;
 }
 
-int uppm_install_the_given_packages(const char * packageNames[], size_t size) {
+int uppm_install_the_given_packages(const char * uppmHomeDIR, const size_t uppmHomeDIRLength, const char * packageNames[], size_t size) {
     for (size_t i = 0; i < size; i++) {
         const char * packageName = packageNames[i];
 
         UPPMFormula * formula = NULL;
 
-        int ret = uppm_formula_lookup(packageName, &formula);
+        int ret = uppm_formula_lookup(uppmHomeDIR, uppmHomeDIRLength, packageName, &formula);
 
         if (ret != XCPKG_OK) {
             return ret;

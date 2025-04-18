@@ -25,7 +25,7 @@ typedef struct {
     int    enabled;
 } UPPMFormulaRepo ;
 
-int  uppm_formula_repo_sync_official_core();
+int  uppm_formula_repo_sync_official_core(const char * uppmHomeDIR, const size_t uppmHomeDIRLength);
 int  uppm_formula_repo_parse(const char * formulaRepoConfigFilePath, UPPMFormulaRepo * * formulaRepo);
 void uppm_formula_repo_free(UPPMFormulaRepo * formulaRepo);
 void uppm_formula_repo_dump(UPPMFormulaRepo * formulaRepo);
@@ -43,7 +43,7 @@ typedef struct {
     char * path;
 } UPPMFormula;
 
-int  uppm_formula_lookup(const char * packageName, UPPMFormula * * formula);
+int  uppm_formula_lookup(const char * uppmHomeDIR, const size_t uppmHomeDIRLength, const char * packageName, UPPMFormula * * formula);
 void uppm_formula_free(UPPMFormula * formula);
 void uppm_formula_dump(UPPMFormula * formula);
 
@@ -63,7 +63,7 @@ typedef struct {
     char * timestamp;
 } UPPMReceipt;
 
-int  uppm_receipt_parse(const char * packageName, UPPMReceipt * * receipt);
+int  uppm_receipt_parse(const char * uppmHomeDIR, const size_t uppmHomeDIRLength, const char * packageName, UPPMReceipt * * receipt);
 void uppm_receipt_free(UPPMReceipt * receipt);
 void uppm_receipt_dump(UPPMReceipt * receipt);
 
@@ -81,12 +81,12 @@ void uppm_receipt_dump(UPPMReceipt * receipt);
  */
 int uppm_home_dir(char buf[], size_t * len);
 
-int uppm_install(const char * packageName, const bool verbose, const bool force);
+int uppm_install(const char * uppmHomeDIR, const size_t uppmHomeDIRLength, const char * packageName, const bool verbose, const bool force);
 
 int uppm_check_if_the_given_argument_matches_package_name_pattern(const char * arg);
 
-int uppm_check_if_the_given_package_is_available(const char * packageName);
-int uppm_check_if_the_given_package_is_installed(const char * packageName);
-int uppm_check_if_the_given_package_is_outdated (const char * packageName);
+int uppm_check_if_the_given_package_is_available(const char * packageName, const char * uppmHomeDIR, const size_t uppmHomeDIRLength);
+int uppm_check_if_the_given_package_is_installed(const char * packageName, const char * uppmHomeDIR, const size_t uppmHomeDIRLength);
+int uppm_check_if_the_given_package_is_outdated (const char * packageName, const char * uppmHomeDIR, const size_t uppmHomeDIRLength);
 
 #endif

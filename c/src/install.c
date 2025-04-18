@@ -1197,12 +1197,26 @@ static int install_native_package(
 }
 
 static int install_dependent_packages_via_uppm(
+        const char * xcpkgHomeDIR,
+        const size_t xcpkgHomeDIRLength,
         const char * uppmPackageNames,
         const size_t uppmPackageNamesLength,
         const char * uppmPackageInstalledRootDIR,
         const size_t uppmPackageInstalledRootDIRCapacity,
         const bool   verbose) {
-    int ret = uppm_formula_repo_sync_official_core();
+    size_t uppmHomeDIRCapacity = xcpkgHomeDIRLength + 6U;
+    char   uppmHomeDIR[uppmHomeDIRCapacity];
+
+    int ret = snprintf(uppmHomeDIR, uppmHomeDIRCapacity, "%s/uppm", xcpkgHomeDIR);
+
+    if (ret < 0) {
+        perror(NULL);
+        return XCPKG_ERROR;
+    }
+
+    size_t uppmHomeDIRLength = ret;
+
+    ret = uppm_formula_repo_sync_official_core(uppmHomeDIR, uppmHomeDIRLength);
 
     if (ret != XCPKG_OK) {
         return ret;
@@ -1221,7 +1235,7 @@ static int install_dependent_packages_via_uppm(
 
     while (uppmPackageName != NULL) {
         fprintf(stderr, "=========0 %s\n", uppmPackageName);
-        ret = uppm_install(uppmPackageName, verbose, false);
+        ret = uppm_install(uppmHomeDIR, uppmHomeDIRLength, uppmPackageName, verbose, false);
 
         if (ret != XCPKG_OK) {
             return ret;
@@ -3008,7 +3022,7 @@ static int xcpkg_install_package(
 
     //////////////////////////////////////////////////////////////////////////////
 
-    ret = install_dependent_packages_via_uppm(uppmPackageNames, uppmPackageNamesLength, uppmPackageInstalledRootDIR, uppmPackageInstalledRootDIRCapacity, installOptions->verbose_net);
+    ret = install_dependent_packages_via_uppm(xcpkgHomeDIR, xcpkgHomeDIRLength, uppmPackageNames, uppmPackageNamesLength, uppmPackageInstalledRootDIR, uppmPackageInstalledRootDIRCapacity, installOptions->verbose_net);
 
     if (ret != XCPKG_OK) {
         return ret;

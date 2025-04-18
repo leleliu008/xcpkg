@@ -1,3 +1,4 @@
+#include <stddef.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -80,13 +81,25 @@ int xcpkg_tree(const char * packageName, const char * targetPlatformSpec, size_t
             return XCPKG_ERROR;
         }
     } else {
-        ret = uppm_formula_repo_sync_official_core();
+        size_t uppmHomeDIRCapacity = xcpkgHomeDIRLength + 6U;
+        char   uppmHomeDIR[uppmHomeDIRCapacity];
+
+        ret = snprintf(uppmHomeDIR, uppmHomeDIRCapacity, "%s/uppm", xcpkgHomeDIR);
+
+        if (ret < 0) {
+            perror(NULL);
+            return XCPKG_ERROR;
+        }
+
+        size_t uppmHomeDIRLength = ret;
+
+        ret = uppm_formula_repo_sync_official_core(uppmHomeDIR, uppmHomeDIRLength);
 
         if (ret != XCPKG_OK) {
             return ret;
         }
 
-        ret = uppm_install("tree", false, false);
+        ret = uppm_install(uppmHomeDIR, uppmHomeDIRLength, "tree", false, false);
 
         if (ret != XCPKG_OK) {
             return ret;

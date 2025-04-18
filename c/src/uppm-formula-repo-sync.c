@@ -117,22 +117,11 @@ static int uppm_formula_repo_sync_official_core_internal(const char * formulaRep
     return xcpkg_write_file(formulaRepoConfigFilePath, str, strLength);
 }
 
-int uppm_formula_repo_sync_official_core() {
-    char   uppmHomeDIR[PATH_MAX];
-    size_t uppmHomeDIRLength;
-
-    int ret = uppm_home_dir(uppmHomeDIR, &uppmHomeDIRLength);
-
-    if (ret != XCPKG_OK) {
-        return ret;
-    }
-
-    ////////////////////////////////////////////////////////////////////////////////////////
-
+int uppm_formula_repo_sync_official_core(const char * uppmHomeDIR, const size_t uppmHomeDIRLength) {
     size_t formulaRepoDIRCapacity = uppmHomeDIRLength + 23U;
     char   formulaRepoDIR[formulaRepoDIRCapacity];
 
-    ret = snprintf(formulaRepoDIR, formulaRepoDIRCapacity, "%s/repos.d/official-core", uppmHomeDIR);
+    int ret = snprintf(formulaRepoDIR, formulaRepoDIRCapacity, "%s/repos.d/official-core", uppmHomeDIR);
 
     if (ret < 0) {
         perror(NULL);

@@ -102,7 +102,7 @@ void uppm_formula_free(UPPMFormula * formula) {
     free(formula);
 }
 
-static UPPMFormulaKeyCode uppm_formula_key_code_from_key_name(char * key, bool isLinuxMuslLibc) {
+static UPPMFormulaKeyCode uppm_formula_key_code_from_key_name(char * key) {
            if (strcmp(key, "summary") == 0) {
         return UPPMFormulaKeyCode_summary;
     } else if (strcmp(key, "webpage") == 0) {
@@ -122,14 +122,6 @@ static UPPMFormulaKeyCode uppm_formula_key_code_from_key_name(char * key, bool i
     } else if (strcmp(key, "install") == 0) {
         return UPPMFormulaKeyCode_install;
     } else {
-        if (isLinuxMuslLibc) {
-                   if (strcmp(key, "res-url") == 0) {
-                return UPPMFormulaKeyCode_bin_url;
-            } else if (strcmp(key, "res-sha") == 0) {
-                return UPPMFormulaKeyCode_bin_sha;
-            }
-        }
-
         return UPPMFormulaKeyCode_unknown;
     }
 }
@@ -454,22 +446,11 @@ static int uppm_formula_check(UPPMFormula * formula, const char * formulaFilePat
     return XCPKG_OK;
 }
 
-int uppm_formula_lookup(const char * packageName, UPPMFormula * * out) {
-    bool isLinuxMuslLibc = false;
-
-    char   uppmHomeDIR[PATH_MAX];
-    size_t uppmHomeDIRLength;
-
-    int ret = uppm_home_dir(uppmHomeDIR, &uppmHomeDIRLength);
-
-    if (ret != XCPKG_OK) {
-        return ret;
-    }
-
+int uppm_formula_lookup(const char * uppmHomeDIR, const size_t uppmHomeDIRLength, const char * packageName, UPPMFormula * * out) {
     size_t formulaFilePathCapacity = uppmHomeDIRLength + strlen(packageName) + 41U;
     char   formulaFilePath[formulaFilePathCapacity];
 
-    ret = snprintf(formulaFilePath, formulaFilePathCapacity, "%s/repos.d/official-core/formula/%s.yml", uppmHomeDIR, packageName);
+    int ret = snprintf(formulaFilePath, formulaFilePathCapacity, "%s/repos.d/official-core/formula/%s.yml", uppmHomeDIR, packageName);
 
     if (ret < 0) {
         perror(NULL);
@@ -526,7 +507,7 @@ int uppm_formula_lookup(const char * packageName, UPPMFormula * * out) {
                 break;
             case YAML_SCALAR_TOKEN:
                 if (lastTokenType == 1) {
-                    formulaKeyCode = uppm_formula_key_code_from_key_name((char*)token.data.scalar.value, isLinuxMuslLibc);
+                    formulaKeyCode = uppm_formula_key_code_from_key_name((char*)token.data.scalar.value);
                 } else if (lastTokenType == 2) {
                     if (formula == NULL) {
                         formula = (UPPMFormula*)calloc(1, sizeof(UPPMFormula));

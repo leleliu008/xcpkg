@@ -33,17 +33,8 @@ int uppm_check_if_the_given_argument_matches_package_name_pattern(const char * a
     }
 }
 
-int uppm_check_if_the_given_package_is_available(const char * packageName) {
+int uppm_check_if_the_given_package_is_available(const char * packageName, const char * uppmHomeDIR, const size_t uppmHomeDIRLength) {
     int ret = uppm_check_if_the_given_argument_matches_package_name_pattern(packageName);
-
-    if (ret != XCPKG_OK) {
-        return ret;
-    }
-
-    char   uppmHomeDIR[PATH_MAX];
-    size_t uppmHomeDIRLength;
-
-    ret = uppm_home_dir(uppmHomeDIR, &uppmHomeDIRLength);
 
     if (ret != XCPKG_OK) {
         return ret;
@@ -68,17 +59,8 @@ int uppm_check_if_the_given_package_is_available(const char * packageName) {
     }
 }
 
-int uppm_check_if_the_given_package_is_installed(const char * packageName) {
+int uppm_check_if_the_given_package_is_installed(const char * packageName, const char * uppmHomeDIR, const size_t uppmHomeDIRLength) {
     int ret = uppm_check_if_the_given_argument_matches_package_name_pattern(packageName);
-
-    if (ret != XCPKG_OK) {
-        return ret;
-    }
-
-    char   uppmHomeDIR[PATH_MAX];
-    size_t uppmHomeDIRLength;
-
-    ret = uppm_home_dir(uppmHomeDIR, &uppmHomeDIRLength);
 
     if (ret != XCPKG_OK) {
         return ret;
@@ -125,17 +107,17 @@ int uppm_check_if_the_given_package_is_installed(const char * packageName) {
     }
 }
 
-int uppm_check_if_the_given_package_is_outdated(const char * packageName) {
+int uppm_check_if_the_given_package_is_outdated(const char * packageName, const char * uppmHomeDIR, const size_t uppmHomeDIRLength) {
     UPPMFormula * formula = NULL;
     UPPMReceipt * receipt = NULL;
 
-    int ret = uppm_formula_lookup(packageName, &formula);
+    int ret = uppm_formula_lookup(uppmHomeDIR, uppmHomeDIRLength, packageName, &formula);
 
     if (ret != XCPKG_OK) {
         goto finalize;
     }
 
-    ret = uppm_receipt_parse(packageName, &receipt);
+    ret = uppm_receipt_parse(uppmHomeDIR, uppmHomeDIRLength, packageName, &receipt);
 
     if (ret != XCPKG_OK) {
         goto finalize;
