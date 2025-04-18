@@ -4187,21 +4187,21 @@ static int xcpkg_install_package(
 
     //////////////////////////////////////////////////////////////////////////////
 
-    struct stat st;
-
-    if (stat(packageInstalledDIR, &st) != 0 || !S_ISDIR(st.st_mode)) {
-        fprintf(stderr, "nothing was installed.\n");
-        return XCPKG_ERROR;
-    }
-
     if (chdir (packageInstalledDIR) != 0) {
         perror(packageInstalledDIR);
+
+        if (errno == ENOENT) {
+            fprintf(stderr, "nothing was installed.\n");
+        }
+
         return XCPKG_ERROR;
     }
 
     //////////////////////////////////////////////////////////////////////////////
 
     const char* a[2] = { ".crates.toml", ".crates2.json" };
+
+    struct stat st;
 
     for (int i = 0; i < 2; i++) {
         if (stat(a[i], &st) == 0) {

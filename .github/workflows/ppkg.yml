@@ -149,7 +149,7 @@ jobs:
           EOF
 
       - run: ./ppkg install xcpkg
-      - run: ./ppkg bundle  xcpkg
+      - run: ./ppkg bundle  xcpkg .tar.xz
 
       - run: tar vxf *.tar.xz --strip-components=1
 
