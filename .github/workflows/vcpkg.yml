@@ -62,6 +62,15 @@ jobs:
       - run: ./output/bin/xcpkg integrate zsh
       - run: ./output/bin/xcpkg integrate zsh -v
 
+      - run: ./output/bin/xcpkg formula-repo-list
+      - run: ./output/bin/xcpkg formula-repo-add official-core https://github.com/leleliu008/xcpkg-formula-repository-official-core
+      - run: ./output/bin/xcpkg formula-repo-list
+
+      - run: ./output/bin/xcpkg formula-repo-add my_repo https://github.com/leleliu008/xcpkg-formula-repository-official-core
+      - run: ./output/bin/xcpkg formula-repo-list
+      - run: ./output/bin/xcpkg formula-repo-del my_repo
+      - run: ./output/bin/xcpkg formula-repo-list
+
       - run: ./output/bin/xcpkg update
 
       - run: ./output/bin/xcpkg search lib
@@ -84,7 +93,7 @@ jobs:
       - run: ./output/bin/xcpkg fetch gzip
       - run: ./output/bin/xcpkg fetch gsed -v
 
-      - run: ./output/bin/xcpkg install libzip
+      - run: ./output/bin/xcpkg install libzip -v
 
       - run: ./output/bin/xcpkg tree libzip
 
@@ -184,6 +193,15 @@ jobs:
       - run: ./output/bin/xcpkg integrate zsh
       - run: ./output/bin/xcpkg integrate zsh -v
 
+      - run: ./output/bin/xcpkg formula-repo-list
+      - run: ./output/bin/xcpkg formula-repo-add official-core https://github.com/leleliu008/xcpkg-formula-repository-official-core
+      - run: ./output/bin/xcpkg formula-repo-list
+
+      - run: ./output/bin/xcpkg formula-repo-add my_repo https://github.com/leleliu008/xcpkg-formula-repository-official-core
+      - run: ./output/bin/xcpkg formula-repo-list
+      - run: ./output/bin/xcpkg formula-repo-del my_repo
+      - run: ./output/bin/xcpkg formula-repo-list
+
       - run: ./output/bin/xcpkg update
 
       - run: ./output/bin/xcpkg search lib
@@ -206,7 +224,7 @@ jobs:
       - run: ./output/bin/xcpkg fetch gzip
       - run: ./output/bin/xcpkg fetch gsed -v
 
-      - run: ./output/bin/xcpkg install libzip
+      - run: ./output/bin/xcpkg install libzip -v
 
       - run: ./output/bin/xcpkg tree libzip
 
