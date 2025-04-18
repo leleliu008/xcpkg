@@ -78,6 +78,15 @@ jobs:
       - run: xcpkg integrate zsh
       - run: xcpkg integrate zsh -v
 
+      - run: xcpkg formula-repo-list
+      - run: xcpkg formula-repo-add official-core https://github.com/leleliu008/xcpkg-formula-repository-official-core
+      - run: xcpkg formula-repo-list
+
+      - run: xcpkg formula-repo-add my_repo https://github.com/leleliu008/xcpkg-formula-repository-official-core
+      - run: xcpkg formula-repo-list
+      - run: xcpkg formula-repo-del my_repo
+      - run: xcpkg formula-repo-list
+
       - run: xcpkg update
 
       - run: xcpkg search lib
@@ -100,7 +109,7 @@ jobs:
       - run: xcpkg fetch gzip
       - run: xcpkg fetch gsed -v
 
-      - run: xcpkg install libzip
+      - run: xcpkg install libzip -v
 
       - run: xcpkg tree libzip
 
@@ -134,10 +143,6 @@ jobs:
       - run: xcpkg upgrade   libzip
       - run: xcpkg reinstall libzip
       - run: xcpkg uninstall libzip
-
-      - run: xcpkg formula-repo-list
-      - run: xcpkg formula-repo-add my_repo https://github.com/leleliu008/xcpkg-formula-repository-official-core
-      - run: xcpkg formula-repo-del my_repo
 
       - run: xcpkg cleanup
 
