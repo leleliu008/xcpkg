@@ -1103,9 +1103,9 @@ static int xcpkg_formula_check(XCPKGFormula * formula, const char * formulaFileP
             }
 
             strftime(formula->version, 11, "%Y.%m.%d", tms);
-
-            formula->version_is_calculated = true;
         }
+
+        formula->version_is_calculated = true;
     }
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////
