@@ -7,7 +7,7 @@ on:
     branches: [ master, dev ]
 
 jobs:
-  vcpkg:
+  ppkg:
 
     strategy:
       fail-fast: false
@@ -28,7 +28,7 @@ jobs:
           EOF
 
       - run: ./ppkg install xcpkg
-      - run: ./ppkg bundle  xcpkg
+      - run: ./ppkg bundle  xcpkg .tar.xz
 
       - run: tar vxf *.tar.xz --strip-components=1
 
@@ -124,7 +124,7 @@ jobs:
       - run: bin/xcpkg upgrade-self
 
 
-  vcpkg-sanitizer:
+  ppkg-sanitizer:
 
     strategy:
       fail-fast: false
