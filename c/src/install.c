@@ -1226,6 +1226,7 @@ static int install_dependent_packages_via_uppm(
             return ret;
         }
 
+            puts("=========1");
         size_t uppmPackageInstalledDIRCapacity = uppmPackageInstalledRootDIRCapacity + strlen(uppmPackageName) + 2U;
         char   uppmPackageInstalledDIR[uppmPackageInstalledDIRCapacity];
 
@@ -1237,24 +1238,28 @@ static int install_dependent_packages_via_uppm(
             return XCPKG_ERROR;
         }
 
+            puts("=========2");
         ret = setenv_PATH(uppmPackageInstalledDIR, uppmPackageInstalledDIRCapacity);
 
         if (ret != XCPKG_OK) {
             return ret;
         }
 
+            puts("=========3");
         ret = setenv_ACLOCAL_PATH(uppmPackageInstalledDIR, uppmPackageInstalledDIRCapacity);
 
         if (ret != XCPKG_OK) {
             return ret;
         }
 
+            puts("=========4");
         ret = setenv_XDG_DATA_DIRS(uppmPackageInstalledDIR, uppmPackageInstalledDIRCapacity);
 
         if (ret != XCPKG_OK) {
             return ret;
         }
 
+            puts("=========5");
         if (strcmp(uppmPackageName, "git") == 0) {
             // https://git-scm.com/book/en/v2/Git-Internals-Environment-Variables
 
