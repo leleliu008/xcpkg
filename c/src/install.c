@@ -1220,13 +1220,14 @@ static int install_dependent_packages_via_uppm(
     char * uppmPackageName = strtok_r(uppmPackageNamesCopy, " ", &q);
 
     while (uppmPackageName != NULL) {
+        fprintf(stderr, "=========0 %s\n", uppmPackageName);
         ret = uppm_install(uppmPackageName, verbose, false);
 
         if (ret != XCPKG_OK) {
             return ret;
         }
 
-            puts("=========1");
+        fprintf(stderr, "=========1 %s\n", uppmPackageName);
         size_t uppmPackageInstalledDIRCapacity = uppmPackageInstalledRootDIRCapacity + strlen(uppmPackageName) + 2U;
         char   uppmPackageInstalledDIR[uppmPackageInstalledDIRCapacity];
 
@@ -1234,32 +1235,31 @@ static int install_dependent_packages_via_uppm(
 
         if (ret < 0) {
             perror(NULL);
-            puts("=========");
             return XCPKG_ERROR;
         }
 
-            puts("=========2");
+        fprintf(stderr, "=========2 %s\n", uppmPackageName);
         ret = setenv_PATH(uppmPackageInstalledDIR, uppmPackageInstalledDIRCapacity);
 
         if (ret != XCPKG_OK) {
             return ret;
         }
 
-            puts("=========3");
+        fprintf(stderr, "=========3 %s\n", uppmPackageName);
         ret = setenv_ACLOCAL_PATH(uppmPackageInstalledDIR, uppmPackageInstalledDIRCapacity);
 
         if (ret != XCPKG_OK) {
             return ret;
         }
 
-            puts("=========4");
+        fprintf(stderr, "=========4 %s\n", uppmPackageName);
         ret = setenv_XDG_DATA_DIRS(uppmPackageInstalledDIR, uppmPackageInstalledDIRCapacity);
 
         if (ret != XCPKG_OK) {
             return ret;
         }
 
-            puts("=========5");
+        fprintf(stderr, "=========6 %s\n", uppmPackageName);
         if (strcmp(uppmPackageName, "git") == 0) {
             // https://git-scm.com/book/en/v2/Git-Internals-Environment-Variables
 
@@ -1311,6 +1311,7 @@ static int install_dependent_packages_via_uppm(
             }
         }
 
+        fprintf(stderr, "=========7 %s\n", uppmPackageName);
         uppmPackageName = strtok_r(NULL, " ", &q);
     }
 
