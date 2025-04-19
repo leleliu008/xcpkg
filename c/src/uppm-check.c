@@ -1,4 +1,5 @@
 #include <errno.h>
+#include <stdatomic.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -34,12 +35,14 @@ int uppm_check_if_the_given_argument_matches_package_name_pattern(const char * a
 }
 
 int uppm_check_if_the_given_package_is_available(const char * packageName, const char * uppmHomeDIR, const size_t uppmHomeDIRLength) {
+    fprintf(stderr, "uppm_check_if_the_given_package_is_available() 0 packageName=%s\n", packageName);
     int ret = uppm_check_if_the_given_argument_matches_package_name_pattern(packageName);
 
     if (ret != XCPKG_OK) {
         return ret;
     }
 
+    fprintf(stderr, "uppm_check_if_the_given_package_is_available() 1 packageName=%s\n", packageName);
     size_t formulaFilePathCapacity = strlen(packageName) + 41U;
     char   formulaFilePath[formulaFilePathCapacity];
 
@@ -50,6 +53,7 @@ int uppm_check_if_the_given_package_is_available(const char * packageName, const
         return XCPKG_ERROR;
     }
 
+    fprintf(stderr, "uppm_check_if_the_given_package_is_available() 2 packageName=%s\n", packageName);
     struct stat st;
 
     if (stat(formulaFilePath, &st) == 0) {
