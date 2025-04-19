@@ -42,7 +42,7 @@ typedef struct {
 static int download_via_http(const char * url, const char * uri, const char * expectedSHA256SUM, const char * downloadDIR, size_t downloadDIRLength, const char * unpackDIR, size_t unpackDIRLength, const bool verbose) {
     char fileType[21] = {0};
 
-    int ret = xcpkg_examine_filetype_from_url(url, fileType, 20);
+    int ret = xcpkg_extract_filetype_from_url(url, fileType, 20);
 
     if (ret != XCPKG_OK) {
         return ret;

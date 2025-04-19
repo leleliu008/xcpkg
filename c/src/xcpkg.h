@@ -479,9 +479,13 @@ int xcpkg_git_sync(const char * gitRepositoryDIRPath, const char * remoteUrl, co
 
 int xcpkg_generate_url_transform_sample();
 
-int xcpkg_examine_filetype_from_url(const char * url, char buf[], const size_t bufSize);
+int xcpkg_extract_filetype_from_url(const char * url, char buf[], const size_t bufSize);
 
-int xcpkg_examine_filename_from_url(const char * url, char buf[], const size_t bufSize);
+int xcpkg_extract_filename_from_url(const char * url, char buf[], const size_t bufSize);
+
+int xcpkg_extract_version_from_src_url(const char * url, char versionBuf[], size_t versionBufCapacity);
+
+int xcpkg_extract_version_from_git_ref(const char * ref, char versionBuf[], size_t versionBufCapacity);
 
 int xcpkg_http_fetch_to_file(const char * url, const char * outputFilePath, const bool verbose, const bool showProgress);
 

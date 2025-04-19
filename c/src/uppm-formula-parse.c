@@ -1,15 +1,11 @@
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
-#include <stdbool.h>
 
-#include <libgen.h>
 #include <limits.h>
 #include <sys/stat.h>
 
 #include <yaml.h>
-
-#include "core/regex/regex.h"
 
 #include "uppm.h"
 #include "xcpkg.h"
@@ -284,162 +280,23 @@ static int uppm_formula_check(UPPMFormula * formula, const char * formulaFilePat
     }
 
     if (formula->version == NULL) {
-        size_t urlLength = strlen(formula->bin_url);
+        char version[20]; version[0] = '\0';
 
-        size_t urlCopyLength = urlLength + 1U;
-        char   urlCopy[urlCopyLength];
-        strncpy(urlCopy, formula->bin_url, urlCopyLength);
+        int ret = xcpkg_extract_version_from_src_url(formula->bin_url, version, 20);
 
-        char * srcFileName = basename(urlCopy);
-
-        size_t srcFileNameLength = 0;
-
-        for (;;) {
-            char c = srcFileName[srcFileNameLength];
-
-            if (c == '\0') {
-                break;
-            }
-
-            if (c == '_' || c == '@') {
-                srcFileName[srcFileNameLength] = '-';
-            }
-
-            srcFileNameLength++;
+        if (ret != XCPKG_OK) {
+            return ret;
         }
 
-        if (srcFileNameLength > 8) {
-                   if (strcmp(&srcFileName[srcFileNameLength - 8], ".tar.bz2") == 0) {
-                srcFileName[srcFileNameLength - 8] = '\0';
-                srcFileNameLength -= 8;
-            } else if (strcmp(&srcFileName[srcFileNameLength - 7], ".tar.gz") == 0) {
-                srcFileName[srcFileNameLength - 7] = '\0';
-                srcFileNameLength -= 7;
-            } else if (strcmp(&srcFileName[srcFileNameLength - 7], ".tar.xz") == 0) {
-                srcFileName[srcFileNameLength - 7] = '\0';
-                srcFileNameLength -= 7;
-            } else if (strcmp(&srcFileName[srcFileNameLength - 7], ".tar.lz") == 0) {
-                srcFileName[srcFileNameLength - 7] = '\0';
-                srcFileNameLength -= 7;
-            } else if (strcmp(&srcFileName[srcFileNameLength - 5], ".tbz2") == 0) {
-                srcFileName[srcFileNameLength - 5] = '\0';
-                srcFileNameLength -= 5;
-            } else if (strcmp(&srcFileName[srcFileNameLength - 4], ".tgz") == 0) {
-                srcFileName[srcFileNameLength - 4] = '\0';
-                srcFileNameLength -= 4;
-            } else if (strcmp(&srcFileName[srcFileNameLength - 4], ".txz") == 0) {
-                srcFileName[srcFileNameLength - 4] = '\0';
-                srcFileNameLength -= 4;
-            } else if (strcmp(&srcFileName[srcFileNameLength - 4], ".tlz") == 0) {
-                srcFileName[srcFileNameLength - 4] = '\0';
-                srcFileNameLength -= 4;
-            } else if (strcmp(&srcFileName[srcFileNameLength - 4], ".zip") == 0) {
-                srcFileName[srcFileNameLength - 4] = '\0';
-                srcFileNameLength -= 4;
-            }
-        } else if (srcFileNameLength > 7) {
-                   if (strcmp(&srcFileName[srcFileNameLength - 7], ".tar.gz") == 0) {
-                srcFileName[srcFileNameLength - 7] = '\0';
-                srcFileNameLength -= 7;
-            } else if (strcmp(&srcFileName[srcFileNameLength - 7], ".tar.xz") == 0) {
-                srcFileName[srcFileNameLength - 7] = '\0';
-                srcFileNameLength -= 7;
-            } else if (strcmp(&srcFileName[srcFileNameLength - 7], ".tar.lz") == 0) {
-                srcFileName[srcFileNameLength - 7] = '\0';
-                srcFileNameLength -= 7;
-            }
-        } else if (srcFileNameLength > 5) {
-                   if (strcmp(&srcFileName[srcFileNameLength - 5], ".tbz2") == 0) {
-                srcFileName[srcFileNameLength - 5] = '\0';
-                srcFileNameLength -= 5;
-            }
-        } else if (srcFileNameLength > 4) {
-                   if (strcmp(&srcFileName[srcFileNameLength - 4], ".tgz") == 0) {
-                srcFileName[srcFileNameLength - 4] = '\0';
-                srcFileNameLength -= 4;
-            } else if (strcmp(&srcFileName[srcFileNameLength - 4], ".txz") == 0) {
-                srcFileName[srcFileNameLength - 4] = '\0';
-                srcFileNameLength -= 4;
-            } else if (strcmp(&srcFileName[srcFileNameLength - 4], ".tlz") == 0) {
-                srcFileName[srcFileNameLength - 4] = '\0';
-                srcFileNameLength -= 4;
-            } else if (strcmp(&srcFileName[srcFileNameLength - 4], ".zip") == 0) {
-                srcFileName[srcFileNameLength - 4] = '\0';
-                srcFileNameLength -= 4;
-            }
-        }
-
-        //printf("----------------srcFileName = %s\n", srcFileName);
-
-        char * splitedStr = strtok(srcFileName, "-");
-
-        while (splitedStr != NULL) {
-            if (regex_matched(splitedStr, "^[0-9]+(\\.[0-9]+)+[a-z]?$") == 0) {
-                formula->version = strdup(splitedStr);
-
-                if (formula->version == NULL) {
-                    return XCPKG_ERROR_MEMORY_ALLOCATE;
-                } else {
-                    return XCPKG_OK;
-                }
-            } else {
-                if (errno != 0) {
-                    perror(NULL);
-                    return XCPKG_ERROR;
-                }
-            }
-
-            if (regex_matched(splitedStr, "^[vV][0-9]+(\\.[0-9]+)+[a-z]?$") == 0) {
-                formula->version = strdup(&splitedStr[1]);
-
-                if (formula->version == NULL) {
-                    return XCPKG_ERROR_MEMORY_ALLOCATE;
-                } else {
-                    return XCPKG_OK;
-                }
-            } else {
-                if (errno != 0) {
-                    perror(NULL);
-                    return XCPKG_ERROR;
-                }
-            }
-
-            if (regex_matched(splitedStr, "^[0-9]{3,8}$") == 0) {
-                formula->version = strdup(splitedStr);
-
-                if (formula->version == NULL) {
-                    return XCPKG_ERROR_MEMORY_ALLOCATE;
-                } else {
-                    return XCPKG_OK;
-                }
-            } else {
-                if (errno != 0) {
-                    perror(NULL);
-                    return XCPKG_ERROR;
-                }
-            }
-
-            if (regex_matched(splitedStr, "^[vrR][0-9]{2,8}[a-z]?$") == 0) {
-                formula->version = strdup(&splitedStr[1]);
-
-                if (formula->version == NULL) {
-                    return XCPKG_ERROR_MEMORY_ALLOCATE;
-                } else {
-                    return XCPKG_OK;
-                }
-            } else {
-                if (errno != 0) {
-                    perror(NULL);
-                    return XCPKG_ERROR;
-                }
-            }
-
-            splitedStr = strtok(NULL, "-");
-        }
-
-        if (formula->version == NULL) {
+        if (version[0] == '\0') {
             fprintf(stderr, "scheme error in formula file: %s : version mapping not found.\n", formulaFilePath);
             return XCPKG_ERROR_FORMULA_SCHEME;
+        } else {
+            formula->version = strdup(version);
+
+            if (formula->version == NULL) {
+                return XCPKG_ERROR_MEMORY_ALLOCATE;
+            }
         }
     }
 

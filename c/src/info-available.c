@@ -195,7 +195,7 @@ int xcpkg_available_info2(const XCPKGFormula * formula, const char * packageName
     } else if (strcmp(key, "src-ft") == 0) {
         char fileNameExtension[21] = {0};
 
-        int ret = xcpkg_examine_filetype_from_url(formula->src_url, fileNameExtension, 20);
+        int ret = xcpkg_extract_filetype_from_url(formula->src_url, fileNameExtension, 20);
 
         if (ret != XCPKG_OK) {
             return ret;
@@ -214,7 +214,7 @@ int xcpkg_available_info2(const XCPKGFormula * formula, const char * packageName
 
         char fileNameExtension[21] = {0};
 
-        ret = xcpkg_examine_filetype_from_url(formula->src_url, fileNameExtension, 20);
+        ret = xcpkg_extract_filetype_from_url(formula->src_url, fileNameExtension, 20);
 
         if (ret != XCPKG_OK) {
             return ret;
@@ -232,7 +232,7 @@ int xcpkg_available_info2(const XCPKGFormula * formula, const char * packageName
     } else if (strcmp(key, "fix-ft") == 0) {
         char fileNameExtension[21] = {0};
 
-        int ret = xcpkg_examine_filetype_from_url(formula->fix_url, fileNameExtension, 20);
+        int ret = xcpkg_extract_filetype_from_url(formula->fix_url, fileNameExtension, 20);
 
         if (ret != XCPKG_OK) {
             return ret;
@@ -251,7 +251,7 @@ int xcpkg_available_info2(const XCPKGFormula * formula, const char * packageName
 
         char fileNameExtension[21] = {0};
 
-        ret = xcpkg_examine_filetype_from_url(formula->fix_url, fileNameExtension, 20);
+        ret = xcpkg_extract_filetype_from_url(formula->fix_url, fileNameExtension, 20);
 
         if (ret != XCPKG_OK) {
             return ret;
@@ -269,7 +269,7 @@ int xcpkg_available_info2(const XCPKGFormula * formula, const char * packageName
     } else if (strcmp(key, "res-ft") == 0) {
         char fileNameExtension[21] = {0};
 
-        int ret = xcpkg_examine_filetype_from_url(formula->res_url, fileNameExtension, 20);
+        int ret = xcpkg_extract_filetype_from_url(formula->res_url, fileNameExtension, 20);
 
         if (ret != XCPKG_OK) {
             return ret;
@@ -288,7 +288,7 @@ int xcpkg_available_info2(const XCPKGFormula * formula, const char * packageName
 
         char fileNameExtension[21] = {0};
 
-        ret = xcpkg_examine_filetype_from_url(formula->res_url, fileNameExtension, 20);
+        ret = xcpkg_extract_filetype_from_url(formula->res_url, fileNameExtension, 20);
 
         if (ret != XCPKG_OK) {
             return ret;

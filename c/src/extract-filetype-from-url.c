@@ -2,7 +2,7 @@
 
 #include "xcpkg.h"
 
-int xcpkg_examine_filetype_from_url(const char * url, char buf[], const size_t bufSize) {
+int xcpkg_extract_filetype_from_url(const char * url, char buf[], const size_t bufSize) {
     if (url == NULL) {
         return XCPKG_ERROR_ARG_IS_NULL;
     }

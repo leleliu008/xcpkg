@@ -57,7 +57,7 @@ int xcpkg_download(const char * url, const char * uri, const char * expectedSHA2
     char outputFilePath[PATH_MAX];
 
     if (strcmp(outputPath, ".") == 0 || strcmp(outputPath, "./") == 0) {
-        int ret = xcpkg_examine_filename_from_url(url, outputFilePath, PATH_MAX);
+        int ret = xcpkg_extract_filename_from_url(url, outputFilePath, PATH_MAX);
 
         if (ret != XCPKG_OK) {
             return ret;
@@ -69,7 +69,7 @@ int xcpkg_download(const char * url, const char * uri, const char * expectedSHA2
         outputFilePath[1] = '.';
         outputFilePath[2] = '/';
 
-        int ret = xcpkg_examine_filename_from_url(url, outputFilePath + 3, PATH_MAX - 3);
+        int ret = xcpkg_extract_filename_from_url(url, outputFilePath + 3, PATH_MAX - 3);
 
         if (ret != XCPKG_OK) {
             return ret;
@@ -81,7 +81,7 @@ int xcpkg_download(const char * url, const char * uri, const char * expectedSHA2
     if (outputPath[outputPathLength - 1U] == '/') {
         strncpy(outputFilePath, outputPath, outputPathLength);
 
-        int ret = xcpkg_examine_filename_from_url(url, outputFilePath + outputPathLength, PATH_MAX - outputPathLength);
+        int ret = xcpkg_extract_filename_from_url(url, outputFilePath + outputPathLength, PATH_MAX - outputPathLength);
 
         if (ret != XCPKG_OK) {
             return ret;

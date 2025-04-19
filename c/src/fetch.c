@@ -51,7 +51,7 @@ static int xcpkg_fetch_git(const char * packageName, XCPKGFormula * formula, con
 static int xcpkg_fetch_file(const char * url, const char * uri, const char * expectedSHA256SUM, const char * xcpkgDownloadsDIR, const size_t xcpkgDownloadsDIRLength, const bool verbose) {
     char fileNameExtension[21] = {0};
 
-    int ret = xcpkg_examine_filetype_from_url(url, fileNameExtension, 20);
+    int ret = xcpkg_extract_filetype_from_url(url, fileNameExtension, 20);
 
     if (ret != XCPKG_OK) {
         return ret;
