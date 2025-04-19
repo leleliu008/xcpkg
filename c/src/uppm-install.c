@@ -1,4 +1,3 @@
-#include <stdatomic.h>
 #include <time.h>
 #include <errno.h>
 #include <stdio.h>
@@ -271,9 +270,7 @@ static int uppm_record_installed_files(const char * installedDIRPath) {
 }
 
 static int uppm_install_internal(const char * uppmHomeDIR, const size_t uppmHomeDIRLength, const char * packageName, const UPPMFormula * formula, const bool verbose, const bool force) {
-    fprintf(stderr, "uppm_install_internal() 1 packageName=%s\n", packageName);
     if (!force) {
-    fprintf(stderr, "uppm_install_internal() 2 packageName=%s\n", packageName);
         int ret = uppm_check_if_the_given_package_is_installed(packageName, uppmHomeDIR, uppmHomeDIRLength);
 
         if (ret == XCPKG_OK) {
@@ -281,7 +278,6 @@ static int uppm_install_internal(const char * uppmHomeDIR, const size_t uppmHome
             return XCPKG_OK;
         }
 
-    fprintf(stderr, "uppm_install_internal() 3 packageName=%s ret = %d\n", packageName, ret);
         if (ret != XCPKG_ERROR_PACKAGE_NOT_INSTALLED) {
             return ret;
         }

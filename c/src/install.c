@@ -1234,14 +1234,12 @@ static int install_dependent_packages_via_uppm(
     char * uppmPackageName = strtok_r(uppmPackageNamesCopy, " ", &q);
 
     while (uppmPackageName != NULL) {
-        fprintf(stderr, "=========0 %s\n", uppmPackageName);
         ret = uppm_install(uppmHomeDIR, uppmHomeDIRLength, uppmPackageName, verbose, false);
 
         if (ret != XCPKG_OK) {
             return ret;
         }
 
-        fprintf(stderr, "=========1 %s\n", uppmPackageName);
         size_t uppmPackageInstalledDIRCapacity = uppmPackageInstalledRootDIRCapacity + strlen(uppmPackageName) + 2U;
         char   uppmPackageInstalledDIR[uppmPackageInstalledDIRCapacity];
 
@@ -1252,28 +1250,24 @@ static int install_dependent_packages_via_uppm(
             return XCPKG_ERROR;
         }
 
-        fprintf(stderr, "=========2 %s\n", uppmPackageName);
         ret = setenv_PATH(uppmPackageInstalledDIR, uppmPackageInstalledDIRCapacity);
 
         if (ret != XCPKG_OK) {
             return ret;
         }
 
-        fprintf(stderr, "=========3 %s\n", uppmPackageName);
         ret = setenv_ACLOCAL_PATH(uppmPackageInstalledDIR, uppmPackageInstalledDIRCapacity);
 
         if (ret != XCPKG_OK) {
             return ret;
         }
 
-        fprintf(stderr, "=========4 %s\n", uppmPackageName);
         ret = setenv_XDG_DATA_DIRS(uppmPackageInstalledDIR, uppmPackageInstalledDIRCapacity);
 
         if (ret != XCPKG_OK) {
             return ret;
         }
 
-        fprintf(stderr, "=========6 %s\n", uppmPackageName);
         if (strcmp(uppmPackageName, "git") == 0) {
             // https://git-scm.com/book/en/v2/Git-Internals-Environment-Variables
 
