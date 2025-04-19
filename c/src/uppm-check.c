@@ -1,37 +1,16 @@
 #include <errno.h>
-#include <stdatomic.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdbool.h>
 
 #include <limits.h>
 #include <sys/stat.h>
-
-#include "core/regex/regex.h"
 
 #include "uppm.h"
 #include "xcpkg.h"
 
 int uppm_check_if_the_given_argument_matches_package_name_pattern(const char * arg) {
-    if (arg == NULL) {
-        return XCPKG_ERROR_ARG_IS_NULL;
-    }
-
-    if (arg[0] == '\0') {
-        return XCPKG_ERROR_ARG_IS_EMPTY;
-    }
-
-    if (regex_matched(arg, XCPKG_PACKAGE_NAME_PATTERN) == 0) {
-        return XCPKG_OK;
-    } else {
-        if (errno == 0) {
-            return XCPKG_ERROR_ARG_IS_INVALID;
-        } else {
-            perror(NULL);
-            return XCPKG_ERROR;
-        }
-    }
+    return xcpkg_check_if_the_given_argument_matches_package_name_pattern(arg);
 }
 
 int uppm_check_if_the_given_package_is_available(const char * packageName, const char * uppmHomeDIR, const size_t uppmHomeDIRLength) {
