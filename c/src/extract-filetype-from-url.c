@@ -2,78 +2,88 @@
 
 #include "xcpkg.h"
 
-int xcpkg_extract_filetype_from_url(const char * url, char buf[], const size_t bufSize) {
+int xcpkg_extract_filetype_from_url(const char * url, char buf[], const size_t bufCapacity) {
     if (url == NULL) {
         return XCPKG_ERROR_ARG_IS_NULL;
+    }
+
+    if (url[0] == '\0') {
+        return XCPKG_ERROR_ARG_IS_INVALID;
     }
 
     if (buf == NULL) {
         return XCPKG_ERROR_ARG_IS_NULL;
     }
 
-    if (bufSize == 0U) {
+    if (bufCapacity == 0U) {
         return XCPKG_ERROR_ARG_IS_INVALID;
     }
 
-    size_t urlLength = 0U;
+    int urlLength = 0U;
 
-    int i = -1;
-    int j = -1;
-    int k = -1;
+    int slashIndex = -1;
 
-    for (;;) {
-        char c = url[urlLength];
+    int dotIndex1 = -1;
+    int dotIndex2 = -1;
 
-        if ((c == '?') || (c == '\0')) {
+    for (int i = 0; ; i++) {
+        if (url[i] == '?' || url[i] == '\0') {
+            urlLength = i;
             break;
-        } else {
-            if (c == '/') {
-                i = urlLength;
-            } else if (c == '.') {
-                j = k;
-                k = urlLength;
-            }
+        }
 
-            urlLength++;
+        if (url[i] == '/') {
+            slashIndex = i;
+        } else if (url[i] == '.') {
+            dotIndex1 = dotIndex2;
+            dotIndex2 = i;
         }
     }
 
-    if (urlLength == 0U) {
-        return XCPKG_ERROR_ARG_IS_INVALID;
+    if (slashIndex == -1) {
+        return XCPKG_OK;
     }
 
-    if (k <= i) {
-        return 0;
+    if (dotIndex2 == -1) {
+        return XCPKG_OK;
     }
 
-    if (j > 0) {
-        const char * p = url + j;
+    if (dotIndex1 > 0) {
+        const char * p = url + dotIndex1 + 1;
 
-        if (strcmp(p, ".tar.gz") == 0) {
-            size_t n = bufSize > 4U ? 4U : bufSize;
+        if (strncmp(p, "tar.gz", 6) == 0) {
+            size_t n = bufCapacity > 5U ? 5U : bufCapacity;
             strncpy(buf, ".tgz", n);
             buf[n] = '\0';
             return XCPKG_OK;
-        } else if (strcmp(p, ".tar.xz") == 0) {
-            size_t n = bufSize > 4U ? 4U : bufSize;
+        } else if (strncmp(p, "tar.xz", 6) == 0) {
+            size_t n = bufCapacity > 5U ? 5U : bufCapacity;
             strncpy(buf, ".txz", n);
             buf[n] = '\0';
             return XCPKG_OK;
-        } else if (strcmp(p, ".tar.lz") == 0) {
-            size_t n = bufSize > 4U ? 4U : bufSize;
+        } else if (strncmp(p, "tar.lz", 6) == 0) {
+            size_t n = bufCapacity > 5U ? 5U : bufCapacity;
             strncpy(buf, ".tlz", n);
             buf[n] = '\0';
             return XCPKG_OK;
-        } else if (strcmp(p, ".tar.bz2") == 0) {
-            size_t n = bufSize > 5U ? 5U : bufSize;
+        } else if (strncmp(p, "tar.bz2", 7) == 0) {
+            size_t n = bufCapacity > 6U ? 6U : bufCapacity;
             strncpy(buf, ".tbz2", n);
             buf[n] = '\0';
             return XCPKG_OK;
         }
     }
 
-    size_t n = urlLength - k;
-    strncpy(buf, url + k, bufSize > n ? n : bufSize);
+    const char * p = url + dotIndex2;
+
+    size_t capacity = urlLength - dotIndex2 + 1;
+
+    size_t n = bufCapacity > capacity ? capacity : bufCapacity;
+
+    for (size_t i = 0; i < n; i++) {
+        buf[i] = p[i];
+    }
+
     buf[n] = '\0';
 
     return XCPKG_OK;

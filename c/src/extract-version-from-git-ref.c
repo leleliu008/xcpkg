@@ -1,8 +1,6 @@
-#include <string.h>
-
 #include "xcpkg.h"
 
-int xcpkg_extract_version_from_git_ref(const char * ref, char versionBuf[], size_t versionBufCapacity) {
+int xcpkg_extract_version_from_git_ref(const char * ref, char buf[], size_t bufCapacity) {
     if (ref == NULL) {
         return XCPKG_ERROR_ARG_IS_NULL;
     }
@@ -47,12 +45,18 @@ int xcpkg_extract_version_from_git_ref(const char * ref, char versionBuf[], size
             continue;
         }
 
-        if (p[i] < '0' && p[i] > '9') {
+        if (p[i] < '0' || p[i] > '9') {
             return XCPKG_OK;
         }
     }
 
-    strncpy(versionBuf, p, (capcity > versionBufCapacity ) ? versionBufCapacity : capcity);
+    size_t n = (capcity > bufCapacity ) ? bufCapacity : capcity;
+
+    for (size_t i = 0; i < n; i++) {
+        buf[i] = p[i];
+    }
+
+    buf[n] = '\0';
 
     return XCPKG_OK;
 }

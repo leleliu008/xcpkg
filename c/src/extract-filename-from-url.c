@@ -1,8 +1,6 @@
-#include <string.h>
-
 #include "xcpkg.h"
 
-int xcpkg_extract_filename_from_url(const char * url, char buf[], const size_t bufSize) {
+int xcpkg_extract_filename_from_url(const char * url, char buf[], const size_t bufCapacity) {
     if (url == NULL) {
         return XCPKG_ERROR_ARG_IS_NULL;
     }
@@ -15,37 +13,44 @@ int xcpkg_extract_filename_from_url(const char * url, char buf[], const size_t b
         return XCPKG_ERROR_ARG_IS_NULL;
     }
 
-    if (bufSize == 0U) {
+    if (bufCapacity == 0U) {
         return XCPKG_ERROR_ARG_IS_INVALID;
     }
 
     int slashIndex = -1;
 
-    int i = 0;
+    int len = 0;
 
-    for (;;) {
-        char c = url[i];
-
-        if ((c == '?') || (c == '\0')) {
+    for (int i = 0; ; i++) {
+        if (url[i] == '?' || url[i] == '\0') {
+            len = i;
             break;
         }
 
-        if (c == '/') {
+        if (url[i] == '/') {
             slashIndex = i;
         }
-
-        i++;
     }
+
+    const char * p;
+
+    size_t capacity;
 
     if (slashIndex == -1) {
-        size_t n = i;
-        strncpy(buf, url, bufSize > n ? n : bufSize);
-        buf[n] = '\0';
+        p = url;
+        capacity = len + 1;
     } else {
-        size_t n = i - slashIndex - 1;
-        strncpy(buf, url + slashIndex + 1, bufSize > n ? n : bufSize);
-        buf[n] = '\0';
+        p = url + slashIndex + 1;
+        capacity = len - slashIndex;
     }
+
+    size_t n = (capacity > bufCapacity) ? bufCapacity : capacity;
+
+    for (size_t i = 0; i < n; i++) {
+        buf[i] = p[i];
+    }
+
+    buf[n] = '\0';
 
     return XCPKG_OK;
 }
