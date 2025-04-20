@@ -344,25 +344,12 @@ static int xcpkg_depends_output_via_dot(const char * packageName, XCPKGDependsOu
 
     ////////////////////////////////////////////////////////////////
 
-    char   xcpkgHomeDIR[PATH_MAX];
-    size_t xcpkgHomeDIRLength;
+    char dotCommandPath[PATH_MAX];
 
-    ret = xcpkg_home_dir(xcpkgHomeDIR, &xcpkgHomeDIRLength);
+    ret = xcpkg_get_command_path_of_uppm_package("dot_static", "dot_static", dotCommandPath);
 
     if (ret != XCPKG_OK) {
         return ret;
-    }
-
-    const char * const str = "/uppm/installed/dot_static/bin/dot_static";
-
-    size_t dotCommandPathCapacity = xcpkgHomeDIRLength + strlen(str) + sizeof(char);
-    char   dotCommandPath[dotCommandPathCapacity];
-
-    ret = snprintf(dotCommandPath, dotCommandPathCapacity, "%s%s", xcpkgHomeDIR, str);
-
-    if (ret < 0) {
-        perror(NULL);
-        return XCPKG_ERROR;
     }
 
     ////////////////////////////////////////////////////////////////
@@ -442,25 +429,12 @@ static int xcpkg_depends_output_via_d2(const char * packageName, XCPKGDependsOut
 
     ////////////////////////////////////////////////////////////////
 
-    char   xcpkgHomeDIR[PATH_MAX];
-    size_t xcpkgHomeDIRLength;
+    char d2CommandPath[PATH_MAX];
 
-    ret = xcpkg_home_dir(xcpkgHomeDIR, &xcpkgHomeDIRLength);
+    ret = xcpkg_get_command_path_of_uppm_package("d2", "d2", d2CommandPath);
 
     if (ret != XCPKG_OK) {
         return ret;
-    }
-
-    const char * const str = "/uppm/installed/d2/bin/d2";
-
-    size_t d2CommandPathCapacity = xcpkgHomeDIRLength + strlen(str) + sizeof(char);
-    char   d2CommandPath[d2CommandPathCapacity];
-
-    ret = snprintf(d2CommandPath, d2CommandPathCapacity, "%s%s", xcpkgHomeDIR, str);
-
-    if (ret < 0) {
-        perror(NULL);
-        return XCPKG_ERROR;
     }
 
     ////////////////////////////////////////////////////////////////

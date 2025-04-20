@@ -1,0 +1,11 @@
+#!/bin/sh
+
+# https://nasa.github.io/trick/howto_guides/How-to-dump-core-file-on-MacOS.html
+
+ulimit -c unlimited
+
+/usr/libexec/PlistBuddy -c "Add :com.apple.security.get-task-allow bool true" xcpkg.entitlements
+
+codesign -s - -f --entitlements xcpkg.entitlements ~/.xcpkg/installed/MacOSX-*/xcpkg/bin/xcpkg
+
+# lldb -c /cores/core.24381 /Users/fpliu/.xcpkg/installed/MacOSX-*/xcpkg/bin/xcpkg formula-repo-add my_repo https://github.com/leleliu008/xcpkg-formula-repository-my_repo

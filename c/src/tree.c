@@ -1,4 +1,3 @@
-#include <stddef.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -7,7 +6,6 @@
 #include <sys/stat.h>
 
 #include "xcpkg.h"
-#include "uppm.h"
 
 int xcpkg_tree(const char * packageName, const char * targetPlatformSpec, size_t argc, char* argv[]) {
     int ret = xcpkg_check_if_the_given_argument_matches_package_name_pattern(packageName);
@@ -61,49 +59,12 @@ int xcpkg_tree(const char * packageName, const char * targetPlatformSpec, size_t
 
     //////////////////////////////////////////////////////////////////////////////
 
-    const char * const str = "/uppm/installed/tree/bin/tree";
+    char treeCommandPath[PATH_MAX];
 
-    size_t treeCommandPathCapacity = xcpkgHomeDIRLength + strlen(str) + sizeof(char);
-    char   treeCommandPath[treeCommandPathCapacity];
+    ret = xcpkg_get_command_path_of_uppm_package("tree", "tree", treeCommandPath);
 
-    ret = snprintf(treeCommandPath, treeCommandPathCapacity, "%s%s", xcpkgHomeDIR, str);
-
-    if (ret < 0) {
-        perror(NULL);
-        return XCPKG_ERROR;
-    }
-
-    //////////////////////////////////////////////////////////////////////////////
-
-    if (stat(treeCommandPath, &st) == 0) {
-        if (!S_ISREG(st.st_mode)) {
-            fprintf(stderr, "%s was expected to be a regular file, but it was not.\n", treeCommandPath);
-            return XCPKG_ERROR;
-        }
-    } else {
-        size_t uppmHomeDIRCapacity = xcpkgHomeDIRLength + 6U;
-        char   uppmHomeDIR[uppmHomeDIRCapacity];
-
-        ret = snprintf(uppmHomeDIR, uppmHomeDIRCapacity, "%s/uppm", xcpkgHomeDIR);
-
-        if (ret < 0) {
-            perror(NULL);
-            return XCPKG_ERROR;
-        }
-
-        size_t uppmHomeDIRLength = ret;
-
-        ret = uppm_formula_repo_sync_official_core(uppmHomeDIR, uppmHomeDIRLength);
-
-        if (ret != XCPKG_OK) {
-            return ret;
-        }
-
-        ret = uppm_install(uppmHomeDIR, uppmHomeDIRLength, "tree", false, false);
-
-        if (ret != XCPKG_OK) {
-            return ret;
-        }
+    if (ret != XCPKG_OK) {
+        return ret;
     }
 
     //////////////////////////////////////////////////////////////////////////////

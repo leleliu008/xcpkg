@@ -56,74 +56,46 @@ int xcpkg_logs(const char * packageName, const char * targetPlatformSpec) {
 
     //////////////////////////////////////////////////////////////////////////////
 
-    const char * const str = "/uppm/installed/fzf/bin/fzf";
+    char fzfCommandPath[PATH_MAX];
 
-    size_t fzfCommandPathCapacity = xcpkgHomeDIRLength + strlen(str) + sizeof(char);
-    char   fzfCommandPath[fzfCommandPathCapacity];
+    ret = xcpkg_get_command_path_of_uppm_package("fzf", "fzf", fzfCommandPath);
 
-    ret = snprintf(fzfCommandPath, fzfCommandPathCapacity, "%s%s", xcpkgHomeDIR, str);
+    if (ret != XCPKG_OK) {
+        return ret;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+
+    char batCommandPath[PATH_MAX];
+
+    ret = xcpkg_get_command_path_of_uppm_package("bat", "bat", batCommandPath);
+
+    if (ret != XCPKG_OK) {
+        return ret;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+
+    if (chdir(metaInfoDIR) == -1) {
+        if (errno == ENOENT) {
+            return XCPKG_ERROR_PACKAGE_NOT_INSTALLED;
+        } else {
+            perror(metaInfoDIR);
+            return XCPKG_ERROR;
+        }
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+
+    size_t arg1Capacity = strlen(batCommandPath) + 45;
+    char   arg1[arg1Capacity];
+
+    ret = snprintf(arg1, arg1Capacity, "--preview=%s --color=always --theme=Dracula {}", batCommandPath);
 
     if (ret < 0) {
         perror(NULL);
         return XCPKG_ERROR;
     }
 
-    //////////////////////////////////////////////////////////////////////////////
-
-    return xcpkg_fork_exec2(3, fzfCommandPath, "--preview=bat --color=always --theme=Dracula {}", "--preview-window=right:75%");
-}
-
-static int xx(const char * metaInfoDIR, const size_t metaInfoDIRCapacity) {
-    DIR * dir = opendir(metaInfoDIR);
-
-    if (dir == NULL) {
-        perror(metaInfoDIR);
-        return XCPKG_ERROR;
-    }
-
-    for (;;) {
-        errno = 0;
-
-        struct dirent * dir_entry = readdir(dir);
-
-        if (dir_entry == NULL) {
-            if (errno == 0) {
-                closedir(dir);
-                return XCPKG_OK;
-            } else {
-                perror(metaInfoDIR);
-                closedir(dir);
-                return XCPKG_ERROR;
-            }
-        }
-
-        //puts(dir_entry->d_name);
-
-        if ((strcmp(dir_entry->d_name, ".") == 0) || (strcmp(dir_entry->d_name, "..") == 0)) {
-            continue;
-        }
-
-        size_t filepathCapacity = metaInfoDIRCapacity + strlen(dir_entry->d_name) + 2U;
-        char   filepath[filepathCapacity];
-
-        int ret = snprintf(filepath, filepathCapacity, "%s/%s", metaInfoDIR, dir_entry->d_name);
-
-        if (ret < 0) {
-            perror(NULL);
-            closedir(dir);
-            return XCPKG_ERROR;
-        }
-
-        struct stat st;
-
-        if (stat(filepath, &st) == 0 && S_ISDIR(st.st_mode)) {
-            continue;
-        }
-
-        ret = xcpkg_fork_exec2(2, "bat", filepath);
-
-        if (ret != XCPKG_OK) {
-            return ret;
-        }
-    }
+    return xcpkg_fork_exec2(3, fzfCommandPath, arg1, "--preview-window=right:75%");
 }

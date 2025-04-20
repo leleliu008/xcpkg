@@ -515,4 +515,6 @@ int xcpkg_setenv_SSL_CERT_FILE();
 
 int xcpkg_get_platform_id_by_name(const char * const platformName, XCPKGPlatformID * const platformID);
 
+int xcpkg_get_command_path_of_uppm_package(const char * uppmPackageName, const char * cmdname, char buf[]);
+
 #endif

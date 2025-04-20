@@ -59,7 +59,7 @@ int xcpkg_formula_repo_add(const char * formulaRepoName, const char * formulaRep
 
     if (stat(formulaRepoDIR, &st) == 0) {
         if (S_ISDIR(st.st_mode)) {
-            fprintf(stderr, "formula repo '%s' already exist.", formulaRepoName);
+            fprintf(stderr, "formula repo '%s' already exist.\n", formulaRepoName);
             return XCPKG_ERROR_FORMULA_REPO_HAS_EXIST;
         } else {
             fprintf(stderr, "%s was expected to be a directory, but it was not.\n", formulaRepoDIR);

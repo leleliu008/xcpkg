@@ -52,6 +52,7 @@ static void git_checkout_progress_callback(const char * path, size_t completed_s
 // https://libgit2.org/libgit2/#HEAD/group/credential/git_credential_ssh_key_new
 // https://libgit2.org/libgit2/#HEAD/group/callback/git_credential_acquire_cb
 static int git_credential_acquire_callback(git_credential ** credential, const char * url, const char * username_from_url, unsigned int allowed_types, void * payload) {
+    fprintf(stderr, "git_credential_acquire_callback() url=%s\n", url);
     const char * const userHomeDIR = getenv("HOME");
 
     if (userHomeDIR == NULL) {
