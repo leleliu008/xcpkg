@@ -4,7 +4,6 @@
 #include <string.h>
 #include <stdbool.h>
 
-#include <fcntl.h>
 #include <unistd.h>
 #include <limits.h>
 #include <sys/stat.h>
@@ -40,7 +39,7 @@ static int string_append(char ** outP, size_t * outSize, size_t * outCapacity, c
     return XCPKG_OK;
 }
 
-static int get_output_file_path(char outputFilePath[PATH_MAX], const char * packageName, XCPKGDependsOutputType outputType, const char * outputPath) {
+static int get_output_file_path(char outputFilePath[PATH_MAX], const char * packageName, XCPKGDependsOutputType outputType, const char * outputPath, const char * owd) {
     const char * outputFileNameSuffix;
 
     switch (outputType) {
@@ -51,19 +50,23 @@ static int get_output_file_path(char outputFilePath[PATH_MAX], const char * pack
         case XCPKGDependsOutputType_PNG: outputFileNameSuffix = "png"; break;
     }
 
+    if (owd == NULL) {
+        owd = ".";
+    }
+
     int ret;
 
     if (outputPath == NULL || outputPath[0] == '\0') {
-        ret = snprintf(outputFilePath, strlen(packageName) + 20U, "%s-dependencies.%s", packageName, outputFileNameSuffix);
+        ret = snprintf(outputFilePath, strlen(owd) + strlen(packageName) + 20U, "%s/%s-dependencies.%s", owd, packageName, outputFileNameSuffix);
     } else {
         size_t outputPathLength = strlen(outputPath);
 
         if (strcmp(outputPath, ".") == 0) {
-           ret = snprintf(outputFilePath, strlen(packageName) + 20U, "%s-dependencies.%s", packageName, outputFileNameSuffix);
+            ret = snprintf(outputFilePath, strlen(owd) + strlen(packageName) + 20U, "%s/%s-dependencies.%s", owd, packageName, outputFileNameSuffix);
         } else if (strcmp(outputPath, "..") == 0) {
-           ret = snprintf(outputFilePath, strlen(packageName) + 23U, "../%s-dependencies.%s", packageName, outputFileNameSuffix);
+            ret = snprintf(outputFilePath, strlen(owd) + strlen(packageName) + 23U, "%s/../%s-dependencies.%s", owd, packageName, outputFileNameSuffix);
         } else if (outputPath[outputPathLength - 1] == '/') {
-           ret = snprintf(outputFilePath, strlen(outputPath) + strlen(packageName) + 20U, "%s%s-dependencies.%s", outputPath, packageName, outputFileNameSuffix);
+            ret = snprintf(outputFilePath, strlen(outputPath) + strlen(packageName) + 20U, "%s%s-dependencies.%s", outputPath, packageName, outputFileNameSuffix);
         } else {
             ret = 0;
             size_t n = strlen(outputPath);
@@ -84,125 +87,92 @@ static int xcpkg_depends_output_d2(const char * packageName, const char * output
     if (outputPath == NULL) {
         printf("%s\n", d2ScriptStr);
         return XCPKG_OK;
-    } else {
-        char   sessionDIR[PATH_MAX];
-        size_t sessionDIRLength;
-
-        int ret = xcpkg_session_dir(sessionDIR, &sessionDIRLength);
-
-        if (ret != XCPKG_OK) {
-            return ret;
-        }
-
-        ////////////////////////////////////////////////////////////////
-
-        size_t tmpFilePathCapacity = sessionDIRLength + 18U;
-        char   tmpFilePath[tmpFilePathCapacity];
-
-        ret = snprintf(tmpFilePath, tmpFilePathCapacity, "%s/dependencies.d2", sessionDIR);
-
-        if (ret < 0) {
-            perror(NULL);
-            return XCPKG_ERROR;
-        }
-
-        const int fd = open(tmpFilePath, O_CREAT | O_WRONLY | O_TRUNC, 0666);
-
-        if (fd == -1) {
-            perror(tmpFilePath);
-            return XCPKG_ERROR;
-        }
-
-        ret = write(fd, d2ScriptStr, d2ScriptStrLength);
-
-        if (ret == -1) {
-            perror(tmpFilePath);
-            close(fd);
-            return XCPKG_ERROR;
-        }
-
-        close(fd);
-
-        if ((size_t)ret != d2ScriptStrLength) {
-            fprintf(stderr, "not fully written: %s\n", tmpFilePath);
-            return XCPKG_ERROR;
-        }
-
-        ////////////////////////////////////////////////////////////////
-
-        char outputFilePath[PATH_MAX];
-
-        ret = get_output_file_path(outputFilePath, packageName, XCPKGDependsOutputType_D2, outputPath);
-
-        if (ret != XCPKG_OK) {
-            return ret;
-        }
-
-        return xcpkg_rename_or_copy_file(tmpFilePath, outputFilePath);
     }
-}
 
+    char   sessionDIR[PATH_MAX];
+    size_t sessionDIRLength;
+
+    int ret = xcpkg_session_dir(sessionDIR, &sessionDIRLength);
+
+    if (ret != XCPKG_OK) {
+        return ret;
+    }
+
+    ////////////////////////////////////////////////////////////////
+
+    size_t tmpFilePathCapacity = sessionDIRLength + 18U;
+    char   tmpFilePath[tmpFilePathCapacity];
+
+    ret = snprintf(tmpFilePath, tmpFilePathCapacity, "%s/dependencies.d2", sessionDIR);
+
+    if (ret < 0) {
+        perror(NULL);
+        return XCPKG_ERROR;
+    }
+
+    ret = xcpkg_write_file(tmpFilePath, d2ScriptStr, d2ScriptStrLength);
+
+    if (ret != XCPKG_OK) {
+        return ret;
+    }
+
+    ////////////////////////////////////////////////////////////////
+
+    char outputFilePath[PATH_MAX];
+
+    ret = get_output_file_path(outputFilePath, packageName, XCPKGDependsOutputType_D2, outputPath, NULL);
+
+    if (ret != XCPKG_OK) {
+        return ret;
+    }
+
+    return xcpkg_rename_or_copy_file(tmpFilePath, outputFilePath);
+}
 
 static int xcpkg_depends_output_dot(const char * packageName, const char * outputPath, const char * dotScriptStr, const size_t dotScriptStrLength) {
     if (outputPath == NULL) {
         printf("%s\n", dotScriptStr);
         return XCPKG_OK;
-    } else {
-        char   sessionDIR[PATH_MAX];
-        size_t sessionDIRLength;
-
-        int ret = xcpkg_session_dir(sessionDIR, &sessionDIRLength);
-
-        if (ret != XCPKG_OK) {
-            return ret;
-        }
-
-        ////////////////////////////////////////////////////////////////
-
-        size_t tmpFilePathCapacity = sessionDIRLength + 18U;
-        char   tmpFilePath[tmpFilePathCapacity];
-
-        ret = snprintf(tmpFilePath, tmpFilePathCapacity, "%s/dependencies.dot", sessionDIR);
-
-        if (ret < 0) {
-            perror(NULL);
-            return XCPKG_ERROR;
-        }
-
-        int fd = open(tmpFilePath, O_CREAT | O_WRONLY | O_TRUNC, 0666);
-
-        if (fd == -1) {
-            perror(tmpFilePath);
-            return XCPKG_ERROR;
-        }
-
-        ret = write(fd, dotScriptStr, dotScriptStrLength);
-
-        if (ret == -1) {
-            perror(tmpFilePath);
-            close(fd);
-            return XCPKG_ERROR;
-        }
-
-        close(fd);
-
-        if ((size_t)ret != dotScriptStrLength) {
-            fprintf(stderr, "not fully written: %s\n", tmpFilePath);
-            return XCPKG_ERROR;
-        }
-
-        ////////////////////////////////////////////////////////////////
-
-        char outputFilePath[PATH_MAX];
-
-        ret = get_output_file_path(outputFilePath, packageName, XCPKGDependsOutputType_DOT, outputPath);
-
-        if (ret != XCPKG_OK) {
-            return ret;
-        }
-
-        return xcpkg_rename_or_copy_file(tmpFilePath, outputFilePath);
     }
+
+    char   sessionDIR[PATH_MAX];
+    size_t sessionDIRLength;
+
+    int ret = xcpkg_session_dir(sessionDIR, &sessionDIRLength);
+
+    if (ret != XCPKG_OK) {
+        return ret;
+    }
+
+    ////////////////////////////////////////////////////////////////
+
+    size_t tmpFilePathCapacity = sessionDIRLength + 18U;
+    char   tmpFilePath[tmpFilePathCapacity];
+
+    ret = snprintf(tmpFilePath, tmpFilePathCapacity, "%s/dependencies.dot", sessionDIR);
+
+    if (ret < 0) {
+        perror(NULL);
+        return XCPKG_ERROR;
+    }
+
+    ret = xcpkg_write_file(tmpFilePath, dotScriptStr, dotScriptStrLength);
+
+    if (ret != XCPKG_OK) {
+        return ret;
+    }
+
+    ////////////////////////////////////////////////////////////////
+
+    char outputFilePath[PATH_MAX];
+
+    ret = get_output_file_path(outputFilePath, packageName, XCPKGDependsOutputType_DOT, outputPath, NULL);
+
+    if (ret != XCPKG_OK) {
+        return ret;
+    }
+
+    return xcpkg_rename_or_copy_file(tmpFilePath, outputFilePath);
 }
 
 static int xcpkg_depends_output_box(const char * packageName, const char * outputPath, const char * dotScriptStr, const size_t dotScriptStrLength) {
@@ -275,7 +245,7 @@ static int xcpkg_depends_output_box(const char * packageName, const char * outpu
         } else {
             char outputFilePath[PATH_MAX];
 
-            ret = get_output_file_path(outputFilePath, packageName, XCPKGDependsOutputType_BOX, outputPath);
+            ret = get_output_file_path(outputFilePath, packageName, XCPKGDependsOutputType_BOX, outputPath, NULL);
 
             if (ret != XCPKG_OK) {
                 return ret;
@@ -287,57 +257,9 @@ static int xcpkg_depends_output_box(const char * packageName, const char * outpu
 }
 
 static int xcpkg_depends_output_via_dot(const char * packageName, XCPKGDependsOutputType outputType, const char * outputPath, const char * dotScriptStr, const size_t dotScriptStrLength) {
-    char   sessionDIR[PATH_MAX];
-    size_t sessionDIRLength;
+    char cwd[PATH_MAX];
 
-    int ret = xcpkg_session_dir(sessionDIR, &sessionDIRLength);
-
-    if (ret != XCPKG_OK) {
-        return ret;
-    }
-
-    ////////////////////////////////////////////////////////////////
-
-    size_t dotFilePathCapacity = sessionDIRLength + 18U;
-    char   dotFilePath[dotFilePathCapacity];
-
-    ret = snprintf(dotFilePath, dotFilePathCapacity, "%s/dependencies.dot", sessionDIR);
-
-    if (ret < 0) {
-        perror(NULL);
-        return XCPKG_ERROR;
-    }
-
-    int fd = open(dotFilePath, O_CREAT | O_WRONLY | O_TRUNC, 0666);
-
-    if (fd == -1) {
-        perror(dotFilePath);
-        return XCPKG_ERROR;
-    }
-
-    ret = write(fd, dotScriptStr, dotScriptStrLength);
-
-    if (ret == -1) {
-        perror(dotFilePath);
-        close(fd);
-        return XCPKG_ERROR;
-    }
-
-    close(fd);
-
-    if ((size_t)ret != dotScriptStrLength) {
-        fprintf(stderr, "not fully written: %s\n", dotFilePath);
-        return XCPKG_ERROR;
-    }
-
-    ////////////////////////////////////////////////////////////////
-
-    size_t tmpFilePathCapacity = sessionDIRLength + 18U;
-    char   tmpFilePath[tmpFilePathCapacity];
-
-    ret = snprintf(tmpFilePath, tmpFilePathCapacity, "%s/dependencies.tmp", sessionDIR);
-
-    if (ret < 0) {
+    if (getcwd(cwd, PATH_MAX) == NULL) {
         perror(NULL);
         return XCPKG_ERROR;
     }
@@ -346,7 +268,7 @@ static int xcpkg_depends_output_via_dot(const char * packageName, XCPKGDependsOu
 
     char dotCommandPath[PATH_MAX];
 
-    ret = xcpkg_get_command_path_of_uppm_package("dot_static", "dot_static", dotCommandPath);
+    int ret = xcpkg_get_command_path_of_uppm_package("dot_static", "dot_static", dotCommandPath);
 
     if (ret != XCPKG_OK) {
         return ret;
@@ -354,28 +276,23 @@ static int xcpkg_depends_output_via_dot(const char * packageName, XCPKGDependsOu
 
     ////////////////////////////////////////////////////////////////
 
-    ret = xcpkg_fork_exec2(5, dotCommandPath, (outputType == XCPKGDependsOutputType_PNG) ? "-Tpng" : "-Tsvg", "-o", tmpFilePath, dotFilePath);
-
-    if (ret != XCPKG_OK) {
-        return ret;
-    }
-
-    char outputFilePath[PATH_MAX];
-
-    ret = get_output_file_path(outputFilePath, packageName, outputType, outputPath);
-
-    if (ret != XCPKG_OK) {
-        return ret;
-    }
-
-    return xcpkg_rename_or_copy_file(tmpFilePath, outputFilePath);
-}
-
-static int xcpkg_depends_output_via_d2(const char * packageName, XCPKGDependsOutputType outputType, const char * outputPath, const char * d2ScriptStr, const size_t d2ScriptStrLength) {
     char   sessionDIR[PATH_MAX];
     size_t sessionDIRLength;
 
-    int ret = xcpkg_session_dir(sessionDIR, &sessionDIRLength);
+    ret = xcpkg_session_dir(sessionDIR, &sessionDIRLength);
+
+    if (ret != XCPKG_OK) {
+        return ret;
+    }
+
+    if (chdir(sessionDIR) != 0) {
+        perror(sessionDIR);
+        return XCPKG_ERROR;
+    }
+
+    ////////////////////////////////////////////////////////////////
+
+    ret = xcpkg_write_file("dependencies.dot", dotScriptStr, dotScriptStrLength);
 
     if (ret != XCPKG_OK) {
         return ret;
@@ -383,46 +300,36 @@ static int xcpkg_depends_output_via_d2(const char * packageName, XCPKGDependsOut
 
     ////////////////////////////////////////////////////////////////
 
-    size_t d2FilePathCapacity = sessionDIRLength + 18U;
-    char   d2FilePath[d2FilePathCapacity];
+    char outputFilePath[PATH_MAX];
 
-    ret = snprintf(d2FilePath, d2FilePathCapacity, "%s/dependencies.d2", sessionDIR);
+    ret = get_output_file_path(outputFilePath, packageName, outputType, outputPath, cwd);
 
-    if (ret < 0) {
-        perror(NULL);
-        return XCPKG_ERROR;
-    }
-
-    int fd = open(d2FilePath, O_CREAT | O_WRONLY | O_TRUNC, 0666);
-
-    if (fd == -1) {
-        perror(d2FilePath);
-        return XCPKG_ERROR;
-    }
-
-    ret = write(fd, d2ScriptStr, d2ScriptStrLength);
-
-    if (ret == -1) {
-        perror(d2FilePath);
-        close(fd);
-        return XCPKG_ERROR;
-    }
-
-    close(fd);
-
-    if ((size_t)ret != d2ScriptStrLength) {
-        fprintf(stderr, "not fully written: %s\n", d2FilePath);
-        return XCPKG_ERROR;
+    if (ret != XCPKG_OK) {
+        return ret;
     }
 
     ////////////////////////////////////////////////////////////////
 
-    size_t tmpFilePathCapacity = sessionDIRLength + 18U;
-    char   tmpFilePath[tmpFilePathCapacity];
+    ret = xcpkg_fork_exec2(5, dotCommandPath, (outputType == XCPKGDependsOutputType_PNG) ? "-Tpng" : "-Tsvg", "-o", outputFilePath, "dependencies.dot");
 
-    ret = snprintf(tmpFilePath, tmpFilePathCapacity, "%s/dependencies.%s", sessionDIR, (outputType == XCPKGDependsOutputType_PNG) ? "png" : "svg");
+    if (ret != XCPKG_OK) {
+        return ret;
+    }
 
-    if (ret < 0) {
+    ////////////////////////////////////////////////////////////////
+
+    if (chdir(cwd) != 0) {
+        perror(cwd);
+        return XCPKG_ERROR;
+    }
+
+    return XCPKG_OK;
+}
+
+static int xcpkg_depends_output_via_d2(const char * packageName, XCPKGDependsOutputType outputType, const char * outputPath, const char * d2ScriptStr, const size_t d2ScriptStrLength) {
+    char cwd[PATH_MAX];
+
+    if (getcwd(cwd, PATH_MAX) == NULL) {
         perror(NULL);
         return XCPKG_ERROR;
     }
@@ -431,7 +338,7 @@ static int xcpkg_depends_output_via_d2(const char * packageName, XCPKGDependsOut
 
     char d2CommandPath[PATH_MAX];
 
-    ret = xcpkg_get_command_path_of_uppm_package("d2", "d2", d2CommandPath);
+    int ret = xcpkg_get_command_path_of_uppm_package("d2", "d2", d2CommandPath);
 
     if (ret != XCPKG_OK) {
         return ret;
@@ -439,30 +346,69 @@ static int xcpkg_depends_output_via_d2(const char * packageName, XCPKGDependsOut
 
     ////////////////////////////////////////////////////////////////
 
-    ret = xcpkg_fork_exec2(3, d2CommandPath, d2FilePath, tmpFilePath);
+    char   sessionDIR[PATH_MAX];
+    size_t sessionDIRLength;
+
+    ret = xcpkg_session_dir(sessionDIR, &sessionDIRLength);
 
     if (ret != XCPKG_OK) {
         return ret;
     }
+
+    ////////////////////////////////////////////////////////////////
+
+    ret = xcpkg_write_file("dependencies.d2", d2ScriptStr, d2ScriptStrLength);
+
+    if (ret != XCPKG_OK) {
+        return ret;
+    }
+
+    ////////////////////////////////////////////////////////////////
+
+    char tmpFilePath[17];
+
+    ret = snprintf(tmpFilePath, 17, "dependencies.%s", (outputType == XCPKGDependsOutputType_PNG) ? "png" : "svg");
+
+    if (ret < 0) {
+        perror(NULL);
+        return XCPKG_ERROR;
+    }
+
+    ////////////////////////////////////////////////////////////////
 
     char outputFilePath[PATH_MAX];
 
-    ret = get_output_file_path(outputFilePath, packageName, outputType, outputPath);
+    ret = get_output_file_path(outputFilePath, packageName, outputType, outputPath, cwd);
 
     if (ret != XCPKG_OK) {
         return ret;
     }
 
-    return xcpkg_rename_or_copy_file(tmpFilePath, outputFilePath);
+    ////////////////////////////////////////////////////////////////
+
+    ret = xcpkg_fork_exec2(3, d2CommandPath, "dependencies.d2", tmpFilePath);
+
+    if (ret != XCPKG_OK) {
+        return ret;
+    }
+
+    ////////////////////////////////////////////////////////////////
+
+    if (chdir(cwd) != 0) {
+        perror(cwd);
+        return XCPKG_ERROR;
+    }
+
+    return XCPKG_OK;
 }
 
 int xcpkg_depends(const char * packageName, const char * targetPlatformName, XCPKGDependsOutputType outputType, const char * outputPath, XCPKGDependsOutputDiagramEngine engine) {
     bool needGenerateDotScript;
 
     switch (outputType) {
-        case XCPKGDependsOutputType_D2 : needGenerateDotScript = false;
-        case XCPKGDependsOutputType_DOT: needGenerateDotScript = true;
-        case XCPKGDependsOutputType_BOX: needGenerateDotScript = true;
+        case XCPKGDependsOutputType_D2 : needGenerateDotScript = false; break;
+        case XCPKGDependsOutputType_DOT: needGenerateDotScript = true;  break;
+        case XCPKGDependsOutputType_BOX: needGenerateDotScript = true;  break;
         default:
             if (engine == XCPKGDependsOutputDiagramEngine_DOT) {
                 needGenerateDotScript = true;
@@ -550,6 +496,7 @@ int xcpkg_depends(const char * packageName, const char * targetPlatformName, XCP
         ret = xcpkg_formula_load(packageName, targetPlatformName, NULL, &formula);
 
         if (ret != XCPKG_OK) {
+            puts(packageName);
             goto finalize;
         }
 

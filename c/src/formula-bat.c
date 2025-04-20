@@ -1,6 +1,3 @@
-#include <stdio.h>
-#include <string.h>
-
 #include <unistd.h>
 #include <limits.h>
 
@@ -17,27 +14,12 @@ int xcpkg_formula_bat(const char * packageName, const char * targetPlatformName)
 
     //////////////////////////////////////////////////////////////////////////////
 
-    char   xcpkgHomeDIR[PATH_MAX];
-    size_t xcpkgHomeDIRLength;
+    char batCommandPath[PATH_MAX];
 
-    ret = xcpkg_home_dir(xcpkgHomeDIR, &xcpkgHomeDIRLength);
+    ret = xcpkg_get_command_path_of_uppm_package("bat", "bat", batCommandPath);
 
     if (ret != XCPKG_OK) {
         return ret;
-    }
-
-    //////////////////////////////////////////////////////////////////////////////
-
-    const char * const str = "/uppm/installed/bat/bin/bat";
-
-    size_t batCommandPathCapacity = xcpkgHomeDIRLength + strlen(str) + sizeof(char);
-    char   batCommandPath[batCommandPathCapacity];
-
-    ret = snprintf(batCommandPath, batCommandPathCapacity, "%s%s", xcpkgHomeDIR, str);
-
-    if (ret < 0) {
-        perror(NULL);
-        return XCPKG_ERROR;
     }
 
     //////////////////////////////////////////////////////////////////////////////

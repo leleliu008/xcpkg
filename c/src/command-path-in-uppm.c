@@ -59,7 +59,7 @@ int xcpkg_get_command_path_of_uppm_package(const char * uppmPackageName, const c
             return ret;
         }
 
-        ret = uppm_install(uppmHomeDIR, uppmHomeDIRLength, uppmPackageName, true, false);
+        ret = uppm_install(uppmHomeDIR, uppmHomeDIRLength, uppmPackageName, false, false);
 
         if (ret != XCPKG_OK) {
             return ret;
