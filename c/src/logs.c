@@ -97,5 +97,10 @@ int xcpkg_logs(const char * packageName, const char * targetPlatformSpec) {
         return XCPKG_ERROR;
     }
 
-    return xcpkg_fork_exec2(3, fzfCommandPath, arg1, "--preview-window=right:75%");
+    //////////////////////////////////////////////////////////////////////////////
+
+    execl (fzfCommandPath, fzfCommandPath, arg1, "--preview-window=right:75%", NULL);
+    perror(fzfCommandPath);
+
+    return XCPKG_ERROR;
 }

@@ -19,7 +19,7 @@ int xcpkg_extract_filetype_from_url(const char * url, char buf[], const size_t b
         return XCPKG_ERROR_ARG_IS_INVALID;
     }
 
-    int urlLength = 0U;
+    int urlLength = 0;
 
     int slashIndex = -1;
 

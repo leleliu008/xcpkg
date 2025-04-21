@@ -1319,7 +1319,6 @@ static int install_dependent_packages_via_uppm(
             }
         }
 
-        fprintf(stderr, "=========7 %s\n", uppmPackageName);
         uppmPackageName = strtok_r(NULL, " ", &q);
     }
 
