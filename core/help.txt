@@ -1,0 +1,302 @@
+[38;5;199m    [38;5;163m    [38;5;164m     [38;5;128m   _[38;5;129m    [38;5;93m     
+[38;5;199m__ [38;5;163m ____[38;5;164m_ _ [38;5;128m__ |[38;5;129m | __[38;5;93m__ _[38;5;99m 
+[38;5;199m\ \[38;5;163m/ / [38;5;164m__| '[38;5;128m_ \|[38;5;129m |/ [38;5;93m/ _` [38;5;99m|
+[38;5;199m > [38;5;163m < ([38;5;164m__| [38;5;128m|_) |[38;5;129m   <[38;5;93m (_|[38;5;99m |
+[38;5;199m/_[38;5;163m/\_\[38;5;164m___| [38;5;128m.__/[38;5;129m|_|\[38;5;93m_\__,[38;5;99m |
+[38;5;199m  [38;5;163m    [38;5;164m   |[38;5;128m_|   [38;5;129m    [38;5;93m |__[38;5;99m_/
+[0m
+[0;32mA package builder/manager for Xcode to build projects written in C, C++, Rust, Zig, Go, Haskell, etc.[0m
+
+[0;32mxcpkg <ACTION> [ARGUMENT...][0m
+
+[0;32mxcpkg help[0m
+[0;32mxcpkg --help[0m
+[0;32mxcpkg -h[0m
+    show help of this command.
+
+[0;32mxcpkg version[0m
+[0;32mxcpkg --version[0m
+[0;32mxcpkg -V[0m
+    show version of this command.
+
+[0;32mxcpkg setup[0m
+    install essential tools (e.g. uppm, bash, coreutils, findutils, gawk, gsed, grep, git, curl, bsdtar, tree, fzf, bat, jq, yq, d2, dot, etc) used by this shell script.
+
+[0;32mxcpkg about[0m
+    show basic information about this software.
+
+[0;32mxcpkg sysinfo[0m
+    show basic information about your current running operation system.
+
+[0;32mxcpkg xcinfo [DEVELOPER-DIR][0m
+    show basic information about the specified location of Xcode.
+
+    If DEVELOPER-DIR is unspecified, the environment variable [0;31mDEVELOPER_DIR[0m is honored, if the environment variable DEVELOPER_DIR is not set, it would be determined by running command [0;35mxcode-select -p[0m
+
+[0;32mxcpkg integrate zsh [-v][0m
+    download a zsh-completion script file to a approprivate location.
+
+[0;32mxcpkg update[0m
+    update all available formula repositories.
+
+[0;32mxcpkg upgrade-self[0m
+    upgrade this software.
+
+[0;32mxcpkg gen-url-transform-sample[0m
+    generate url-transform sample.
+
+[0;32mxcpkg cleanup[0m
+    delete the unused cached files.
+
+
+[0;32mxcpkg ls-available [-v] [--json | --yaml][0m
+    list all available packages.
+
+[0;32mxcpkg ls-installed [-v][0m
+    list all installed packages.
+
+[0;32mxcpkg ls-outdated [-v][0m
+    list all outdated  packages.
+
+
+[0;32mxcpkg is-available <PACKAGE-NAME>[0m
+    check if the given package is available.
+
+[0;32mxcpkg is-installed <PACKAGE-SPEC>[0m
+    check if the given package is installed.
+
+[0;32mxcpkg is-outdated  <PACKAGE-SPEC>[0m
+    check if the given package is outdated.
+
+
+[0;32mxcpkg formula-repo-init <FORMULA-REPO-NAME> <FORMULA-REPO-URL> [--branch=VALUE --pin/--unpin --enable/--disable][0m
+    create a new empty formula repository.
+
+[0;32mxcpkg formula-repo-add  <FORMULA-REPO-NAME> <FORMULA-REPO-URL> [--branch=VALUE --pin/--unpin --enable/--disable][0m
+    create a new empty formula repository then sync with server.
+
+[0;32mxcpkg formula-repo-del  <FORMULA-REPO-NAME>[0m
+    delete the given formula repository.
+
+[0;32mxcpkg formula-repo-sync <FORMULA-REPO-NAME>[0m
+    update the given formula repository.
+
+[0;32mxcpkg formula-repo-info <FORMULA-REPO-NAME>[0m
+    show information of the given formula repository.
+
+[0;32mxcpkg formula-repo-conf <FORMULA-REPO-NAME> [--url=VALUE --branch=VALUE --pin/--unpin --enable/--disable][0m
+    change the config of the given formula repository.
+
+[0;32mxcpkg formula-repo-list[0m
+    list all available formula repositories.
+
+
+[0;32mxcpkg search <REGULAR-EXPRESSION-PATTERN> [-v] [--json | --yaml][0m
+    search all available packages whose name matches the given regular expression pattern.
+
+
+[0;32mxcpkg info-available <PACKAGE-NAME> [--json | --yaml | <KEY>][0m
+    show information of the given available package.
+
+[0;32mxcpkg info-installed <PACKAGE-SPEC> [--json | --yaml | <KEY>][0m
+    show information of the given installed package.
+
+
+[0;32mxcpkg depends <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>][0m
+    show the packages that are depended by the given package.
+
+    <OUTPUT-TYPE> must be any one of d2 dot box svg png
+
+    <OUTPUT-PATH> can be either the filepath or directory.
+
+    If <OUTPUT-PATH> is . .. or ends with slash(/), then it will be treated as a directory, otherwise, it will be treated as a filepath.
+
+    If <OUTPUT-PATH> is treated as a directory, then it will be expanded to <OUTPUT-PATH>/<PACKAGE-NAME>-dependencies.<OUTPUT-TYPE>
+
+    If -o <OUTPUT-PATH> option is unspecified, the result will be written to stdout.
+
+    If -t <OUTPUT-TYPE> option is unspecified, and if <OUTPUT-PATH> ends with one of .d2 .dot .box .svg .png, <OUTPUT-TYPE> will be the <OUTPUT-PATH> suffix, otherwise, <OUTPUT-TYPE> will be box.
+
+
+[0;32mxcpkg fetch <PACKAGE-NAME>[0m
+    download all the resources of the given package to the local cache.
+
+
+[0;32mxcpkg install <PACKAGE-NAME|PACKAGE-SPEC>... [INSTALL-OPTIONS][0m
+    install the given packages.
+
+    <PACKAGE-NAME> must match the regular expression pattern [0;31m^[A-Za-z0-9+-_.@]{1,50}$ [0m
+
+    <PACKAGE-SPEC> is a formatted string that has form [0;31m<TARGET>/<PACKAGE-NAME>[0m
+
+    <TARGET> indicates which platform would be built for.
+
+    <TARGET> is a formatted string that has form [0;31m<PLATFORM-NAME>-<PLATFORM-VERSION>-<PLATFORM-ARCH>[0m
+
+    <PLATFORM-NAME> : e.g. AppleTVOS, AppleTVSimulator, DriverKit, MacOSX, WatchOS, WatchSimulator, iPhoneOS, iPhoneSimulator, etc
+
+    <PLATFORM-VERSION> : specify the platform version to be built with. It usually matches the regular expression pattern '[0-9][0-9]?.[0-9][0-9]?', e.g. 10.15, 11.0, 12.0, 12.6, etc.
+
+    <PLATFORM-ARCH> : e.g. x86_64, arm64, arm64e, etc
+
+    <TARGET> examples: e.g. MacOSX-10.15-x86_64, MacOSX-13.0-arm64, iPhoneOS-12.0-arm64
+
+    INSTALL-OPTIONS:
+        [0;94m--target=<TARGET>[0m
+            specify the target to be built for.
+
+            If this option is unspecified, the environment variable [0;31mXCPKG_DEFAULT_TARGET[0m is honored, if the environment variable XCPKG_DEFAULT_TARGET is not set, <TARGET> will be same as your current running operation system.
+
+        [0;94m--developer-dir=<DEVELOPER_DIR>[0m
+            specify the Xcode developer directory.
+
+            If --developer-dir=<DEVELOPER_DIR> is unspecified, the environment variable [0;31mDEVELOPER_DIR[0m is honored, if the environment variable DEVELOPER_DIR is not set, it would be determined by running command [0;35mxcode-select -p[0m
+
+        [0;94m--profile=<debug|release>[0m
+            specify the build profile.
+
+            debug:
+                  CFLAGS: -O0 -g
+                CXXFLAGS: -O0 -g
+
+            release:
+                  CFLAGS: -Os
+                CXXFLAGS: -Os
+                CPPFLAGS: -DNDEBUG
+                 LDFLAGS: -flto -Wl,-S
+
+        [0;94m-j <N>[0m
+            specify the number of jobs you can run in parallel.
+
+        [0;94m-I <FORMULA-SEARCH-DIR>[0m
+            specify the formula search directory. This option can be used multiple times.
+
+        [0;94m-E[0m
+            export compile_commands.json
+
+        [0;94m-U[0m
+            upgrade packages if possible.
+
+        [0;94m-K[0m
+            keep the session directory even if this package is successfully installed.
+
+        [0;94m-q[0m
+            silent mode. no any messages will be output to terminal.
+
+        [0;94m-v[0m
+            verbose mode. many messages will be output to terminal.
+
+            This option is equivalent to -v-* options all are supplied.
+
+        [0;94m-x[0m
+            very verbose mode. many many messages will be output to terminal.
+
+            This option is equivalent to -v-* and -x-* options all are supplied.
+
+        [0;94m-v-env[0m
+            show all environment variables before starting to build.
+
+        [0;94m-v-http[0m
+            show http request/response.
+
+        [0;94m-v-xcode[0m
+            show xcode information.
+
+        [0;94m-v-formula[0m
+            show formula content.
+
+        [0;94m-v-go[0m
+            pass -v argument to go build command.
+
+        [0;94m-v-uppm[0m
+            pass -v argument to uppm command.
+
+        [0;94m-v-cargo[0m
+            pass -v argument to cargo command.
+
+        [0;94m-v-meson[0m
+            pass -v argument to meson command.
+
+        [0;94m-v-ninja[0m
+            pass -v argument to ninja command.
+
+        [0;94m-v-gmake[0m
+            pass V=1 argument to gmake command.
+
+        [0;94m-v-cmake[0m
+            set(CMAKE_VERBOSE_MAKEFILE ON)
+
+        [0;94m-v-xmake[0m
+            pass -v argument to xmake command.
+
+        [0;94m-x-sh[0m
+            set -x to debug current running shell.
+
+        [0;94m-x-cc[0m
+            pass -v argument to clang command.
+
+        [0;94m-x-ld[0m
+            pass -Wl,-v argument to linker.
+
+        [0;94m-x-go[0m
+            pass -x argument to go build command.
+
+        [0;94m-x-cargo[0m
+            pass -vv argument to cargo command.
+
+        [0;94m-x-gmake[0m
+            pass --debug argument to gmake command.
+
+        [0;94m-x-cmake[0m
+            set(CMAKE_FIND_DEBUG_MODE ON)
+
+        [0;94m-x-xmake[0m
+            pass -vD argument to xmake command.
+
+        [0;94m-x-pkg-config[0m
+            export PKG_CONFIG_DEBUG_SPEW=1
+
+        [0;94m--disable-ccache[0m
+            do not use ccache.
+
+[0;32mxcpkg reinstall <PACKAGE-SPEC>... [INSTALL-OPTIONS][0m
+    reinstall the given packages.
+
+[0;32mxcpkg upgrade   <PACKAGE-SPEC>... [INSTALL-OPTIONS][0m
+    upgrade the given packages. If no any packages are given, all outdated packages will to be upgraded.
+
+[0;32mxcpkg uninstall <PACKAGE-SPEC>...[0m
+    uninstall the given packages.
+
+
+[0;32mxcpkg tree <PACKAGE-SPEC> [--dirsfirst | -L N][0m
+    list installed files of the given installed package in a tree-like format.
+
+[0;32mxcpkg logs <PACKAGE-SPEC>[0m
+    show logs of the given installed package.
+
+    This will launch fzf finder. press ESC key to quit.
+
+
+[0;32mxcpkg bundle <PACKAGE-SPEC> [<OUTPUT-DIR>][<OUTPUT-FILENAME-PREFIX>]<BUNDLE-TYPE> [--exclude <PATH>] [-K][0m
+    bundle the given installed package into a single archive file.
+
+    [0;94m<OUTPUT-DIR>[0m
+        If specified, should end with slash.
+
+    [0;94m<OUTPUT-FILENAME-PREFIX>[0m
+        If unspecified, use <PACKAGE-NAME>-<PACKAGE-VERSION>-<TARGET-PLATFORM-NAME>-<TARGET-PLATFORM-VERSION>-<TARGET-PLATFORM-ARCH> as default.
+
+    [0;94m<BUNDLE-TYPE>[0m
+        should be any one of .tar.gz .tar.xz .tar.lz .tar.bz2 .zip
+
+    [0;94m--exclude <PATH>[0m
+        exclude file that is not mean to be bundled into the final file.
+
+        <PATH> is relative to the installed root directory.
+
+        this option can be used multiple times.
+
+    [0;94m-K[0m
+        keep the session directory even if this package is successfully bundled.
+    

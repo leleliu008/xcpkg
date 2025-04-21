@@ -93,7 +93,9 @@ target_link_libraries(xcpkg -lm)
 
 string(TIMESTAMP COMPILED_TIMESTAMP "%Y-%m-%d %H:%M:%S UTC" UTC)
 
-#file(READ xcpkg-install XCPKG_INSTALL HEX)
+file(READ ../core/help.txt XCPKG_HELP HEX)
+file(READ ../xcpkg-zsh-completion XCPKG_ZSH_COMPLETION HEX)
+file(READ ../core/url-transform.sample XCPKG_URL_TRANSFORM_SAMPLE HEX)
 
 configure_file(src/config.h.in "${CMAKE_CURRENT_SOURCE_DIR}/src/config.h" @ONLY)
 

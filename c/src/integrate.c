@@ -2,80 +2,37 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <unistd.h>
 #include <limits.h>
-#include <sys/stat.h>
+
+#include "core/base16.h"
 
 #include "xcpkg.h"
 
 int xcpkg_integrate_zsh_completion(const char * outputDIR, const bool verbose) {
-    char   sessionDIR[PATH_MAX];
-    size_t sessionDIRLength;
-
-    int ret = xcpkg_home_dir(sessionDIR, &sessionDIRLength);
-
-    if (ret != XCPKG_OK) {
-        return ret;
-    }
-
-    ////////////////////////////////////////////////////////////////////////////////////////
-
-    size_t tmpFilePathCapacity = sessionDIRLength + 8U;
-    char   tmpFilePath[tmpFilePathCapacity];
-
-    ret = snprintf(tmpFilePath, tmpFilePathCapacity, "%s/_xcpkg", sessionDIR);
-
-    if (ret < 0) {
-        perror(NULL);
-        return XCPKG_ERROR;
-    }
-
-    const char * const url = "https://raw.githubusercontent.com/leleliu008/xcpkg/master/xcpkg-zsh-completion";
-
-    ret = xcpkg_http_fetch_to_file(url, tmpFilePath, verbose, verbose);
-
-    if (ret != XCPKG_OK) {
-        return ret;
-    }
-
-    ////////////////////////////////////////////////////////////////////////////////////////
-
     char   xcpkgHomeDIR[PATH_MAX];
     size_t xcpkgHomeDIRLength;
 
-    ret = xcpkg_home_dir(xcpkgHomeDIR, &xcpkgHomeDIRLength);
+    int ret = xcpkg_home_dir(xcpkgHomeDIR, &xcpkgHomeDIRLength);
 
     if (ret != XCPKG_OK) {
         return ret;
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////
-
-    size_t defaultOutputDIRCapacity = xcpkgHomeDIRLength + 26U;
-    char   defaultOutputDIR[defaultOutputDIRCapacity];
-
-    ret = snprintf(defaultOutputDIR, defaultOutputDIRCapacity, "%s/share/zsh/site-functions", xcpkgHomeDIR);
-
-    if (ret < 0) {
-        perror(NULL);
-        return XCPKG_ERROR;
-    }
 
     size_t outputDIRLength;
 
     if (outputDIR == NULL) {
-        outputDIR       = defaultOutputDIR;
-        outputDIRLength = ret;
+        outputDIR       = xcpkgHomeDIR;
+        outputDIRLength = xcpkgHomeDIRLength;
     } else {
         outputDIRLength = strlen(outputDIR);
-    }
 
-    ////////////////////////////////////////////////////////////////////////////////////////
+        ret = xcpkg_mkdir_p(outputDIR, verbose);
 
-    ret = xcpkg_mkdir_p(outputDIR, verbose);
-
-    if (ret != XCPKG_OK) {
-        return ret;
+        if (ret != XCPKG_OK) {
+            return ret;
+        }
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////
@@ -90,18 +47,30 @@ int xcpkg_integrate_zsh_completion(const char * outputDIR, const bool verbose) {
         return XCPKG_ERROR;
     }
 
-    if (rename(tmpFilePath, outputFilePath) != 0) {
-        if (errno == EXDEV) {
-            ret = xcpkg_copy_file(tmpFilePath, outputFilePath);
+    ////////////////////////////////////////////////////////////////////////////////////////
 
-            if (ret != XCPKG_OK) {
-                return ret;
-            }
-        } else {
-            perror(outputFilePath);
-            return XCPKG_ERROR;
-        }
+    size_t iLength = strlen(XCPKG_ZSH_COMPLETION);
+    size_t pLength = iLength >> 1;
+    size_t pCapacity = pLength + 1U;
+    unsigned char   p[pCapacity];
+    p[pLength] = '\0';
+
+    ret = base16_decode(p, XCPKG_ZSH_COMPLETION, iLength);
+
+    if (ret == -1) {
+        perror(NULL);
+        return XCPKG_ERROR;
     }
+
+    ////////////////////////////////////////////////////////////////////////////////////////
+
+    ret = xcpkg_write_file(outputFilePath, (char*)p, pLength);
+
+    if (ret != XCPKG_OK) {
+        return ret;
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////
 
     printf("zsh completion script for xcpkg has been written to %s\n", outputFilePath);
     return XCPKG_OK;

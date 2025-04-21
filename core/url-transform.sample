@@ -1,0 +1,12 @@
+#!/bin/sh
+
+case $1 in
+    *githubusercontent.com/*)
+        printf 'https://ghfast.top/%s\n' "$1"
+        ;;
+    https://github.com/*)
+        printf 'https://ghfast.top/%s\n' "$1"
+        ;;
+    '') printf '%s\n' "$0 <URL>, <URL> is unspecified." >&2 ; exit 1 ;;
+    *)  printf '%s\n' "$1"
+esac
