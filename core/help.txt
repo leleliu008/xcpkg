@@ -20,13 +20,13 @@
     show version of this command.
 
 [0;32mxcpkg setup[0m
-    install essential tools (e.g. uppm, bash, coreutils, findutils, gawk, gsed, grep, git, curl, bsdtar, tree, fzf, bat, jq, yq, d2, dot, etc) used by this shell script.
+    install some essential tools used by this software.
 
 [0;32mxcpkg about[0m
     show basic information about this software.
 
 [0;32mxcpkg sysinfo[0m
-    show basic information about your current running operation system.
+    show basic information about the current running operation system.
 
 [0;32mxcpkg xcinfo [DEVELOPER-DIR][0m
     show basic information about the specified location of Xcode.
@@ -34,7 +34,7 @@
     If DEVELOPER-DIR is unspecified, the environment variable [0;31mDEVELOPER_DIR[0m is honored, if the environment variable DEVELOPER_DIR is not set, it would be determined by running command [0;35mxcode-select -p[0m
 
 [0;32mxcpkg integrate zsh [-v][0m
-    download a zsh-completion script file to a approprivate location.
+    install a zsh-completion script file to a approprivate location.
 
 [0;32mxcpkg update[0m
     update all available formula repositories.

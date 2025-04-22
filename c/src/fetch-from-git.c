@@ -101,17 +101,6 @@ static int git_submodule_foreach_callback(git_submodule * submodule, const char 
     return git_submodule_update(submodule, true, NULL);
 }
 
-static void print_git_oid(const git_oid oid, const char * prefix) {
-    char sha1sum[41] = {0};
-
-    for (int i = 0; i < 20; i++) {
-        int j = 2 * i;
-        sprintf(&sha1sum[j], "%02x", (unsigned int)(oid.id[i]));
-    }
-
-    printf("%s=%s\n", prefix, sha1sum);
-}
-
 static int check_if_is_a_empty_dir(const char * dirpath, bool * value) {
     DIR * dir = opendir(dirpath);
 
@@ -423,8 +412,6 @@ int xcpkg_git_sync(const char * repositoryDIR, const char * remoteUrl, const cha
         const git_oid * checkoutToBranchHEADOid = git_reference_target(checkoutToBranchRefPointer);
 
         if (NULL != checkoutToBranchHEADOid) {
-            //print_git_oid((*remoteTrackingRefHEADCommitOid), "remoteTrackingRefHEADCommitOid");
-            //print_git_oid(checkoutToBranchHEADOid, "checkoutToBranchHEADOid");
             // remote tracking branch's SHA-1 is equal to locale tracking branch's HEAD SHA-1, means no need to perform merge
             if (memcmp(remoteTrackingRefHEADCommitOid->id, checkoutToBranchHEADOid->id, 20) == 0) {
                 ret = git_repository_set_head(gitRepo, checkoutToBranchRefPath);
