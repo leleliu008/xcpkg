@@ -249,8 +249,17 @@ jobs:
       - run: xcpkg info-available libzip src-sha
 
       - run: xcpkg depends libzip
+      - run: xcpkg depends libzip -t d2
       - run: xcpkg depends libzip -t dot
       - run: xcpkg depends libzip -t box
+      - run: xcpkg depends libzip -t svg
+      - run: xcpkg depends libzip -t png
+      - run: xcpkg depends libzip -t svg -e d2
+      - run: xcpkg depends libzip -t png -e d2
+      - run: xcpkg depends libzip -t svg -e dot
+      - run: xcpkg depends libzip -t png -e dot
+      - run: xcpkg depends libzip -t svg -o .
+      - run: xcpkg depends libzip -t png -o .
 
       - run: xcpkg fetch gzip
       - run: xcpkg fetch gsed -v

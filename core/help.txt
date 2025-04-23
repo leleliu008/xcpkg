@@ -102,12 +102,17 @@
     show information of the given installed package.
 
 
-[0;32mxcpkg depends <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>][0m
+[0;32mxcpkg depends <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-e <ENGINE>] [-o <OUTPUT-PATH>][0m
     show the packages that are depended by the given package.
 
     <OUTPUT-TYPE> must be any one of d2 dot box svg png
 
     <OUTPUT-PATH> can be either the filepath or directory.
+
+    <ENGINE> must be any one of d2 dot.
+    <ENGINE> is used to generate svg and png output type content.
+
+    If -e <ENGINE> option is unspecified, dot will be used as the default.
 
     If <OUTPUT-PATH> is . .. or ends with slash(/), then it will be treated as a directory, otherwise, it will be treated as a filepath.
 

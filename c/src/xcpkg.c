@@ -315,7 +315,7 @@ static inline int xcpkg_action_depends(int argc, char* argv[]) {
             }
 
             if (type[0] == '\0') {
-                fprintf(stderr, "-o <OUTPUT-TYPE>, <OUTPUT-TYPE> should be a non-empty string.\n");
+                fprintf(stderr, "-t <OUTPUT-TYPE>, <OUTPUT-TYPE> should be a non-empty string.\n");
                 return XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY;
             }
 
@@ -338,41 +338,43 @@ static inline int xcpkg_action_depends(int argc, char* argv[]) {
                 LOG_ERROR2("unsupported type: ", type);
                 return XCPKG_ERROR_PACKAGE_NAME_IS_INVALID;
             }
+        } else if (strcmp(argv[i], "-e") == 0) {
+            const char * engineName = argv[i + 1];
+
+            if (engineName == NULL) {
+                fprintf(stderr, "-e <ENGINE>, <ENGINE> should be a non-empty string.\n");
+                return XCPKG_ERROR_ARG_IS_INVALID;
+            }
+
+            if (engineName[0] == '\0') {
+                fprintf(stderr, "-e <ENGINE>, <ENGINE> should be a non-empty string.\n");
+                return XCPKG_ERROR_ARG_IS_EMPTY;
+            }
+
+            if (strcmp(engineName, "d2") == 0) {
+                engine = XCPKGDependsOutputDiagramEngine_D2;
+                i++;
+            } else if (strcmp(engineName, "dot") == 0) {
+                engine = XCPKGDependsOutputDiagramEngine_DOT;
+                i++;
+            } else {
+                LOG_ERROR2("unsupported engine: ", engineName);
+                return XCPKG_ERROR_ARG_IS_INVALID;
+            }
          } else if (strcmp(argv[i], "-o") == 0) {
             outputPath = argv[i + 1];
 
             if (outputPath == NULL) {
                 fprintf(stderr, "-o <OUTPUT-PATH>, <OUTPUT-PATH> should be a non-empty string.\n");
-                return XCPKG_ERROR_PACKAGE_NAME_IS_INVALID;
+                return XCPKG_ERROR_ARG_IS_NULL;
             }
 
             if (outputPath[0] == '\0') {
                 fprintf(stderr, "-o <OUTPUT-PATH>, <OUTPUT-PATH> should be a non-empty string.\n");
-                return XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY;
+                return XCPKG_ERROR_ARG_IS_EMPTY;
             }
 
             i++;
-        } else if (strncmp(argv[i], "--engine=", 9) == 0) {
-            const char * engineName = &argv[i][9];
-
-            if (engineName == NULL) {
-                fprintf(stderr, "--engine=<ENGINE>, <ENGINE> should be a non-empty string.\n");
-                return XCPKG_ERROR_PACKAGE_NAME_IS_INVALID;
-            }
-
-            if (engineName[0] == '\0') {
-                fprintf(stderr, "--engine=<ENGINE>, <ENGINE> should be a non-empty string.\n");
-                return XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY;
-            }
-
-            if (strcmp(engineName, "d2") == 0) {
-                engine = XCPKGDependsOutputDiagramEngine_D2;
-            } else if (strcmp(engineName, "dot") == 0) {
-                engine = XCPKGDependsOutputDiagramEngine_DOT;
-            } else {
-                LOG_ERROR2("unsupported diagram engine: ", engineName);
-                return XCPKG_ERROR_PACKAGE_NAME_IS_INVALID;
-            }
         } else {
             LOG_ERROR2("unrecognized argument: ", argv[i]);
             return XCPKG_ERROR_PACKAGE_NAME_IS_INVALID;
