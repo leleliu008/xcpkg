@@ -1961,7 +1961,22 @@ typedef struct {
     XCPKGFormula * formula;
 } XCPKGPackage;
 
-static int getRecursiveDependentPackageNames(const char * packageName, XCPKGPackage ** packageSet, size_t packageSetSize, char buf[], size_t * bufLengthP) {
+static inline __attribute__((always_inline)) void string_buffer_append(char buf[], size_t * bufLengthP, const char * s) {
+    size_t bufLength = (*bufLengthP);
+
+    char * p = buf + bufLength;
+
+    for (int i = 0; ; i++) {
+        p[i] = s[i];
+
+        if (p[i] == '\0') {
+            (*bufLengthP) = bufLength + i;
+            break;
+        }
+    }
+}
+
+static int getRecursiveDependentPackageNames(const char * packageName, XCPKGPackage ** packageSet, size_t packageSetSize, char buf[], size_t * bufLengthP, char dotStr[], size_t * dotStrLengthP, char d2Str[], size_t * d2StrLengthP) {
     XCPKGPackage * package = NULL;
 
     for (size_t i = 0U; i < packageSetSize; i++) {
@@ -1971,53 +1986,30 @@ static int getRecursiveDependentPackageNames(const char * packageName, XCPKGPack
         }
     }
 
-    XCPKGFormula * formula = package->formula;
+    ////////////////////////////////////////////////////////////////
 
-    if (formula->dep_pkg == NULL) {
-        return XCPKG_OK;
-    }
+    char * p = buf;
+
+    size_t bufLength = 0U;
+    size_t d2StrLength = 0U;
+    size_t dotStrLength = 0U;
+
+    string_buffer_append(dotStr, &dotStrLength, "digraph G {\n");
+
+    ////////////////////////////////////////////////////////////////
 
     size_t   packageNameStackCapacity = 8U;
-    size_t   packageNameStackSize    = 0U;
+    size_t   packageNameStackSize     = 0U;
     char * * packageNameStack = (char**)malloc(8 * sizeof(char*));
 
     if (packageNameStack == NULL) {
         return XCPKG_ERROR_MEMORY_ALLOCATE;
     }
 
-    size_t  depPackageNamesLength = strlen(formula->dep_pkg);
-
-    size_t  depPackageNamesCopyCapacity = depPackageNamesLength + 1U;
-    char    depPackageNamesCopy[depPackageNamesCopyCapacity];
-    strncpy(depPackageNamesCopy, formula->dep_pkg, depPackageNamesCopyCapacity);
-
-    char * depPackageName = strtok(depPackageNamesCopy, " ");
-
-    while (depPackageName != NULL) {
-        if (packageNameStackSize == packageNameStackCapacity) {
-            char ** p = (char**)realloc(packageNameStack, (packageNameStackCapacity + 8U) * sizeof(char*));
-
-            if (p == NULL) {
-                free(packageNameStack);
-                packageNameStack = NULL;
-
-                return XCPKG_ERROR_MEMORY_ALLOCATE;
-            }
-
-            packageNameStack = p;
-            packageNameStackCapacity += 8U;
-        }
-
-        packageNameStack[packageNameStackSize] = depPackageName;
-        packageNameStackSize++;
-        depPackageName = strtok(NULL, " ");
-    }
+    packageNameStackSize = 1U;
+    packageNameStack[0] = package->packageName;
 
     ////////////////////////////////////////////////////////////////
-
-    size_t bufLength = 0U;
-
-    char * p = buf;
 
     while (packageNameStackSize != 0U) {
         char * packageName = packageNameStack[packageNameStackSize - 1U];
@@ -2085,6 +2077,14 @@ static int getRecursiveDependentPackageNames(const char * packageName, XCPKGPack
             continue;
         }
 
+        ////////////////////////////////////////////////////////////////
+
+        string_buffer_append(dotStr, &dotStrLength, "    \"");
+        string_buffer_append(dotStr, &dotStrLength, packageName);
+        string_buffer_append(dotStr, &dotStrLength, "\" -> {");
+
+        ////////////////////////////////////////////////////////////////
+
         size_t  depPackageNamesLength = strlen(formula->dep_pkg);
 
         size_t  depPackageNamesCopyLength = depPackageNamesLength + 1U;
@@ -2124,14 +2124,40 @@ static int getRecursiveDependentPackageNames(const char * packageName, XCPKGPack
 
             ////////////////////////////////////////////////////////////////
 
+            string_buffer_append(dotStr, &dotStrLength, " \"");
+            string_buffer_append(dotStr, &dotStrLength, depPackageName);
+            string_buffer_append(dotStr, &dotStrLength, "\"");
+
+            ////////////////////////////////////////////////////////////////
+
+            string_buffer_append(d2Str, &d2StrLength, "\"");
+            string_buffer_append(d2Str, &d2StrLength, packageName);
+            string_buffer_append(d2Str, &d2StrLength, "\" -> \"");
+            string_buffer_append(d2Str, &d2StrLength, depPackageName);
+            string_buffer_append(d2Str, &d2StrLength, "\"\n");
+
+            ////////////////////////////////////////////////////////////////
+
             depPackageName = strtok(NULL, " ");
         }
+
+        string_buffer_append(dotStr, &dotStrLength, " }\n");
     }
+
+    string_buffer_append(dotStr, &dotStrLength, "}\n");
 
     free(packageNameStack);
 
     if (bufLengthP != NULL) {
         *bufLengthP = bufLength;
+    }
+
+    if (dotStrLengthP != NULL) {
+        *dotStrLengthP = dotStrLength;
+    }
+
+    if (d2StrLengthP != NULL) {
+        *d2StrLengthP = d2StrLength;
     }
 
     return XCPKG_OK;
@@ -2719,6 +2745,13 @@ static int xcpkg_install_package(
 
     //////////////////////////////////////////////////////////////////////////////
 
+    if (chdir (packageWorkingTopDIR) != 0) {
+        perror(packageWorkingTopDIR);
+        return XCPKG_ERROR;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+
     size_t packageWorkingSrcDIRCapacity = packageWorkingTopDIRCapacity + 5U;
     char   packageWorkingSrcDIR[packageWorkingSrcDIRCapacity];
 
@@ -2884,18 +2917,44 @@ static int xcpkg_install_package(
         return XCPKG_ERROR;
     }
 
+    //////////////////////////////////////////////////////////////////////////////
+
     const bool isCrossBuild = !((strcmp("MacOSX", targetPlatformName) == 0) && (strcmp(sysinfo->arch, targetPlatformArch) == 0));
 
     char   recursiveDependentPackageNames[1024]; recursiveDependentPackageNames[0] = '\0';
     size_t recursiveDependentPackageNamesLength = 0U;
 
-    ret = getRecursiveDependentPackageNames(packageName, packageSet, packageSetSize, recursiveDependentPackageNames, &recursiveDependentPackageNamesLength);
+    if (formula->dep_pkg != NULL) {
+        char   dotStr[4096];
+        size_t dotStrLength = 0U;
 
-    if (ret != XCPKG_OK) {
-        return ret;
+        char   d2Str[4096];
+        size_t d2StrLength = 0U;
+
+        ret = getRecursiveDependentPackageNames(packageName, packageSet, packageSetSize, recursiveDependentPackageNames, &recursiveDependentPackageNamesLength, dotStr, &dotStrLength, d2Str, &d2StrLength);
+
+        if (ret != XCPKG_OK) {
+            return ret;
+        }
+
+        //printf("%s:%zu:%s\n", packageName, recursiveDependentPackageNamesLength, recursiveDependentPackageNames);
+        //printf("%s:%zu:%s\n", packageName, dotStrLength, dotStr);
+        //printf("%s:%zu:%s\n", packageName, d2StrLength, d2Str);
+
+        ret = xcpkg_write_file("dependencies.dot", dotStr, dotStrLength);
+
+        if (ret != XCPKG_OK) {
+            return ret;
+        }
+
+        ret = xcpkg_write_file("dependencies.d2", d2Str, d2StrLength);
+
+        if (ret != XCPKG_OK) {
+            return ret;
+        }
     }
 
-    //printf("%s:%zu:%s\n", packageName, recursiveDependentPackageNamesLength, recursiveDependentPackageNames);
+    //////////////////////////////////////////////////////////////////////////////
 
     ret = generate_shell_script_file(shellScriptFilePath, packageName, formula, installOptions, sysinfo, uppmPackageInstalledRootDIR, nativePackageInstalledRootDIR, xcpkgExeFilePath, ts, njobs, isCrossBuild, targetPlatformSpec, targetPlatformName, targetPlatformVers, targetPlatformArch, xcpkgHomeDIR, xcpkgCoreDIR, xcpkgDownloadsDIR, sessionDIR, packageWorkingTopDIR, packageWorkingSrcDIR, packageInstalledRootDIR, packageInstalledRootDIRCapacity, packageInstalledDIR, packageMetaInfoDIR, recursiveDependentPackageNames, recursiveDependentPackageNamesLength);
 
@@ -3754,7 +3813,7 @@ static int xcpkg_install_package(
     // install dependency graph files
 
     if (formula->dep_pkg != NULL) {
-        const char* item[4] = { "dependencies.dot", "dependencies.box", "dependencies.svg", "dependencies.png" };
+        const char* item[4] = { "dependencies.dot", "dependencies.d2", "dependencies.svg", "dependencies.png" };
 
         for (int i = 0; i < 4; i++) {
             ret = install_files_to_metainfo_dir(st, packageWorkingTopDIR, packageWorkingTopDIRCapacity, packageMetaInfoDIR, packageMetaInfoDIRCapacity, item[i], strlen(item[i]));
