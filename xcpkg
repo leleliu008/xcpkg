@@ -2454,7 +2454,7 @@ EOF
 ##############################################################################
 # {{{ xcpkg depends
 
-# __show_packages_depended_by_the_given_package <PACKAGE-NAME> [-t <d2|dot|box|svg|png>] [-o <OUTPUT-PATH>]
+# __show_packages_depended_by_the_given_package <PACKAGE-NAME> [-t <d2|dot|box|svg|png>] [-e <ENGINE>] [-o <OUTPUT-PATH>]
 __show_packages_depended_by_the_given_package() {
     [ -z "$1" ] && abort 1 "$XCPKG_ARG0 depends <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>], <PACKAGE-NAME> is unspecified."
 
@@ -2467,6 +2467,8 @@ __show_packages_depended_by_the_given_package() {
     unset OUTPUT_TYPE
     unset OUTPUT_PATH
 
+    unset ENGINE
+
     while [ -n "$1" ]
     do
         case $1 in
@@ -2476,6 +2478,14 @@ __show_packages_depended_by_the_given_package() {
                         OUTPUT_TYPE="$1" ;;
                     '') abort 1 "$XCPKG_ARG0 depends <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>], -t option is given but <OUTPUT-TYPE> is unspecified." ;;
                     *)  abort 1 "$XCPKG_ARG0 depends <PACKAGE-NAME> [-t <OUTPUT-TYPE>], unsupported <OUTPUT-TYPE>: $1, <OUTPUT-TYPE> should be one of d2|dot|box|svg|png"
+                esac
+                ;;
+            -e) shift
+                case $1 in
+                    d2|dot)
+                        ENGINE="$1" ;;
+                    '') abort 1 "$XCPKG_ARG0 depends <PACKAGE-NAME> [-e <ENGINE>], -e option is given but <ENGINE> is unspecified." ;;
+                    *)  abort 1 "$XCPKG_ARG0 depends <PACKAGE-NAME> [-e <ENGINE>], unsupported <ENGINE>: $1, <ENGINE> should be one of d2|dot"
                 esac
                 ;;
             -o) shift
@@ -2550,17 +2560,17 @@ __show_packages_depended_by_the_given_package() {
 
     ###########################################################################################
 
-    unset ENGIN
-
-    if [ "$OUTPUT_TYPE" = svg ] || [ "$OUTPUT_TYPE" = png ] ; then
-        if command -v dot > /dev/null ; then
-            ENGIN=dot
-        elif command -v dot_static > /dev/null ; then
-            ENGIN=dot_static
-        elif command -v d2 > /dev/null ; then
-            ENGIN=d2
-        else
-            abort 1 'none of dot, dot_static, d2 commands was found. please install graphviz or d2 package, then try again.'
+    if [ -z "$ENGINE" ] ; then
+        if [ "$OUTPUT_TYPE" = svg ] || [ "$OUTPUT_TYPE" = png ] ; then
+            if command -v dot > /dev/null ; then
+                ENGIN=dot
+            elif command -v dot_static > /dev/null ; then
+                ENGIN=dot_static
+            elif command -v d2 > /dev/null ; then
+                ENGIN=d2
+            else
+                abort 1 'none of dot, dot_static, d2 commands was found. please install graphviz or d2 package, then try again.'
+            fi
         fi
     fi
 
@@ -8309,12 +8319,14 @@ ${COLOR_GREEN}xcpkg info-installed <PACKAGE-SPEC> [--json | --yaml | <KEY>]${COL
     show information of the given installed package.
 
 
-${COLOR_GREEN}xcpkg depends <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>]${COLOR_OFF}
+${COLOR_GREEN}xcpkg depends <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-e <ENGINE>] [-o <OUTPUT-PATH>]${COLOR_OFF}
     show the packages that are depended by the given package.
 
     <OUTPUT-TYPE> must be any one of d2 dot box svg png
 
     <OUTPUT-PATH> can be either the filepath or directory.
+
+    <ENGINE> must be any one of d2 dot.
 
     If <OUTPUT-PATH> is . .. or ends with slash(/), then it will be treated as a directory, otherwise, it will be treated as a filepath.
 

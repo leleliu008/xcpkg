@@ -12,19 +12,26 @@
 
 #include "xcpkg.h"
 
-#define STRING_BUFFER_APPEND(strbuf,strbufLength,str) \
-    size_t len = strlen(str) + 1U; \
-    int ret = snprintf(&strbuf[strbufLength], len + 1U, " %s", str); \
-    if (ret < 0) { \
-        perror(NULL); \
-        return XCPKG_ERROR; \
-    } \
-    if ((size_t)ret == len) { \
-        strbufLength += len; \
-    } else { \
-        fprintf(stderr, "snprintf: the output was truncated.\n"); \
-        return XCPKG_ERROR; \
+static inline __attribute__((always_inline)) void string_buffer_append(char buf[], size_t * bufLengthP, const char * s) {
+    size_t bufLength = (*bufLengthP);
+
+    char * p = buf + bufLength;
+
+    if (bufLength != 0U) {
+        bufLength++;
+        p[0] = ' ';
+        p++;
     }
+
+    for (int i = 0; ; i++) {
+        p[i] = s[i];
+
+        if (p[i] == '\0') {
+            (*bufLengthP) = bufLength + i;
+            break;
+        }
+    }
+}
 
 typedef enum {
     FORMULA_KEY_CODE_unknown,
@@ -549,6 +556,8 @@ static int xcpkg_formula_set_value(XCPKGFormulaKeyCode keyCode, char * value, XC
                 *pkgtype = XCPKGPkgType_lib;
             } else if (strcmp(value, "exe") == 0) {
                 *pkgtype = XCPKGPkgType_exe;
+            } else if (strcmp(value, "exe+lib") == 0) {
+                *pkgtype = XCPKGPkgType_lib;
             } else {
                 return XCPKG_ERROR_FORMULA_SCHEME;
             }
@@ -934,39 +943,39 @@ static int xcpkg_formula_check(XCPKGFormula * formula, const char * formulaFileP
     size_t dep_upp_extra_buf_len = 0U;
 
     if (formula->useBuildSystemAutogen || formula->useBuildSystemAutotools) {
-        STRING_BUFFER_APPEND(dep_upp_extra_buf, dep_upp_extra_buf_len, "automake autoconf perl gm4")
+        string_buffer_append(dep_upp_extra_buf, &dep_upp_extra_buf_len, "automake autoconf perl gm4");
     }
 
     if (formula->useBuildSystemCmake) {
-        STRING_BUFFER_APPEND(dep_upp_extra_buf, dep_upp_extra_buf_len, "cmake")
+        string_buffer_append(dep_upp_extra_buf, &dep_upp_extra_buf_len, "cmake");
     }
 
     if (formula->useBuildSystemGmake) {
-        STRING_BUFFER_APPEND(dep_upp_extra_buf, dep_upp_extra_buf_len, "gmake")
+        string_buffer_append(dep_upp_extra_buf, &dep_upp_extra_buf_len, "gmake");
     }
 
     if (formula->useBuildSystemNinja) {
-        STRING_BUFFER_APPEND(dep_upp_extra_buf, dep_upp_extra_buf_len, "ninja")
+        string_buffer_append(dep_upp_extra_buf, &dep_upp_extra_buf_len, "ninja");
     }
 
     if (formula->useBuildSystemXmake) {
-        STRING_BUFFER_APPEND(dep_upp_extra_buf, dep_upp_extra_buf_len, "xmake")
+        string_buffer_append(dep_upp_extra_buf, &dep_upp_extra_buf_len, "xmake");
     }
 
     if (formula->useBuildSystemGolang) {
-        STRING_BUFFER_APPEND(dep_upp_extra_buf, dep_upp_extra_buf_len, "golang")
+        string_buffer_append(dep_upp_extra_buf, &dep_upp_extra_buf_len, "golang");
     }
 
     if (formula->useBuildSystemMeson || (formula->dep_pym != NULL)) {
-        STRING_BUFFER_APPEND(dep_upp_extra_buf, dep_upp_extra_buf_len, "python3")
+        string_buffer_append(dep_upp_extra_buf, &dep_upp_extra_buf_len, "python3");
     }
 
     if (formula->dep_plm != NULL) {
-        STRING_BUFFER_APPEND(dep_upp_extra_buf, dep_upp_extra_buf_len, "perl")
+        string_buffer_append(dep_upp_extra_buf, &dep_upp_extra_buf_len, "perl");
     }
 
     if (formula->fix_url != NULL || formula->res_url != NULL) {
-        STRING_BUFFER_APPEND(dep_upp_extra_buf, dep_upp_extra_buf_len, "patch")
+        string_buffer_append(dep_upp_extra_buf, &dep_upp_extra_buf_len, "patch");
     }
 
     if (formula->dep_upp == NULL) {

@@ -93,7 +93,7 @@ static int getNativePackageInfoByID(const int packageID, NativePackage * package
 }
 
 int install_native_package(
-        int packageID,
+        const int packageID,
         const char * downloadsDIR,
         const size_t downloadsDIRLength,
         const char * sessionDIR,

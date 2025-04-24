@@ -111,7 +111,7 @@ int xcpkg_available_info2(const XCPKGFormula * formula, const char * packageName
         json_object_set_new(root, "res-sha", json_string(formula->res_sha));
 
         json_object_set_new(root, "dep-pkg", json_string(formula->dep_pkg));
-        json_object_set_new(root, "dep-upp", json_string(trim(formula->dep_upp)));
+        json_object_set_new(root, "dep-upp", json_string(formula->dep_upp));
         json_object_set_new(root, "dep-pym", json_string(formula->dep_pym));
         json_object_set_new(root, "dep-plm", json_string(formula->dep_plm));
 

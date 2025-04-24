@@ -657,6 +657,7 @@ static int generate_shell_script_file(
         const time_t ts,
         const size_t njobs,
         const bool isCrossBuild,
+        const char * targetPlatformSpec,
         const char * targetPlatformName,
         const char * targetPlatformVers,
         const char * targetPlatformArch,
@@ -671,8 +672,8 @@ static int generate_shell_script_file(
         const char * packageInstalledDIR,
         const char * packageMetaInfoDIR,
 
-        const char * recursiveDependentPackageNamesString,
-        const size_t recursiveDependentPackageNamesStringSize) {
+        const char * recursiveDependentPackageNames,
+        const size_t recursiveDependentPackageNamesLength) {
     int fd = open(shellScriptFilePath, O_CREAT | O_TRUNC | O_WRONLY, 0666);
 
     if (fd == -1) {
@@ -748,6 +749,7 @@ static int generate_shell_script_file(
     //////////////////////////////////////////////////////////////////////////////
 
     KV targets[] = {
+        {"TARGET_PLATFORM_SPEC", targetPlatformSpec },
         {"TARGET_PLATFORM_NAME", targetPlatformName },
         {"TARGET_PLATFORM_VERS", targetPlatformVers },
         {"TARGET_PLATFORM_ARCH", targetPlatformArch },
@@ -866,13 +868,6 @@ static int generate_shell_script_file(
         return XCPKG_ERROR;
     }
 
-    ret = dprintf(fd, "RECURSIVE_DEPENDENT_PACKAGE_NAMES='%s'\n", (recursiveDependentPackageNamesString == NULL) ? "" : recursiveDependentPackageNamesString);
-
-    if (ret < 0) {
-        close(fd);
-        return XCPKG_ERROR;
-    }
-
     //////////////////////////////////////////////////////////////////////////////
 
     ret = dprintf(fd, "\nTIMESTAMP_UNIX=%ld\n\n", ts);
@@ -948,6 +943,7 @@ static int generate_shell_script_file(
         {"PACKAGE_RES_URI", formula->res_uri},
         {"PACKAGE_RES_SHA", formula->res_sha},
         {"PACKAGE_DEP_PKG", formula->dep_pkg},
+        {"PACKAGE_DEP_PKG_R", recursiveDependentPackageNames},
         {"PACKAGE_DEP_UPP", formula->dep_upp},
         {"PACKAGE_DEP_PYM", formula->dep_pym},
         {"PACKAGE_DEP_PLM", formula->dep_plm},
@@ -1106,10 +1102,10 @@ static int generate_shell_script_file(
 
     //////////////////////////////////////////////////////////////////////////////
 
-    if (recursiveDependentPackageNamesString != NULL) {
-        size_t  recursiveDependentPackageNamesStringCopyCapacity = recursiveDependentPackageNamesStringSize + 1U;
+    if (recursiveDependentPackageNames[0] != '\0') {
+        size_t  recursiveDependentPackageNamesStringCopyCapacity = recursiveDependentPackageNamesLength + 1U;
         char    recursiveDependentPackageNamesStringCopy[recursiveDependentPackageNamesStringCopyCapacity];
-        strncpy(recursiveDependentPackageNamesStringCopy, recursiveDependentPackageNamesString, recursiveDependentPackageNamesStringCopyCapacity);
+        strncpy(recursiveDependentPackageNamesStringCopy, recursiveDependentPackageNames, recursiveDependentPackageNamesStringCopyCapacity);
 
         char * dependentPackageName = strtok(recursiveDependentPackageNamesStringCopy, " ");
 
@@ -1165,6 +1161,13 @@ static int generate_shell_script_file(
                 {"LIBRARY", libDIR}
             };
 
+            ret = write(fd, "\n", 1);
+
+            if (ret == -1) {
+                perror(NULL);
+                return XCPKG_ERROR;
+            }
+
             for (int i = 0; i < 3; i++) {
                 ret = dprintf(fd, "%s_%s_DIR='%s'\n", dependentPackageName, kvs[i].name, kvs[i].value);
 
@@ -1180,7 +1183,7 @@ static int generate_shell_script_file(
 
     //////////////////////////////////////////////////////////////////////////////
 
-    ret = dprintf(fd, ". %s/xcpkg-install\n", xcpkgCoreDIR);
+    ret = dprintf(fd, "\n. %s/xcpkg-install\n", xcpkgCoreDIR);
 
     if (ret < 0) {
         close(fd);
@@ -1404,7 +1407,7 @@ static int adjust_macho_files(const char * packageInstalledDIR, const size_t pac
     return XCPKG_OK;
 }
 
-static int backup_formulas(const char * sessionDIR, const char * packageMetaInfoDIR, const size_t packageMetaInfoDIRCapacity, const char * recursiveDependentPackageNamesString, const size_t recursiveDependentPackageNamesStringSize) {
+static int backup_formulas(const char * sessionDIR, const char * packageMetaInfoDIR, const size_t packageMetaInfoDIRCapacity, const char * recursiveDependentPackageNames, const size_t recursiveDependentPackageNamesLength) {
     size_t packageInstalledFormulaDIRLength = packageMetaInfoDIRCapacity + 9U;
     char   packageInstalledFormulaDIR[packageInstalledFormulaDIRLength];
 
@@ -1420,9 +1423,9 @@ static int backup_formulas(const char * sessionDIR, const char * packageMetaInfo
         return XCPKG_ERROR;
     }
 
-    size_t  recursiveDependentPackageNamesStringCopyCapacity = recursiveDependentPackageNamesStringSize + 1U;
+    size_t  recursiveDependentPackageNamesStringCopyCapacity = recursiveDependentPackageNamesLength + 1U;
     char    recursiveDependentPackageNamesStringCopy[recursiveDependentPackageNamesStringCopyCapacity];
-    strncpy(recursiveDependentPackageNamesStringCopy, recursiveDependentPackageNamesString, recursiveDependentPackageNamesStringCopyCapacity);
+    strncpy(recursiveDependentPackageNamesStringCopy, recursiveDependentPackageNames, recursiveDependentPackageNamesStringCopyCapacity);
 
     char * packageName = strtok(recursiveDependentPackageNamesStringCopy, " ");
 
@@ -1953,6 +1956,187 @@ static int xcpkg_build_for_native(
     return XCPKG_OK;
 }
 
+typedef struct {
+    char * packageName;
+    XCPKGFormula * formula;
+} XCPKGPackage;
+
+static int getRecursiveDependentPackageNames(const char * packageName, XCPKGPackage ** packageSet, size_t packageSetSize, char buf[], size_t * bufLengthP) {
+    XCPKGPackage * package = NULL;
+
+    for (size_t i = 0U; i < packageSetSize; i++) {
+        if (strcmp(packageSet[i]->packageName, packageName) == 0) {
+            package = packageSet[i];
+            break;
+        }
+    }
+
+    XCPKGFormula * formula = package->formula;
+
+    if (formula->dep_pkg == NULL) {
+        return XCPKG_OK;
+    }
+
+    size_t   packageNameStackCapacity = 8U;
+    size_t   packageNameStackSize    = 0U;
+    char * * packageNameStack = (char**)malloc(8 * sizeof(char*));
+
+    if (packageNameStack == NULL) {
+        return XCPKG_ERROR_MEMORY_ALLOCATE;
+    }
+
+    size_t  depPackageNamesLength = strlen(formula->dep_pkg);
+
+    size_t  depPackageNamesCopyCapacity = depPackageNamesLength + 1U;
+    char    depPackageNamesCopy[depPackageNamesCopyCapacity];
+    strncpy(depPackageNamesCopy, formula->dep_pkg, depPackageNamesCopyCapacity);
+
+    char * depPackageName = strtok(depPackageNamesCopy, " ");
+
+    while (depPackageName != NULL) {
+        if (packageNameStackSize == packageNameStackCapacity) {
+            char ** p = (char**)realloc(packageNameStack, (packageNameStackCapacity + 8U) * sizeof(char*));
+
+            if (p == NULL) {
+                free(packageNameStack);
+                packageNameStack = NULL;
+
+                return XCPKG_ERROR_MEMORY_ALLOCATE;
+            }
+
+            packageNameStack = p;
+            packageNameStackCapacity += 8U;
+        }
+
+        packageNameStack[packageNameStackSize] = depPackageName;
+        packageNameStackSize++;
+        depPackageName = strtok(NULL, " ");
+    }
+
+    ////////////////////////////////////////////////////////////////
+
+    size_t bufLength = 0U;
+
+    char * p = buf;
+
+    while (packageNameStackSize != 0U) {
+        char * packageName = packageNameStack[packageNameStackSize - 1U];
+        packageNameStack[packageNameStackSize - 1U] = NULL;
+        packageNameStackSize--;
+
+        ////////////////////////////////////////////////////////////////
+
+        if (bufLength != 0U) {
+            bool alreadyInBuf = false;
+
+            size_t  bufCapacity = bufLength + 1U;
+            char    bufCopy[bufCapacity];
+            strncpy(bufCopy, buf, bufCapacity);
+
+            char * dependentPackageName = strtok(bufCopy, " ");
+
+            while (dependentPackageName != NULL) {
+                if (strcmp(dependentPackageName, packageName) == 0) {
+                    alreadyInBuf = true;
+                    break;
+                }
+                dependentPackageName = strtok(NULL, " ");
+            }
+
+            if (alreadyInBuf) {
+                continue;
+            }
+        }
+
+        ////////////////////////////////////////////////////////////////
+
+        if (bufLength != 0U) {
+            bufLength++;
+            p[0] = ' ';
+            p++;
+        }
+
+        for (int i = 0; ; i++) {
+            p[i] = packageName[i];
+
+            if (p[i] == '\0') {
+                bufLength += i;
+                p += i;
+                break;
+            }
+        }
+
+        ////////////////////////////////////////////////////////////////
+
+        XCPKGPackage * package = NULL;
+
+        for (size_t i = 0; i < packageSetSize; i++) {
+            if (strcmp(packageSet[i]->packageName, packageName) == 0) {
+                package = packageSet[i];
+                break;
+            }
+        }
+
+        ////////////////////////////////////////////////////////////////
+
+        XCPKGFormula * formula = package->formula;
+
+        if (formula->dep_pkg == NULL) {
+            continue;
+        }
+
+        size_t  depPackageNamesLength = strlen(formula->dep_pkg);
+
+        size_t  depPackageNamesCopyLength = depPackageNamesLength + 1U;
+        char    depPackageNamesCopy[depPackageNamesCopyLength];
+        strncpy(depPackageNamesCopy, formula->dep_pkg, depPackageNamesCopyLength);
+
+        char * depPackageName = strtok(depPackageNamesCopy, " ");
+
+        while (depPackageName != NULL) {
+            XCPKGPackage * depPackage = NULL;
+
+            for (size_t i = 0U; i < packageSetSize; i++) {
+                if (strcmp(packageSet[i]->packageName, depPackageName) == 0) {
+                    depPackage = packageSet[i];
+                    break;
+                }
+            }
+
+            ////////////////////////////////////////////////////////////////
+
+            if (packageNameStackSize == packageNameStackCapacity) {
+                char ** p = (char**)realloc(packageNameStack, (packageNameStackCapacity + 8U) * sizeof(char*));
+
+                if (p == NULL) {
+                    free(packageNameStack);
+                    packageNameStack = NULL;
+
+                    return XCPKG_ERROR_MEMORY_ALLOCATE;
+                }
+
+                packageNameStack = p;
+                packageNameStackCapacity += 8U;
+            }
+
+            packageNameStack[packageNameStackSize] = depPackage->packageName;
+            packageNameStackSize++;
+
+            ////////////////////////////////////////////////////////////////
+
+            depPackageName = strtok(NULL, " ");
+        }
+    }
+
+    free(packageNameStack);
+
+    if (bufLengthP != NULL) {
+        *bufLengthP = bufLength;
+    }
+
+    return XCPKG_OK;
+}
+
 static int xcpkg_install_package(
         const char * packageName,
         const char * targetPlatformSpec,
@@ -1991,8 +2175,8 @@ static int xcpkg_install_package(
         const size_t xcpkgDownloadsDIRCapacity,
         const char * sessionDIR,
         const size_t sessionDIRLength,
-        const char * recursiveDependentPackageNamesString,
-        const size_t recursiveDependentPackageNamesStringSize) {
+
+        XCPKGPackage ** packageSet, size_t packageSetSize) {
     fprintf(stderr, "%s=============== Installing%s %s%s/%s%s %s===============%s\n", COLOR_PURPLE, COLOR_OFF, COLOR_GREEN, targetPlatformSpec, packageName, COLOR_OFF, COLOR_PURPLE, COLOR_OFF);
 
     const time_t ts = time(NULL);
@@ -2702,7 +2886,18 @@ static int xcpkg_install_package(
 
     const bool isCrossBuild = !((strcmp("MacOSX", targetPlatformName) == 0) && (strcmp(sysinfo->arch, targetPlatformArch) == 0));
 
-    ret = generate_shell_script_file(shellScriptFilePath, packageName, formula, installOptions, sysinfo, uppmPackageInstalledRootDIR, nativePackageInstalledRootDIR, xcpkgExeFilePath, ts, njobs, isCrossBuild, targetPlatformName, targetPlatformVers, targetPlatformArch, xcpkgHomeDIR, xcpkgCoreDIR, xcpkgDownloadsDIR, sessionDIR, packageWorkingTopDIR, packageWorkingSrcDIR, packageInstalledRootDIR, packageInstalledRootDIRCapacity, packageInstalledDIR, packageMetaInfoDIR, recursiveDependentPackageNamesString, recursiveDependentPackageNamesStringSize);
+    char   recursiveDependentPackageNames[1024]; recursiveDependentPackageNames[0] = '\0';
+    size_t recursiveDependentPackageNamesLength = 0U;
+
+    ret = getRecursiveDependentPackageNames(packageName, packageSet, packageSetSize, recursiveDependentPackageNames, &recursiveDependentPackageNamesLength);
+
+    if (ret != XCPKG_OK) {
+        return ret;
+    }
+
+    //printf("%s:%zu:%s\n", packageName, recursiveDependentPackageNamesLength, recursiveDependentPackageNames);
+
+    ret = generate_shell_script_file(shellScriptFilePath, packageName, formula, installOptions, sysinfo, uppmPackageInstalledRootDIR, nativePackageInstalledRootDIR, xcpkgExeFilePath, ts, njobs, isCrossBuild, targetPlatformSpec, targetPlatformName, targetPlatformVers, targetPlatformArch, xcpkgHomeDIR, xcpkgCoreDIR, xcpkgDownloadsDIR, sessionDIR, packageWorkingTopDIR, packageWorkingSrcDIR, packageInstalledRootDIR, packageInstalledRootDIRCapacity, packageInstalledDIR, packageMetaInfoDIR, recursiveDependentPackageNames, recursiveDependentPackageNamesLength);
 
     if (ret != XCPKG_OK) {
         return ret;
@@ -3020,10 +3215,10 @@ static int xcpkg_install_package(
 
     //////////////////////////////////////////////////////////////////////////////
 
-    if (formula->support_create_mostly_statically_linked_executable && installOptions->createMostlyStaticallyLinkedExecutables && recursiveDependentPackageNamesString != NULL) {
-        size_t  recursiveDependentPackageNamesStringCopyCapacity = recursiveDependentPackageNamesStringSize + 1U;
+    if (formula->support_create_mostly_statically_linked_executable && installOptions->createMostlyStaticallyLinkedExecutables && formula->dep_pkg != NULL) {
+        size_t  recursiveDependentPackageNamesStringCopyCapacity = recursiveDependentPackageNamesLength + 1U;
         char    recursiveDependentPackageNamesStringCopy[recursiveDependentPackageNamesStringCopyCapacity];
-        strncpy(recursiveDependentPackageNamesStringCopy, recursiveDependentPackageNamesString, recursiveDependentPackageNamesStringCopyCapacity);
+        strncpy(recursiveDependentPackageNamesStringCopy, recursiveDependentPackageNames, recursiveDependentPackageNamesStringCopyCapacity);
 
         char * dependentPackageName = strtok(recursiveDependentPackageNamesStringCopy, " ");
 
@@ -3684,8 +3879,8 @@ static int xcpkg_install_package(
         }
     }
 
-    if (recursiveDependentPackageNamesString != NULL) {
-        ret = backup_formulas(sessionDIR, packageMetaInfoDIR, packageMetaInfoDIRCapacity, recursiveDependentPackageNamesString, recursiveDependentPackageNamesStringSize);
+    if (formula->dep_pkg != NULL) {
+        ret = backup_formulas(sessionDIR, packageMetaInfoDIR, packageMetaInfoDIRCapacity, recursiveDependentPackageNames, recursiveDependentPackageNamesLength);
 
         if (ret != XCPKG_OK) {
             return ret;
@@ -3759,208 +3954,10 @@ static int xcpkg_install_package(
     }
 }
 
-typedef struct {
-    char * packageName;
-    XCPKGFormula * formula;
-} XCPKGPackage;
-
-static int getRecursiveDependentPackageNamesStringBuffer(char * packageName, XCPKGPackage ** packageSet, size_t packageSetSize, char ** precursiveDependentPackageNamesStringBuffer, size_t * precursiveDependentPackageNamesStringBufferSize, size_t * precursiveDependentPackageNamesStringBufferCapacity) {
-    XCPKGPackage * package = NULL;
-
-    for (size_t i = 0U; i < packageSetSize; i++) {
-        if (strcmp(packageSet[i]->packageName, packageName) == 0) {
-            package = packageSet[i];
-            break;
-        }
-    }
-
-    XCPKGFormula * formula = package->formula;
-
-    if (formula->dep_pkg == NULL) {
-        return XCPKG_OK;
-    }
-
-    size_t   packageNameStackCapacity = 8U;
-    size_t   packageNameStackSize    = 0U;
-    char * * packageNameStack = (char**)malloc(8 * sizeof(char*));
-
-    if (packageNameStack == NULL) {
-        return XCPKG_ERROR_MEMORY_ALLOCATE;
-    }
-
-    size_t  depPackageNamesLength = strlen(formula->dep_pkg);
-
-    size_t  depPackageNamesCopyCapacity = depPackageNamesLength + 1U;
-    char    depPackageNamesCopy[depPackageNamesCopyCapacity];
-    strncpy(depPackageNamesCopy, formula->dep_pkg, depPackageNamesCopyCapacity);
-
-    char * depPackageName = strtok(depPackageNamesCopy, " ");
-
-    while (depPackageName != NULL) {
-        if (packageNameStackSize == packageNameStackCapacity) {
-            char ** p = (char**)realloc(packageNameStack, (packageNameStackCapacity + 8U) * sizeof(char*));
-
-            if (p == NULL) {
-                free(packageNameStack);
-                packageNameStack = NULL;
-
-                return XCPKG_ERROR_MEMORY_ALLOCATE;
-            }
-
-            packageNameStack = p;
-            packageNameStackCapacity += 8U;
-        }
-
-        packageNameStack[packageNameStackSize] = depPackageName;
-        packageNameStackSize++;
-        depPackageName = strtok(NULL, " ");
-    }
-
-    ////////////////////////////////////////////////////////////////
-
-    char * recursiveDependentPackageNamesStringBuffer        = (*precursiveDependentPackageNamesStringBuffer);
-    size_t recursiveDependentPackageNamesStringBufferSize    = (*precursiveDependentPackageNamesStringBufferSize);
-    size_t recursiveDependentPackageNamesStringBufferCapacity = (*precursiveDependentPackageNamesStringBufferCapacity);
-
-    ////////////////////////////////////////////////////////////////
-
-    while (packageNameStackSize != 0U) {
-        char * packageName = packageNameStack[packageNameStackSize - 1U];
-        packageNameStack[packageNameStackSize - 1U] = NULL;
-        packageNameStackSize--;
-
-        ////////////////////////////////////////////////////////////////
-
-        if (recursiveDependentPackageNamesStringBuffer != NULL) {
-            bool alreadyInRecursiveDependentPackageNamesStringBuffer = false;
-
-            size_t  recursiveDependentPackageNamesStringBufferCopyCapacity = recursiveDependentPackageNamesStringBufferSize + 1U;
-            char    recursiveDependentPackageNamesStringBufferCopy[recursiveDependentPackageNamesStringBufferCopyCapacity];
-            strncpy(recursiveDependentPackageNamesStringBufferCopy, recursiveDependentPackageNamesStringBuffer, recursiveDependentPackageNamesStringBufferCopyCapacity);
-
-            char * dependentPackageName = strtok(recursiveDependentPackageNamesStringBufferCopy, " ");
-
-            while (dependentPackageName != NULL) {
-                if (strcmp(dependentPackageName, packageName) == 0) {
-                    alreadyInRecursiveDependentPackageNamesStringBuffer = true;
-                    break;
-                }
-                dependentPackageName = strtok(NULL, " ");
-            }
-
-            if (alreadyInRecursiveDependentPackageNamesStringBuffer) {
-                continue;
-            }
-        }
-
-        ////////////////////////////////////////////////////////////////
-
-        size_t packageNameLength = strlen(packageName);
-
-        if ((recursiveDependentPackageNamesStringBufferSize + packageNameLength + 2U) > recursiveDependentPackageNamesStringBufferCapacity) {
-            char * p = (char*)realloc(recursiveDependentPackageNamesStringBuffer, (recursiveDependentPackageNamesStringBufferCapacity + 256U) * sizeof(char*));
-
-            if (p == NULL) {
-                free(recursiveDependentPackageNamesStringBuffer);
-                recursiveDependentPackageNamesStringBuffer = NULL;
-
-                free(packageNameStack);
-                packageNameStack = NULL;
-
-                return XCPKG_ERROR_MEMORY_ALLOCATE;
-            }
-
-            recursiveDependentPackageNamesStringBuffer = p;
-            recursiveDependentPackageNamesStringBufferCapacity += 256U;
-        }
-
-        if (recursiveDependentPackageNamesStringBufferSize == 0U) {
-            strncpy(recursiveDependentPackageNamesStringBuffer, packageName, packageNameLength);
-            recursiveDependentPackageNamesStringBufferSize = packageNameLength;
-            recursiveDependentPackageNamesStringBuffer[recursiveDependentPackageNamesStringBufferSize] = '\0';
-        } else {
-            recursiveDependentPackageNamesStringBuffer[recursiveDependentPackageNamesStringBufferSize] = ' ';
-            strncpy(recursiveDependentPackageNamesStringBuffer + recursiveDependentPackageNamesStringBufferSize + 1U, packageName, packageNameLength);
-            recursiveDependentPackageNamesStringBufferSize += packageNameLength + 1U;
-            recursiveDependentPackageNamesStringBuffer[recursiveDependentPackageNamesStringBufferSize] = '\0';
-        }
-
-        ////////////////////////////////////////////////////////////////
-
-        XCPKGPackage * package = NULL;
-
-        for (size_t i = 0; i < packageSetSize; i++) {
-            if (strcmp(packageSet[i]->packageName, packageName) == 0) {
-                package = packageSet[i];
-                break;
-            }
-        }
-
-        ////////////////////////////////////////////////////////////////
-
-        XCPKGFormula * formula = package->formula;
-
-        if (formula->dep_pkg != NULL) {
-            size_t  depPackageNamesLength = strlen(formula->dep_pkg);
-
-            size_t  depPackageNamesCopyLength = depPackageNamesLength + 1U;
-            char    depPackageNamesCopy[depPackageNamesCopyLength];
-            strncpy(depPackageNamesCopy, formula->dep_pkg, depPackageNamesCopyLength);
-
-            char * depPackageName = strtok(depPackageNamesCopy, " ");
-
-            while (depPackageName != NULL) {
-                XCPKGPackage * depPackage = NULL;
-
-                for (size_t i = 0U; i < packageSetSize; i++) {
-                    if (strcmp(packageSet[i]->packageName, depPackageName) == 0) {
-                        depPackage = packageSet[i];
-                        break;
-                    }
-                }
-
-                ////////////////////////////////////////////////////////////////
-
-                if (packageNameStackSize == packageNameStackCapacity) {
-                    char ** p = (char**)realloc(packageNameStack, (packageNameStackCapacity + 8U) * sizeof(char*));
-
-                    if (p == NULL) {
-                        free(recursiveDependentPackageNamesStringBuffer);
-                        recursiveDependentPackageNamesStringBuffer = NULL;
-
-                        free(packageNameStack);
-                        packageNameStack = NULL;
-
-                        return XCPKG_ERROR_MEMORY_ALLOCATE;
-                    }
-
-                    packageNameStack = p;
-                    packageNameStackCapacity += 8U;
-                }
-
-                packageNameStack[packageNameStackSize] = depPackage->packageName;
-                packageNameStackSize++;
-
-                ////////////////////////////////////////////////////////////////
-
-                depPackageName = strtok(NULL, " ");
-            }
-        }
-    }
-
-    free(packageNameStack);
-
-    (*precursiveDependentPackageNamesStringBuffer)        = recursiveDependentPackageNamesStringBuffer;
-    (*precursiveDependentPackageNamesStringBufferSize)    = recursiveDependentPackageNamesStringBufferSize;
-    (*precursiveDependentPackageNamesStringBufferCapacity) = recursiveDependentPackageNamesStringBufferCapacity;
-
-    return XCPKG_OK;
-}
-
 static int check_and_read_formula_in_cache(const char * packageName, const char * targetPlatformName, const char * sessionDIR, XCPKGPackage *** ppackageSet, size_t * ppackageSetSize, size_t * ppackageSetCapacity) {
-    size_t         packageSetCapacity = (*ppackageSetCapacity);
-    size_t         packageSetSize     = (*ppackageSetSize);
-    XCPKGPackage ** packageSet        = (*ppackageSet);
+    size_t          packageSetCapacity = (*ppackageSetCapacity);
+    size_t          packageSetSize     = (*ppackageSetSize);
+    XCPKGPackage ** packageSet         = (*ppackageSet);
 
     size_t   packageNameStackCapacity = 10U;
     size_t   packageNameStackSize    = 0U;
@@ -4615,12 +4612,10 @@ int xcpkg_install(const char * packageName, const char * targetPlatformSpec, con
 
     //////////////////////////////////////////////////////////////////////////////
 
-    printf("install packages in order: ");
+    printf("install packages in order:");
 
     for (int i = packageSetSize - 1; i >= 0; i--) {
-        XCPKGPackage * package = packageSet[i];
-        char * packageName = package->packageName;
-        printf("%s ", packageName);
+        printf(" %s", packageSet[i]->packageName);
     }
 
     printf("\n");
@@ -4645,22 +4640,7 @@ int xcpkg_install(const char * packageName, const char * targetPlatformSpec, con
             goto finalize;
         }
 
-        char * recursiveDependentPackageNamesStringBuffer         = NULL;
-        size_t recursiveDependentPackageNamesStringBufferSize     = 0U;
-        size_t recursiveDependentPackageNamesStringBufferCapacity = 0U;
-
-        ret = getRecursiveDependentPackageNamesStringBuffer(packageName, packageSet, packageSetSize, &recursiveDependentPackageNamesStringBuffer, &recursiveDependentPackageNamesStringBufferSize, &recursiveDependentPackageNamesStringBufferCapacity);
-
-        if (ret != XCPKG_OK) {
-            goto finalize;
-        }
-
-        //printf("%s:%zu:%s\n", packageName, recursiveDependentPackageNamesStringBufferSize, recursiveDependentPackageNamesStringBuffer);
-
-        ret = xcpkg_install_package(packageName, targetPlatformSpec, package->formula, installOptions, &toolchain, &sysinfo, cpp, ccForNativeBuild, cxxForNativeBuild, objcForNativeBuild, ccForTargetBuild, cxxForTargetBuild, objcForTargetBuild, extraCCFlags, extraCCFlags, "", extraLDFlags, extraCCFlags, extraLDFlags, uppmPackageInstalledRootDIR, uppmPackageInstalledRootDIRCapacity, xcpkgExeFilePath, xcpkgHomeDIR, xcpkgHomeDIRLength, xcpkgCoreDIR, xcpkgCoreDIRCapacity, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, sessionDIR, sessionDIRLength, (const char *)recursiveDependentPackageNamesStringBuffer, recursiveDependentPackageNamesStringBufferSize);
-
-        free(recursiveDependentPackageNamesStringBuffer);
-        recursiveDependentPackageNamesStringBuffer = NULL;
+        ret = xcpkg_install_package(packageName, targetPlatformSpec, package->formula, installOptions, &toolchain, &sysinfo, cpp, ccForNativeBuild, cxxForNativeBuild, objcForNativeBuild, ccForTargetBuild, cxxForTargetBuild, objcForTargetBuild, extraCCFlags, extraCCFlags, "", extraLDFlags, extraCCFlags, extraLDFlags, uppmPackageInstalledRootDIR, uppmPackageInstalledRootDIRCapacity, xcpkgExeFilePath, xcpkgHomeDIR, xcpkgHomeDIRLength, xcpkgCoreDIR, xcpkgCoreDIRCapacity, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, sessionDIR, sessionDIRLength, packageSet, packageSetSize);
 
         if (ret != XCPKG_OK) {
             goto finalize;
