@@ -4704,6 +4704,7 @@ $PACKAGE_DO12345
             XXFLAGS="$XXFLAGS -Os"
             OCFLAGS="$OCFLAGS -Os"
             OXFLAGS="$OXFLAGS -Os"
+            LDFLAGS="$LDFLAGS -Wl,-S"
 
             unset _U_NDEBUG_OPT_IS_SET
 

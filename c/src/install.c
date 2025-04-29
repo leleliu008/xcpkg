@@ -1976,7 +1976,7 @@ static inline __attribute__((always_inline)) void string_buffer_append(char buf[
     }
 }
 
-static int getRecursiveDependentPackageNames(const char * packageName, XCPKGPackage ** packageSet, size_t packageSetSize, char buf[], size_t * bufLengthP, char dotStr[], size_t * dotStrLengthP, char d2Str[], size_t * d2StrLengthP) {
+static int generate_dependencies_tree(const char * packageName, XCPKGPackage ** packageSet, size_t packageSetSize, char buf[], size_t * bufLengthP, char dotStr[], size_t * dotStrLengthP, char d2Str[], size_t * d2StrLengthP) {
     XCPKGPackage * package = NULL;
 
     for (size_t i = 0U; i < packageSetSize; i++) {
@@ -2931,7 +2931,7 @@ static int xcpkg_install_package(
         char   d2Str[4096];
         size_t d2StrLength = 0U;
 
-        ret = getRecursiveDependentPackageNames(packageName, packageSet, packageSetSize, recursiveDependentPackageNames, &recursiveDependentPackageNamesLength, dotStr, &dotStrLength, d2Str, &d2StrLength);
+        ret = generate_dependencies_tree(packageName, packageSet, packageSetSize, recursiveDependentPackageNames, &recursiveDependentPackageNamesLength, dotStr, &dotStrLength, d2Str, &d2StrLength);
 
         if (ret != XCPKG_OK) {
             return ret;
