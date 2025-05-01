@@ -7,6 +7,10 @@
 #include "xcpkg.h"
 
 int xcpkg_download_via_http_then_unpack(const char * url, const char * uri, const char * expectedSHA256SUM, const char * downloadDIR, size_t downloadDIRLength, const char * unpackDIR, size_t unpackDIRLength, const bool verbose) {
+    //if (verbose) {
+        fprintf(stderr, "url=%s\nuri=%s\nsha=%s\n", url, uri, expectedSHA256SUM);
+    //}
+
     char fileType[21] = {0};
 
     int ret = xcpkg_extract_filetype_from_url(url, fileType, 20);

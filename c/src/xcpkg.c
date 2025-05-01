@@ -480,16 +480,16 @@ static inline int xcpkg_action_install(int argc, char* argv[]) {
             installOptions.verbose_env = true;
             installOptions.verbose_cc  = true;
             installOptions.verbose_ld  = true;
-        } else if (strcmp(argv[i], "-v:net") == 0) {
+        } else if (strcmp(argv[i], "-v-net") == 0) {
             installOptions.logLevel = XCPKGLogLevel_normal;
             installOptions.verbose_net = true;
-        } else if (strcmp(argv[i], "-v:env") == 0) {
+        } else if (strcmp(argv[i], "-v-env") == 0) {
             installOptions.logLevel = XCPKGLogLevel_normal;
             installOptions.verbose_env = true;
-        } else if (strcmp(argv[i], "-v:cc") == 0) {
+        } else if (strcmp(argv[i], "-x-cc") == 0) {
             installOptions.logLevel = XCPKGLogLevel_normal;
             installOptions.verbose_cc = true;
-        } else if (strcmp(argv[i], "-v:ld") == 0) {
+        } else if (strcmp(argv[i], "-x-ld") == 0) {
             installOptions.logLevel = XCPKGLogLevel_normal;
             installOptions.verbose_ld = true;
         } else if (strcmp(argv[i], "--dry-run") == 0) {

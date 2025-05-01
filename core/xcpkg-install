@@ -1223,6 +1223,19 @@ __install_for_target() {
         esac
     fi
 
+    PACKAGE_FIX_INDEX="$PACKAGE_WORKING_DIR/fix/index"
+
+    if [ -f "$PACKAGE_FIX_INDEX" ] ; then
+        while read -r LINE
+        do
+            FILENAME="${LINE%|*}"
+            FILEPATH="$PACKAGE_WORKING_DIR/fix/$FILENAME"
+            OPTIONS="${LINE#*|}"
+            [ -z "$OPTIONS" ] && OPTIONS='-p1'
+            run "patch $OPTIONS < $FILEPATH"
+        done < "$PACKAGE_FIX_INDEX"
+    fi
+
     [ "$PACKAGE_DOPATCH" = 1 ] && dopatch
 
     #########################################################################################
@@ -1239,6 +1252,8 @@ __install_for_target() {
     fi
 
     #########################################################################################
+
+    PACKAGE_BSYSTEM_MASTER="${PACKAGE_BSYSTEM%% *}"
 
     case $PACKAGE_BSYSTEM_MASTER in
         autogen)

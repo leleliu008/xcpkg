@@ -33,6 +33,265 @@ typedef struct {
     bool         value;
 } KB;
 
+static int fetch_fixlist(const char * fixlist, const char * xcpkgDownloadsDIR, const size_t xcpkgDownloadsDIRCapacity, const char * packageWorkingFixDIR, const size_t packageWorkingFixDIRCapacity, bool verbose) {
+    size_t  bufCapacity = strlen(fixlist) + 1U;
+    char    buf[bufCapacity];
+    strncpy(buf, fixlist, bufCapacity);
+
+    char * p = buf;
+
+    int ret;
+
+    int fd = -1;
+
+    while (p[0] != '\0') {
+        char * sha = NULL;
+        char * url = NULL;
+        char * uri = NULL;
+        char * opt = NULL;
+
+        ////////////////// sha //////////////////
+
+        for (int i = 0; ; i++) {
+            if (p[i] == '\0') {
+                fprintf(stderr, "fixlist mapping is invalid.\n");
+                return XCPKG_ERROR_FORMULA_SCHEME;
+            }
+
+            if (p[i] == '|') {
+                if (i == 64) {
+                    sha = p;
+                    p[i] = '\0';
+                    p += i + 1;
+                    break;
+                } else {
+                    fprintf(stderr, "fixlist mapping is invalid. sha256sum length shall be 64.\n");
+                    return XCPKG_ERROR_FORMULA_SCHEME;
+                }
+            }
+        }
+
+        ////////////////// url //////////////////
+
+        for (int i = 0; ; i++) {
+            if (p[i] == '\n') {
+                p[i] = '\0';
+                url = p;
+                p += i + 1;
+                goto action;
+            }
+
+            if (p[i] == '\0') {
+                p[i] = '\0';
+                url = p;
+                p = &p[i];
+                goto action;
+            }
+
+            if (p[i] == '|') {
+                p[i] = '\0';
+                url = p;
+                p += i + 1;
+                break;
+            }
+        }
+
+        ////////////////// uri //////////////////
+
+        for (int i = 0; ; i++) {
+            if (p[i] == '\n') {
+                p[i] = '\0';
+                uri = p;
+                p += i + 1;
+                goto action;
+            }
+
+            if (p[i] == '\0') {
+                p[i] = '\0';
+                uri = p;
+                p = &p[i];
+                goto action;
+            }
+
+            if (p[i] == '|') {
+                p[i] = '\0';
+                uri = p;
+                p += i + 1;
+                break;
+            }
+        }
+
+        ////////////////// opt //////////////////
+
+        for (int i = 0; ; i++) {
+            if (p[i] == '\n') {
+                p[i] = '\0';
+                opt = p;
+                p += i + 1;
+                goto action;
+            }
+
+            if (p[i] == '\0') {
+                p[i] = '\0';
+                opt = p;
+                p = &p[i];
+                goto action;
+            }
+
+            if (p[i] == '|') {
+                fprintf(stderr, "fixlist mapping is invalid.\n");
+                return XCPKG_ERROR_FORMULA_SCHEME;
+            }
+        }
+
+        action:
+        ret = xcpkg_download_via_http_then_unpack(url, uri, sha, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, packageWorkingFixDIR, packageWorkingFixDIRCapacity, verbose);
+
+        if (ret != XCPKG_OK) {
+            if (fd != -1) {
+                close(fd);
+            }
+            return ret;
+        }
+
+        char ft[21]; ft[0] = '\0';
+
+        ret = xcpkg_extract_filetype_from_url(url, ft, 21);
+
+        if (ret != XCPKG_OK) {
+            if (fd != -1) {
+                close(fd);
+            }
+            return ret;
+        }
+
+        if (fd == -1) {
+            size_t capacity = packageWorkingFixDIRCapacity + 6U;
+            char   fp[capacity];
+
+            ret = snprintf(fp, capacity, "%s/index", packageWorkingFixDIR);
+
+            if (ret < 0) {
+                perror(NULL);
+                return XCPKG_ERROR;
+            }
+
+            fd = open(fp, O_CREAT | O_TRUNC | O_WRONLY, 0666);
+
+            if (fd == -1) {
+                perror(fp);
+                return XCPKG_ERROR;
+            }
+        }
+
+        ret = dprintf(fd, "%s%s|%s\n", sha, ft, (opt == NULL) ? "" : opt);
+
+        if (ret < 0) {
+            perror(NULL);
+            close(fd);
+            return XCPKG_ERROR;
+        }
+    }
+
+    if (fd != -1) {
+        close(fd);
+    }
+
+    return XCPKG_OK;
+}
+
+static int fetch_reslist(const char * reslist, const char * xcpkgDownloadsDIR, const size_t xcpkgDownloadsDIRCapacity, const char * packageWorkingResDIR, const size_t packageWorkingResDIRCapacity, bool verbose) {
+    size_t  bufCapacity = strlen(reslist) + 1U;
+    char    buf[bufCapacity];
+    strncpy(buf, reslist, bufCapacity);
+
+    char * p = buf;
+
+    int ret;
+
+    while (p[0] != '\0') {
+        char * sha = NULL;
+        char * url = NULL;
+        char * uri = NULL;
+
+        for (int i = 0; ; i++) {
+            if (p[i] == '\0') {
+                fprintf(stderr, "reslist mapping is invalid.\n");
+                return XCPKG_ERROR_FORMULA_SCHEME;
+            }
+
+            if (p[i] == '|') {
+                if (i == 64) {
+                    sha = p;
+                    p[i] = '\0';
+                    p += i + 1;
+                    break;
+                } else {
+                    fprintf(stderr, "reslist mapping is invalid. sha256sum length shall be 64.\n");
+                    return XCPKG_ERROR_FORMULA_SCHEME;
+                }
+            }
+        }
+
+        ////////////////////////////////////
+
+        for (int i = 0; ; i++) {
+            if (p[i] == '\n') {
+                p[i] = '\0';
+                url = p;
+                p += i + 1;
+                goto action;
+            }
+
+            if (p[i] == '\0') {
+                p[i] = '\0';
+                url = p;
+                p = &p[i];
+                goto action;
+            }
+
+            if (p[i] == '|') {
+                p[i] = '\0';
+                url = p;
+                p += i + 1;
+                break;
+            }
+        }
+
+        ////////////////////////////////////
+
+        for (int i = 0; ; i++) {
+            if (p[i] == '\n') {
+                p[i] = '\0';
+                uri = p;
+                p += i + 1;
+                goto action;
+            }
+
+            if (p[i] == '\0') {
+                p[i] = '\0';
+                uri = p;
+                p = &p[i];
+                goto action;
+            }
+
+            if (p[i] == '|') {
+                fprintf(stderr, "reslist mapping is invalid.\n");
+                return XCPKG_ERROR_FORMULA_SCHEME;
+            }
+        }
+
+        action:
+        ret = xcpkg_download_via_http_then_unpack(url, uri, sha, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, packageWorkingResDIR, packageWorkingResDIRCapacity, verbose);
+
+        if (ret != XCPKG_OK) {
+            return ret;
+        }
+    }
+
+    return XCPKG_OK;
+}
+
 static int setup_rust_toolchain(const XCPKGInstallOptions * installOptions, const char * sessionDIR, const size_t sessionDIRLength) {
     const char * cargoHomeDIR = getenv("CARGO_HOME");
 
@@ -2212,14 +2471,14 @@ static int xcpkg_install_package(
         const XCPKGToolChain * toolchain,
         const SysInfo * sysinfo,
 
-        const char * cpp,
-
         const char * ccForNativeBuild,
         const char * cxxForNativeBuild,
+        const char * cppForNativeBuild,
         const char * objcForNativeBuild,
 
         const char * ccForTargetBuild,
         const char * cxxForTargetBuild,
+        const char * cppForTargetBuild,
         const char * objcForTargetBuild,
 
         const char *  ccFlagsForNativeBuild,
@@ -2334,7 +2593,7 @@ static int xcpkg_install_package(
         { "CC",        ccForNativeBuild },
         { "OBJC",      objcForNativeBuild },
         { "CXX",       cxxForNativeBuild },
-        { "CPP",       cpp },
+        { "CPP",       cppForNativeBuild },
         { "AS",        toolchain->as },
         { "AR",        toolchain->ar },
         { "RANLIB",    toolchain->ranlib },
@@ -3073,6 +3332,22 @@ static int xcpkg_install_package(
         }
     }
 
+    if (formula->patches != NULL) {
+        ret = fetch_fixlist(formula->patches, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, packageWorkingFixDIR, packageWorkingFixDIRCapacity, installOptions->verbose_net);
+
+        if (ret != XCPKG_OK) {
+            return ret;
+        }
+    }
+
+    if (formula->reslist != NULL) {
+        ret = fetch_reslist(formula->reslist, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, packageWorkingResDIR, packageWorkingResDIRCapacity, installOptions->verbose_net);
+
+        if (ret != XCPKG_OK) {
+            return ret;
+        }
+    }
+
     //////////////////////////////////////////////////////////////////////////////
 
     if (formula->do12345 != NULL) {
@@ -3091,7 +3366,7 @@ static int xcpkg_install_package(
         { "CC",        ccForTargetBuild },
         { "OBJC",      objcForTargetBuild },
         { "CXX",       cxxForTargetBuild },
-        { "CPP",       cpp },
+        { "CPP",       cppForTargetBuild },
         { "AS",        toolchain->as },
         { "AR",        toolchain->ar },
         { "RANLIB",    toolchain->ranlib },
@@ -4479,6 +4754,17 @@ int xcpkg_install(const char * packageName, const char * targetPlatformSpec, con
         return XCPKG_ERROR;
     }
 
+    size_t cppCapacity = capacity + 4U;
+
+    char cppForNativeBuild[cppCapacity];
+
+    ret = snprintf(cppForNativeBuild, cppCapacity, "%s -E", ccForNativeBuild);
+
+    if (ret < 0) {
+        perror(NULL);
+        return XCPKG_ERROR;
+    }
+
     //////////////////////////////////////////////////////////////////////
 
     char ccForTargetBuild[capacity];
@@ -4502,6 +4788,15 @@ int xcpkg_install(const char * packageName, const char * targetPlatformSpec, con
     char objcForTargetBuild[capacity];
 
     ret = snprintf(objcForTargetBuild, capacity, "%s/wrapper-target-objc", xcpkgCoreDIR);
+
+    if (ret < 0) {
+        perror(NULL);
+        return XCPKG_ERROR;
+    }
+
+    char cppForTargetBuild[cppCapacity];
+
+    ret = snprintf(cppForTargetBuild, cppCapacity, "%s -E", ccForTargetBuild);
 
     if (ret < 0) {
         perror(NULL);
@@ -4543,20 +4838,6 @@ int xcpkg_install(const char * packageName, const char * targetPlatformSpec, con
                 return XCPKG_ERROR;
             }
         }
-    }
-
-    //////////////////////////////////////////////////////////////////////
-
-    size_t cppCapacity = strlen(toolchain.cc) + 4U;
-
-    char cpp[cppCapacity];
-
-    ret = snprintf(cpp, cppCapacity, "%s -E", toolchain.cc);
-
-    if (ret < 0) {
-        perror(NULL);
-        xcpkg_toolchain_free(&toolchain);
-        return XCPKG_ERROR;
     }
 
     //////////////////////////////////////////////////////////////////////////////
@@ -4739,7 +5020,7 @@ int xcpkg_install(const char * packageName, const char * targetPlatformSpec, con
             goto finalize;
         }
 
-        ret = xcpkg_install_package(packageName, targetPlatformSpec, package->formula, installOptions, &toolchain, &sysinfo, cpp, ccForNativeBuild, cxxForNativeBuild, objcForNativeBuild, ccForTargetBuild, cxxForTargetBuild, objcForTargetBuild, extraCCFlags, extraCCFlags, "", extraLDFlags, extraCCFlags, extraLDFlags, uppmPackageInstalledRootDIR, uppmPackageInstalledRootDIRCapacity, xcpkgExeFilePath, xcpkgHomeDIR, xcpkgHomeDIRLength, xcpkgCoreDIR, xcpkgCoreDIRCapacity, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, sessionDIR, sessionDIRLength, packageSet, packageSetSize);
+        ret = xcpkg_install_package(packageName, targetPlatformSpec, package->formula, installOptions, &toolchain, &sysinfo, ccForNativeBuild, cxxForNativeBuild, cppForNativeBuild, objcForNativeBuild, ccForTargetBuild, cxxForTargetBuild, cppForTargetBuild, objcForTargetBuild, extraCCFlags, extraCCFlags, "", extraLDFlags, extraCCFlags, extraLDFlags, uppmPackageInstalledRootDIR, uppmPackageInstalledRootDIRCapacity, xcpkgExeFilePath, xcpkgHomeDIR, xcpkgHomeDIRLength, xcpkgCoreDIR, xcpkgCoreDIRCapacity, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, sessionDIR, sessionDIRLength, packageSet, packageSetSize);
 
         if (ret != XCPKG_OK) {
             goto finalize;
