@@ -1210,14 +1210,17 @@ __install_for_target() {
         run     cd "$PACKAGE_BSCRIPT_DIR"
     fi
 
-    if [ -f "$PACKAGE_WORKING_DIR/fix/index" ] ; then
-        for LINE in $(cat "$PACKAGE_WORKING_DIR/fix/index")
-        do
-            FILE="$(printf '%s\n' "$LINE" | cut -d '|' -f1)"
-            OPTS="$(printf '%s\n' "$LINE" | cut -d '|' -f2)"
-            [ -z "$OPTS" ] && OPTS='-p1'
-            run "patch $OPTS < $PACKAGE_WORKING_DIR/fix/$FILE"
-        done
+    if [ -n "$PACKAGE_FIX_URL" ] ; then
+        case $PACKAGE_FIX_EXT in
+            .diff|.patch)
+                PACKAGE_FIX_FILENAME="$PACKAGE_FIX_SHA$PACKAGE_FIX_EXT"
+                PACKAGE_FIX_FILEPATH="$PACKAGE_WORKING_DIR/fix/$PACKAGE_FIX_FILENAME"
+
+                if [ -f "$PACKAGE_FIX_FILEPATH" ] ; then
+                    [ -z "$PACKAGE_FIX_OPT" ] && PACKAGE_FIX_OPT='-p1'
+                    run "patch $PACKAGE_FIX_OPT < $PACKAGE_FIX_FILEPATH"
+                fi
+        esac
     fi
 
     [ "$PACKAGE_DOPATCH" = 1 ] && dopatch

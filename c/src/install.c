@@ -33,12 +33,6 @@ typedef struct {
     bool         value;
 } KB;
 
-typedef struct {
-    const char * name;
-    size_t       value;
-} KU;
-
-
 static int setup_rust_toolchain(const XCPKGInstallOptions * installOptions, const char * sessionDIR, const size_t sessionDIRLength) {
     const char * cargoHomeDIR = getenv("CARGO_HOME");
 
@@ -923,6 +917,38 @@ static int generate_shell_script_file(
 
     //////////////////////////////////////////////////////////////////////////////
 
+    char srcFileType[21]; srcFileType[0] = '\0';
+
+    if (formula->src_url != NULL) {
+        ret = xcpkg_extract_filetype_from_url(formula->src_url, srcFileType, 21);
+
+        if (ret != XCPKG_OK) {
+            return ret;
+        }
+    }
+
+    char fixFileType[21]; fixFileType[0] = '\0';
+
+    if (formula->fix_url != NULL) {
+        ret = xcpkg_extract_filetype_from_url(formula->fix_url, fixFileType, 21);
+
+        if (ret != XCPKG_OK) {
+            return ret;
+        }
+    }
+
+    char resFileType[21]; resFileType[0] = '\0';
+
+    if (formula->res_url != NULL) {
+        ret = xcpkg_extract_filetype_from_url(formula->res_url, resFileType, 21);
+
+        if (ret != XCPKG_OK) {
+            return ret;
+        }
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+
     KV kvs[] = {
         {"PACKAGE_FORMULA_FILEPATH", formula->path},
         {"PACKAGE_NAME", packageName},
@@ -930,25 +956,39 @@ static int generate_shell_script_file(
         {"PACKAGE_VERSION", formula->version},
         {"PACKAGE_LICENSE", formula->license},
         {"PACKAGE_WEB_URL", formula->web_url},
+
         {"PACKAGE_GIT_URL", formula->git_url},
         {"PACKAGE_GIT_SHA", formula->git_sha},
         {"PACKAGE_GIT_REF", formula->git_ref},
+
         {"PACKAGE_SRC_URL", formula->src_url},
         {"PACKAGE_SRC_URI", formula->src_uri},
         {"PACKAGE_SRC_SHA", formula->src_sha},
+        {"PACKAGE_SRC_EXT", srcFileType},
+
         {"PACKAGE_FIX_URL", formula->fix_url},
         {"PACKAGE_FIX_URI", formula->fix_uri},
         {"PACKAGE_FIX_SHA", formula->fix_sha},
+        {"PACKAGE_FIX_OPT", formula->fix_opt},
+        {"PACKAGE_FIX_EXT", fixFileType},
+
         {"PACKAGE_RES_URL", formula->res_url},
         {"PACKAGE_RES_URI", formula->res_uri},
         {"PACKAGE_RES_SHA", formula->res_sha},
+        {"PACKAGE_RES_EXT", resFileType},
+
+        {"PACKAGE_RESLIST", formula->reslist},
+        {"PACKAGE_FIXLIST", formula->patches},
+
         {"PACKAGE_DEP_PKG", formula->dep_pkg},
         {"PACKAGE_DEP_PKG_R", recursiveDependentPackageNames},
         {"PACKAGE_DEP_UPP", formula->dep_upp},
         {"PACKAGE_DEP_PYM", formula->dep_pym},
         {"PACKAGE_DEP_PLM", formula->dep_plm},
+
         {"PACKAGE_BSYSTEM", formula->bsystem},
         {"PACKAGE_BSCRIPT", formula->bscript},
+
         {"PACKAGE_PPFLAGS", formula->ppflags},
         {"PACKAGE_CCFLAGS", formula->ccflags},
         {"PACKAGE_XXFLAGS", formula->xxflags},

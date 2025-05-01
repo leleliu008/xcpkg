@@ -105,6 +105,7 @@ int xcpkg_available_info2(const XCPKGFormula * formula, const char * packageName
         json_object_set_new(root, "fix-url", json_string(formula->fix_url));
         json_object_set_new(root, "fix-uri", json_string(formula->fix_uri));
         json_object_set_new(root, "fix-sha", json_string(formula->fix_sha));
+        json_object_set_new(root, "fix-opt", json_string(formula->fix_opt));
 
         json_object_set_new(root, "res-url", json_string(formula->res_url));
         json_object_set_new(root, "res-uri", json_string(formula->res_uri));

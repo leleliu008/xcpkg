@@ -55,6 +55,7 @@ typedef enum {
     FORMULA_KEY_CODE_fix_url,
     FORMULA_KEY_CODE_fix_uri,
     FORMULA_KEY_CODE_fix_sha,
+    FORMULA_KEY_CODE_fix_opt,
 
     FORMULA_KEY_CODE_res_url,
     FORMULA_KEY_CODE_res_uri,
@@ -89,6 +90,7 @@ typedef enum {
     FORMULA_KEY_CODE_ldflags,
 
     FORMULA_KEY_CODE_patches,
+    FORMULA_KEY_CODE_reslist,
 
     FORMULA_KEY_CODE_parallel,
 } XCPKGFormulaKeyCode;
@@ -121,6 +123,7 @@ void xcpkg_formula_dump(XCPKGFormula * formula) {
     printf("fix_url: %s\n", formula->fix_url);
     printf("fix_uri: %s\n", formula->fix_uri);
     printf("fix_sha: %s\n", formula->fix_sha);
+    printf("fix_opt: %s\n", formula->fix_opt);
 
     printf("res_url: %s\n", formula->res_url);
     printf("res_uri: %s\n", formula->res_uri);
@@ -151,6 +154,7 @@ void xcpkg_formula_dump(XCPKGFormula * formula) {
     printf("caveats: %s\n", formula->caveats);
 
     printf("patches: %s\n", formula->patches);
+    printf("reslist: %s\n", formula->reslist);
 
     printf("path:    %s\n", formula->path);
 
@@ -231,6 +235,11 @@ void xcpkg_formula_free(XCPKGFormula * formula) {
     if (formula->fix_sha != NULL) {
         free(formula->fix_sha);
         formula->fix_sha = NULL;
+    }
+
+    if (formula->fix_opt != NULL) {
+        free(formula->fix_opt);
+        formula->fix_opt = NULL;
     }
 
     ///////////////////////////////
@@ -353,6 +362,11 @@ void xcpkg_formula_free(XCPKGFormula * formula) {
         formula->patches = NULL;
     }
 
+    if (formula->reslist != NULL) {
+        free(formula->reslist);
+        formula->reslist = NULL;
+    }
+
     ///////////////////////////////
 
     if (formula->path != NULL) {
@@ -392,6 +406,8 @@ static XCPKGFormulaKeyCode xcpkg_formula_key_code_from_key_name(char * key) {
         return FORMULA_KEY_CODE_fix_uri;
     } else if (strcmp(key, "fix-sha") == 0) {
         return FORMULA_KEY_CODE_fix_sha;
+    } else if (strcmp(key, "fix-opt") == 0) {
+        return FORMULA_KEY_CODE_fix_opt;
     } else if (strcmp(key, "res-url") == 0) {
         return FORMULA_KEY_CODE_res_url;
     } else if (strcmp(key, "res-uri") == 0) {
@@ -448,6 +464,8 @@ static XCPKGFormulaKeyCode xcpkg_formula_key_code_from_key_name(char * key) {
         return FORMULA_KEY_CODE_pkgtype;
     } else if (strcmp(key, "patches") == 0) {
         return FORMULA_KEY_CODE_patches;
+    } else if (strcmp(key, "reslist") == 0) {
+        return FORMULA_KEY_CODE_reslist;
     } else if (strcmp(key, "parallel") == 0) {
         return FORMULA_KEY_CODE_parallel;
     } else {
@@ -455,7 +473,7 @@ static XCPKGFormulaKeyCode xcpkg_formula_key_code_from_key_name(char * key) {
     }
 }
 
-static int xcpkg_formula_set_value(XCPKGFormulaKeyCode keyCode, char * value, XCPKGFormula * formula, int * pkgtype) {
+static int xcpkg_formula_set_value(XCPKGFormulaKeyCode keyCode, char * value, XCPKGFormula * formula, int * pkgtype, int * binbstd) {
     if (keyCode == FORMULA_KEY_CODE_unknown) {
         return XCPKG_OK;
     }
@@ -493,6 +511,7 @@ static int xcpkg_formula_set_value(XCPKGFormulaKeyCode keyCode, char * value, XC
         case FORMULA_KEY_CODE_fix_url: if (formula->fix_url != NULL) free(formula->fix_url); formula->fix_url = strdup(value); break;
         case FORMULA_KEY_CODE_fix_uri: if (formula->fix_uri != NULL) free(formula->fix_uri); formula->fix_uri = strdup(value); break;
         case FORMULA_KEY_CODE_fix_sha: if (formula->fix_sha != NULL) free(formula->fix_sha); formula->fix_sha = strdup(value); break;
+        case FORMULA_KEY_CODE_fix_opt: if (formula->fix_opt != NULL) free(formula->fix_opt); formula->fix_opt = strdup(value); break;
 
         case FORMULA_KEY_CODE_res_url: if (formula->res_url != NULL) free(formula->res_url); formula->res_url = strdup(value); break;
         case FORMULA_KEY_CODE_res_uri: if (formula->res_uri != NULL) free(formula->res_uri); formula->res_uri = strdup(value); break;
@@ -517,6 +536,7 @@ static int xcpkg_formula_set_value(XCPKGFormulaKeyCode keyCode, char * value, XC
         case FORMULA_KEY_CODE_bindenv: if (formula->bindenv != NULL) free(formula->bindenv); formula->bindenv = strdup(value); break;
         case FORMULA_KEY_CODE_caveats: if (formula->caveats != NULL) free(formula->caveats); formula->caveats = strdup(value); break;
         case FORMULA_KEY_CODE_patches: if (formula->patches != NULL) free(formula->patches); formula->patches = strdup(value); break;
+        case FORMULA_KEY_CODE_reslist: if (formula->reslist != NULL) free(formula->reslist); formula->reslist = strdup(value); break;
 
         case FORMULA_KEY_CODE_bsystem: if (formula->bsystem != NULL) free(formula->bsystem); formula->bsystem = strdup(value); break;
         case FORMULA_KEY_CODE_bscript: if (formula->bscript != NULL) free(formula->bscript); formula->bscript = strdup(value); break;
@@ -526,9 +546,9 @@ static int xcpkg_formula_set_value(XCPKGFormulaKeyCode keyCode, char * value, XC
             break;
         case FORMULA_KEY_CODE_binbstd:
             if (strcmp(value, "1") == 0) {
-                formula->binbstd = true;
+                *binbstd = 1;
             } else if (strcmp(value, "0") == 0) {
-                formula->binbstd = false;
+                *binbstd = 0;
             } else {
                 return XCPKG_ERROR_FORMULA_SCHEME;
             }
@@ -1131,6 +1151,8 @@ int xcpkg_formula_load(const char * packageName, const char * targetPlatformName
 
     int pkgtype = -1;
 
+    int binbstd = -1;
+
     do {
         // https://libyaml.docsforge.com/master/api/yaml_parser_scan/
         if (yaml_parser_scan(&parser, &token) == 0) {
@@ -1166,7 +1188,6 @@ int xcpkg_formula_load(const char * packageName, const char * targetPlatformName
                         }
 
                         formula->git_nth = 1U;
-                        formula->binbstd = false;
                         formula->symlink = true;
                         formula->ltoable = true;
                         formula->movable = true;
@@ -1174,7 +1195,7 @@ int xcpkg_formula_load(const char * packageName, const char * targetPlatformName
                         formula->support_create_mostly_statically_linked_executable = true;
                     }
 
-                    ret = xcpkg_formula_set_value(formulaKeyCode, (char*)token.data.scalar.value, formula, &pkgtype);
+                    ret = xcpkg_formula_set_value(formulaKeyCode, (char*)token.data.scalar.value, formula, &pkgtype, &binbstd);
 
                     if (ret != XCPKG_OK) {
                         goto finalize;
@@ -1202,6 +1223,16 @@ finalize:
         ret = xcpkg_formula_check(formula, formulaFilePath);
 
         if (ret == XCPKG_OK) {
+            if (binbstd == -1) {
+                if (formula->useBuildSystemGolang || formula->useBuildSystemCargo || formula->useBuildSystemXmake || formula->useBuildSystemGmake) {
+                    binbstd = 1;
+                } else {
+                    binbstd = 0;
+                }
+            }
+
+            formula->binbstd = binbstd;
+
             if (pkgtype == -1) {
                 if (strncmp(packageName, "lib", 3) == 0) {
                     pkgtype = XCPKGPkgType_lib;
