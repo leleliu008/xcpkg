@@ -348,9 +348,9 @@ static int uppm_install_internal(const char * uppmHomeDIR, const size_t uppmHome
 
     //////////////////////////////////////////////////////////////////////////
 
-    char binFileNameExtension[21] = {0};
+    char binFileNameExtension[XCPKG_FILE_EXTENSION_MAX_CAPACITY] = {0};
 
-    ret = xcpkg_extract_filetype_from_url(formula->bin_url, binFileNameExtension, 20);
+    ret = xcpkg_extract_filetype_from_url(formula->bin_url, binFileNameExtension, XCPKG_FILE_EXTENSION_MAX_CAPACITY);
 
     if (ret != XCPKG_OK) {
         return ret;

@@ -49,9 +49,9 @@ static int xcpkg_fetch_git(const char * packageName, XCPKGFormula * formula, con
 }
 
 static int xcpkg_fetch_file(const char * url, const char * uri, const char * expectedSHA256SUM, const char * xcpkgDownloadsDIR, const size_t xcpkgDownloadsDIRLength, const bool verbose) {
-    char fileNameExtension[20] = {0};
+    char fileNameExtension[XCPKG_FILE_EXTENSION_MAX_CAPACITY] = {0};
 
-    int ret = xcpkg_extract_filetype_from_url(url, fileNameExtension, 20);
+    int ret = xcpkg_extract_filetype_from_url(url, fileNameExtension, XCPKG_FILE_EXTENSION_MAX_CAPACITY);
 
     if (ret != XCPKG_OK) {
         return ret;

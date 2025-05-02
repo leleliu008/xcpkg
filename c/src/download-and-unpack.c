@@ -11,9 +11,9 @@ int xcpkg_download_via_http_then_unpack(const char * url, const char * uri, cons
         fprintf(stderr, "url=%s\nuri=%s\nsha=%s\n", url, uri, expectedSHA256SUM);
     //}
 
-    char fileType[21] = {0};
+    char fileType[XCPKG_FILE_EXTENSION_MAX_CAPACITY] = {0};
 
-    int ret = xcpkg_extract_filetype_from_url(url, fileType, 20);
+    int ret = xcpkg_extract_filetype_from_url(url, fileType, XCPKG_FILE_EXTENSION_MAX_CAPACITY);
 
     if (ret != XCPKG_OK) {
         return ret;

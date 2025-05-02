@@ -154,9 +154,9 @@ static int fetch_fixlist(const char * fixlist, const char * xcpkgDownloadsDIR, c
             return ret;
         }
 
-        char ft[21]; ft[0] = '\0';
+        char ft[XCPKG_FILE_EXTENSION_MAX_CAPACITY]; ft[0] = '\0';
 
-        ret = xcpkg_extract_filetype_from_url(url, ft, 21);
+        ret = xcpkg_extract_filetype_from_url(url, ft, XCPKG_FILE_EXTENSION_MAX_CAPACITY);
 
         if (ret != XCPKG_OK) {
             if (fd != -1) {
@@ -1176,30 +1176,30 @@ static int generate_shell_script_file(
 
     //////////////////////////////////////////////////////////////////////////////
 
-    char srcFileType[21]; srcFileType[0] = '\0';
+    char srcFileType[XCPKG_FILE_EXTENSION_MAX_CAPACITY]; srcFileType[0] = '\0';
 
     if (formula->src_url != NULL) {
-        ret = xcpkg_extract_filetype_from_url(formula->src_url, srcFileType, 21);
+        ret = xcpkg_extract_filetype_from_url(formula->src_url, srcFileType, XCPKG_FILE_EXTENSION_MAX_CAPACITY);
 
         if (ret != XCPKG_OK) {
             return ret;
         }
     }
 
-    char fixFileType[21]; fixFileType[0] = '\0';
+    char fixFileType[XCPKG_FILE_EXTENSION_MAX_CAPACITY]; fixFileType[0] = '\0';
 
     if (formula->fix_url != NULL) {
-        ret = xcpkg_extract_filetype_from_url(formula->fix_url, fixFileType, 21);
+        ret = xcpkg_extract_filetype_from_url(formula->fix_url, fixFileType, XCPKG_FILE_EXTENSION_MAX_CAPACITY);
 
         if (ret != XCPKG_OK) {
             return ret;
         }
     }
 
-    char resFileType[21]; resFileType[0] = '\0';
+    char resFileType[XCPKG_FILE_EXTENSION_MAX_CAPACITY]; resFileType[0] = '\0';
 
     if (formula->res_url != NULL) {
-        ret = xcpkg_extract_filetype_from_url(formula->res_url, resFileType, 21);
+        ret = xcpkg_extract_filetype_from_url(formula->res_url, resFileType, XCPKG_FILE_EXTENSION_MAX_CAPACITY);
 
         if (ret != XCPKG_OK) {
             return ret;

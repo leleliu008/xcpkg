@@ -8,7 +8,7 @@ int xcpkg_extract_filetype_from_url(const char * url, char buf[], const size_t b
     }
 
     if (url[0] == '\0') {
-        return XCPKG_ERROR_ARG_IS_INVALID;
+        return XCPKG_ERROR_ARG_IS_EMPTY;
     }
 
     if (buf == NULL) {
@@ -34,7 +34,7 @@ int xcpkg_extract_filetype_from_url(const char * url, char buf[], const size_t b
 
         if (url[i] == '/') {
             slashIndex = i;
-        } else if (url[i] == '.') {
+        } else if (url[i] == '.' || url[i] == '-') {
             dotIndex1 = dotIndex2;
             dotIndex2 = i;
         }
@@ -51,26 +51,30 @@ int xcpkg_extract_filetype_from_url(const char * url, char buf[], const size_t b
     if (dotIndex1 > 0) {
         const char * p = url + dotIndex1 + 1;
 
-        if (strncmp(p, "tar.gz", 6) == 0) {
-            size_t n = bufCapacity > 5U ? 5U : bufCapacity;
-            strncpy(buf, ".tgz", n);
-            buf[n] = '\0';
-            return XCPKG_OK;
-        } else if (strncmp(p, "tar.xz", 6) == 0) {
-            size_t n = bufCapacity > 5U ? 5U : bufCapacity;
-            strncpy(buf, ".txz", n);
-            buf[n] = '\0';
-            return XCPKG_OK;
-        } else if (strncmp(p, "tar.lz", 6) == 0) {
-            size_t n = bufCapacity > 5U ? 5U : bufCapacity;
-            strncpy(buf, ".tlz", n);
-            buf[n] = '\0';
-            return XCPKG_OK;
-        } else if (strncmp(p, "tar.bz2", 7) == 0) {
-            size_t n = bufCapacity > 6U ? 6U : bufCapacity;
-            strncpy(buf, ".tbz2", n);
-            buf[n] = '\0';
-            return XCPKG_OK;
+        if (strncmp(p, "tar", 3) == 0) {
+            const char * q = url + dotIndex2 + 1;
+
+            if (strncmp(q, "gz", 2) == 0) {
+                size_t n = bufCapacity > 5U ? 5U : bufCapacity;
+                strncpy(buf, ".tgz", n);
+                buf[n] = '\0';
+                return XCPKG_OK;
+            } else if (strncmp(q, "xz", 2) == 0) {
+                size_t n = bufCapacity > 5U ? 5U : bufCapacity;
+                strncpy(buf, ".txz", n);
+                buf[n] = '\0';
+                return XCPKG_OK;
+            } else if (strncmp(q, "lz", 2) == 0) {
+                size_t n = bufCapacity > 5U ? 5U : bufCapacity;
+                strncpy(buf, ".tlz", n);
+                buf[n] = '\0';
+                return XCPKG_OK;
+            } else if (strncmp(q, "bz2", 3) == 0) {
+                size_t n = bufCapacity > 6U ? 6U : bufCapacity;
+                strncpy(buf, ".tbz2", n);
+                buf[n] = '\0';
+                return XCPKG_OK;
+            }
         }
     }
 
@@ -84,7 +88,11 @@ int xcpkg_extract_filetype_from_url(const char * url, char buf[], const size_t b
         buf[i] = p[i];
     }
 
-    buf[n] = '\0';
+    if (buf[n - 1] == '?') {
+        buf[n - 1] = '\0';
+    } else {
+        buf[n] = '\0';
+    }
 
     return XCPKG_OK;
 }

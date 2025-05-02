@@ -19,7 +19,7 @@
 
 #define XCPKG_FORMULA_REPO_CONFIG_FILPATH_RELATIVE_TO_REPO_ROOT "/.xcpkg-formula-repo.yml"
 
-
+#define XCPKG_FILE_EXTENSION_MAX_CAPACITY 11
  
 #define XCPKG_OK                     0
 #define XCPKG_ERROR                  1
