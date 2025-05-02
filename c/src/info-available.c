@@ -140,6 +140,7 @@ int xcpkg_available_info2(const XCPKGFormula * formula, const char * packageName
         json_object_set_new(root, "bindenv", json_string(formula->bindenv));
         json_object_set_new(root, "caveats", json_string(formula->caveats));
         json_object_set_new(root, "patches", json_string(formula->patches));
+        json_object_set_new(root, "reslist", json_string(formula->reslist));
 
         char * jsonStr = json_dumps(root, 0);
 
@@ -189,6 +190,10 @@ int xcpkg_available_info2(const XCPKGFormula * formula, const char * packageName
         if (formula->src_url != NULL) {
             printf("%s\n", formula->src_url);
         }
+    } else if (strcmp(key, "src-uri") == 0) {
+        if (formula->src_uri != NULL) {
+            printf("%s\n", formula->src_uri);
+        }
     } else if (strcmp(key, "src-sha") == 0) {
         if (formula->src_sha != NULL) {
             printf("%s\n", formula->src_sha);
@@ -226,6 +231,10 @@ int xcpkg_available_info2(const XCPKGFormula * formula, const char * packageName
         if (formula->fix_url != NULL) {
             printf("%s\n", formula->fix_url);
         }
+    } else if (strcmp(key, "fix-uri") == 0) {
+        if (formula->fix_uri != NULL) {
+            printf("%s\n", formula->fix_uri);
+        }
     } else if (strcmp(key, "fix-sha") == 0) {
         if (formula->fix_sha != NULL) {
             printf("%s\n", formula->fix_sha);
@@ -262,6 +271,10 @@ int xcpkg_available_info2(const XCPKGFormula * formula, const char * packageName
     } else if (strcmp(key, "res-url") == 0) {
         if (formula->res_url != NULL) {
             printf("%s\n", formula->res_url);
+        }
+    } else if (strcmp(key, "res-uri") == 0) {
+        if (formula->res_uri != NULL) {
+            printf("%s\n", formula->res_uri);
         }
     } else if (strcmp(key, "res-sha") == 0) {
         if (formula->res_sha != NULL) {
@@ -322,10 +335,16 @@ int xcpkg_available_info2(const XCPKGFormula * formula, const char * packageName
         }
     } else if (strcmp(key, "binbstd") == 0) {
         printf("%d\n", formula->binbstd);
+    } else if (strcmp(key, "ltoable") == 0) {
+        printf("%d\n", formula->ltoable);
     } else if (strcmp(key, "movable") == 0) {
         printf("%d\n", formula->movable);
+    } else if (strcmp(key, "mslable") == 0) {
+        printf("%d\n", formula->support_create_mostly_statically_linked_executable);
     } else if (strcmp(key, "symlink") == 0) {
         printf("%d\n", formula->symlink);
+    } else if (strcmp(key, "parallel") == 0) {
+        printf("%d\n", formula->support_build_in_parallel);
     } else if (strcmp(key, "ppflags") == 0) {
         if (formula->ppflags != NULL) {
             printf("%s\n", formula->ppflags);
@@ -369,6 +388,10 @@ int xcpkg_available_info2(const XCPKGFormula * formula, const char * packageName
     } else if (strcmp(key, "patches") == 0) {
         if (formula->patches != NULL) {
             printf("%s\n", formula->patches);
+        }
+    } else if (strcmp(key, "reslist") == 0) {
+        if (formula->reslist != NULL) {
+            printf("%s\n", formula->reslist);
         }
     } else if (strcmp(key, "caveats") == 0) {
         if (formula->caveats != NULL) {
