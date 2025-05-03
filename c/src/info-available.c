@@ -8,74 +8,31 @@
 #include <limits.h>
 #include <sys/stat.h>
 
+#include <yaml.h>
 #include <jansson.h>
 
 #include "core/log.h"
 
 #include "xcpkg.h"
 
-static const char * trim(const char * p) {
-    if (p != NULL) {
-        while (p[0] <= 32) {
-            p++;
-        }
-    }
+typedef struct {
+    const char * key;
+    const char * value;
+} KV;
 
-    return p;
-}
+typedef struct {
+    const char * key;
+    const bool value;
+} KB;
+
 
 int xcpkg_available_info2(const XCPKGFormula * formula, const char * packageName, const char * targetPlatformName, const char * key) {
     if ((key == NULL) || (key[0] == '\0') || (strcmp(key, "--yaml") == 0)) {
-        char formulaFilePath[PATH_MAX];
-
-        int ret = xcpkg_formula_path(packageName, targetPlatformName, formulaFilePath);
-
-        if (ret != XCPKG_OK) {
-            return ret;
-        }
-
-        FILE * formulaFile = fopen(formulaFilePath, "r");
-
-        if (formulaFile == NULL) {
-            perror(formulaFilePath);
-            return XCPKG_ERROR;
-        }
-
         if (isatty(STDOUT_FILENO)) {
             printf("pkgname: %s%s%s\n", COLOR_GREEN, packageName, COLOR_OFF);
         } else {
             printf("pkgname: %s\n", packageName);
         }
-
-        char   buff[1024];
-        size_t size;
-
-        for (;;) {
-            size = fread(buff, 1, 1024, formulaFile);
-
-            if (ferror(formulaFile)) {
-                perror(formulaFilePath);
-                fclose(formulaFile);
-                return XCPKG_ERROR;
-            }
-
-            if (size > 0) {
-                if (fwrite(buff, 1, size, stdout) != size || ferror(stdout)) {
-                    perror(NULL);
-                    fclose(formulaFile);
-                    return XCPKG_ERROR;
-                }
-            }
-
-            if (feof(formulaFile)) {
-                fclose(formulaFile);
-                break;
-            }
-        }
-
-        printf("formula: %s\n", formulaFilePath);
-    } else if (strcmp(key, "--json") == 0) {
-        json_t * root = json_object();
 
         const char * pkgtype;
 
@@ -83,6 +40,155 @@ int xcpkg_available_info2(const XCPKGFormula * formula, const char * packageName
             case XCPKGPkgType_lib: pkgtype = "lib"; break;
             case XCPKGPkgType_exe: pkgtype = "exe"; break;
         }
+
+        printf("pkgtype: %s\n", pkgtype);
+
+        yaml_emitter_t emitter;
+        yaml_event_t event;
+
+        if (!yaml_emitter_initialize(&emitter)) {
+            fprintf(stderr, "libyaml init failed.");
+            return XCPKG_ERROR;
+        }
+
+        yaml_emitter_set_output_file(&emitter, stdout);
+
+        if (!yaml_stream_start_event_initialize(&event, YAML_UTF8_ENCODING)) goto error;
+        if (!yaml_emitter_emit(&emitter, &event)) goto error;
+
+        if (!yaml_document_start_event_initialize(&event, NULL, NULL, NULL, 1)) goto error;
+        if (!yaml_emitter_emit(&emitter, &event)) goto error;
+
+        if (!yaml_mapping_start_event_initialize(&event, NULL, (yaml_char_t *)YAML_MAP_TAG, 1, YAML_ANY_MAPPING_STYLE)) goto error;
+        if (!yaml_emitter_emit(&emitter, &event)) goto error;
+
+        ///////////////////////////////////////////////////////////////
+
+        KV kvs[] = {
+            {"summary", formula->summary},
+            {"version", formula->version},
+            {"license", formula->license},
+            {"web-url", formula->web_url},
+
+            {"git-url", formula->git_url},
+            {"git-sha", formula->git_sha},
+            {"git-ref", formula->git_ref},
+
+            {"src-url", formula->src_url},
+            {"src-uri", formula->src_uri},
+            {"src-sha", formula->src_sha},
+
+            {"fix-url", formula->fix_url},
+            {"fix-uri", formula->fix_uri},
+            {"fix-sha", formula->fix_sha},
+            {"fix-opt", formula->fix_opt},
+
+            {"res-url", formula->res_url},
+            {"res-uri", formula->res_uri},
+            {"res-sha", formula->res_sha},
+
+            {"dep-pkg", formula->dep_pkg},
+            {"dep-upp", formula->dep_upp},
+            {"dep-pym", formula->dep_pym},
+            {"dep-plm", formula->dep_plm},
+
+            {"ccflags", formula->ccflags},
+            {"xxflags", formula->xxflags},
+            {"ppflags", formula->ppflags},
+            {"ldflags", formula->ldflags},
+
+            {"bsystem", formula->bsystem},
+            {"bscript", formula->bscript},
+
+            {"dofetch", formula->dofetch},
+            {"do12345", formula->do12345},
+            {"dopatch", formula->dopatch},
+            {"prepare", formula->prepare},
+            {"install", formula->install},
+            {"dotweak", formula->dotweak},
+
+            {"bindenv", formula->bindenv},
+            {"caveats", formula->caveats},
+
+            {"patches", formula->patches},
+            {"reslist", formula->reslist},
+
+            {NULL, NULL}
+        };
+
+        for (int i = 0; ; i++) {
+            const char * key = kvs[i].key;
+            const char * value = kvs[i].value;
+
+            if (key == NULL) {
+                break;
+            }
+
+            if (value != NULL) {
+                if (!yaml_scalar_event_initialize(&event, NULL, (yaml_char_t *)YAML_STR_TAG, (yaml_char_t *)key, strlen(key), 1, 0, YAML_PLAIN_SCALAR_STYLE)) goto error;
+                if (!yaml_emitter_emit(&emitter, &event)) goto error;
+
+                if (!yaml_scalar_event_initialize(&event, NULL, (yaml_char_t *)YAML_STR_TAG, (yaml_char_t *)value, strlen(value), 1, 0, YAML_ANY_SCALAR_STYLE)) goto error;
+                if (!yaml_emitter_emit(&emitter, &event)) goto error;
+            }
+        }
+
+        ///////////////////////////////////////////////////////////////
+
+        KB kbs[] = {
+            {"binbstd", formula->binbstd},
+            {"ltoable", formula->ltoable},
+            {"movable", formula->movable},
+            {"mslable", formula->support_create_mostly_statically_linked_executable},
+            {"symlink", formula->symlink},
+            {"parallel", formula->support_build_in_parallel},
+            {NULL, false}
+        };
+
+        for (int i = 0; ; i++) {
+            const char * key = kbs[i].key;
+            const bool value = kbs[i].value;
+
+            if (key == NULL) {
+                break;
+            }
+
+            const char * value2 = value ? "true" : "false";
+
+            if (!yaml_scalar_event_initialize(&event, NULL, (yaml_char_t *)YAML_STR_TAG, (yaml_char_t *)key, strlen(key), 1, 0, YAML_PLAIN_SCALAR_STYLE)) goto error;
+            if (!yaml_emitter_emit(&emitter, &event)) goto error;
+
+            if (!yaml_scalar_event_initialize(&event, NULL, (yaml_char_t *)YAML_STR_TAG, (yaml_char_t *)value2, strlen(value2), 1, 0, YAML_ANY_SCALAR_STYLE)) goto error;
+            if (!yaml_emitter_emit(&emitter, &event)) goto error;
+        }
+
+        ///////////////////////////////////////////////////////////////
+
+        if (!yaml_mapping_end_event_initialize(&event)) goto error;
+        if (!yaml_emitter_emit(&emitter, &event)) goto error;
+
+        if (!yaml_document_end_event_initialize(&event, 1)) goto error;
+        if (!yaml_emitter_emit(&emitter, &event)) goto error;
+
+        if (!yaml_stream_end_event_initialize(&event)) goto error;
+        if (!yaml_emitter_emit(&emitter, &event)) goto error;
+
+        yaml_emitter_delete(&emitter);
+        return XCPKG_OK;
+
+        error:
+        fprintf(stderr, "Failed to emit event %d: %s\n", event.type, emitter.problem);
+        yaml_emitter_delete(&emitter);
+        return XCPKG_ERROR;
+    } else if (strcmp(key, "--json") == 0) {
+        const char * pkgtype;
+
+        switch (formula->pkgtype) {
+            case XCPKGPkgType_lib: pkgtype = "lib"; break;
+            case XCPKGPkgType_exe: pkgtype = "exe"; break;
+        }
+
+        json_t * root = json_object();
 
         json_object_set_new(root, "pkgtype", json_string(pkgtype));
         json_object_set_new(root, "pkgname", json_string(packageName));
