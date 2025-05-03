@@ -33,6 +33,103 @@ typedef struct {
     bool         value;
 } KB;
 
+// https://www.gnu.org/software/gettext/manual/html_node/config_002eguess.html
+// https://git.savannah.gnu.org/cgit/config.git/tree/
+static int fetch_gnu_config(const char * sessionDIR, const size_t sessionDIRCapacity, bool verbose) {
+    size_t gnuconfigDIRCapacity = sessionDIRCapacity + 7U;
+    char   gnuconfigDIR[gnuconfigDIRCapacity];
+
+    int ret = snprintf(gnuconfigDIR, gnuconfigDIRCapacity, "%s/config", sessionDIR);
+
+    if (ret < 0) {
+        perror(NULL);
+        return XCPKG_ERROR;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+
+    if (mkdir(gnuconfigDIR, S_IRWXU) != 0) {
+        perror(gnuconfigDIR);
+        return XCPKG_ERROR;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+
+    ret = xcpkg_git_sync(gnuconfigDIR, "https://github.com/leleliu008/gnu-config", "HEAD", "refs/remotes/origin/master", "master", 1);
+
+    if (ret == XCPKG_OK) {
+        return XCPKG_OK;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+
+    size_t configSubFilePathCapacity = gnuconfigDIRCapacity + 12U;
+    char   configSubFilePath[configSubFilePathCapacity];
+
+    ret = snprintf(configSubFilePath, configSubFilePathCapacity, "%s/config.sub", gnuconfigDIR);
+
+    if (ret < 0) {
+        perror(NULL);
+        return XCPKG_ERROR;
+    }
+
+    size_t configGuessFilePathCapacity = gnuconfigDIRCapacity + 14U;
+    char   configGuessFilePath[configGuessFilePathCapacity];
+
+    ret = snprintf(configGuessFilePath, configGuessFilePathCapacity, "%s/config.guess", gnuconfigDIR);
+
+    if (ret < 0) {
+        perror(NULL);
+        return XCPKG_ERROR;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+
+    ret = xcpkg_http_fetch_to_file("https://git.savannah.gnu.org/cgit/config.git/plain/config.sub", configSubFilePath, verbose, verbose);
+
+    if (ret != XCPKG_OK) {
+        goto alternative;
+    }
+
+    ret = xcpkg_http_fetch_to_file("https://git.savannah.gnu.org/cgit/config.git/plain/config.guess", configGuessFilePath, verbose,verbose);
+
+    if (ret == XCPKG_OK) {
+        goto finally;
+    } else {
+        goto alternative;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+
+alternative:
+    ret = xcpkg_http_fetch_to_file("https://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.sub;hb=HEAD", configSubFilePath, verbose, verbose);
+
+    if (ret != XCPKG_OK) {
+        return ret;
+    }
+
+    ret = xcpkg_http_fetch_to_file("https://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.guess;hb=HEAD", configGuessFilePath, verbose, verbose);
+
+    if (ret != XCPKG_OK) {
+        return ret;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+
+finally:
+    if (chmod(configSubFilePath, S_IRWXU) == -1) {
+        perror(configSubFilePath);
+        return XCPKG_ERROR;
+    }
+
+    if (chmod(configGuessFilePath, S_IRWXU) == -1) {
+        perror(configGuessFilePath);
+        return XCPKG_ERROR;
+    }
+
+    return XCPKG_OK;
+}
+
 static int fetch_fixlist(const char * fixlist, const char * xcpkgDownloadsDIR, const size_t xcpkgDownloadsDIRCapacity, const char * packageWorkingFixDIR, const size_t packageWorkingFixDIRCapacity, bool verbose) {
     size_t  bufCapacity = strlen(fixlist) + 1U;
     char    buf[bufCapacity];
@@ -3348,6 +3445,14 @@ static int xcpkg_install_package(
         }
     }
 
+    if (formula->useBuildSystemAutogen || formula->useBuildSystemAutotools || formula->useBuildSystemConfigure) {
+        ret = fetch_gnu_config(sessionDIR, sessionDIRLength + 1, installOptions->verbose_net);
+
+        if (ret != XCPKG_OK) {
+            return ret;
+        }
+    }
+
     //////////////////////////////////////////////////////////////////////////////
 
     if (formula->do12345 != NULL) {
@@ -3589,7 +3694,11 @@ static int xcpkg_install_package(
 
     //////////////////////////////////////////////////////////////////////////////
 
-    if (formula->support_create_mostly_statically_linked_executable && installOptions->createMostlyStaticallyLinkedExecutables && formula->dep_pkg != NULL) {
+    bool needToCopyStaticLibs = formula->support_create_mostly_statically_linked_executable && installOptions->createMostlyStaticallyLinkedExecutables;
+
+    if (recursiveDependentPackageNames[0] != '\0') {
+        setenv_fn fns[5] = { setenv_CPPFLAGS, setenv_LDFLAGS, setenv_PKG_CONFIG_PATH, setenv_ACLOCAL_PATH, setenv_XDG_DATA_DIRS };
+
         size_t  recursiveDependentPackageNamesStringCopyCapacity = recursiveDependentPackageNamesLength + 1U;
         char    recursiveDependentPackageNamesStringCopy[recursiveDependentPackageNamesStringCopyCapacity];
         strncpy(recursiveDependentPackageNamesStringCopy, recursiveDependentPackageNames, recursiveDependentPackageNamesStringCopyCapacity);
@@ -3607,8 +3716,6 @@ static int xcpkg_install_package(
                 return XCPKG_ERROR;
             }
 
-            setenv_fn fns[5] = { setenv_CPPFLAGS, setenv_LDFLAGS, setenv_PKG_CONFIG_PATH, setenv_ACLOCAL_PATH, setenv_XDG_DATA_DIRS };
-
             for (int i = 0; i < 5; i++) {
                 ret = fns[i](depPkgInstalledDIR, depPkgInstalledDIRCapacity);
 
@@ -3617,10 +3724,12 @@ static int xcpkg_install_package(
                 }
             }
 
-            ret = copy_dependent_libraries(depPkgInstalledDIR, depPkgInstalledDIRCapacity, packageWorkingLibDIR, packageWorkingLibDIRCapacity);
+            if (needToCopyStaticLibs) {
+                ret = copy_dependent_libraries(depPkgInstalledDIR, depPkgInstalledDIRCapacity, packageWorkingLibDIR, packageWorkingLibDIRCapacity);
 
-            if (ret != XCPKG_OK) {
-                return ret;
+                if (ret != XCPKG_OK) {
+                    return ret;
+                }
             }
 
             if (isCrossBuild) {
@@ -4253,7 +4362,7 @@ static int xcpkg_install_package(
         }
     }
 
-    if (formula->dep_pkg != NULL) {
+    if (recursiveDependentPackageNames[0] != '\0') {
         ret = backup_formulas(sessionDIR, packageMetaInfoDIR, packageMetaInfoDIRCapacity, recursiveDependentPackageNames, recursiveDependentPackageNamesLength);
 
         if (ret != XCPKG_OK) {

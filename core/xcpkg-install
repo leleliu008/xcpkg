@@ -201,60 +201,6 @@ git_submodule_update_recursive() {
     fi
 }
 
-# https://www.gnu.org/software/gettext/manual/html_node/config_002eguess.html
-# https://git.savannah.gnu.org/cgit/config.git/tree/
-  __update_config_sub_guess() {
-    run cd "$SESSION_DIR"
-
-    if [ -f config/config.sub ] && [ -f config/config.guess ] ; then
-        CONFIG_FILE_DIR="$SESSION_DIR/config"
-    else
-        if [    -d config.git ] ; then
-            rm -rf config.git
-        fi
-
-        if run git clone --depth 1 https://git.savannah.gnu.org/git/config.git ; then
-            CONFIG_FILE_DIR="$SESSION_DIR/config"
-
-            if [ "$TARGET_PLATFORM_ARCH" = arm64e ] ; then
-                gsed -i 's/arm64-*/arm64-*|arm64e-*/g' config/config.sub
-            fi
-        else
-            if  run curl -L -o _config.sub   "'https://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.sub;hb=HEAD'" &&
-                sh _config.sub x86_64-pc-linux &&
-                run curl -L -o _config.guess "'https://git.savannah.gnu.org/gitweb/?p=config.git;a=blob_plain;f=config.guess;hb=HEAD'" &&
-                sh _config.guess > /dev/null ; then
-                run chmod +x _config.guess
-                run chmod +x _config.sub
-                run mv _config.guess config.guess
-                run mv _config.sub   config.sub
-                CONFIG_FILE_DIR="$SESSION_DIR"
-            elif run curl -L -o _config.sub   'https://git.savannah.gnu.org/cgit/config.git/plain/config.sub' &&
-                sh _config.sub x86_64-pc-linux &&
-                run curl -L -o _config.guess 'https://git.savannah.gnu.org/cgit/config.git/plain/config.guess' &&
-                sh _config.guess > /dev/null ; then
-
-                if [ "$TARGET_PLATFORM_ARCH" = arm64e ] ; then
-                    gsed -i 's/arm64-*/arm64-*|arm64e-*/g' _config.sub
-                fi
-
-                run chmod +x _config.guess
-                run chmod +x _config.sub
-                run mv _config.guess config.guess
-                run mv _config.sub   config.sub
-                CONFIG_FILE_DIR="$SESSION_DIR"
-            else
-                CONFIG_FILE_DIR="$NDKPKG_CORE_DIR"
-            fi
-        fi
-    fi
-
-    run cd -
-
-    find -type f -name config.sub   -exec cp -vf "$CONFIG_FILE_DIR/config.sub"   {} \;
-    find -type f -name config.guess -exec cp -vf "$CONFIG_FILE_DIR/config.guess" {} \;
-}
-
 # install_incs [:sub-dir] <FILE>...
 install_incs() {
     unset X
@@ -1292,7 +1238,9 @@ __install_for_target() {
         [ "$PACKAGE_USE_BSYSTEM_CONFIGURE" = 1 ]
     } && {
         step "update config.{sub,guess}"
-        __update_config_sub_guess
+
+        find -type f -name config.sub   -exec cp -vf "$SESSION_DIR/config/config.sub"   {} \;
+        find -type f -name config.guess -exec cp -vf "$SESSION_DIR/config/config.guess" {} \;
     }
 
     #########################################################################################

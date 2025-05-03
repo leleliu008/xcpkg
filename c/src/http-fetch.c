@@ -7,6 +7,10 @@
 #include "xcpkg.h"
 
 int xcpkg_http_fetch_to_file(const char * url, const char * outputFilePath, const bool verbose, const bool showProgress) {
+    if (verbose) {
+        fprintf(stderr, "Fetching: %s => %s\n", url, outputFilePath);
+    }
+
     const char * urlTransform = getenv("XCPKG_URL_TRANSFORM");
 
     if (urlTransform == NULL || urlTransform[0] == '\0') {
