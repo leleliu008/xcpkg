@@ -1090,6 +1090,7 @@ filetype_from_url() {
     unset PACKAGE_USE_BSYSTEM_XMAKE
     unset PACKAGE_USE_BSYSTEM_MESON
     unset PACKAGE_USE_BSYSTEM_CARGO
+    unset PACKAGE_USE_BSYSTEM_CABAL
     unset PACKAGE_USE_BSYSTEM_AUTOGENSH
     unset PACKAGE_USE_BSYSTEM_AUTOTOOLS
     unset PACKAGE_USE_BSYSTEM_CONFIGURE
@@ -1362,6 +1363,8 @@ filetype_from_url() {
                     gmakew)       PACKAGE_BSYSTEM=gmake ; break ;;
                     cargow)       PACKAGE_BSYSTEM=cargo ; break ;;
                     go|gow)       PACKAGE_BSYSTEM=go    ; break ;;
+                    cabal_v2_install)
+                                  PACKAGE_BSYSTEM=cabal ; break ;;
                 esac
             done
         fi
@@ -1386,6 +1389,7 @@ filetype_from_url() {
             gmake)       PACKAGE_USE_BSYSTEM_GMAKE=1     ;;
             rake)        PACKAGE_USE_BSYSTEM_RAKE=1      ;;
             cargo)       PACKAGE_USE_BSYSTEM_CARGO=1     ;;
+            cabal)       PACKAGE_USE_BSYSTEM_CABAL=1     ;;
             go)          PACKAGE_USE_BSYSTEM_GO=1        ;;
             gn)          PACKAGE_USE_BSYSTEM_GN=1        ; PACKAGE_USE_BSYSTEM_NINJA=1 ;;
         esac
@@ -1404,6 +1408,7 @@ filetype_from_url() {
             ninja)     PACKAGE_DOBUILD='ninjaw clean && ninjaw && ninjaw install' ;;
             gmake)     PACKAGE_DOBUILD='gmakew clean && gmakew && gmakew install' ;;
             cargo)     PACKAGE_DOBUILD='cargow install' ;;
+            cabal)     PACKAGE_DOBUILD='cabal_v2_install' ;;
             go)        PACKAGE_DOBUILD='gow' ;;
             gn)        PACKAGE_DOBUILD='gnw' ;;
         esac
@@ -1435,6 +1440,7 @@ filetype_from_url() {
 
     [ "$PACKAGE_USE_BSYSTEM_GO"    = 1 ] && PACKAGE_BINBSTD=1
     [ "$PACKAGE_USE_BSYSTEM_CARGO" = 1 ] && PACKAGE_BINBSTD=1
+    [ "$PACKAGE_USE_BSYSTEM_CABAL" = 1 ] && PACKAGE_BINBSTD=1
     [ "$PACKAGE_USE_BSYSTEM_XMAKE" = 1 ] && PACKAGE_BINBSTD=1
 
     if [ -z  "$PACKAGE_BINBSTD" ] ; then
@@ -2161,6 +2167,7 @@ PACKAGE_USE_BSYSTEM_CMAKE
 PACKAGE_USE_BSYSTEM_XMAKE
 PACKAGE_USE_BSYSTEM_MESON
 PACKAGE_USE_BSYSTEM_CARGO
+PACKAGE_USE_BSYSTEM_CABAL
 PACKAGE_USE_BSYSTEM_AUTOGENSH
 PACKAGE_USE_BSYSTEM_AUTOTOOLS
 PACKAGE_USE_BSYSTEM_CONFIGURE
@@ -8671,7 +8678,7 @@ fi
 
 ##################################################################################
 
-XCPKG_VERSION=0.29.1
+XCPKG_VERSION=0.29.2
 
 XCPKG_ARG0="$0"
 XCPKG_ARG1="$1"
