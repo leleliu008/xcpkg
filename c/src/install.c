@@ -2001,6 +2001,10 @@ static int generate_receipt(const char * packageName, const XCPKGFormula * formu
 
     fprintf(receiptFile, "pkgname: %s\n", packageName);
 
+    if (formula->pkgtype_is_calculated) {
+        fprintf(receiptFile, "pkgtype: %s\n", formula->pkgtype == XCPKGPkgType_exe ? "exe" : "lib");
+    }
+
     if (formula->version_is_calculated) {
         fprintf(receiptFile, "version: %s\n", formula->version);
     }
@@ -2011,6 +2015,34 @@ static int generate_receipt(const char * packageName, const XCPKGFormula * formu
 
     if (formula->web_url_is_calculated) {
         fprintf(receiptFile, "web-url: %s\n", formula->web_url);
+    }
+
+    if (formula->git_url_is_calculated) {
+        fprintf(receiptFile, "git-url: %s\n", formula->git_url);
+    }
+
+    if (formula->binbstd_is_calculated) {
+        fprintf(receiptFile, "binbstd: %d\n", formula->binbstd);
+    }
+
+    if (formula->ltoable_is_calculated) {
+        fprintf(receiptFile, "ltoable: %d\n", formula->ltoable);
+    }
+
+    if (formula->mslable_is_calculated) {
+        fprintf(receiptFile, "mslable: %d\n", formula->support_create_mostly_statically_linked_executable);
+    }
+
+    if (formula->movable_is_calculated) {
+        fprintf(receiptFile, "movable: %d\n", formula->movable);
+    }
+
+    if (formula->symlink_is_calculated) {
+        fprintf(receiptFile, "symlink: %d\n", formula->symlink);
+    }
+
+    if (formula->parallel_is_calculated) {
+        fprintf(receiptFile, "parallel: %d\n", formula->support_build_in_parallel);
     }
 
     char   buff[2048];

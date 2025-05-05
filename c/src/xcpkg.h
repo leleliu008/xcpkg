@@ -181,9 +181,17 @@ typedef struct {
     char * bindenv;
     char * caveats;
 
+    bool pkgtype_is_calculated;
     bool web_url_is_calculated;
+    bool git_url_is_calculated;
     bool version_is_calculated;
     bool bsystem_is_calculated;
+    bool binbstd_is_calculated;
+    bool ltoable_is_calculated;
+    bool mslable_is_calculated;
+    bool movable_is_calculated;
+    bool symlink_is_calculated;
+    bool parallel_is_calculated;
 
     bool useBuildSystemAutogen;
     bool useBuildSystemAutotools;
@@ -261,13 +269,21 @@ int xcpkg_inspect_package(const char * package, const char * userSpecifiedTarget
 //////////////////////////////////////////////////////////////////////
 
 typedef struct {
-    char * summary;
+    XCPKGPkgType pkgtype;
+
+    char * path;
+
     char * version;
+
+    char * summary;
+
     char * license;
 
     char * web_url;
+    char * web_uri;
 
     char * git_url;
+    char * git_uri;
     char * git_sha;
     char * git_ref;
     size_t git_nth;
@@ -279,34 +295,47 @@ typedef struct {
     char * fix_url;
     char * fix_uri;
     char * fix_sha;
+    char * fix_opt;
+    char * patches;
 
     char * res_url;
     char * res_uri;
     char * res_sha;
+    char * reslist;
 
     char * dep_pkg;
     char * dep_upp;
     char * dep_pym;
     char * dep_plm;
+    char * dep_lib;
 
     char * bsystem;
     char * bscript;
 
     bool   binbstd;
-    bool   parallel;
 
     bool   symlink;
+
+    bool   ltoable;
+    bool   movable;
+
+    bool   support_build_in_parallel;
+
+    bool   support_create_mostly_statically_linked_executable;
 
     char * ppflags;
     char * ccflags;
     char * xxflags;
     char * ldflags;
 
+    char * dofetch;
     char * do12345;
     char * dopatch;
+    char * prepare;
     char * install;
-
-    char * path;
+    char * dotweak;
+    char * bindenv;
+    char * caveats;
 
     char * builtBy;
     char * builtAt;

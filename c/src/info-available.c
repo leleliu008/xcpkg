@@ -71,6 +71,7 @@ int xcpkg_available_info2(const XCPKGFormula * formula, const char * packageName
             {"web-url", formula->web_url},
 
             {"git-url", formula->git_url},
+            {"git-uri", formula->git_uri},
             {"git-sha", formula->git_sha},
             {"git-ref", formula->git_ref},
 
@@ -88,6 +89,7 @@ int xcpkg_available_info2(const XCPKGFormula * formula, const char * packageName
             {"res-sha", formula->res_sha},
 
             {"dep-pkg", formula->dep_pkg},
+            {"dep-lib", formula->dep_lib},
             {"dep-upp", formula->dep_upp},
             {"dep-pym", formula->dep_pym},
             {"dep-plm", formula->dep_plm},
@@ -128,7 +130,20 @@ int xcpkg_available_info2(const XCPKGFormula * formula, const char * packageName
                 if (!yaml_scalar_event_initialize(&event, NULL, (yaml_char_t *)YAML_STR_TAG, (yaml_char_t *)key, strlen(key), 1, 0, YAML_PLAIN_SCALAR_STYLE)) goto error;
                 if (!yaml_emitter_emit(&emitter, &event)) goto error;
 
-                if (!yaml_scalar_event_initialize(&event, NULL, (yaml_char_t *)YAML_STR_TAG, (yaml_char_t *)value, strlen(value), 1, 0, YAML_ANY_SCALAR_STYLE)) goto error;
+                yaml_scalar_style_t style = YAML_PLAIN_SCALAR_STYLE;
+
+                for (int j = 0; ; j++) {
+                    if (value[j] == '\0') {
+                        break;
+                    }
+
+                    if (value[j] == '\n') {
+                        style = YAML_LITERAL_SCALAR_STYLE;
+                        break;
+                    }
+                }
+
+                if (!yaml_scalar_event_initialize(&event, NULL, (yaml_char_t *)YAML_STR_TAG, (yaml_char_t *)value, strlen(value), 1, 0, style)) goto error;
                 if (!yaml_emitter_emit(&emitter, &event)) goto error;
             }
         }
@@ -190,8 +205,8 @@ int xcpkg_available_info2(const XCPKGFormula * formula, const char * packageName
 
         json_t * root = json_object();
 
-        json_object_set_new(root, "pkgtype", json_string(pkgtype));
         json_object_set_new(root, "pkgname", json_string(packageName));
+        json_object_set_new(root, "pkgtype", json_string(pkgtype));
 
         json_object_set_new(root, "summary", json_string(formula->summary));
         json_object_set_new(root, "version", json_string(formula->version));
@@ -200,6 +215,7 @@ int xcpkg_available_info2(const XCPKGFormula * formula, const char * packageName
         json_object_set_new(root, "web-url", json_string(formula->web_url));
 
         json_object_set_new(root, "git-url", json_string(formula->git_url));
+        json_object_set_new(root, "git-uri", json_string(formula->git_uri));
         json_object_set_new(root, "git-sha", json_string(formula->git_sha));
         json_object_set_new(root, "git-ref", json_string(formula->git_ref));
         json_object_set_new(root, "git-nth", json_integer(formula->git_nth));
@@ -218,6 +234,7 @@ int xcpkg_available_info2(const XCPKGFormula * formula, const char * packageName
         json_object_set_new(root, "res-sha", json_string(formula->res_sha));
 
         json_object_set_new(root, "dep-pkg", json_string(formula->dep_pkg));
+        json_object_set_new(root, "dep-lib", json_string(formula->dep_lib));
         json_object_set_new(root, "dep-upp", json_string(formula->dep_upp));
         json_object_set_new(root, "dep-pym", json_string(formula->dep_pym));
         json_object_set_new(root, "dep-plm", json_string(formula->dep_plm));
@@ -262,6 +279,15 @@ int xcpkg_available_info2(const XCPKGFormula * formula, const char * packageName
         json_decref(root);
 
         return ret;
+    } else if (strcmp(key, "pkgtype") == 0) {
+        const char * pkgtype;
+
+        switch (formula->pkgtype) {
+            case XCPKGPkgType_lib: pkgtype = "lib"; break;
+            case XCPKGPkgType_exe: pkgtype = "exe"; break;
+        }
+
+        printf("%s\n", pkgtype);
     } else if (strcmp(key, "summary") == 0) {
         if (formula->summary != NULL) {
             printf("%s\n", formula->summary);
@@ -281,6 +307,10 @@ int xcpkg_available_info2(const XCPKGFormula * formula, const char * packageName
     } else if (strcmp(key, "git-url") == 0) {
         if (formula->git_url != NULL) {
             printf("%s\n", formula->git_url);
+        }
+    } else if (strcmp(key, "git-uri") == 0) {
+        if (formula->git_uri != NULL) {
+            printf("%s\n", formula->git_uri);
         }
     } else if (strcmp(key, "git-sha") == 0) {
         if (formula->git_sha != NULL) {
@@ -418,6 +448,10 @@ int xcpkg_available_info2(const XCPKGFormula * formula, const char * packageName
     } else if (strcmp(key, "dep-pkg") == 0) {
         if (formula->dep_pkg != NULL) {
             printf("%s\n", formula->dep_pkg);
+        }
+    } else if (strcmp(key, "dep-lib") == 0) {
+        if (formula->dep_lib != NULL) {
+            printf("%s\n", formula->dep_lib);
         }
     } else if (strcmp(key, "dep-upp") == 0) {
         if (formula->dep_upp != NULL) {

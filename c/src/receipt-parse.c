@@ -4,6 +4,7 @@
 
 #include <limits.h>
 
+#include <unistd.h>
 #include <yaml.h>
 
 #include "xcpkg.h"
@@ -11,6 +12,7 @@
 typedef enum {
     XCPKGReceiptKeyCode_unknown,
 
+    XCPKGReceiptKeyCode_pkgtype,
     XCPKGReceiptKeyCode_summary,
     XCPKGReceiptKeyCode_version,
     XCPKGReceiptKeyCode_license,
@@ -29,6 +31,7 @@ typedef enum {
     XCPKGReceiptKeyCode_fix_url,
     XCPKGReceiptKeyCode_fix_uri,
     XCPKGReceiptKeyCode_fix_sha,
+    XCPKGReceiptKeyCode_fix_opt,
 
     XCPKGReceiptKeyCode_res_url,
     XCPKGReceiptKeyCode_res_uri,
@@ -43,15 +46,27 @@ typedef enum {
     XCPKGReceiptKeyCode_bscript,
     XCPKGReceiptKeyCode_binbstd,
 
+    XCPKGReceiptKeyCode_dofetch,
     XCPKGReceiptKeyCode_do12345,
     XCPKGReceiptKeyCode_dopatch,
+    XCPKGReceiptKeyCode_prepare,
     XCPKGReceiptKeyCode_install,
+    XCPKGReceiptKeyCode_dotweak,
+    XCPKGReceiptKeyCode_bindenv,
+    XCPKGReceiptKeyCode_caveats,
+
     XCPKGReceiptKeyCode_symlink,
+    XCPKGReceiptKeyCode_movable,
+    XCPKGReceiptKeyCode_ltoable,
+    XCPKGReceiptKeyCode_mslable,
 
     XCPKGReceiptKeyCode_ppflags,
     XCPKGReceiptKeyCode_ccflags,
     XCPKGReceiptKeyCode_xxflags,
     XCPKGReceiptKeyCode_ldflags,
+
+    XCPKGReceiptKeyCode_patches,
+    XCPKGReceiptKeyCode_reslist,
 
     XCPKGReceiptKeyCode_parallel,
 
@@ -63,6 +78,11 @@ typedef enum {
 void xcpkg_receipt_dump(XCPKGReceipt * receipt) {
     if (receipt == NULL) {
         return;
+    }
+
+    switch (receipt->pkgtype) {
+        case XCPKGPkgType_exe: printf("pkgtype: exe\n"); break;
+        case XCPKGPkgType_lib: printf("pkgtype: lib\n"); break;
     }
 
     printf("summary: %s\n", receipt->summary);
@@ -83,6 +103,7 @@ void xcpkg_receipt_dump(XCPKGReceipt * receipt) {
     printf("fix_url: %s\n", receipt->fix_url);
     printf("fix_uri: %s\n", receipt->fix_uri);
     printf("fix_sha: %s\n", receipt->fix_sha);
+    printf("fix_opt: %s\n", receipt->fix_opt);
 
     printf("res_url: %s\n", receipt->res_url);
     printf("res_uri: %s\n", receipt->res_uri);
@@ -96,13 +117,24 @@ void xcpkg_receipt_dump(XCPKGReceipt * receipt) {
     printf("bsystem: %s\n", receipt->bsystem);
     printf("bscript: %s\n", receipt->bscript);
     printf("binbstd: %d\n", receipt->binbstd);
-    printf("parallel: %d\n", receipt->parallel);
 
-    printf("do12345: %s\n", receipt->dopatch);
+    printf("dofetch: %s\n", receipt->dofetch);
+    printf("do12345: %s\n", receipt->do12345);
     printf("dopatch: %s\n", receipt->dopatch);
+    printf("prepare: %s\n", receipt->prepare);
     printf("install: %s\n", receipt->install);
-
+    printf("dotweak: %s\n", receipt->dotweak);
+    printf("bindenv: %s\n", receipt->bindenv);
     printf("symlink: %d\n", receipt->symlink);
+    printf("ltoable: %d\n", receipt->ltoable);
+    printf("movable: %d\n", receipt->movable);
+    printf("mslable: %d\n", receipt->support_create_mostly_statically_linked_executable);
+    printf("parallel: %d\n", receipt->support_build_in_parallel);
+
+    printf("caveats: %s\n", receipt->caveats);
+
+    printf("patches: %s\n", receipt->patches);
+    printf("reslist: %s\n", receipt->reslist);
 
     printf("builtby: %s\n", receipt->builtBy);
     printf("builtat: %s\n", receipt->builtAt);
@@ -187,6 +219,11 @@ void xcpkg_receipt_free(XCPKGReceipt * receipt) {
         receipt->fix_sha = NULL;
     }
 
+    if (receipt->fix_opt != NULL) {
+        free(receipt->fix_opt);
+        receipt->fix_opt = NULL;
+    }
+
     ///////////////////////////////
 
     if (receipt->res_url != NULL) {
@@ -262,6 +299,11 @@ void xcpkg_receipt_free(XCPKGReceipt * receipt) {
 
     ///////////////////////////////
 
+    if (receipt->dofetch != NULL) {
+        free(receipt->dofetch);
+        receipt->dofetch = NULL;
+    }
+
     if (receipt->do12345 != NULL) {
         free(receipt->do12345);
         receipt->do12345 = NULL;
@@ -272,9 +314,39 @@ void xcpkg_receipt_free(XCPKGReceipt * receipt) {
         receipt->dopatch = NULL;
     }
 
+    if (receipt->prepare != NULL) {
+        free(receipt->prepare);
+        receipt->prepare = NULL;
+    }
+
     if (receipt->install != NULL) {
         free(receipt->install);
         receipt->install = NULL;
+    }
+
+    if (receipt->dotweak != NULL) {
+        free(receipt->dotweak);
+        receipt->dotweak = NULL;
+    }
+
+    if (receipt->bindenv != NULL) {
+        free(receipt->bindenv);
+        receipt->bindenv = NULL;
+    }
+
+    if (receipt->caveats != NULL) {
+        free(receipt->caveats);
+        receipt->caveats = NULL;
+    }
+
+    if (receipt->patches != NULL) {
+        free(receipt->patches);
+        receipt->patches = NULL;
+    }
+
+    if (receipt->reslist != NULL) {
+        free(receipt->reslist);
+        receipt->reslist = NULL;
     }
 
     ///////////////////////////////
@@ -333,6 +405,8 @@ static XCPKGReceiptKeyCode xcpkg_receipt_key_code_from_key_name(char * key) {
         return XCPKGReceiptKeyCode_fix_uri;
     } else if (strcmp(key, "fix-sha") == 0) {
         return XCPKGReceiptKeyCode_fix_sha;
+    } else if (strcmp(key, "fix-opt") == 0) {
+        return XCPKGReceiptKeyCode_fix_opt;
     } else if (strcmp(key, "res-url") == 0) {
         return XCPKGReceiptKeyCode_res_url;
     } else if (strcmp(key, "res-uri") == 0) {
@@ -355,20 +429,42 @@ static XCPKGReceiptKeyCode xcpkg_receipt_key_code_from_key_name(char * key) {
         return XCPKGReceiptKeyCode_xxflags;
     } else if (strcmp(key, "ldflags") == 0) {
         return XCPKGReceiptKeyCode_ldflags;
+    } else if (strcmp(key, "dofetch") == 0) {
+        return XCPKGReceiptKeyCode_dofetch;
     } else if (strcmp(key, "do12345") == 0) {
         return XCPKGReceiptKeyCode_do12345;
     } else if (strcmp(key, "dopatch") == 0) {
         return XCPKGReceiptKeyCode_dopatch;
+    } else if (strcmp(key, "prepare") == 0) {
+        return XCPKGReceiptKeyCode_prepare;
     } else if (strcmp(key, "install") == 0) {
         return XCPKGReceiptKeyCode_install;
+    } else if (strcmp(key, "dotweak") == 0) {
+        return XCPKGReceiptKeyCode_dotweak;
+    } else if (strcmp(key, "bindenv") == 0) {
+        return XCPKGReceiptKeyCode_bindenv;
+    } else if (strcmp(key, "caveats") == 0) {
+        return XCPKGReceiptKeyCode_caveats;
     } else if (strcmp(key, "symlink") == 0) {
         return XCPKGReceiptKeyCode_symlink;
+    } else if (strcmp(key, "movable") == 0) {
+        return XCPKGReceiptKeyCode_movable;
+    } else if (strcmp(key, "ltoable") == 0) {
+        return XCPKGReceiptKeyCode_ltoable;
+    } else if (strcmp(key, "mslable") == 0) {
+        return XCPKGReceiptKeyCode_mslable;
     } else if (strcmp(key, "bsystem") == 0) {
         return XCPKGReceiptKeyCode_bsystem;
     } else if (strcmp(key, "bscript") == 0) {
         return XCPKGReceiptKeyCode_bscript;
     } else if (strcmp(key, "binbstd") == 0) {
         return XCPKGReceiptKeyCode_binbstd;
+    } else if (strcmp(key, "pkgtype") == 0) {
+        return XCPKGReceiptKeyCode_pkgtype;
+    } else if (strcmp(key, "patches") == 0) {
+        return XCPKGReceiptKeyCode_patches;
+    } else if (strcmp(key, "reslist") == 0) {
+        return XCPKGReceiptKeyCode_reslist;
     } else if (strcmp(key, "parallel") == 0) {
         return XCPKGReceiptKeyCode_parallel;
     } else if (strcmp(key, "builtby") == 0) {
@@ -382,20 +478,18 @@ static XCPKGReceiptKeyCode xcpkg_receipt_key_code_from_key_name(char * key) {
     }
 }
 
-static void xcpkg_receipt_set_value(XCPKGReceiptKeyCode keyCode, char * value, XCPKGReceipt * receipt) {
+static int xcpkg_receipt_set_value(XCPKGReceiptKeyCode keyCode, char * value, XCPKGReceipt * receipt, int * pkgtype, int * binbstd, int * symlink, int * ltoable, int * mslable, int * movable, int * parallel) {
     if (keyCode == XCPKGReceiptKeyCode_unknown) {
-        return;
+        return XCPKG_OK;
     }
 
     for (;;) {
-        char c = value[0];
-
-        if (c == '\0') {
-            return;
+        if (value[0] == '\0') {
+            return XCPKG_OK;
         }
 
         // non-printable ASCII characters and space
-        if (c <= 32) {
+        if (value[0] <= 32) {
             value++;
         } else {
             break;
@@ -420,6 +514,7 @@ static void xcpkg_receipt_set_value(XCPKGReceiptKeyCode keyCode, char * value, X
         case XCPKGReceiptKeyCode_fix_url: if (receipt->fix_url != NULL) free(receipt->fix_url); receipt->fix_url = strdup(value); break;
         case XCPKGReceiptKeyCode_fix_uri: if (receipt->fix_uri != NULL) free(receipt->fix_uri); receipt->fix_uri = strdup(value); break;
         case XCPKGReceiptKeyCode_fix_sha: if (receipt->fix_sha != NULL) free(receipt->fix_sha); receipt->fix_sha = strdup(value); break;
+        case XCPKGReceiptKeyCode_fix_opt: if (receipt->fix_opt != NULL) free(receipt->fix_opt); receipt->fix_opt = strdup(value); break;
 
         case XCPKGReceiptKeyCode_res_url: if (receipt->res_url != NULL) free(receipt->res_url); receipt->res_url = strdup(value); break;
         case XCPKGReceiptKeyCode_res_uri: if (receipt->res_uri != NULL) free(receipt->res_uri); receipt->res_uri = strdup(value); break;
@@ -436,8 +531,15 @@ static void xcpkg_receipt_set_value(XCPKGReceiptKeyCode keyCode, char * value, X
         case XCPKGReceiptKeyCode_ldflags: if (receipt->ldflags != NULL) free(receipt->ldflags); receipt->ldflags = strdup(value); break;
 
         case XCPKGReceiptKeyCode_do12345: if (receipt->do12345 != NULL) free(receipt->do12345); receipt->do12345 = strdup(value); break;
+        case XCPKGReceiptKeyCode_dofetch: if (receipt->dofetch != NULL) free(receipt->dofetch); receipt->dofetch = strdup(value); break;
         case XCPKGReceiptKeyCode_dopatch: if (receipt->dopatch != NULL) free(receipt->dopatch); receipt->dopatch = strdup(value); break;
+        case XCPKGReceiptKeyCode_prepare: if (receipt->prepare != NULL) free(receipt->prepare); receipt->prepare = strdup(value); break;
         case XCPKGReceiptKeyCode_install: if (receipt->install != NULL) free(receipt->install); receipt->install = strdup(value); break;
+        case XCPKGReceiptKeyCode_dotweak: if (receipt->dotweak != NULL) free(receipt->dotweak); receipt->dotweak = strdup(value); break;
+        case XCPKGReceiptKeyCode_bindenv: if (receipt->bindenv != NULL) free(receipt->bindenv); receipt->bindenv = strdup(value); break;
+        case XCPKGReceiptKeyCode_caveats: if (receipt->caveats != NULL) free(receipt->caveats); receipt->caveats = strdup(value); break;
+        case XCPKGReceiptKeyCode_patches: if (receipt->patches != NULL) free(receipt->patches); receipt->patches = strdup(value); break;
+        case XCPKGReceiptKeyCode_reslist: if (receipt->reslist != NULL) free(receipt->reslist); receipt->reslist = strdup(value); break;
 
         case XCPKGReceiptKeyCode_bsystem: if (receipt->bsystem != NULL) free(receipt->bsystem); receipt->bsystem = strdup(value); break;
         case XCPKGReceiptKeyCode_bscript: if (receipt->bscript != NULL) free(receipt->bscript); receipt->bscript = strdup(value); break;
@@ -447,32 +549,94 @@ static void xcpkg_receipt_set_value(XCPKGReceiptKeyCode keyCode, char * value, X
         case XCPKGReceiptKeyCode_builtfor: if (receipt->builtFor != NULL) free(receipt->builtFor); receipt->builtFor = strdup(value); break;
 
         case XCPKGReceiptKeyCode_git_nth:
+            for (int i = 0; ; i++) {
+                if (value[i] == '\0') {
+                    break;
+                }
+                if (value[i] < '0' || value[i] > '9') {
+                    return XCPKG_ERROR_FORMULA_SCHEME;
+                }
+            }
             receipt->git_nth = atoi(value);
             break;
-
         case XCPKGReceiptKeyCode_binbstd:
             if (strcmp(value, "1") == 0) {
-                receipt->binbstd = true;
+                *binbstd = 1;
+            } else if (strcmp(value, "0") == 0) {
+                *binbstd = 0;
+            } else {
+                return XCPKG_ERROR_FORMULA_SCHEME;
+            }
+            break;
+        case XCPKGReceiptKeyCode_symlink:
+            if (strcmp(value, "1") == 0) {
+                *symlink = true;
+            } else if (strcmp(value, "0") == 0) {
+                *symlink = false;
+            } else {
+                return XCPKG_ERROR_FORMULA_SCHEME;
+            }
+            break;
+        case XCPKGReceiptKeyCode_movable:
+            if (strcmp(value, "1") == 0) {
+                *movable = true;
+            } else if (strcmp(value, "0") == 0) {
+                *movable = false;
+            } else {
+                return XCPKG_ERROR_FORMULA_SCHEME;
+            }
+            break;
+        case XCPKGReceiptKeyCode_pkgtype:
+            if (strcmp(value, "lib") == 0) {
+                *pkgtype = XCPKGPkgType_lib;
+            } else if (strcmp(value, "exe") == 0) {
+                *pkgtype = XCPKGPkgType_exe;
+            } else if (strcmp(value, "exe+lib") == 0) {
+                *pkgtype = XCPKGPkgType_lib;
+            } else {
+                return XCPKG_ERROR_FORMULA_SCHEME;
             }
             break;
 
-        case XCPKGReceiptKeyCode_symlink:
+        case XCPKGReceiptKeyCode_ltoable:
             if (strcmp(value, "1") == 0) {
-                receipt->symlink = true;
+                *ltoable = true;
+            } else if (strcmp(value, "0") == 0) {
+                *ltoable = false;
+            } else {
+                return XCPKG_ERROR_FORMULA_SCHEME;
+            }
+            break;
+
+        case XCPKGReceiptKeyCode_mslable:
+            if (strcmp(value, "1") == 0) {
+                *mslable = true;
+            } else if (strcmp(value, "0") == 0) {
+                *mslable = false;
+            } else {
+                return XCPKG_ERROR_FORMULA_SCHEME;
             }
             break;
 
         case XCPKGReceiptKeyCode_parallel:
             if (strcmp(value, "1") == 0) {
-                receipt->parallel = true;
+                *parallel = true;
+            } else if (strcmp(value, "0") == 0) {
+                *parallel = false;
+            } else {
+                return XCPKG_ERROR_FORMULA_SCHEME;
             }
             break;
 
-        default: break;
+        default:
+            break;
     }
+
+    return XCPKG_OK;
 }
 
 static int xcpkg_receipt_check(XCPKGReceipt * receipt, const char * receiptFilePath) {
+    //xcpkg_receipt_dump(receipt);
     if (receipt->summary == NULL) {
         fprintf(stderr, "scheme error in receipt file: %s : summary mapping not found.\n", receiptFilePath);
         return XCPKG_ERROR_FORMULA_SCHEME;
@@ -612,6 +776,18 @@ int xcpkg_receipt_parse(const char * packageName, const char * targetPlatformSpe
 
     int lastTokenType = 0;
 
+    int pkgtype = -1;
+
+    int binbstd = -1;
+
+    int symlink = -1;
+
+    int ltoable = -1;
+    int mslable = -1;
+    int movable = -1;
+
+    int parallel = -1;
+
     do {
         // https://libyaml.docsforge.com/master/api/yaml_parser_scan/
         if (yaml_parser_scan(&parser, &token) == 0) {
@@ -640,13 +816,13 @@ int xcpkg_receipt_parse(const char * packageName, const char * targetPlatformSpe
                         }
 
                         receipt->path = receiptFilePath;
-                        receipt->git_nth = 1U;
-                        receipt->symlink = true;
-                        receipt->binbstd = false;
-                        receipt->parallel = true;
                     }
 
-                    xcpkg_receipt_set_value(receiptKeyCode, (char*)token.data.scalar.value, receipt);
+                    ret = xcpkg_receipt_set_value(receiptKeyCode, (char*)token.data.scalar.value, receipt, &pkgtype, &binbstd, &symlink, &ltoable, &mslable, &movable, &parallel);
+
+                    if (ret != XCPKG_OK) {
+                        goto finalize;
+                    }
                 }
                 break;
             default: 
@@ -669,6 +845,49 @@ finalize:
     // xcpkg_receipt_dump(receipt);
 
     if (ret == XCPKG_OK) {
+        if (pkgtype == -1) {
+            fprintf(stderr, "no pkgtype mapping in receipt file: %s\n", receiptFilePath);
+            return XCPKG_ERROR_RECEIPT_SYNTAX;
+        }
+
+        if (binbstd == -1) {
+            fprintf(stderr, "no binbstd mapping in receipt file: %s\n", receiptFilePath);
+            return XCPKG_ERROR_RECEIPT_SYNTAX;
+        }
+
+        if (symlink == -1) {
+            fprintf(stderr, "no symlink mapping in receipt file: %s\n", receiptFilePath);
+            return XCPKG_ERROR_RECEIPT_SYNTAX;
+        }
+
+        if (ltoable == -1) {
+            fprintf(stderr, "no ltoable mapping in receipt file: %s\n", receiptFilePath);
+            return XCPKG_ERROR_RECEIPT_SYNTAX;
+        }
+
+        if (mslable == -1) {
+            fprintf(stderr, "no mslable mapping in receipt file: %s\n", receiptFilePath);
+            return XCPKG_ERROR_RECEIPT_SYNTAX;
+        }
+
+        if (movable == -1) {
+            fprintf(stderr, "no movable mapping in receipt file: %s\n", receiptFilePath);
+            return XCPKG_ERROR_RECEIPT_SYNTAX;
+        }
+
+        if (parallel == -1) {
+            fprintf(stderr, "no parallel mapping in receipt file: %s\n", receiptFilePath);
+            return XCPKG_ERROR_RECEIPT_SYNTAX;
+        }
+
+        receipt->pkgtype = pkgtype;
+        receipt->binbstd = binbstd;
+        receipt->symlink = symlink;
+        receipt->ltoable = ltoable;
+        receipt->support_create_mostly_statically_linked_executable = mslable;
+        receipt->movable = movable;
+        receipt->support_build_in_parallel = parallel;
+
         ret = xcpkg_receipt_check(receipt, receiptFilePath);
 
         if (ret == XCPKG_OK) {

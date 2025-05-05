@@ -328,9 +328,17 @@ int xcpkg_installed_info(const char * packageName, const char * targetPlatformSp
     }
 
     if (strcmp(key, "--json") == 0) {
+        const char * pkgtype;
+
+        switch (receipt->pkgtype) {
+            case XCPKGPkgType_lib: pkgtype = "lib"; break;
+            case XCPKGPkgType_exe: pkgtype = "exe"; break;
+        }
+
         json_t * root = json_object();
 
         json_object_set_new(root, "pkgname", json_string(packageName));
+        json_object_set_new(root, "pkgtype", json_string(pkgtype));
 
         json_object_set_new(root, "summary", json_string(receipt->summary));
         json_object_set_new(root, "version", json_string(receipt->version));
@@ -339,6 +347,7 @@ int xcpkg_installed_info(const char * packageName, const char * targetPlatformSp
         json_object_set_new(root, "web-url", json_string(receipt->web_url));
 
         json_object_set_new(root, "git-url", json_string(receipt->git_url));
+        json_object_set_new(root, "git-uri", json_string(receipt->git_uri));
         json_object_set_new(root, "git-sha", json_string(receipt->git_sha));
         json_object_set_new(root, "git-ref", json_string(receipt->git_ref));
         json_object_set_new(root, "git-nth", json_integer(receipt->git_nth));
@@ -350,12 +359,14 @@ int xcpkg_installed_info(const char * packageName, const char * targetPlatformSp
         json_object_set_new(root, "fix-url", json_string(receipt->fix_url));
         json_object_set_new(root, "fix-uri", json_string(receipt->fix_uri));
         json_object_set_new(root, "fix-sha", json_string(receipt->fix_sha));
+        json_object_set_new(root, "fix-opt", json_string(receipt->fix_opt));
 
         json_object_set_new(root, "res-url", json_string(receipt->res_url));
         json_object_set_new(root, "res-uri", json_string(receipt->res_uri));
         json_object_set_new(root, "res-sha", json_string(receipt->res_sha));
 
         json_object_set_new(root, "dep-pkg", json_string(receipt->dep_pkg));
+        json_object_set_new(root, "dep-lib", json_string(receipt->dep_lib));
         json_object_set_new(root, "dep-upp", json_string(receipt->dep_upp));
         json_object_set_new(root, "dep-pym", json_string(receipt->dep_pym));
         json_object_set_new(root, "dep-plm", json_string(receipt->dep_plm));
@@ -367,16 +378,29 @@ int xcpkg_installed_info(const char * packageName, const char * targetPlatformSp
 
         json_object_set_new(root, "bsystem", json_string(receipt->bscript));
         json_object_set_new(root, "bscript", json_string(receipt->bscript));
-        json_object_set_new(root, "binbstd", json_boolean(receipt->binbstd));
-        json_object_set_new(root, "parallel", json_boolean(receipt->parallel));
-        json_object_set_new(root, "symlink", json_boolean(receipt->symlink));
 
+        json_object_set_new(root, "binbstd", json_boolean(receipt->binbstd));
+        json_object_set_new(root, "parallel", json_boolean(receipt->support_build_in_parallel));
+        json_object_set_new(root, "symlink", json_boolean(receipt->symlink));
+        json_object_set_new(root, "ltoable", json_boolean(receipt->ltoable));
+        json_object_set_new(root, "mslable", json_boolean(receipt->support_create_mostly_statically_linked_executable));
+        json_object_set_new(root, "movable", json_boolean(receipt->movable));
+
+        json_object_set_new(root, "dofetch", json_string(receipt->dofetch));
         json_object_set_new(root, "do12345", json_string(receipt->do12345));
         json_object_set_new(root, "dopatch", json_string(receipt->dopatch));
+        json_object_set_new(root, "prepare", json_string(receipt->prepare));
         json_object_set_new(root, "install", json_string(receipt->install));
+        json_object_set_new(root, "dotweak", json_string(receipt->dotweak));
+        json_object_set_new(root, "caveats", json_string(receipt->caveats));
+        json_object_set_new(root, "bindenv", json_string(receipt->bindenv));
+
+        json_object_set_new(root, "patches", json_string(receipt->patches));
+        json_object_set_new(root, "reslist", json_string(receipt->reslist));
 
         json_object_set_new(root, "builtby", json_string(receipt->builtBy));
         json_object_set_new(root, "builtat", json_string(receipt->builtAt));
+        json_object_set_new(root, "builtFor", json_string(receipt->builtFor));
 
         char * jsonStr = json_dumps(root, 0);
 
@@ -388,6 +412,15 @@ int xcpkg_installed_info(const char * packageName, const char * targetPlatformSp
         }
 
         json_decref(root);
+    } else if (strcmp(key, "pkgtype") == 0) {
+        const char * pkgtype;
+
+        switch (receipt->pkgtype) {
+            case XCPKGPkgType_lib: pkgtype = "lib"; break;
+            case XCPKGPkgType_exe: pkgtype = "exe"; break;
+        }
+
+        printf("%s\n", pkgtype);
     } else if (strcmp(key, "summary") == 0) {
         printf("%s\n", receipt->summary);
     } else if (strcmp(key, "version") == 0) {
@@ -403,6 +436,10 @@ int xcpkg_installed_info(const char * packageName, const char * targetPlatformSp
     } else if (strcmp(key, "git-url") == 0) {
         if (receipt->git_url != NULL) {
             printf("%s\n", receipt->git_url);
+        }
+    } else if (strcmp(key, "git-uri") == 0) {
+        if (receipt->git_uri != NULL) {
+            printf("%s\n", receipt->git_uri);
         }
     } else if (strcmp(key, "git-sha") == 0) {
         if (receipt->git_sha != NULL) {
@@ -454,6 +491,10 @@ int xcpkg_installed_info(const char * packageName, const char * targetPlatformSp
         if (receipt->dep_pkg != NULL) {
             printf("%s\n", receipt->dep_pkg);
         }
+    } else if (strcmp(key, "dep-lib") == 0) {
+        if (receipt->dep_lib != NULL) {
+            printf("%s\n", receipt->dep_lib);
+        }
     } else if (strcmp(key, "dep-upp") == 0) {
         if (receipt->dep_upp != NULL) {
             printf("%s\n", receipt->dep_upp);
@@ -479,7 +520,7 @@ int xcpkg_installed_info(const char * packageName, const char * targetPlatformSp
     } else if (strcmp(key, "symlink") == 0) {
         printf("%d\n", receipt->symlink);
     } else if (strcmp(key, "parallel") == 0) {
-        printf("%d\n", receipt->parallel);
+        printf("%d\n", receipt->support_build_in_parallel);
     } else if (strcmp(key, "ppflags") == 0) {
         if (receipt->ppflags != NULL) {
             printf("%s\n", receipt->ppflags);

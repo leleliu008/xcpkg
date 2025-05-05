@@ -44,6 +44,7 @@ typedef enum {
     FORMULA_KEY_CODE_web_url,
 
     FORMULA_KEY_CODE_git_url,
+    FORMULA_KEY_CODE_git_uri,
     FORMULA_KEY_CODE_git_sha,
     FORMULA_KEY_CODE_git_ref,
     FORMULA_KEY_CODE_git_nth,
@@ -62,6 +63,7 @@ typedef enum {
     FORMULA_KEY_CODE_res_sha,
 
     FORMULA_KEY_CODE_dep_pkg,
+    FORMULA_KEY_CODE_dep_lib,
     FORMULA_KEY_CODE_dep_upp,
     FORMULA_KEY_CODE_dep_pym,
     FORMULA_KEY_CODE_dep_plm,
@@ -112,6 +114,7 @@ void xcpkg_formula_dump(XCPKGFormula * formula) {
     printf("web-url: %s\n", formula->web_url);
 
     printf("git_url: %s\n", formula->git_url);
+    printf("git_uri: %s\n", formula->git_uri);
     printf("git_sha: %s\n", formula->git_sha);
     printf("git_ref: %s\n", formula->git_ref);
     printf("git_nth: %zu\n", formula->git_nth);
@@ -130,6 +133,7 @@ void xcpkg_formula_dump(XCPKGFormula * formula) {
     printf("res_sha: %s\n", formula->res_sha);
 
     printf("dep_pkg: %s\n", formula->dep_pkg);
+    printf("dep_lib: %s\n", formula->dep_lib);
     printf("dep_upp: %s\n", formula->dep_upp);
     printf("dep_pym: %s\n", formula->dep_pym);
     printf("dep_plm: %s\n", formula->dep_plm);
@@ -148,7 +152,7 @@ void xcpkg_formula_dump(XCPKGFormula * formula) {
     printf("symlink: %d\n", formula->symlink);
     printf("ltoable: %d\n", formula->ltoable);
     printf("movable: %d\n", formula->movable);
-    printf("nslable: %d\n", formula->support_create_mostly_statically_linked_executable);
+    printf("mslable: %d\n", formula->support_create_mostly_statically_linked_executable);
     printf("parallel: %d\n", formula->support_build_in_parallel);
 
     printf("caveats: %s\n", formula->caveats);
@@ -191,6 +195,11 @@ void xcpkg_formula_free(XCPKGFormula * formula) {
     if (formula->git_url != NULL) {
         free(formula->git_url);
         formula->git_url = NULL;
+    }
+
+    if (formula->git_uri != NULL) {
+        free(formula->git_uri);
+        formula->git_uri = NULL;
     }
 
     if (formula->git_sha != NULL) {
@@ -264,6 +273,11 @@ void xcpkg_formula_free(XCPKGFormula * formula) {
     if (formula->dep_pkg != NULL) {
         free(formula->dep_pkg);
         formula->dep_pkg = NULL;
+    }
+
+    if (formula->dep_lib != NULL) {
+        free(formula->dep_lib);
+        formula->dep_lib = NULL;
     }
 
     if (formula->dep_upp != NULL) {
@@ -388,6 +402,8 @@ static XCPKGFormulaKeyCode xcpkg_formula_key_code_from_key_name(char * key) {
         return FORMULA_KEY_CODE_web_url;
     } else if (strcmp(key, "git-url") == 0) {
         return FORMULA_KEY_CODE_git_url;
+    } else if (strcmp(key, "git-uri") == 0) {
+        return FORMULA_KEY_CODE_git_uri;
     } else if (strcmp(key, "git-sha") == 0) {
         return FORMULA_KEY_CODE_git_sha;
     } else if (strcmp(key, "git-ref") == 0) {
@@ -416,6 +432,8 @@ static XCPKGFormulaKeyCode xcpkg_formula_key_code_from_key_name(char * key) {
         return FORMULA_KEY_CODE_res_sha;
     } else if (strcmp(key, "dep-pkg") == 0) {
         return FORMULA_KEY_CODE_dep_pkg;
+    } else if (strcmp(key, "dep-lib") == 0) {
+        return FORMULA_KEY_CODE_dep_lib;
     } else if (strcmp(key, "dep-upp") == 0) {
         return FORMULA_KEY_CODE_dep_upp;
     } else if (strcmp(key, "dep-pym") == 0) {
@@ -473,7 +491,7 @@ static XCPKGFormulaKeyCode xcpkg_formula_key_code_from_key_name(char * key) {
     }
 }
 
-static int xcpkg_formula_set_value(XCPKGFormulaKeyCode keyCode, char * value, XCPKGFormula * formula, int * pkgtype, int * binbstd) {
+static int xcpkg_formula_set_value(XCPKGFormulaKeyCode keyCode, char * value, XCPKGFormula * formula, int * pkgtype, int * binbstd, int * symlink, int * ltoable, int * mslable, int * movable, int * parallel) {
     if (keyCode == FORMULA_KEY_CODE_unknown) {
         return XCPKG_OK;
     }
@@ -501,6 +519,7 @@ static int xcpkg_formula_set_value(XCPKGFormulaKeyCode keyCode, char * value, XC
         case FORMULA_KEY_CODE_web_url: if (formula->web_url != NULL) free(formula->web_url); formula->web_url = strdup(value); break;
 
         case FORMULA_KEY_CODE_git_url: if (formula->git_url != NULL) free(formula->git_url); formula->git_url = strdup(value); break;
+        case FORMULA_KEY_CODE_git_uri: if (formula->git_uri != NULL) free(formula->git_uri); formula->git_uri = strdup(value); break;
         case FORMULA_KEY_CODE_git_sha: if (formula->git_sha != NULL) free(formula->git_sha); formula->git_sha = strdup(value); break;
         case FORMULA_KEY_CODE_git_ref: if (formula->git_ref != NULL) free(formula->git_ref); formula->git_ref = strdup(value); break;
 
@@ -518,6 +537,7 @@ static int xcpkg_formula_set_value(XCPKGFormulaKeyCode keyCode, char * value, XC
         case FORMULA_KEY_CODE_res_sha: if (formula->res_sha != NULL) free(formula->res_sha); formula->res_sha = strdup(value); break;
 
         case FORMULA_KEY_CODE_dep_pkg: if (formula->dep_pkg != NULL) free(formula->dep_pkg); formula->dep_pkg = strdup(value); break;
+        case FORMULA_KEY_CODE_dep_lib: if (formula->dep_lib != NULL) free(formula->dep_lib); formula->dep_lib = strdup(value); break;
         case FORMULA_KEY_CODE_dep_upp: if (formula->dep_upp != NULL) free(formula->dep_upp); formula->dep_upp = strdup(value); break;
         case FORMULA_KEY_CODE_dep_pym: if (formula->dep_pym != NULL) free(formula->dep_pym); formula->dep_pym = strdup(value); break;
         case FORMULA_KEY_CODE_dep_plm: if (formula->dep_plm != NULL) free(formula->dep_plm); formula->dep_plm = strdup(value); break;
@@ -542,6 +562,14 @@ static int xcpkg_formula_set_value(XCPKGFormulaKeyCode keyCode, char * value, XC
         case FORMULA_KEY_CODE_bscript: if (formula->bscript != NULL) free(formula->bscript); formula->bscript = strdup(value); break;
 
         case FORMULA_KEY_CODE_git_nth:
+            for (int i = 0; ; i++) {
+                if (value[i] == '\0') {
+                    break;
+                }
+                if (value[i] < '0' || value[i] > '9') {
+                    return XCPKG_ERROR_FORMULA_SCHEME;
+                }
+            }
             formula->git_nth = atoi(value);
             break;
         case FORMULA_KEY_CODE_binbstd:
@@ -555,18 +583,18 @@ static int xcpkg_formula_set_value(XCPKGFormulaKeyCode keyCode, char * value, XC
             break;
         case FORMULA_KEY_CODE_symlink:
             if (strcmp(value, "1") == 0) {
-                formula->symlink = true;
+                *symlink = true;
             } else if (strcmp(value, "0") == 0) {
-                formula->symlink = false;
+                *symlink = false;
             } else {
                 return XCPKG_ERROR_FORMULA_SCHEME;
             }
             break;
         case FORMULA_KEY_CODE_movable:
             if (strcmp(value, "1") == 0) {
-                formula->movable = true;
+                *movable = true;
             } else if (strcmp(value, "0") == 0) {
-                formula->movable = false;
+                *movable = false;
             } else {
                 return XCPKG_ERROR_FORMULA_SCHEME;
             }
@@ -585,9 +613,9 @@ static int xcpkg_formula_set_value(XCPKGFormulaKeyCode keyCode, char * value, XC
 
         case FORMULA_KEY_CODE_ltoable:
             if (strcmp(value, "1") == 0) {
-                formula->ltoable = true;
+                *ltoable = true;
             } else if (strcmp(value, "0") == 0) {
-                formula->ltoable = false;
+                *ltoable = false;
             } else {
                 return XCPKG_ERROR_FORMULA_SCHEME;
             }
@@ -595,9 +623,9 @@ static int xcpkg_formula_set_value(XCPKGFormulaKeyCode keyCode, char * value, XC
 
         case FORMULA_KEY_CODE_mslable:
             if (strcmp(value, "1") == 0) {
-                formula->support_create_mostly_statically_linked_executable = true;
+                *mslable = true;
             } else if (strcmp(value, "0") == 0) {
-                formula->support_create_mostly_statically_linked_executable = false;
+                *mslable = false;
             } else {
                 return XCPKG_ERROR_FORMULA_SCHEME;
             }
@@ -605,9 +633,9 @@ static int xcpkg_formula_set_value(XCPKGFormulaKeyCode keyCode, char * value, XC
 
         case FORMULA_KEY_CODE_parallel:
             if (strcmp(value, "1") == 0) {
-                formula->support_build_in_parallel = true;
+                *parallel = true;
             } else if (strcmp(value, "0") == 0) {
-                formula->support_build_in_parallel = false;
+                *parallel = false;
             } else {
                 return XCPKG_ERROR_FORMULA_SCHEME;
             }
@@ -1153,6 +1181,14 @@ int xcpkg_formula_load(const char * packageName, const char * targetPlatformName
 
     int binbstd = -1;
 
+    int symlink = -1;
+
+    int ltoable = -1;
+    int mslable = -1;
+    int movable = -1;
+
+    int parallel = -1;
+
     do {
         // https://libyaml.docsforge.com/master/api/yaml_parser_scan/
         if (yaml_parser_scan(&parser, &token) == 0) {
@@ -1186,16 +1222,9 @@ int xcpkg_formula_load(const char * packageName, const char * targetPlatformName
                             ret = XCPKG_ERROR_MEMORY_ALLOCATE;
                             goto finalize;
                         }
-
-                        formula->git_nth = 1U;
-                        formula->symlink = true;
-                        formula->ltoable = true;
-                        formula->movable = true;
-                        formula->support_build_in_parallel = true;
-                        formula->support_create_mostly_statically_linked_executable = true;
                     }
 
-                    ret = xcpkg_formula_set_value(formulaKeyCode, (char*)token.data.scalar.value, formula, &pkgtype, &binbstd);
+                    ret = xcpkg_formula_set_value(formulaKeyCode, (char*)token.data.scalar.value, formula, &pkgtype, &binbstd, &symlink, &ltoable, &mslable, &movable, &parallel);
 
                     if (ret != XCPKG_OK) {
                         goto finalize;
@@ -1223,7 +1252,34 @@ finalize:
         ret = xcpkg_formula_check(formula, formulaFilePath);
 
         if (ret == XCPKG_OK) {
+            if (symlink == -1) {
+                symlink = true;
+                formula->symlink_is_calculated = true;
+            }
+
+            if (ltoable == -1) {
+                ltoable = true;
+                formula->ltoable_is_calculated = true;
+            }
+
+            if (mslable == -1) {
+                mslable = true;
+                formula->mslable_is_calculated = true;
+            }
+
+            if (movable == -1) {
+                movable = true;
+                formula->movable_is_calculated = true;
+            }
+
+            if (parallel == -1) {
+                parallel = true;
+                formula->parallel_is_calculated = true;
+            }
+
             if (binbstd == -1) {
+                formula->binbstd_is_calculated = true;
+
                 if (formula->useBuildSystemGolang || formula->useBuildSystemCargo || formula->useBuildSystemXmake || formula->useBuildSystemGmake) {
                     binbstd = 1;
                 } else {
@@ -1232,6 +1288,11 @@ finalize:
             }
 
             formula->binbstd = binbstd;
+            formula->symlink = symlink;
+            formula->ltoable = ltoable;
+            formula->support_create_mostly_statically_linked_executable = mslable;
+            formula->movable = movable;
+            formula->support_build_in_parallel = parallel;
 
             if (pkgtype == -1) {
                 if (strncmp(packageName, "lib", 3) == 0) {
@@ -1257,9 +1318,16 @@ finalize:
                         pkgtype = XCPKGPkgType_exe;
                     }
                 }
+
+                formula->pkgtype_is_calculated = true;
             }
 
             formula->pkgtype = pkgtype;
+
+            if (formula->pkgtype == XCPKGPkgType_lib) {
+                formula->support_create_mostly_statically_linked_executable = false;
+            }
+
             (*out) = formula;
             return XCPKG_OK;
         }
