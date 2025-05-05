@@ -1286,7 +1286,7 @@ finalize:
             if (binbstd == -1) {
                 formula->binbstd_is_calculated = true;
 
-                if (formula->useBuildSystemGolang || formula->useBuildSystemCargo || formula->useBuildSystemXmake || formula->useBuildSystemGmake) {
+                if (formula->useBuildSystemGolang || formula->useBuildSystemCargo || formula->useBuildSystemCabal || formula->useBuildSystemXmake || formula->useBuildSystemGmake) {
                     binbstd = 1;
                 } else {
                     binbstd = 0;
