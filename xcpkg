@@ -6033,6 +6033,133 @@ install_mans() {
 
 # }}}
 ##############################################################################
+# {{{ cabal_v2_install
+
+# https://cabal.readthedocs.io/en/3.14/cabal-project-description-file.html
+cabal_v2_install() {
+    if [ -z "$BOOTSTRAP_HASKELL_GHC_VERSION" ] ; then
+        if [ -f cabal.project ] ; then
+            HASKELL_GHC_VERSION="$(gsed -n '/^with-compiler: ghc-/p' cabal.project)"
+
+            if [ -n "$HASKELL_GHC_VERSION" ] ; then
+                HASKELL_GHC_VERSION="${HASKELL_GHC_VERSION#'with-compiler: ghc-'}"
+
+                if [ -n "$HASKELL_GHC_VERSION" ] ; then
+                    export BOOTSTRAP_HASKELL_GHC_VERSION="$HASKELL_GHC_VERSION"
+                fi
+            fi
+        fi
+
+        if [ -z "$BOOTSTRAP_HASKELL_GHC_VERSION" ] ; then
+            export BOOTSTRAP_HASKELL_GHC_VERSION='9.8.2'
+        fi
+    fi
+
+    export BOOTSTRAP_HASKELL_CABAL_VERSION='3.14.1.1'
+    export BOOTSTRAP_HASKELL_NONINTERACTIVE=1
+    export BOOTSTRAP_HASKELL_VERBOSE=1
+    export BOOTSTRAP_HASKELL_INSTALL_NO_STACK=1
+
+    unset  BOOTSTRAP_HASKELL_INSTALL_HLS
+    unset  BOOTSTRAP_HASKELL_CABAL_XDG
+    unset  BOOTSTRAP_HASKELL_DOWNLOADER
+    unset  BOOTSTRAP_HASKELL_ADJUST_BASHRC
+    unset  BOOTSTRAP_HASKELL_MINIMAL
+
+    unset  GHCUP_USE_XDG_DIRS
+    unset  GHCUP_BASE_URL
+
+    export GHCUP_INSTALL_BASE_PREFIX="$PACKAGE_WORKING_DIR"
+
+    if [ "$GITHUB_ACTIONS" = true ] ; then
+        DEBUG_CABAL=1
+    fi
+
+    wfetch 'https://get-ghcup.haskell.org' -o ghcup-installer.sh
+    gsed -i '/GHCUP_INSTALL_BASE_PREFIX:=/d'  ghcup-installer.sh
+    run sh ghcup-installer.sh
+
+    export LD_LIBRARY_PATH="$libncurses_LIBRARY_DIR:$libgmp_LIBRARY_DIR"
+
+    export PROXIED_CC_ARGS="$PROXIED_CC_ARGS -L$PACKAGE_WORKING_DIR/lib"
+    export PROXIED_CXX_ARGS="$PROXIED_CXX_ARGS -L$PACKAGE_WORKING_DIR/lib"
+
+    export PATH="$GHCUP_INSTALL_BASE_PREFIX/.ghcup/bin:$PATH"
+
+    if [ ! -f cabal.project ] ; then
+        cat > cabal.project <<EOF
+packages: ./*.cabal
+EOF
+    fi
+
+    cat >> cabal.project <<EOF
+
+package *
+    extra-include-dirs: $PACKAGE_WORKING_DIR/include$CABAL_PROJECT_EXTRA_INCLUDE_DIRS
+    extra-lib-dirs: $PACKAGE_WORKING_DIR/lib$CABAL_PROJECT_EXTRA_LIBRARY_DIRS
+
+EOF
+
+    CABAL_ARGS="--jobs=$BUILD_NJOBS --max-backjumps=100000 --install-method=copy --installdir=$PACKAGE_INSTALL_DIR/bin"
+
+    if [ "$VERBOSE_CABAL" = 1 ] ; then
+        CABAL_ARGS="$CABAL_ARGS -v2"
+    fi
+
+    if [ "$DEBUG_CABAL" = 1 ] ; then
+        CABAL_ARGS="$CABAL_ARGS -v3"
+    fi
+
+    if [ "$ENABLE_STRIP" = 1 ] ; then
+        CABAL_ARGS="$CABAL_ARGS --enable-executable-stripping"
+    fi
+
+    CABAL=$(command -v cabal) || abort 1 "command not found: cabal"
+
+    run "$CABAL" --version
+    run "$CABAL" update
+    run "$CABAL" v2-install "$CABAL_ARGS" "$@"
+}
+
+# }}}
+##############################################################################
+# {{{ waf
+
+waf() {
+    run python3 ./waf "$@"
+}
+
+# }}}
+##############################################################################
+# {{{ zig
+
+zig() {
+    ZIG_BUILD_EXTRA_ARGS="-j$BUILD_NJOBS"
+
+    if [ "$TARGET_PLATFORM_NAME" = MacOSX ] ; then
+        # https://zig.guide/build-system/cross-compilation/
+        if [ $TARGET_PLATFORM_ARCH = arm64 ] ; then
+            ZIG_BUILD_TARGET='aarch64-macos'
+        else
+            ZIG_BUILD_TARGET=$TARGET_PLATFORM_ARCH-macos
+        fi
+
+        ZIG_BUILD_EXTRA_ARGS="$ZIG_BUILD_EXTRA_ARGS -Dtarget=$ZIG_BUILD_TARGET"
+    fi
+
+    case $PROFILE in
+        release) ZIG_BUILD_EXTRA_ARGS="$ZIG_BUILD_EXTRA_ARGS --release=small" ;;
+    esac
+
+    if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_NORMAL" ] ; then
+        ZIG_BUILD_EXTRA_ARGS="$ZIG_BUILD_EXTRA_ARGS --verbose"
+    fi
+
+    run command zig build $ZIG_BUILD_EXTRA_ARGS --prefix "$PACKAGE_INSTALL_DIR" "$@"
+}
+
+# }}}
+##############################################################################
 # {{{ configure
 
 configure() {

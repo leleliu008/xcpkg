@@ -41,9 +41,9 @@
 
 #define XCPKG_ERROR_INVALID_URL  12
 
-#define XCPKG_ERROR_PLATFORM_SPEC_IS_INVALID 14
+#define XCPKG_ERROR_PLATFORM_SPEC_IS_INVALID 13
 
-#define XCPKG_ERROR_PACKAGE_SPEC_IS_INVALID 15
+#define XCPKG_ERROR_PACKAGE_SPEC_IS_INVALID 14
 
 #define XCPKG_ERROR_PACKAGE_NAME_IS_NULL    15
 #define XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY   16
@@ -201,6 +201,7 @@ typedef struct {
     bool useBuildSystemGmake;
     bool useBuildSystemMeson;
     bool useBuildSystemNinja;
+    bool useBuildSystemCabal;
     bool useBuildSystemCargo;
     bool useBuildSystemGolang;
     bool useBuildSystemGN;

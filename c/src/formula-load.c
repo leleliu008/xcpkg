@@ -702,7 +702,7 @@ static int xcpkg_formula_check_bsystem(XCPKGFormula * formula) {
                     return XCPKG_OK;
                 }
 
-                if (strncmp(p, "cabalw", i) == 0) {
+                if (strncmp(p, "cabal_v2_install", i) == 0) {
                     formula->bsystem = strdup("cabal");
                     formula->bsystem_is_calculated = true;
                     return XCPKG_OK;
@@ -974,6 +974,8 @@ static int xcpkg_formula_check(XCPKGFormula * formula, const char * formulaFileP
         } else if (strcmp(bsystem, "meson") == 0) {
             formula->useBuildSystemMeson = true;
             formula->useBuildSystemNinja = true;
+        } else if (strcmp(bsystem, "cabal") == 0) {
+            formula->useBuildSystemCabal = true;
         } else if (strcmp(bsystem, "cargo") == 0) {
             formula->useBuildSystemCargo = true;
         } else if (strcmp(bsystem, "go") == 0) {
@@ -1026,34 +1028,36 @@ static int xcpkg_formula_check(XCPKGFormula * formula, const char * formulaFileP
         string_buffer_append(dep_upp_extra_buf, &dep_upp_extra_buf_len, "patch");
     }
 
-    if (formula->dep_upp == NULL) {
-        char * p = strdup(dep_upp_extra_buf);
+    if (dep_upp_extra_buf[0] != '\0') {
+        if (formula->dep_upp == NULL) {
+            char * p = strdup(dep_upp_extra_buf);
 
-        if (p == NULL) {
-            return XCPKG_ERROR_MEMORY_ALLOCATE;
+            if (p == NULL) {
+                return XCPKG_ERROR_MEMORY_ALLOCATE;
+            }
+
+            formula->dep_upp = p;
+        } else {
+            size_t oldLength = strlen(formula->dep_upp);
+            size_t newLength = oldLength + dep_upp_extra_buf_len + 2U;
+
+            char * p = (char*)calloc(newLength, sizeof(char));
+
+            if (p == NULL) {
+                return XCPKG_ERROR_MEMORY_ALLOCATE;
+            }
+
+            ret = snprintf(p, newLength, "%s %s", formula->dep_upp, dep_upp_extra_buf);
+
+            if (ret < 0) {
+                perror(NULL);
+                return XCPKG_ERROR;
+            }
+
+            free(formula->dep_upp);
+
+            formula->dep_upp = p;
         }
-
-        formula->dep_upp = p;
-    } else {
-        size_t oldLength = strlen(formula->dep_upp);
-        size_t newLength = oldLength + dep_upp_extra_buf_len + 2U;
-
-        char * p = (char*)calloc(newLength, sizeof(char));
-
-        if (p == NULL) {
-            return XCPKG_ERROR_MEMORY_ALLOCATE;
-        }
-
-        ret = snprintf(p, newLength, "%s %s", formula->dep_upp, dep_upp_extra_buf);
-
-        if (ret < 0) {
-            perror(NULL);
-            return XCPKG_ERROR;
-        }
-
-        free(formula->dep_upp);
-
-        formula->dep_upp = p;
     }
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1115,6 +1119,8 @@ static int xcpkg_formula_check(XCPKGFormula * formula, const char * formulaFileP
             dobuildActions = "cargow install";
         } else if (formula->useBuildSystemGolang) {
             dobuildActions = "gow";
+        } else if (formula->useBuildSystemCabal) {
+            dobuildActions = "cabal_v2_install";
         } else {
             fprintf(stderr, "scheme error in formula file: %s : dobuild mapping not found.\n", formula->path);
             return XCPKG_ERROR_FORMULA_SCHEME;
