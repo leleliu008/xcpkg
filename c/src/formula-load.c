@@ -757,27 +757,33 @@ static int xcpkg_formula_check(XCPKGFormula * formula, const char * formulaFileP
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////
 
+    if (formula->git_url == NULL) {
+        if (formula->src_url != NULL) {
+            char * p = regex_extract(formula->src_url, "https://git(hub|lab).com/[^/]*/[^/]*/");
+
+            if (p == NULL) {
+                if (errno != 0) {
+                    perror(NULL);
+                    return XCPKG_ERROR;
+                }
+            } else {
+                formula->git_url = p;
+                formula->git_url_is_calculated = true;
+            }
+        }
+    } else {
+        if ((formula->git_sha != NULL) && (strlen(formula->git_sha) != 40)) {
+            fprintf(stderr, "scheme error in formula file: %s : git-sha mapping's value's length must be 40.\n", formulaFilePath);
+            return XCPKG_ERROR_FORMULA_SCHEME;
+        }
+    }
+
+    //////////////////////////////////////////////////////////////////////////////////////////////////////
+
     if (formula->web_url == NULL) {
         if (formula->git_url == NULL) {
-            if (formula->src_url == NULL) {
-                fprintf(stderr, "scheme error in formula file: %s : web-url mapping not found.\n", formulaFilePath);
-                return XCPKG_ERROR_FORMULA_SCHEME;
-            } else {
-                char * p = regex_extract(formula->src_url, "https://git(hub|lab).com/[^/]*/[^/]*/");
-
-                if (p == NULL) {
-                    if (errno == 0) {
-                        fprintf(stderr, "scheme error in formula file: %s : web-url mapping not found.\n", formulaFilePath);
-                        return XCPKG_ERROR_FORMULA_SCHEME;
-                    } else {
-                        perror(NULL);
-                        return XCPKG_ERROR;
-                    }
-                } else {
-                    formula->web_url_is_calculated = true;
-                    formula->web_url = p;
-                }
-            }
+            fprintf(stderr, "scheme error in formula file: %s : web-url mapping not found.\n", formulaFilePath);
+            return XCPKG_ERROR_FORMULA_SCHEME;
         } else {
             formula->web_url_is_calculated = true;
             formula->web_url = strdup(formula->git_url);
@@ -790,46 +796,17 @@ static int xcpkg_formula_check(XCPKGFormula * formula, const char * formulaFileP
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    if (formula->src_url == NULL) {
-        if (formula->git_url == NULL) {
-            fprintf(stderr, "scheme error in formula file: %s : neither src-url nor git-url mapping is found.\n", formulaFilePath);
-            return XCPKG_ERROR_FORMULA_SCHEME;
+    if (formula->src_url != NULL) {
+        if (strncmp(formula->src_url, "dir://", 6) == 0) {
+            struct stat st;
+
+            if (stat(&formula->src_url[6], &st) != 0 || !S_ISDIR(st.st_mode)) {
+                fprintf(stderr, "src-url mapping request local dir %s not exist. in formula file: %s.\n", &formula->src_url[6], formulaFilePath);
+                return XCPKG_ERROR;
+            }
+
+            formula->src_is_dir = true;
         } else {
-            if ((formula->git_sha != NULL) && (strlen(formula->git_sha) != 40)) {
-                fprintf(stderr, "scheme error in formula file: %s : git-sha mapping's value's length must be 40.\n", formulaFilePath);
-                return XCPKG_ERROR_FORMULA_SCHEME;
-            }
-        }
-    } else {
-        size_t i = 0;
-        char   c;
-
-        for (;;) {
-            c = formula->src_url[i];
-
-            if (c == '\0') {
-                break;
-            }
-
-            if (i == 5) {
-                if (strncmp(formula->src_url, "dir://", 6) == 0) {
-                    struct stat st;
-
-                    if (stat(&formula->src_url[6], &st) != 0 || !S_ISDIR(st.st_mode)) {
-                        fprintf(stderr, "src-url mapping request local dir %s not exist. in formula file: %s.\n", &formula->src_url[6], formulaFilePath);
-                        return XCPKG_ERROR;
-                    }
-
-                    formula->src_is_dir = true;
-                }
-
-                break;
-            }
-
-            i++;
-        }
-
-        if (!(formula->src_is_dir)) {
             if (formula->src_sha == NULL) {
                 fprintf(stderr, "scheme error in formula file: %s : src-sha mapping not found.\n", formulaFilePath);
                 return XCPKG_ERROR_FORMULA_SCHEME;
@@ -994,6 +971,10 @@ static int xcpkg_formula_check(XCPKGFormula * formula, const char * formulaFileP
 
     if (formula->useBuildSystemAutogen || formula->useBuildSystemAutotools) {
         string_buffer_append(dep_upp_extra_buf, &dep_upp_extra_buf_len, "automake autoconf perl gm4");
+    }
+
+    if (formula->useBuildSystemCabal) {
+        string_buffer_append(dep_upp_extra_buf, &dep_upp_extra_buf_len, "gmake");
     }
 
     if (formula->useBuildSystemCmake) {

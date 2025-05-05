@@ -65,9 +65,9 @@ int xcpkg_available_info2(const XCPKGFormula * formula, const char * packageName
         ///////////////////////////////////////////////////////////////
 
         KV kvs[] = {
-            {"summary", formula->summary},
             {"version", formula->version},
             {"license", formula->license},
+            {"summary", formula->summary},
             {"web-url", formula->web_url},
 
             {"git-url", formula->git_url},
