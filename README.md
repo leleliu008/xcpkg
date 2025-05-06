@@ -52,7 +52,7 @@ For more details please refer to <https://github.com/leleliu008/xcpkg-package-ma
 ppkg install xcpkg
 ```
 
-## Build from C source locally via [xcpkg](https://github.com/leleliu008/xcpkg)
+## Build from C source locally via `xcpkg` itself
 
 ```bash
 xcpkg install xcpkg
@@ -67,12 +67,12 @@ cd vcpkg
 export VCPKG_ROOT="$PWD/vcpkg"
 export PATH="$VCPKG_ROOT:$PATH"
 
-vcpkg install curl openssl libgit2 libarchive libyaml jansson
+vcpkg install 'curl[http2,brotli,zstd,openssl]' libgit2 libarchive libyaml jansson
 
 git clone --depth=1 https://github.com/leleliu008/xcpkg
 cd xcpkg
 
-cmake -S . -B   build.d -G Ninja -DCMAKE_INSTALL_PREFIX=/usr/local -DCMAKE_TOOLCHAIN_FILE=$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake
+cmake -S c -B   build.d -G Ninja -DCMAKE_INSTALL_PREFIX=/usr/local -DCMAKE_TOOLCHAIN_FILE=$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake
 cmake --build   build.d
 cmake --install build.d
 ```
