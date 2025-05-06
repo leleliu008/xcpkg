@@ -73,8 +73,6 @@ jobs:
 
       - run: xcpkg sysinfo
 
-      - run: xcpkg setup -v
-
       - run: xcpkg integrate zsh
       - run: xcpkg integrate zsh -v
 
@@ -218,8 +216,6 @@ jobs:
       - run: xcpkg about -v
 
       - run: xcpkg sysinfo
-
-      - run: xcpkg setup -v
 
       - run: xcpkg integrate zsh
       - run: xcpkg integrate zsh -v

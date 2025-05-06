@@ -4722,6 +4722,142 @@ static int check_if_compiler_support_Wno_error_unused_command_line_argument(cons
     return xcpkg_fork_exec(cmd);
 }
 
+static int setup_core_tools(const char * sessionDIR, const size_t sessionDIRLength, const char * xcpkgCoreDIR, const size_t xcpkgCoreDIRCapacity, bool verbose) {
+    size_t okFilePathCapacity = xcpkgCoreDIRCapacity + 3U;
+    char   okFilePath[okFilePathCapacity];
+
+    int ret = snprintf(okFilePath, okFilePathCapacity, "%s/ok", xcpkgCoreDIR);
+
+    if (ret < 0) {
+        perror(NULL);
+        return XCPKG_ERROR;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////////
+
+    struct stat st;
+
+    if (stat(okFilePath, &st) == 0 && S_ISREG(st.st_mode)) {
+        return XCPKG_OK;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////////
+
+    size_t tmpDIRCapacity = sessionDIRLength + 5U;
+    char   tmpDIR[tmpDIRCapacity];
+
+    ret = snprintf(tmpDIR, tmpDIRCapacity, "%s/tmp", sessionDIR);
+
+    if (ret < 0) {
+        perror(NULL);
+        return XCPKG_ERROR;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////////
+
+    if (chdir(tmpDIR) != 0) {
+        perror(tmpDIR);
+        return XCPKG_ERROR;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////////
+
+    ret = xcpkg_http_fetch_to_file("https://curl.se/ca/cacert.pem", "cacert.pem", verbose, verbose);
+
+    if (ret != XCPKG_OK) {
+        return ret;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////////
+
+    ret = xcpkg_http_fetch_to_file("https://github.com/leleliu008/xcpkg/archive/refs/heads/master.zip", "master.zip", verbose, verbose);
+
+    if (ret != XCPKG_OK) {
+        return ret;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////////
+
+    ret = tar_extract(tmpDIR, "master.zip", ARCHIVE_EXTRACT_TIME, verbose, 1);
+
+    if (ret != 0) {
+        return abs(ret) + XCPKG_ERROR_ARCHIVE_BASE;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////////
+
+    char* a[] = {"core/wrapper-native-c++.c", "core/wrapper-native-cc.c", "core/wrapper-native-objc.c", "core/wrapper-target-c++.c", "core/wrapper-target-cc.c", "core/wrapper-target-objc.c", NULL};
+
+    char buf[25];
+
+    for (int i = 0; ; i++) {
+        if (a[i] == NULL) {
+            break;
+        }
+
+        for (int j = 0; ; j++) {
+            if (a[i][j] == '.') {
+                buf[j] = '\0';
+                break;
+            }
+            buf[j] = a[i][j];
+        }
+
+        ret = xcpkg_fork_exec2(7, "cc", "-std=c99", "-Os", "-Wl,-S", "-flto", "-o", buf, a[i]);
+
+        if (ret != XCPKG_OK) {
+            return ret;
+        }
+    }
+
+    //////////////////////////////////////////////////////////////////////////////////
+
+    char ts[11];
+
+    ret = snprintf(ts, 11, "%ld", time(NULL));
+
+    if (ret < 0) {
+        perror(NULL);
+        return XCPKG_ERROR;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////////
+
+    ret = xcpkg_write_file("core/ok", ts, strlen(ts));
+
+    if (ret != XCPKG_OK) {
+        return ret;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////////
+
+    for (;;) {
+        if (rename("core", xcpkgCoreDIR) == 0) {
+            return XCPKG_OK;
+        } else {
+            if (errno == ENOTEMPTY || errno == EEXIST) {
+                if (lstat(xcpkgCoreDIR, &st) == 0) {
+                    if (S_ISDIR(st.st_mode)) {
+                        ret = xcpkg_rm_rf(xcpkgCoreDIR, false, verbose);
+
+                        if (ret != XCPKG_OK) {
+                            return ret;
+                        }
+                    } else {
+                        if (unlink(xcpkgCoreDIR) != 0) {
+                            perror(xcpkgCoreDIR);
+                            return XCPKG_ERROR;
+                        }
+                    }
+                }
+            } else {
+                perror(xcpkgCoreDIR);
+                return XCPKG_ERROR;
+            }
+        }
+    }
+}
+
 int xcpkg_install(const char * packageName, const char * targetPlatformSpec, const XCPKGInstallOptions * installOptions) {
     // redirect all stdout and stderr to /dev/null
     if (installOptions->logLevel == XCPKGLogLevel_silent) {
@@ -4840,6 +4976,14 @@ int xcpkg_install(const char * packageName, const char * targetPlatformSpec, con
                 return XCPKG_ERROR;
             }
         }
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+
+    ret = setup_core_tools(sessionDIR, sessionDIRLength, xcpkgCoreDIR, xcpkgCoreDIRCapacity, installOptions->verbose_net);
+
+    if (ret != XCPKG_OK) {
+        return ret;
     }
 
     //////////////////////////////////////////////////////////////////////////////
