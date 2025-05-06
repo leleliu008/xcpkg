@@ -30,7 +30,7 @@ jobs:
             homepage "https://github.com/leleliu008/xcpkg"
             head     "https://github.com/leleliu008/xcpkg.git", branch: "master"
             url      "https://github.com/leleliu008/xcpkg.git", revision: "${{ github.sha }}"
-            version  "0.1000.2"
+            version  "0.1000.1"
             license  "Apache-2.0"
 
             depends_on "cmake" => :build
