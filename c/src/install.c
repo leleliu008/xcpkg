@@ -4755,6 +4755,11 @@ static int setup_core_tools(const char * sessionDIR, const size_t sessionDIRLeng
 
     //////////////////////////////////////////////////////////////////////////////////
 
+    if (mkdir(tmpDIR, S_IRWXU) != 0) {
+        perror(tmpDIR);
+        return XCPKG_ERROR;
+    }
+
     if (chdir(tmpDIR) != 0) {
         perror(tmpDIR);
         return XCPKG_ERROR;
