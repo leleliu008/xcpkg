@@ -159,7 +159,7 @@ jobs:
 
       - run:  cd vcpkg && ./bootstrap-vcpkg.sh
 
-      - run:  cd vcpkg && ./vcpkg install curl openssl libgit2 libarchive libyaml jansson sqlite3
+      - run:  cd vcpkg && ./vcpkg install 'curl[http2,brotli,zstd,openssl]' libgit2 libarchive libyaml jansson sqlite3
 
       - run:  |
           cmake \

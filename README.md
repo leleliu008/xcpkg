@@ -12,38 +12,117 @@ A package builder/manager for [Xcode](https://developer.apple.com/xcode) to buil
 
 ## Using xcpkg via GitHub Actions
 
+This is the recommended way of using this software.
+
+In this way, you don't need a computer in hand, you could use GitHub mobile Apps.
+
 In this way, you will be liberated from the rut of setting up the build environment.
+
+In this way, you do NOT need to frequently update this software, you always use the latest version.
 
 In this way, all you need to do is just clicking the buttons and waiting for finishing. After finishing, a url refers to a zip archive will be provided to download.
 
 For more details please refer to <https://github.com/leleliu008/xcpkg-package-manually-build>
 
-## Install xcpkg via cURL
+## Build from C source remotely via GitHub Actions
+
+- https://github.com/leleliu008/xcpkg-package-manually-build
+- https://github.com/leleliu008/ppkg-package-manually-build
+
+## Build from C source locally dependencies
+
+|dependency|required?|purpose|
+|----|---------|-------|
+|[Xcode](https://developer.apple.com/xcode/) or [LLVM+clang](https://llvm.org/)|required |for compiling C source code|
+|[cmake](https://cmake.org/)|required |for generating `build.ninja`|
+|[ninja](https://ninja-build.org/)|required |for doing jobs that read from `build.ninja`|
+|[pkg-config>=0.18](https://www.freedesktop.org/wiki/Software/pkg-config/)|required|for finding libraries|
+||||
+|[jansson](https://github.com/akheron/jansson)|required|for parsing and creating JSON.|
+|[libyaml](https://github.com/yaml/libyaml/)|required|for parsing formula files whose format is YAML.|
+|[libgit2](https://libgit2.org/)|required|for updating formula repositories.|
+|[libcurl](https://curl.se/)|required|for http requesting support.|
+|[openssl](https://www.openssl.org/)|required|for https requesting support and SHA-256 sum checking support.|
+|[libarchive](https://www.libarchive.org/)|required|for uncompressing .zip and .tar.* files.|
+|[zlib](https://www.zlib.net/)|required|for compress and uncompress data.|
+
+## Build from C source locally via [ppkg](https://github.com/leleliu008/ppkg)
 
 ```bash
-curl -LO https://raw.githubusercontent.com/leleliu008/xcpkg/master/xcpkg
-chmod a+x xcpkg
-./xcpkg setup
+ppkg install xcpkg
 ```
 
-## Install xcpkg via wget
+## Build from C source locally via [xcpkg](https://github.com/leleliu008/xcpkg)
 
 ```bash
-wget https://cdn.jsdelivr.net/gh/leleliu008/xcpkg/xcpkg
-chmod a+x xcpkg
-./xcpkg setup
+xcpkg install xcpkg
 ```
 
-## Install xcpkg via git
+## Build from C source locally using [vcpkg](https://github.com/microsoft/vcpkg)
 
 ```bash
-git clone --depth 1 https://github.com/leleliu008/xcpkg
-xcpkg/xcpkg setup
+git clone https://github.com/microsoft/vcpkg.git
+cd vcpkg
+./bootstrap-vcpkg.sh
+export VCPKG_ROOT="$PWD/vcpkg"
+export PATH="$VCPKG_ROOT:$PATH"
+
+vcpkg install curl openssl libgit2 libarchive libyaml jansson
+
+git clone --depth=1 https://github.com/leleliu008/xcpkg
+cd xcpkg
+
+cmake -S . -B   build.d -G Ninja -DCMAKE_INSTALL_PREFIX=/usr/local -DCMAKE_TOOLCHAIN_FILE=$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake
+cmake --build   build.d
+cmake --install build.d
+```
+
+## Build from C source locally via [HomeBrew](https://brew.sh/)
+
+```bash
+cat > xcpkg.rb <<EOF
+class Xcpkg < Formula
+    desc     "A package builder/manager for Xcode to build projects written in C, C++, Rust, Zig, Go, Haskell, etc"
+    homepage "https://github.com/leleliu008/xcpkg"
+    head     "https://github.com/leleliu008/xcpkg.git", branch: "master"
+    url      "https://github.com/leleliu008/xcpkg.git", revision: "d2757613f9f45b882df1a44d403d281f06d63462"
+    version  "0.30.1"
+    license  "Apache-2.0"
+
+    depends_on "cmake" => :build
+    depends_on "ninja" => :build
+    depends_on "pkg-config" => :build
+
+    depends_on "curl"
+    depends_on "jansson"
+    depends_on "libyaml"
+    depends_on "libgit2"
+    depends_on "libarchive"
+
+    def install
+      system "cmake", "-S", "c", "-B", "build", *std_cmake_args
+      system "cmake", "--build",   "build"
+      system "cmake", "--install", "build"
+    end
+
+    test do
+      system "#{bin}/xcpkg", "--help"
+    end
+end
+EOF
+
+MY_FORMULA_DIR="$(brew --repository)/Library/Taps/leleliu008/homebrew-tmp/Formula"
+install -d  "$MY_FORMULA_DIR/"
+mv xcpkg.rb "$MY_FORMULA_DIR/"
+
+brew install xcpkg
 ```
 
 ## ~/.xcpkg
 
-all relevant directories and files are located under `~/.xcpkg` directory.
+**Caveats:** Please do NOT place your own files under `~/.xcpkg` directory, as xcpkg will change (remove, modify, override) files under `~/.xcpkg` directory without notice by default.
+
+You are allowed to change this by setting `XCPKG_HOME` envionment variable.
 
 ## xcpkg command usage
 
