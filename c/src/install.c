@@ -4808,7 +4808,7 @@ static int setup_core_tools(const char * sessionDIR, const size_t sessionDIRLeng
             buf[j] = a[i][j];
         }
 
-        ret = xcpkg_fork_exec2(7, "/usr/bin/cc", "-std=c99", "-Os", "-Wl,-S", "-flto", "-o", buf, a[i]);
+        ret = xcpkg_fork_exec2(8, "/usr/bin/cc", "-std=c99", "-Os", "-Wl,-S", "-flto", "-o", buf, a[i]);
 
         if (ret != XCPKG_OK) {
             return ret;
