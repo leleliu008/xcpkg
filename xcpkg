@@ -1436,6 +1436,8 @@ filetype_from_url() {
     [ "$PACKAGE_USE_BSYSTEM_GO"        = 1 ] && PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP golang"
     [ "$PACKAGE_USE_BSYSTEM_GN"        = 1 ] && PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP gn"
 
+    [ "$PACKAGE_USE_BSYSTEM_CABAL"     = 1 ] && PACKAGE_DEP_PKG="$PACKAGE_DEP_PKG libncurses libffi libz"
+
     #########################################################################################
 
     [ "$PACKAGE_USE_BSYSTEM_GO"    = 1 ] && PACKAGE_BINBSTD=1
