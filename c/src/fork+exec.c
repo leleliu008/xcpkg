@@ -145,12 +145,31 @@ int xcpkg_fork_exec2(const size_t n, ...) {
             return XCPKG_OK;
         }
 
+        char s[1024];
+        char * p = s;
+
+        for (size_t i = 0U; i < n; i++) {
+            if (i != 0U) {
+                p[0] = ' ';
+                p++;
+            }
+
+            for (size_t j = 0U; ; j++) {
+                p[j] = argv[i][j];
+
+                if (p[j] == '\0') {
+                    p += j;
+                    break;
+                }
+            }
+        }
+
         if (WIFEXITED(status)) {
-            fprintf(stderr, "running command '%s' exit with status code: %d\n", argv[0], WEXITSTATUS(status));
+            fprintf(stderr, "running command '%s' exit with status code: %d\n", s, WEXITSTATUS(status));
         } else if (WIFSIGNALED(status)) {
-            fprintf(stderr, "running command '%s' killed by signal: %d\n", argv[0], WTERMSIG(status));
+            fprintf(stderr, "running command '%s' killed by signal: %d\n", s, WTERMSIG(status));
         } else if (WIFSTOPPED(status)) {
-            fprintf(stderr, "running command '%s' stopped by signal: %d\n", argv[0], WSTOPSIG(status));
+            fprintf(stderr, "running command '%s' stopped by signal: %d\n", s, WSTOPSIG(status));
         }
 
         return XCPKG_ERROR;
