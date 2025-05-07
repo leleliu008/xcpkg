@@ -1,6 +1,6 @@
 #!/bin/sh
 
-set -e
+set -ex
 
 [ -z "$1" ] && {
     printf 'Usage: %s <OUTPUT-FILEPATH>, <OUTPUT-FILEPATH> is unspecified.\n' "$0"

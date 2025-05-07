@@ -11,6 +11,14 @@ endif()
 
 ########################################################################################
 
+string(TIMESTAMP COMPILED_TIMESTAMP "%Y-%m-%d %H:%M:%S UTC" UTC)
+
+configure_file(src/config.h.in "${CMAKE_CURRENT_SOURCE_DIR}/src/config.h" @ONLY)
+
+execute_process(COMMAND ../core/gen-data.sh "${CMAKE_CURRENT_SOURCE_DIR}/src/data.c")
+
+########################################################################################
+
 message(STATUS "CMAKE_HOST_SYSTEM_NAME = ${CMAKE_HOST_SYSTEM_NAME}")
 message(STATUS "CMAKE_SYSTEM_NAME      = ${CMAKE_SYSTEM_NAME}")
 
@@ -88,18 +96,6 @@ target_link_libraries(xcpkg LIBYAML::LIBYAML)
 target_link_libraries(xcpkg JANSSON::JANSSON)
 target_link_libraries(xcpkg ZLIB::ZLIB)
 target_link_libraries(xcpkg -lm)
-
-########################################################################################
-
-string(TIMESTAMP COMPILED_TIMESTAMP "%Y-%m-%d %H:%M:%S UTC" UTC)
-
-#file(READ ../xcpkg-help.txt XCPKG_HELP HEX)
-
-configure_file(src/config.h.in "${CMAKE_CURRENT_SOURCE_DIR}/src/config.h" @ONLY)
-
-########################################################################################
-
-execute_process(COMMAND ../core/gen-data.sh "${CMAKE_CURRENT_SOURCE_DIR}/src/data.c")
 
 ########################################################################################
 
