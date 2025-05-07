@@ -15,7 +15,7 @@ string(TIMESTAMP COMPILED_TIMESTAMP "%Y-%m-%d %H:%M:%S UTC" UTC)
 
 configure_file(src/config.h.in "${CMAKE_CURRENT_SOURCE_DIR}/src/config.h" @ONLY)
 
-execute_process(COMMAND ../core/gen-data.sh "${CMAKE_CURRENT_SOURCE_DIR}/src/data.c")
+execute_process(COMMAND ../core/gen-data.sh "${CMAKE_CURRENT_SOURCE_DIR}/src/data.c" COMMAND_ERROR_IS_FATAL ANY)
 
 ########################################################################################
 
