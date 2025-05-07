@@ -4730,7 +4730,7 @@ static int decode_base16_data_then_write_to_file(const char * base16EncodedData,
     unsigned char   p[pCapacity];
     p[pLength] = '\0';
 
-    int ret = base16_decode(p, XCPKG_HELP, iLength);
+    int ret = base16_decode(p, base16EncodedData, iLength);
 
     if (ret == -1) {
         perror(NULL);
