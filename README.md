@@ -170,34 +170,6 @@ You are allowed to change this by setting `XCPKG_HOME` envionment variable.
     xcpkg gen-url-transform-sample
     ```
 
-- **install essential tools**
-
-    ```bash
-    xcpkg setup
-    ```
-
-    This command is actually to do two things:
-
-  - install [uppm](https://github.com/leleliu008/uppm) to `~/.xcpkg/core`
-  - install other essential tools (listed below) that are used by this shell script via [uppm](https://github.com/leleliu008/uppm)
-
-    - [GNU Bash](https://www.gnu.org/software/bash/manual/bash.html)
-    - [GNU CoreUtils](https://www.gnu.org/software/coreutils/manual/coreutils.html)
-    - [GNU FindUtils](https://www.gnu.org/software/findutils/manual/html_mono/find.html)
-    - [GNU awk](https://www.gnu.org/software/gawk/manual/gawk.html)
-    - [GNU sed](https://www.gnu.org/software/sed/manual/sed.html)
-    - [GNU grep](https://www.gnu.org/software/grep/manual/grep.html)
-    - [BSD tar](https://man.archlinux.org/man/core/libarchive/bsdtar.1.en)
-    - [tree](https://linux.die.net/man/1/tree)
-    - [curl](https://curl.se/docs/manpage.html)
-    - [git](https://git-scm.com/docs/git)
-    - [jq](https://stedolan.github.io/jq/manual/)
-    - [yq](https://mikefarah.gitbook.io/yq/)
-    - [d2](https://github.com/terrastruct/d2)
-    - [dot](https://graphviz.org/doc/info/command.html)
-    - [fzf](https://github.com/junegunn/fzf)
-    - [bat](https://github.com/sharkdp/bat)
-
 - **integrate `zsh-completion` script**
 
     ```bash
@@ -623,7 +595,7 @@ a xcpkg formula's file content only has one level mapping and shall has followin
 |`ppflags`|optional|append to `CPPFLAGS`|
 |`ldflags`|optional|append to `LDFLAGS`|
 ||||
-|`bsystem`|optional|build system name.<br>values can be one or a combination of `autogen` `autotools` `configure` `cmake` `cmake+gmake` `cmake+ninja` `meson` `xmake` `gmake` `ninja` `cargo` `go` `gn` `rake` `waf`|
+|`bsystem`|optional|build system name.<br>values can be one or a combination of `autogen` `autotools` `configure` `cmake` `cmake+gmake` `cmake+ninja` `meson` `xmake` `gmake` `ninja` `cargo` `cabal` `go` `gn` `rake` `waf`|
 |`bscript`|optional|the directory where the build script is located in, relative to `PACKAGE_WORKING_DIR`. build script such as `configure`, `Makefile`, `CMakeLists.txt`, `meson.build`, `Cargo.toml`, etc.|
 |`binbstd`|optional|whether to build in the directory where the build script is located in, otherwise build in other directory.<br>value shall be `0` or `1`. default value is `0`.|
 |`movable`|optional|whether the installed files can be moved/copied to other locations.<br>value shall be `0` or `1`. default value is `1`.|
@@ -654,6 +626,7 @@ a xcpkg formula's file content only has one level mapping and shall has followin
 |`gmake`|`GNUMakefile` or `Makefile`|
 |`ninja`|`build.ninja`|
 |`xmake`|`xmake.lua`|
+|`cabal`|`cabal.project` `cabal.project.freeze` `cabal.project.local`|
 |`cargo`|`Cargo.toml`|
 |`go`|`go.mod`|
 |`gn`|`BUILD.gn`|
@@ -673,14 +646,7 @@ a xcpkg formula's file content only has one level mapping and shall has followin
 |`gawk`|[Reference](https://www.gnu.org/software/gawk/manual/gawk.html)|
 |`gsed`|[Reference](https://www.gnu.org/software/sed/manual/sed.html)|
 |`grep`|[Reference](https://www.gnu.org/software/grep/manual/grep.html)|
-|`jq`|[Reference](https://stedolan.github.io/jq/manual/)|
-|`yq`|[Reference](https://mikefarah.gitbook.io/yq/)|
-|`d2`|[Reference](https://github.com/terrastruct/d2)|
-|`bat`|[Reference](https://github.com/sharkdp/bat)|
-|`git`|[Reference](https://git-scm.com/docs/git)|
-|`curl`|[Reference](https://curl.se/docs/manpage.html)|
 |`tree`|[Reference](https://linux.die.net/man/1/tree)|
-|`bsdtar`|[Reference](https://man.archlinux.org/man/core/libarchive/bsdtar.1.en)|
 |`pkg-config`|[Reference](https://people.freedesktop.org/~dbn/pkg-config-guide.html)|
 |||
 |`echo`|`echo 'your message.'`|
@@ -722,14 +688,9 @@ a xcpkg formula's file content only has one level mapping and shall has followin
 |||
 |`CROSS_COMPILING`|value shall be 0 or 1. indicates whether is cross-compiling.|
 |||
-|`XCPKG_ARG0`|the 1st arguments of `xcpkg` that you've supplied.|
-|`XCPKG_ARG1`|the 2nd arguments of `xcpkg` that you've supplied.|
-|`XCPKG_ARGV`|the all arguments of `xcpkg` that you've supplied.|
 |`XCPKG_PATH`|the full path of `xcpkg` that you're running.|
 |`XCPKG_HOME`|the home directory of `xcpkg` that you're running.|
 |`XCPKG_VERSION`|the version of `xcpkg` that you're running.|
-|||
-|`UPPM`|the executable filepath of [uppm](https://github.com/leleliu008/uppm)|
 |||
 |`CC_FOR_BUILD`|the C Compiler for native build.|
 |`CFLAGS_FOR_BUILD`|the flags of `CC_FOR_BUILD`.|

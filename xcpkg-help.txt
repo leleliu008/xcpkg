@@ -19,9 +19,6 @@
 [0;32mxcpkg -V[0m
     show version of this command.
 
-[0;32mxcpkg setup[0m
-    install some essential tools used by this software.
-
 [0;32mxcpkg about[0m
     show basic information about this software.
 

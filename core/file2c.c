@@ -28,9 +28,9 @@ int file2c(const char * const fp, const char * varName) {
         return -1;
     }
 
-    char * data = mmap(NULL, st.st_size, PROT_READ, MAP_SHARED, fd, 0);
+    unsigned char * p = mmap(NULL, st.st_size, PROT_READ, MAP_SHARED, fd, 0);
 
-    if (data == MAP_FAILED) {
+    if (p == MAP_FAILED) {
         perror(fp);
         close(fd);
         return -1;
@@ -38,15 +38,15 @@ int file2c(const char * const fp, const char * varName) {
 
     printf("size_t %s_LENGTH = %lld;\n", varName, st.st_size);
     printf("char %s[] = {", varName);
-    printf("0x%.2X", data[0]);
+    printf("0x%.2X", p[0]);
 
     for (int i = 1; i < st.st_size; i++) {
-        printf(", 0x%.2X", data[i]);
+        printf(", 0x%.2X", p[i]);
     }
 
     printf(", 0x00};\n");
 
-    if (munmap(data, st.st_size) == -1) {
+    if (munmap(p, st.st_size) == -1) {
         perror("Failed to unmap file");
     }
 
