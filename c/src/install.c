@@ -4761,10 +4761,10 @@ static int setup_core_tools(const char * sessionDIR, const size_t sessionDIRLeng
 
     //////////////////////////////////////////////////////////////////////////////////
 
-    size_t tmpDIRCapacity = sessionDIRLength + 5U;
+    size_t tmpDIRCapacity = sessionDIRLength + 6U;
     char   tmpDIR[tmpDIRCapacity];
 
-    ret = snprintf(tmpDIR, tmpDIRCapacity, "%s/tmp", sessionDIR);
+    ret = snprintf(tmpDIR, tmpDIRCapacity, "%s/core", sessionDIR);
 
     if (ret < 0) {
         perror(NULL);
@@ -4800,33 +4800,33 @@ static int setup_core_tools(const char * sessionDIR, const size_t sessionDIRLeng
 
         switch (i) {
             case 0:
-                o = "core/wrapper-native-cc";
-                s = "core/wrapper-native-cc.c";
+                o = "wrapper-native-cc";
+                s = "wrapper-native-cc.c";
                 b = XCPKG_WRAPPER_NATIVE_CC;
                 break;
             case 1:
-                o = "core/wrapper-native-c++";
-                s = "core/wrapper-native-c++.c";
+                o = "wrapper-native-c++";
+                s = "wrapper-native-c++.c";
                 b = XCPKG_WRAPPER_NATIVE_CXX;
                 break;
             case 2:
-                o = "core/wrapper-native-objc";
-                s = "core/wrapper-native-objc.c";
+                o = "wrapper-native-objc";
+                s = "wrapper-native-objc.c";
                 b = XCPKG_WRAPPER_NATIVE_OBJC;
                 break;
             case 3:
-                o = "core/wrapper-target-cc";
-                s = "core/wrapper-target-cc.c";
+                o = "wrapper-target-cc";
+                s = "wrapper-target-cc.c";
                 b = XCPKG_WRAPPER_TARGET_CC;
                 break;
             case 4:
-                o = "core/wrapper-target-c++";
-                s = "core/wrapper-target-c++.c";
+                o = "wrapper-target-c++";
+                s = "wrapper-target-c++.c";
                 b = XCPKG_WRAPPER_TARGET_CXX;
                 break;
             case 5:
-                o = "core/wrapper-target-objc";
-                s = "core/wrapper-target-objc.c";
+                o = "wrapper-target-objc";
+                s = "wrapper-target-objc.c";
                 b = XCPKG_WRAPPER_TARGET_OBJC;
                 break;
         }
@@ -4846,10 +4846,17 @@ static int setup_core_tools(const char * sessionDIR, const size_t sessionDIRLeng
 
     //////////////////////////////////////////////////////////////////////////////////
 
-    ret = xcpkg_write_file("core/ok", XCPKG_VERSION_STRING, strlen(XCPKG_VERSION_STRING));
+    ret = xcpkg_write_file("ok", XCPKG_VERSION_STRING, strlen(XCPKG_VERSION_STRING));
 
     if (ret != XCPKG_OK) {
         return ret;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////////
+
+    if (chdir(sessionDIR) != 0) {
+        perror(sessionDIR);
+        return XCPKG_ERROR;
     }
 
     //////////////////////////////////////////////////////////////////////////////////
