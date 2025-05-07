@@ -4793,6 +4793,14 @@ static int setup_core_tools(const char * sessionDIR, const size_t sessionDIRLeng
 
     //////////////////////////////////////////////////////////////////////////////////
 
+    ret = decode_base16_data_then_write_to_file(XCPKG_INSTALL, "xcpkg-install");
+
+    if (ret != XCPKG_OK) {
+        return ret;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////////
+
     for (int i = 0; i < 6; i++) {
         const char * o;
         const char * s;
