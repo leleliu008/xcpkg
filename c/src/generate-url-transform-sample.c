@@ -7,7 +7,6 @@
 #include <sys/stat.h>
 
 #include "core/log.h"
-#include "core/base16.h"
 
 #include "xcpkg.h"
 
@@ -35,21 +34,7 @@ int xcpkg_generate_url_transform_sample() {
 
     ////////////////////////////////////////////////////////////////////////////////////////////
 
-    size_t iLength = strlen(XCPKG_URL_TRANSFORM_SAMPLE);
-    size_t pLength = iLength >> 1;
-    size_t pCapacity = pLength + 1U;
-    unsigned char p[pCapacity]; p[pLength] = '\0';
-
-    ret = base16_decode(p, XCPKG_URL_TRANSFORM_SAMPLE, iLength);
-
-    if (ret == -1) {
-        perror(NULL);
-        return XCPKG_ERROR;
-    }
-
-    ////////////////////////////////////////////////////////////////////////////////////////////
-
-    ret = xcpkg_write_file(outFilePath, (char*)p, pLength);
+    ret = xcpkg_write_file(outFilePath, XCPKG_URL_TRANSFORM_SAMPLE_STRING, XCPKG_URL_TRANSFORM_SAMPLE_STRING_LENGTH);
 
     if (ret != XCPKG_OK) {
         return ret;

@@ -57,32 +57,22 @@ int sysinfo_vers(char * buf, size_t bufCapacity) {
         return -1;
     }
 
+    int ret = 0;
+
     char * p = strstr(data, "<key>ProductVersion</key>");
 
     if (p == NULL) {
         fprintf(stderr, "no <key>ProductVersion</key> in file : %s\n", fp);
-
-        if (munmap(data, st.st_size) == -1) {
-            perror("Failed to unmap file");
-        }
-
-        close(fd);
-
-        return -1;
+        ret = -1;
+        goto finally;
     }
 
     p = strstr(p, "<string>");
 
     if (p == NULL) {
         fprintf(stderr, "no <string> after <key>ProductVersion</key> in file : %s\n", fp);
-
-        if (munmap(data, st.st_size) == -1) {
-            perror("Failed to unmap file");
-        }
-
-        close(fd);
-
-        return -1;
+        ret = -1;
+        goto finally;
     }
 
     p += 8;
@@ -91,14 +81,8 @@ int sysinfo_vers(char * buf, size_t bufCapacity) {
 
     if (q == NULL) {
         fprintf(stderr, "no </string> after <key>ProductVersion</key> in file : %s\n", fp);
-
-        if (munmap(data, st.st_size) == -1) {
-            perror("Failed to unmap file");
-        }
-
-        close(fd);
-
-        return -1;
+        ret = -1;
+        goto finally;
     }
 
     size_t len = q - p;
@@ -109,13 +93,14 @@ int sysinfo_vers(char * buf, size_t bufCapacity) {
 
     buf[n] = '\0';
 
+finally:
     if (munmap(data, st.st_size) == -1) {
         perror("Failed to unmap file");
     }
 
     close(fd);
 
-    return 0;
+    return ret;
 }
 
 int sysinfo_ncpu() {

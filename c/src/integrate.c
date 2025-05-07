@@ -4,8 +4,6 @@
 
 #include <limits.h>
 
-#include "core/base16.h"
-
 #include "xcpkg.h"
 
 int xcpkg_integrate_zsh_completion(const char * outputDIR, const bool verbose) {
@@ -49,22 +47,7 @@ int xcpkg_integrate_zsh_completion(const char * outputDIR, const bool verbose) {
 
     ////////////////////////////////////////////////////////////////////////////////////////
 
-    size_t iLength = strlen(XCPKG_ZSH_COMPLETION);
-    size_t pLength = iLength >> 1;
-    size_t pCapacity = pLength + 1U;
-    unsigned char   p[pCapacity];
-    p[pLength] = '\0';
-
-    ret = base16_decode(p, XCPKG_ZSH_COMPLETION, iLength);
-
-    if (ret == -1) {
-        perror(NULL);
-        return XCPKG_ERROR;
-    }
-
-    ////////////////////////////////////////////////////////////////////////////////////////
-
-    ret = xcpkg_write_file(outputFilePath, (char*)p, pLength);
+    ret = xcpkg_write_file(outputFilePath, XCPKG_ZSH_COMPLETION_SCRIPT_STRING, XCPKG_ZSH_COMPLETION_SCRIPT_STRING_LENGTH);
 
     if (ret != XCPKG_OK) {
         return ret;

@@ -1,3 +1,4 @@
+#include <stddef.h>
 #include <time.h>
 #include <errno.h>
 #include <stdio.h>
@@ -17,7 +18,6 @@
 #include "core/self.h"
 #include "core/exe.h"
 #include "core/log.h"
-#include "core/base16.h"
 
 #include "sha256sum.h"
 #include "native-package.h"
@@ -4723,23 +4723,6 @@ static int check_if_compiler_support_Wno_error_unused_command_line_argument(cons
     return xcpkg_fork_exec(cmd);
 }
 
-static int decode_base16_data_then_write_to_file(const char * base16EncodedData, const char * fp) {
-    size_t iLength = strlen(base16EncodedData);
-    size_t pLength = iLength >> 1;
-    size_t pCapacity = pLength + 1U;
-    unsigned char   p[pCapacity];
-    p[pLength] = '\0';
-
-    int ret = base16_decode(p, base16EncodedData, iLength);
-
-    if (ret == -1) {
-        perror(NULL);
-        return XCPKG_ERROR;
-    }
-
-    return xcpkg_write_file(fp, (char*)p, pLength);
-}
-
 static int setup_core_tools(const char * sessionDIR, const size_t sessionDIRLength, const char * xcpkgCoreDIR, const size_t xcpkgCoreDIRCapacity, bool verbose) {
     size_t okFilePathCapacity = xcpkgCoreDIRCapacity + 3U;
     char   okFilePath[okFilePathCapacity];
@@ -4793,7 +4776,7 @@ static int setup_core_tools(const char * sessionDIR, const size_t sessionDIRLeng
 
     //////////////////////////////////////////////////////////////////////////////////
 
-    ret = decode_base16_data_then_write_to_file(XCPKG_INSTALL, "xcpkg-install");
+    ret = xcpkg_write_file("xcpkg-install", XCPKG_INSTALL_SHELL_SCRIPT_STRING, XCPKG_INSTALL_SHELL_SCRIPT_STRING_LENGTH);
 
     if (ret != XCPKG_OK) {
         return ret;
@@ -4806,40 +4789,48 @@ static int setup_core_tools(const char * sessionDIR, const size_t sessionDIRLeng
         const char * s;
         const char * b;
 
+        size_t l;
+
         switch (i) {
             case 0:
                 o = "wrapper-native-cc";
                 s = "wrapper-native-cc.c";
-                b = XCPKG_WRAPPER_NATIVE_CC;
+                b = XCPKG_WRAPPER_NATIVE_CC_C_SOURCE_STRING;
+                l = XCPKG_WRAPPER_NATIVE_CC_C_SOURCE_STRING_LENGTH;
                 break;
             case 1:
                 o = "wrapper-native-c++";
                 s = "wrapper-native-c++.c";
-                b = XCPKG_WRAPPER_NATIVE_CXX;
+                b = XCPKG_WRAPPER_NATIVE_CXX_C_SOURCE_STRING;
+                l = XCPKG_WRAPPER_NATIVE_CXX_C_SOURCE_STRING_LENGTH;
                 break;
             case 2:
                 o = "wrapper-native-objc";
                 s = "wrapper-native-objc.c";
-                b = XCPKG_WRAPPER_NATIVE_OBJC;
+                b = XCPKG_WRAPPER_NATIVE_OBJC_C_SOURCE_STRING;
+                l = XCPKG_WRAPPER_NATIVE_OBJC_C_SOURCE_STRING_LENGTH;
                 break;
             case 3:
                 o = "wrapper-target-cc";
                 s = "wrapper-target-cc.c";
-                b = XCPKG_WRAPPER_TARGET_CC;
+                b = XCPKG_WRAPPER_TARGET_CC_C_SOURCE_STRING;
+                l = XCPKG_WRAPPER_TARGET_CC_C_SOURCE_STRING_LENGTH;
                 break;
             case 4:
                 o = "wrapper-target-c++";
                 s = "wrapper-target-c++.c";
-                b = XCPKG_WRAPPER_TARGET_CXX;
+                b = XCPKG_WRAPPER_TARGET_CXX_C_SOURCE_STRING;
+                l = XCPKG_WRAPPER_TARGET_CXX_C_SOURCE_STRING_LENGTH;
                 break;
             case 5:
                 o = "wrapper-target-objc";
                 s = "wrapper-target-objc.c";
-                b = XCPKG_WRAPPER_TARGET_OBJC;
+                b = XCPKG_WRAPPER_TARGET_OBJC_C_SOURCE_STRING;
+                l = XCPKG_WRAPPER_TARGET_OBJC_C_SOURCE_STRING_LENGTH;
                 break;
         }
 
-        ret = decode_base16_data_then_write_to_file(b, s);
+        ret = xcpkg_write_file(s, b, l);
 
         if (ret != XCPKG_OK) {
             return ret;

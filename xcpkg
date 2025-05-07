@@ -2994,7 +2994,7 @@ __fetch_resources_of_the_given_package() {
 
     shift 2
 
-    unset REQUEST_TO_KEEP_SESSION_DIR
+    unset KEEP_SESSION_DIR
 
     unset EXCLUDES
 
@@ -3002,7 +3002,7 @@ __fetch_resources_of_the_given_package() {
     do
         case $1 in
             -K)
-                REQUEST_TO_KEEP_SESSION_DIR=1
+                KEEP_SESSION_DIR=1
                 ;;
             --exclude)
                 shift
@@ -3068,7 +3068,7 @@ __fetch_resources_of_the_given_package() {
 
     #######################################################
 
-    if [ "$REQUEST_TO_KEEP_SESSION_DIR" = 1 ] ; then
+    if [ "$KEEP_SESSION_DIR" = 1 ] ; then
         echo
         note "the session directory '$SESSION_DIR' is not deleted as -K option is specified."
     else
@@ -5576,7 +5576,7 @@ EOF
         run  ccache -s
     }
 
-    [ "$REQUEST_TO_KEEP_SESSION_DIR" != 1 ] && {
+    [ "$KEEP_SESSION_DIR" != 1 ] && {
         step "delete the working directory"
         run rm -rf "$PACKAGE_WORKING_DIR"
     }
@@ -8676,7 +8676,7 @@ fi
 
 ##################################################################################
 
-XCPKG_VERSION=0.29.2
+XCPKG_VERSION=0.29.3
 
 XCPKG_ARG0="$0"
 XCPKG_ARG1="$1"

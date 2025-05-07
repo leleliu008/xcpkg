@@ -75,7 +75,7 @@ endif()
 aux_source_directory(src/core CORE_SRCS)
 aux_source_directory(src           SRCS)
 
-add_executable(xcpkg "${CORE_SRCS};src/core/regex/posix.c;${SRCS}")
+add_executable(xcpkg "${CORE_SRCS};src/core/regex/posix.c;${SRCS};src/data.c")
 
 ########################################################################################
 
@@ -93,18 +93,13 @@ target_link_libraries(xcpkg -lm)
 
 string(TIMESTAMP COMPILED_TIMESTAMP "%Y-%m-%d %H:%M:%S UTC" UTC)
 
-file(READ ../xcpkg-help.txt XCPKG_HELP HEX)
-file(READ ../xcpkg-zsh-completion XCPKG_ZSH_COMPLETION HEX)
-file(READ ../xcpkg-url-transform.sample XCPKG_URL_TRANSFORM_SAMPLE HEX)
-file(READ ../core/xcpkg-install XCPKG_INSTALL HEX)
-file(READ ../core/wrapper-native-cc.c XCPKG_WRAPPER_NATIVE_CC HEX)
-file(READ ../core/wrapper-native-c++.c XCPKG_WRAPPER_NATIVE_CXX HEX)
-file(READ ../core/wrapper-native-objc.c XCPKG_WRAPPER_NATIVE_OBJC HEX)
-file(READ ../core/wrapper-target-cc.c XCPKG_WRAPPER_TARGET_CC HEX)
-file(READ ../core/wrapper-target-c++.c XCPKG_WRAPPER_TARGET_CXX HEX)
-file(READ ../core/wrapper-target-objc.c XCPKG_WRAPPER_TARGET_OBJC HEX)
+#file(READ ../xcpkg-help.txt XCPKG_HELP HEX)
 
 configure_file(src/config.h.in "${CMAKE_CURRENT_SOURCE_DIR}/src/config.h" @ONLY)
+
+########################################################################################
+
+execute_process(COMMAND ../core/gen-data.sh "${CMAKE_CURRENT_SOURCE_DIR}/src/data.c")
 
 ########################################################################################
 
