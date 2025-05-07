@@ -14,14 +14,12 @@ int uppm_check_if_the_given_argument_matches_package_name_pattern(const char * a
 }
 
 int uppm_check_if_the_given_package_is_available(const char * packageName, const char * uppmHomeDIR, const size_t uppmHomeDIRLength) {
-    fprintf(stderr, "uppm_check_if_the_given_package_is_available() 0 packageName=%s\n", packageName);
     int ret = uppm_check_if_the_given_argument_matches_package_name_pattern(packageName);
 
     if (ret != XCPKG_OK) {
         return ret;
     }
 
-    fprintf(stderr, "uppm_check_if_the_given_package_is_available() 1 packageName=%s\n", packageName);
     size_t formulaFilePathCapacity = strlen(packageName) + 41U;
     char   formulaFilePath[formulaFilePathCapacity];
 
@@ -32,13 +30,12 @@ int uppm_check_if_the_given_package_is_available(const char * packageName, const
         return XCPKG_ERROR;
     }
 
-    fprintf(stderr, "uppm_check_if_the_given_package_is_available() 2 packageName=%s\n", packageName);
     struct stat st;
 
     if (stat(formulaFilePath, &st) == 0) {
         return XCPKG_OK;
     } else {
-        return XCPKG_ERROR_PACKAGE_NOT_AVAILABLE;
+        return UPPM_ERROR_PACKAGE_NOT_AVAILABLE;
     }
 }
 
@@ -63,10 +60,10 @@ int uppm_check_if_the_given_package_is_installed(const char * packageName, const
 
     if (lstat(packageInstalledDIR, &st) == 0) {
         if (!S_ISLNK(st.st_mode)) {
-            return XCPKG_ERROR_PACKAGE_NOT_INSTALLED;
+            return UPPM_ERROR_PACKAGE_NOT_INSTALLED;
         }
     } else {
-        return XCPKG_ERROR_PACKAGE_NOT_INSTALLED;
+        return UPPM_ERROR_PACKAGE_NOT_INSTALLED;
     }
 
     size_t receiptFilePathLength = packageInstalledDIRLength + 19U;
@@ -83,10 +80,10 @@ int uppm_check_if_the_given_package_is_installed(const char * packageName, const
         if (S_ISREG(st.st_mode)) {
             return XCPKG_OK;
         } else {
-            return XCPKG_ERROR_PACKAGE_IS_BROKEN;
+            return UPPM_ERROR_PACKAGE_IS_BROKEN;
         }
     } else {
-        return XCPKG_ERROR_PACKAGE_IS_BROKEN;
+        return UPPM_ERROR_PACKAGE_IS_BROKEN;
     }
 }
 
@@ -107,7 +104,7 @@ int uppm_check_if_the_given_package_is_outdated(const char * packageName, const 
     }
 
     if (strcmp(receipt->version, formula->version) == 0) {
-        ret = XCPKG_ERROR_PACKAGE_NOT_OUTDATED;
+        ret = UPPM_ERROR_PACKAGE_NOT_OUTDATED;
     }
 
 finalize:

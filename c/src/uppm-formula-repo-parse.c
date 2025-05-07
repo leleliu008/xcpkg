@@ -145,7 +145,7 @@ static int uppm_formula_repo_set_value(UPPMFormulaRepoKeyCode keyCode, char * va
                 formulaRepo->pinned = 0;
                 return XCPKG_OK;
             } else {
-                return XCPKG_ERROR_FORMULA_REPO_CONFIG_SCHEME;
+                return UPPM_ERROR_FORMULA_REPO_CONFIG_SCHEME;
             }
         case UPPMFormulaRepoKeyCode_enabled:
             if (strcmp(value, "1") == 0) {
@@ -155,7 +155,7 @@ static int uppm_formula_repo_set_value(UPPMFormulaRepoKeyCode keyCode, char * va
                 formulaRepo->enabled = 0;
                 return XCPKG_OK;
             } else {
-                return XCPKG_ERROR_FORMULA_REPO_CONFIG_SCHEME;
+                return UPPM_ERROR_FORMULA_REPO_CONFIG_SCHEME;
             }
         case UPPMFormulaRepoKeyCode_unknown:
         default:
@@ -166,19 +166,19 @@ static int uppm_formula_repo_set_value(UPPMFormulaRepoKeyCode keyCode, char * va
 static int uppm_formula_repo_check(UPPMFormulaRepo * formulaRepo, const char * formulaRepoConfigFilePath) {
     if (formulaRepo->url == NULL) {
         fprintf(stderr, "scheme error in formula repo config file: %s : summary mapping not found.\n", formulaRepoConfigFilePath);
-        return XCPKG_ERROR_FORMULA_REPO_CONFIG_SCHEME;
+        return UPPM_ERROR_FORMULA_REPO_CONFIG_SCHEME;
     }
 
     if (formulaRepo->branch == NULL) {
         fprintf(stderr, "scheme error in formula repo config file: %s : summary mapping not found.\n", formulaRepoConfigFilePath);
-        return XCPKG_ERROR_FORMULA_REPO_CONFIG_SCHEME;
+        return UPPM_ERROR_FORMULA_REPO_CONFIG_SCHEME;
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
     if (formulaRepo->createdAt == NULL) {
         fprintf(stderr, "scheme error in formula repo config file: %s : created mapping not found.\n", formulaRepoConfigFilePath);
-        return XCPKG_ERROR_FORMULA_REPO_CONFIG_SCHEME;
+        return UPPM_ERROR_FORMULA_REPO_CONFIG_SCHEME;
     }
 
     size_t i = 0;
@@ -193,13 +193,13 @@ static int uppm_formula_repo_check(UPPMFormulaRepo * formulaRepo, const char * f
 
         if ((c < '0') || (c > '9')) {
             fprintf(stderr, "scheme error in formula repo config file: %s : created mapping's value should only contains non-numeric characters.\n", formulaRepoConfigFilePath);
-            return XCPKG_ERROR_FORMULA_REPO_CONFIG_SCHEME;
+            return UPPM_ERROR_FORMULA_REPO_CONFIG_SCHEME;
         }
     }
 
     if (i != 10) {
         fprintf(stderr, "scheme error in formula repo config file: %s : created mapping's value's length must be 10.\n", formulaRepoConfigFilePath);
-        return XCPKG_ERROR_FORMULA_REPO_CONFIG_SCHEME;
+        return UPPM_ERROR_FORMULA_REPO_CONFIG_SCHEME;
     }
 
     ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -216,13 +216,13 @@ static int uppm_formula_repo_check(UPPMFormulaRepo * formulaRepo, const char * f
 
             if ((c < '0') || (c > '9')) {
                 fprintf(stderr, "scheme error in formula repo config file: %s : updated mapping's value should only contains non-numeric characters.\n", formulaRepoConfigFilePath);
-                return XCPKG_ERROR_FORMULA_REPO_CONFIG_SCHEME;
+                return UPPM_ERROR_FORMULA_REPO_CONFIG_SCHEME;
             }
         }
 
         if (i != 10) {
             fprintf(stderr, "scheme error in formula repo config file: %s : updated mapping's value's length must be 10.\n", formulaRepoConfigFilePath);
-            return XCPKG_ERROR_FORMULA_REPO_CONFIG_SCHEME;
+            return UPPM_ERROR_FORMULA_REPO_CONFIG_SCHEME;
         }
     }
 
@@ -261,7 +261,7 @@ int uppm_formula_repo_parse(const char * formulaRepoConfigFilePath, UPPMFormulaR
         // https://libyaml.docsforge.com/master/api/yaml_parser_scan/
         if (yaml_parser_scan(&parser, &token) == 0) {
             fprintf(stderr, "syntax error in formula repo config file: %s\n", formulaRepoConfigFilePath);
-            ret = XCPKG_ERROR_FORMULA_REPO_CONFIG_SYNTAX;
+            ret = UPPM_ERROR_FORMULA_REPO_CONFIG_SYNTAX;
             goto finalize;
         }
 

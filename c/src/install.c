@@ -17,6 +17,7 @@
 #include "core/self.h"
 #include "core/exe.h"
 #include "core/log.h"
+#include "core/base16.h"
 
 #include "sha256sum.h"
 #include "native-package.h"
@@ -4722,6 +4723,23 @@ static int check_if_compiler_support_Wno_error_unused_command_line_argument(cons
     return xcpkg_fork_exec(cmd);
 }
 
+static int decode_base16_data_then_write_to_file(const char * base16EncodedData, const char * fp) {
+    size_t iLength = strlen(base16EncodedData);
+    size_t pLength = iLength >> 1;
+    size_t pCapacity = pLength + 1U;
+    unsigned char   p[pCapacity];
+    p[pLength] = '\0';
+
+    int ret = base16_decode(p, XCPKG_HELP, iLength);
+
+    if (ret == -1) {
+        perror(NULL);
+        return XCPKG_ERROR;
+    }
+
+    return xcpkg_write_file(fp, (char*)p, pLength);
+}
+
 static int setup_core_tools(const char * sessionDIR, const size_t sessionDIRLength, const char * xcpkgCoreDIR, const size_t xcpkgCoreDIRCapacity, bool verbose) {
     size_t okFilePathCapacity = xcpkgCoreDIRCapacity + 3U;
     char   okFilePath[okFilePathCapacity];
@@ -4775,40 +4793,51 @@ static int setup_core_tools(const char * sessionDIR, const size_t sessionDIRLeng
 
     //////////////////////////////////////////////////////////////////////////////////
 
-    ret = xcpkg_http_fetch_to_file("https://github.com/leleliu008/xcpkg/archive/refs/heads/master.zip", "master.zip", verbose, verbose);
+    for (int i = 0; i < 6; i++) {
+        const char * o;
+        const char * s;
+        const char * b;
 
-    if (ret != XCPKG_OK) {
-        return ret;
-    }
-
-    //////////////////////////////////////////////////////////////////////////////////
-
-    ret = tar_extract(tmpDIR, "master.zip", ARCHIVE_EXTRACT_TIME, verbose, 1);
-
-    if (ret != 0) {
-        return abs(ret) + XCPKG_ERROR_ARCHIVE_BASE;
-    }
-
-    //////////////////////////////////////////////////////////////////////////////////
-
-    char* a[] = {"core/wrapper-native-c++.c", "core/wrapper-native-cc.c", "core/wrapper-native-objc.c", "core/wrapper-target-c++.c", "core/wrapper-target-cc.c", "core/wrapper-target-objc.c", NULL};
-
-    char buf[25];
-
-    for (int i = 0; ; i++) {
-        if (a[i] == NULL) {
-            break;
-        }
-
-        for (int j = 0; ; j++) {
-            if (a[i][j] == '.') {
-                buf[j] = '\0';
+        switch (i) {
+            case 0:
+                o = "core/wrapper-native-cc";
+                s = "core/wrapper-native-cc.c";
+                b = XCPKG_WRAPPER_NATIVE_CC;
                 break;
-            }
-            buf[j] = a[i][j];
+            case 1:
+                o = "core/wrapper-native-c++";
+                s = "core/wrapper-native-c++.c";
+                b = XCPKG_WRAPPER_NATIVE_CXX;
+                break;
+            case 2:
+                o = "core/wrapper-native-objc";
+                s = "core/wrapper-native-objc.c";
+                b = XCPKG_WRAPPER_NATIVE_OBJC;
+                break;
+            case 3:
+                o = "core/wrapper-target-cc";
+                s = "core/wrapper-target-cc.c";
+                b = XCPKG_WRAPPER_TARGET_CC;
+                break;
+            case 4:
+                o = "core/wrapper-target-c++";
+                s = "core/wrapper-target-c++.c";
+                b = XCPKG_WRAPPER_TARGET_CXX;
+                break;
+            case 5:
+                o = "core/wrapper-target-objc";
+                s = "core/wrapper-target-objc.c";
+                b = XCPKG_WRAPPER_TARGET_OBJC;
+                break;
         }
 
-        ret = xcpkg_fork_exec2(8, "/usr/bin/cc", "-std=c99", "-Os", "-Wl,-S", "-flto", "-o", buf, a[i]);
+        ret = decode_base16_data_then_write_to_file(b, s);
+
+        if (ret != XCPKG_OK) {
+            return ret;
+        }
+
+        ret = xcpkg_fork_exec2(8, "/usr/bin/cc", "-std=c99", "-Os", "-Wl,-S", "-flto", "-o", o, s);
 
         if (ret != XCPKG_OK) {
             return ret;
@@ -4817,18 +4846,7 @@ static int setup_core_tools(const char * sessionDIR, const size_t sessionDIRLeng
 
     //////////////////////////////////////////////////////////////////////////////////
 
-    char ts[11];
-
-    ret = snprintf(ts, 11, "%ld", time(NULL));
-
-    if (ret < 0) {
-        perror(NULL);
-        return XCPKG_ERROR;
-    }
-
-    //////////////////////////////////////////////////////////////////////////////////
-
-    ret = xcpkg_write_file("core/ok", ts, strlen(ts));
+    ret = xcpkg_write_file("core/ok", XCPKG_VERSION_STRING, strlen(XCPKG_VERSION_STRING));
 
     if (ret != XCPKG_OK) {
         return ret;

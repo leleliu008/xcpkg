@@ -271,42 +271,42 @@ static int uppm_receipt_set_value(UPPMReceiptKeyCode keyCode, char * value, UPPM
 static int uppm_receipt_check(UPPMReceipt * receipt, const char * receiptFilePath) {
     if (receipt->summary == NULL) {
         fprintf(stderr, "scheme error in receipt file: %s : summary mapping not found.\n", receiptFilePath);
-        return XCPKG_ERROR_RECEIPT_SCHEME;
+        return UPPM_ERROR_RECEIPT_SCHEME;
     }
 
     if (receipt->version == NULL) {
         fprintf(stderr, "scheme error in receipt file: %s : version mapping not found.\n", receiptFilePath);
-        return XCPKG_ERROR_RECEIPT_SCHEME;
+        return UPPM_ERROR_RECEIPT_SCHEME;
     }
 
     if (receipt->webpage == NULL) {
         fprintf(stderr, "scheme error in receipt file: %s : webpage mapping not found.\n", receiptFilePath);
-        return XCPKG_ERROR_RECEIPT_SCHEME;
+        return UPPM_ERROR_RECEIPT_SCHEME;
     }
 
     if (receipt->bin_url == NULL) {
         fprintf(stderr, "scheme error in receipt file: %s : bin-url mapping not found.\n", receiptFilePath);
-        return XCPKG_ERROR_RECEIPT_SCHEME;
+        return UPPM_ERROR_RECEIPT_SCHEME;
     }
 
     if (receipt->bin_sha == NULL) {
         fprintf(stderr, "scheme error in receipt file: %s : bin-sha mapping not found.\n", receiptFilePath);
-        return XCPKG_ERROR_RECEIPT_SCHEME;
+        return UPPM_ERROR_RECEIPT_SCHEME;
     }
 
     if (strlen(receipt->bin_sha) != 64) {
         fprintf(stderr, "scheme error in receipt file: %s : bin-sha mapping's value's length must be 64.\n", receiptFilePath);
-        return XCPKG_ERROR_RECEIPT_SCHEME;
+        return UPPM_ERROR_RECEIPT_SCHEME;
     }
 
     if (receipt->signature == NULL) {
         fprintf(stderr, "scheme error in receipt file: %s : signature mapping not found.\n", receiptFilePath);
-        return XCPKG_ERROR_RECEIPT_SCHEME;
+        return UPPM_ERROR_RECEIPT_SCHEME;
     }
 
     if (receipt->timestamp == NULL) {
         fprintf(stderr, "scheme error in receipt file: %s : timestamp mapping not found.\n", receiptFilePath);
-        return XCPKG_ERROR_RECEIPT_SCHEME;
+        return UPPM_ERROR_RECEIPT_SCHEME;
     }
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -322,13 +322,13 @@ static int uppm_receipt_check(UPPMReceipt * receipt, const char * receiptFilePat
 
         if ((c < '0') || (c > '9')) {
             fprintf(stderr, "scheme error in receipt file: %s : timestamp mapping's value should only contains non-numeric characters.\n", receiptFilePath);
-            return XCPKG_ERROR_RECEIPT_SCHEME;
+            return UPPM_ERROR_RECEIPT_SCHEME;
         }
     }
 
     if (i != 10) {
         fprintf(stderr, "scheme error in receipt file: %s : timestamp mapping's value's length must be 10.\n", receiptFilePath);
-        return XCPKG_ERROR_RECEIPT_SCHEME;
+        return UPPM_ERROR_RECEIPT_SCHEME;
     }
 
     return XCPKG_OK;
@@ -355,7 +355,7 @@ int uppm_receipt_parse(const char * uppmHomeDIR, const size_t uppmHomeDIRLength,
     struct stat st;
 
     if (stat(packageInstalledDIR, &st) != 0) {
-        return XCPKG_ERROR_PACKAGE_NOT_INSTALLED;
+        return UPPM_ERROR_PACKAGE_NOT_INSTALLED;
     }
 
     size_t receiptFilePathLength = packageInstalledDIRLength + 20U;
@@ -369,7 +369,7 @@ int uppm_receipt_parse(const char * uppmHomeDIR, const size_t uppmHomeDIRLength,
     }
 
     if (stat(receiptFilePath, &st) != 0 || (!S_ISREG(st.st_mode))) {
-        return XCPKG_ERROR_PACKAGE_IS_BROKEN;
+        return UPPM_ERROR_PACKAGE_IS_BROKEN;
     }
 
     FILE * file = fopen(receiptFilePath, "r");
@@ -401,7 +401,7 @@ int uppm_receipt_parse(const char * uppmHomeDIR, const size_t uppmHomeDIRLength,
         // https://libyaml.docsforge.com/master/api/yaml_parser_scan/
         if (yaml_parser_scan(&parser, &token) == 0) {
             fprintf(stderr, "syntax error in receipt file: %s\n", receiptFilePath);
-            ret = XCPKG_ERROR_RECEIPT_SYNTAX;
+            ret = UPPM_ERROR_RECEIPT_SYNTAX;
             goto finalize;
         }
 

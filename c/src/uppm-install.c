@@ -278,7 +278,7 @@ static int uppm_install_internal(const char * uppmHomeDIR, const size_t uppmHome
             return XCPKG_OK;
         }
 
-        if (ret != XCPKG_ERROR_PACKAGE_NOT_INSTALLED) {
+        if (ret != UPPM_ERROR_PACKAGE_NOT_INSTALLED) {
             return ret;
         }
     }

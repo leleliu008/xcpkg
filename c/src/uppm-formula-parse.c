@@ -256,27 +256,27 @@ static int uppm_formula_set_value(UPPMFormulaKeyCode keyCode, char * value, UPPM
 static int uppm_formula_check(UPPMFormula * formula, const char * formulaFilePath) {
     if (formula->summary == NULL) {
         fprintf(stderr, "scheme error in formula file: %s : summary mapping not found.\n", formulaFilePath);
-        return XCPKG_ERROR_FORMULA_SCHEME;
+        return UPPM_ERROR_FORMULA_SCHEME;
     }
 
     if (formula->webpage == NULL) {
         fprintf(stderr, "scheme error in formula file: %s : webpage mapping not found.\n", formulaFilePath);
-        return XCPKG_ERROR_FORMULA_SCHEME;
+        return UPPM_ERROR_FORMULA_SCHEME;
     }
 
     if (formula->bin_url == NULL) {
         fprintf(stderr, "scheme error in formula file: %s : bin-url mapping not found.\n", formulaFilePath);
-        return XCPKG_ERROR_FORMULA_SCHEME;
+        return UPPM_ERROR_FORMULA_SCHEME;
     }
 
     if (formula->bin_sha == NULL) {
         fprintf(stderr, "scheme error in formula file: %s : bin-sha mapping not found.\n", formulaFilePath);
-        return XCPKG_ERROR_FORMULA_SCHEME;
+        return UPPM_ERROR_FORMULA_SCHEME;
     }
 
     if (strlen(formula->bin_sha) != 64) {
         fprintf(stderr, "scheme error in formula file: %s : bin-sha mapping's value's length must be 64.\n", formulaFilePath);
-        return XCPKG_ERROR_FORMULA_SCHEME;
+        return UPPM_ERROR_FORMULA_SCHEME;
     }
 
     if (formula->version == NULL) {
@@ -290,7 +290,7 @@ static int uppm_formula_check(UPPMFormula * formula, const char * formulaFilePat
 
         if (version[0] == '\0') {
             fprintf(stderr, "scheme error in formula file: %s : version mapping not found.\n", formulaFilePath);
-            return XCPKG_ERROR_FORMULA_SCHEME;
+            return UPPM_ERROR_FORMULA_SCHEME;
         } else {
             formula->version = strdup(version);
 
@@ -319,7 +319,7 @@ int uppm_formula_lookup(const char * uppmHomeDIR, const size_t uppmHomeDIRLength
     if (stat(formulaFilePath, &st) == 0) {
 
     } else {
-        return XCPKG_ERROR_PACKAGE_NOT_AVAILABLE;
+        return UPPM_ERROR_PACKAGE_NOT_AVAILABLE;
     }
 
     FILE * formulaFile = fopen(formulaFilePath, "r");
@@ -351,7 +351,7 @@ int uppm_formula_lookup(const char * uppmHomeDIR, const size_t uppmHomeDIRLength
         // https://libyaml.docsforge.com/master/api/yaml_parser_scan/
         if (yaml_parser_scan(&parser, &token) == 0) {
             fprintf(stderr, "syntax error in formula file: %s\n", formulaFilePath);
-            ret = XCPKG_ERROR_FORMULA_SYNTAX;
+            ret = UPPM_ERROR_FORMULA_SYNTAX;
             goto finalize;
         }
 
