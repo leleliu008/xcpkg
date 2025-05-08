@@ -159,6 +159,13 @@ int xcpkg_http_fetch_to_stream(const char * url, FILE * outputFile, const bool v
     // https://curl.se/libcurl/c/libcurl-errors.html
     if (curlcode != CURLE_OK) {
         fprintf(stderr, "%s\n", curl_easy_strerror(curlcode));
+
+        // https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status
+        // https://curl.se/libcurl/c/CURLINFO_RESPONSE_CODE.html
+        long httpResponseCode;
+        curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpResponseCode);
+        fprintf(stderr, "%ld: %s\n", httpResponseCode, url);
+
     }
 
     curl_slist_free_all(list);
@@ -174,12 +181,6 @@ int xcpkg_http_fetch_to_stream(const char * url, FILE * outputFile, const bool v
     if (curlcode == 0) {
         return XCPKG_OK;
     } else {
-        // https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status
-        // https://curl.se/libcurl/c/CURLINFO_RESPONSE_CODE.html
-        long httpResponseCode;
-        curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpResponseCode);
-        fprintf(stderr, "%ld: %s\n", httpResponseCode, url);
-
         return abs((int)curlcode) + XCPKG_ERROR_NETWORK_BASE;
     }
 }
