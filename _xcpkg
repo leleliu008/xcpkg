@@ -289,7 +289,7 @@ function _xcpkg() {
                     _arguments '1:package-name:_xcpkg_outdated_packages' '-v[verbose mode]'
                     ;;
 
-                integrate)
+                completion)
                     _arguments '1:what:(zsh)'
                     ;;
             esac

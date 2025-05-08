@@ -57,8 +57,8 @@ jobs:
       - run: ./output/bin/xcpkg about
       - run: ./output/bin/xcpkg about -v
 
-      - run: ./output/bin/xcpkg integrate zsh
-      - run: ./output/bin/xcpkg integrate zsh -v
+      - run: ./output/bin/xcpkg completion zsh
+      - run: ./output/bin/xcpkg completion zsh -v
 
       - run: ./output/bin/xcpkg formula-repo-list
       - run: ./output/bin/xcpkg formula-repo-add official-core https://github.com/leleliu008/xcpkg-formula-repository-official-core
@@ -186,8 +186,8 @@ jobs:
       - run: ./output/bin/xcpkg about
       - run: ./output/bin/xcpkg about -v
 
-      - run: ./output/bin/xcpkg integrate zsh
-      - run: ./output/bin/xcpkg integrate zsh -v
+      - run: ./output/bin/xcpkg completion zsh
+      - run: ./output/bin/xcpkg completion zsh -v
 
       - run: ./output/bin/xcpkg formula-repo-list
       - run: ./output/bin/xcpkg formula-repo-add official-core https://github.com/leleliu008/xcpkg-formula-repository-official-core

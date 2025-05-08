@@ -73,8 +73,8 @@ jobs:
 
       - run: xcpkg sysinfo
 
-      - run: xcpkg integrate zsh
-      - run: xcpkg integrate zsh -v
+      - run: xcpkg completion zsh
+      - run: xcpkg completion zsh -v
 
       - run: xcpkg formula-repo-list
       - run: xcpkg formula-repo-add official-core https://github.com/leleliu008/xcpkg-formula-repository-official-core
@@ -217,8 +217,8 @@ jobs:
 
       - run: xcpkg sysinfo
 
-      - run: xcpkg integrate zsh
-      - run: xcpkg integrate zsh -v
+      - run: xcpkg completion zsh
+      - run: xcpkg completion zsh -v
 
       - run: xcpkg formula-repo-list
       - run: xcpkg formula-repo-add official-core https://github.com/leleliu008/xcpkg-formula-repository-official-core

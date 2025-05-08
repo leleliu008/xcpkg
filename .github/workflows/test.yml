@@ -52,7 +52,7 @@ jobs:
 
       - run: ./xcpkg xcinfo
 
-      - run: ./xcpkg integrate zsh
+      - run: ./xcpkg completion zsh
 
       - run: ./xcpkg update
 
