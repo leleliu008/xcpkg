@@ -28,6 +28,6 @@ EOF
 ./file2c wrapper-target-objc.c XCPKG_WRAPPER_TARGET_OBJC_C_SOURCE_STRING
 
 ./file2c xcpkg-install         XCPKG_INSTALL_SHELL_SCRIPT_STRING
-./file2c ../xcpkg-help.txt     XCPKG_HELP_STRING
-./file2c ../xcpkg-zsh-completion XCPKG_ZSH_COMPLETION_SCRIPT_STRING
+./file2c ../help.txt           XCPKG_HELP_STRING
+./file2c ../_xcpkg             XCPKG_ZSH_COMPLETION_SCRIPT_STRING
 } >> "$1"

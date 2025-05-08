@@ -39,9 +39,6 @@
 [0;32mxcpkg upgrade-self[0m
     upgrade this software.
 
-[0;32mxcpkg gen-url-transform-sample[0m
-    generate url-transform sample.
-
 [0;32mxcpkg cleanup[0m
     delete the unused cached files.
 

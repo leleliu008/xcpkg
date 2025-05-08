@@ -5,8 +5,6 @@ _xcpkg_actions=(
     '--help:show help of this command.'
     '-V:show version of this command.'
     '--version:show version of this command.'
-    'gen-url-transform-sample:generate url-transform sample.'
-    'setup:install essential tools.'
     'about:show basic information about this software.'
     'sysinfo:show basic information about your current running operation system.'
     'xcinfo:show Xcode information.'

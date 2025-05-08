@@ -92,6 +92,8 @@ int xcpkg_http_fetch_to_stream(const char * url, FILE * outputFile, const bool v
         case  1: url = transformedUrl;
     }
 
+    fprintf(stderr, "Fetching: %s\n", url);
+
     ///////////////////////////////////////////////////////////
 
     curl_global_init(CURL_GLOBAL_ALL);
@@ -169,7 +171,11 @@ int xcpkg_http_fetch_to_stream(const char * url, FILE * outputFile, const bool v
         free(transformedUrl);;
     }
 
-    return abs((int)curlcode) + XCPKG_ERROR_NETWORK_BASE;
+    if (curlcode == 0) {
+        return XCPKG_OK;
+    } else {
+        return abs((int)curlcode) + XCPKG_ERROR_NETWORK_BASE;
+    }
 }
 
 int xcpkg_http_fetch_to_file(const char * url, const char * outputFilePath, const bool verbose, const bool showProgress) {

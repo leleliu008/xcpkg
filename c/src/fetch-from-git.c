@@ -264,6 +264,8 @@ int xcpkg_git_sync(const char * repositoryDIR, const char * remoteUrl, const cha
         case  1: remoteUrl = transformedUrl;
     }
 
+    fprintf(stderr, "git Fetching: %s\n", remoteUrl);
+
     //////////////////////////////////////////////////////////////////////////////////////////////
 
     if (needInitGitRepo) {
@@ -280,7 +282,7 @@ int xcpkg_git_sync(const char * repositoryDIR, const char * remoteUrl, const cha
         }
 
         //https://libgit2.org/libgit2/#HEAD/group/remote/git_remote_create
-        ret = git_remote_create(&gitRemote, gitRepo, "origin", transformedUrl);
+        ret = git_remote_create(&gitRemote, gitRepo, "origin", remoteUrl);
 
         if (ret != GIT_OK) {
             gitError = git_error_last();
@@ -309,9 +311,9 @@ int xcpkg_git_sync(const char * repositoryDIR, const char * remoteUrl, const cha
 
         if (ret == GIT_ENOTFOUND) {
             //https://libgit2.org/libgit2/#HEAD/group/remote/git_remote_create
-            ret = git_remote_create(&gitRemote, gitRepo, "origin", transformedUrl);
+            ret = git_remote_create(&gitRemote, gitRepo, "origin", remoteUrl);
         } else if (ret == GIT_OK) {
-            ret = git_remote_set_instance_url(gitRemote, transformedUrl);
+            ret = git_remote_set_instance_url(gitRemote, remoteUrl);
         }
 
         if (ret != GIT_OK) {
