@@ -1666,7 +1666,7 @@ static inline int xcpkg_action_formula_parse(int argc, char* argv[]) {
     return xcpkg_available_info2(formula, packageName, NULL, argv[3]);
 }
 
-static inline int xcpkg_action_formula_view(int argc, char* argv[]) {
+static inline int xcpkg_action_formula_cat(int argc, char* argv[]) {
     if (argv[2] == NULL) {
         fprintf(stderr, "Usage: %s %s <PACKAGE-NAME>\n", argv[0], argv[1]);
         return XCPKG_ERROR_PACKAGE_NAME_IS_NULL;
@@ -1677,18 +1677,21 @@ static inline int xcpkg_action_formula_view(int argc, char* argv[]) {
         return XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY;
     }
 
-    bool raw = false;
+    return xcpkg_formula_cat(argv[2], NULL);
+}
 
-    for (int i = 3; i < argc; i++) {
-        if (strcmp(argv[i], "--raw") == 0) {
-            raw = true;
-        } else {
-            LOG_ERROR2("unrecognized argument: ", argv[i]);
-            return XCPKG_ERROR_PACKAGE_NAME_IS_INVALID;
-        }
+static inline int xcpkg_action_formula_bat(int argc, char* argv[]) {
+    if (argv[2] == NULL) {
+        fprintf(stderr, "Usage: %s %s <PACKAGE-NAME>\n", argv[0], argv[1]);
+        return XCPKG_ERROR_PACKAGE_NAME_IS_NULL;
     }
 
-    return xcpkg_formula_view(argv[2], NULL, raw);
+    if (argv[2][0] == '\0') {
+        fprintf(stderr, "Usage: %s %s <PACKAGE-NAME>\n", argv[0], argv[1]);
+        return XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY;
+    }
+
+    return xcpkg_formula_bat(argv[2], NULL, argc - 3, &argv[3]);
 }
 
 static inline int xcpkg_action_formula_edit(int argc, char* argv[]) {
@@ -1869,8 +1872,12 @@ int xcpkg_main(int argc, char* argv[]) {
         return xcpkg_action_formula_repo_info(argc, argv);
     }
 
-    if (strcmp(argv[1], "formula-view") == 0) {
-        return xcpkg_action_formula_view(argc, argv);
+    if (strcmp(argv[1], "formula-cat") == 0) {
+        return xcpkg_action_formula_cat(argc, argv);
+    }
+
+    if (strcmp(argv[1], "formula-bat") == 0) {
+        return xcpkg_action_formula_bat(argc, argv);
     }
 
     if (strcmp(argv[1], "formula-edit") == 0) {

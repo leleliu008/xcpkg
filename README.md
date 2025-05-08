@@ -320,6 +320,33 @@ You are allowed to change this by setting `XCPKG_HOME` envionment variable.
     xcpkg formula-repo-del my_repo
     ```
 
+- **show formula of the give package**
+
+    ```bash
+    xcpkg formula-cat curl
+    ```
+
+- **show formula of the give package using bat**
+
+    ```bash
+    xcpkg formula-bat curl
+    xcpkg formula-bat curl --language=yaml --paging=never --color=always --theme=Dracula --style=plain
+    ```
+
+- **open formula of the give package in a text editor for editing**
+
+    ```bash
+    xcpkg formula-edit curl
+    xcpkg formula-edit curl --editor=vim
+    ```
+
+- **parse the give formula file**
+
+    ```bash
+    xcpkg formula-parse curl.yml
+    xcpkg formula-parse curl.yml version
+    ```
+
 - **check if the given package is available**
 
     ```bash

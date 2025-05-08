@@ -259,7 +259,7 @@ int  xcpkg_formula_load(const char * packageName, const char * targetPlatformNam
 int  xcpkg_formula_edit(const char * packageName, const char * targetPlatformName, const char * editor);
 int  xcpkg_formula_view(const char * packageName, const char * targetPlatformName, const bool raw);
 int  xcpkg_formula_cat (const char * packageName, const char * targetPlatformName);
-int  xcpkg_formula_bat (const char * packageName, const char * targetPlatformName);
+int  xcpkg_formula_bat (const char * packageName, const char * targetPlatformName, size_t argc, char* argv[]);
 
 void xcpkg_formula_free(XCPKGFormula * formula);
 void xcpkg_formula_dump(XCPKGFormula * formula);

@@ -85,6 +85,19 @@
     list all available formula repositories.
 
 
+[0;32mxcpkg formula-cat <PACKAGE-NAME>[0m
+    show formula of the give package.
+
+[0;32mxcpkg formula-bat <PACKAGE-NAME> [BAT-OPTIONS][0m
+    show formula of the give package using bat.
+
+[0;32mxcpkg formula-edit <PACKAGE-NAME> [--editor=<EDITOR>][0m
+    open formula of the give package in a text editor for editing.
+
+[0;32mxcpkg formula-parse <FORMULA-FILE-PATH> [--json | --yaml | <KEY>][0m
+    parse the given formula file.
+
+
 [0;32mxcpkg search <REGULAR-EXPRESSION-PATTERN> [-v] [--json | --yaml][0m
     search all available packages whose name matches the given regular expression pattern.
 

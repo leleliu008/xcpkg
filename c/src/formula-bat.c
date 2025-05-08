@@ -3,7 +3,7 @@
 
 #include "xcpkg.h"
 
-int xcpkg_formula_bat(const char * packageName, const char * targetPlatformName) {
+int xcpkg_formula_bat(const char * packageName, const char * targetPlatformName, size_t argc, char* argv[]) {
     char formulaFilePath[PATH_MAX];
 
     int ret = xcpkg_formula_path(packageName, targetPlatformName, formulaFilePath);
@@ -24,7 +24,22 @@ int xcpkg_formula_bat(const char * packageName, const char * targetPlatformName)
 
     //////////////////////////////////////////////////////////////////////////////
 
-    execlp(batCommandPath, batCommandPath, "--paging=never", formulaFilePath, NULL);
+    size_t argn = argc + 3U;
+    char*  args[argn];
+
+    args[0] = batCommandPath;
+
+    char ** p = &args[1];
+
+    for (size_t i = 0U; i < argc; i++) {
+        p[i] = argv[i];
+    }
+
+    args[argn - 2U] = formulaFilePath;
+    args[argn - 1U] = NULL;
+
+    execv(batCommandPath, args);
+
     perror(batCommandPath);
 
     return XCPKG_ERROR;
