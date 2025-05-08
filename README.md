@@ -164,15 +164,14 @@ You are allowed to change this by setting `XCPKG_HOME` envionment variable.
     xcpkg xcinfo /Applications/Xcode12.app/Contents/Developer
     ```
 
-- **integrate `zsh-completion` script**
+- **save `tab-completion` script for zsh to a file**
 
     ```bash
-    xcpkg integrate zsh
-    xcpkg integrate zsh --output-dir=/usr/local/share/zsh/site-functions
-    xcpkg integrate zsh -v
+    xcpkg completion zsh > _xcpkg
+    sudo mv _xcpkg /usr/local/share/zsh/site-functions/
     ```
 
-    This project provides a zsh-completion script for `xcpkg`. when you've typed `xcpkg` then type `TAB` key, the rest of the arguments will be automatically complete for you.
+    This project provides a tab-completion script for `zsh` for `xcpkg`. when you've typed `xcpkg` then type `TAB` key, the rest of the arguments will be automatically complete for you.
 
     **Note**: to apply this feature, you may need to run the command `autoload -U compinit && compinit` in your terminal (your current running shell must be zsh).
 

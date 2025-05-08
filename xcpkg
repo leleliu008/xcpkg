@@ -8108,12 +8108,12 @@ __uninstall_the_given_packages() {
 
 # }}}
 ##############################################################################
-# {{{ xcpkg integrate zsh
+# {{{ xcpkg completion zsh
 
-# __integrate_zsh_completions <URL> [--output-dir=<DIR>]
-  __integrate_zsh_completions() {
+# __zsh_completions <URL> [--output-dir=<DIR>]
+  __zsh_completions() {
     if [ -z "$1" ] ; then
-        error "__integrate_zsh_completions <URL> [--output-dir=<DIR>] , <URL> must be non-empty."
+        error "__zsh_completions <URL> [--output-dir=<DIR>] , <URL> must be non-empty."
         return 1
     else
         ZSH_COMPLETIONS_SCRIPT_URL="$1"
@@ -8129,12 +8129,12 @@ __uninstall_the_given_packages() {
             --output-dir=*)
                 OUTPUT_DIR="${arg#*=}"
                 case $OUTPUT_DIR in
-                    '')     abort 1 "__integrate_zsh_completions <URL> [--output-dir=<DIR>] , <DIR> must be non-empty." ;;
+                    '')     abort 1 "__zsh_completions <URL> [--output-dir=<DIR>] , <DIR> must be non-empty." ;;
                     \~|\~/) OUTPUT_DIR="${HOME}" ;;
                     \~/*)   OUTPUT_DIR="$HOME/$(printf '%s\n' "$OUTPUT_DIR" | cut -c3-)" ;;
                 esac
                 ;;
-            *)  abort 1 "__integrate_zsh_completions <URL> [--output-dir=<DIR>] , unrecognized argument: $arg"
+            *)  abort 1 "__zsh_completions <URL> [--output-dir=<DIR>] , unrecognized argument: $arg"
         esac
     done
 
@@ -8383,8 +8383,8 @@ ${COLOR_GREEN}xcpkg xcinfo [DEVELOPER-DIR]${COLOR_OFF}
 
     If DEVELOPER-DIR is unspecified, the environment variable ${COLOR_RED}DEVELOPER_DIR${COLOR_OFF} is honored, if the environment variable DEVELOPER_DIR is not set, it would be determined by running command ${COLOR_PURPLE}xcode-select -p${COLOR_OFF}
 
-${COLOR_GREEN}xcpkg integrate zsh [-v]${COLOR_OFF}
-    download a zsh-completion script file to a approprivate location.
+${COLOR_GREEN}xcpkg completion zsh${COLOR_OFF}
+    show tab-completion script for zsh.
 
 ${COLOR_GREEN}xcpkg update${COLOR_OFF}
     update all available formula repositories.
@@ -8676,7 +8676,7 @@ fi
 
 ##################################################################################
 
-XCPKG_VERSION=0.29.3
+XCPKG_VERSION=0.29.4
 
 XCPKG_ARG0="$0"
 XCPKG_ARG1="$1"
@@ -8688,7 +8688,7 @@ XCPKG_OFFICIAL_FORMULA_REPO_URL='https://github.com/leleliu008/xcpkg-formula-rep
 
 XCPKG_UPGRAGE_URL='https://raw.githubusercontent.com/leleliu008/xcpkg/master/xcpkg'
 
-XCPKG_ZSH_COMPLETION_SCRIPT_URL='https://raw.githubusercontent.com/leleliu008/xcpkg/master/xcpkg-zsh-completion'
+XCPKG_ZSH_COMPLETION_SCRIPT_URL='https://raw.githubusercontent.com/leleliu008/xcpkg/master/_xcpkg'
 
 [ -z "$XCPKG_HOME" ] && {
     if [ -z "$HOME" ] ; then
@@ -8911,14 +8911,14 @@ case $1 in
     tree)   shift;   __tree_the_given_installed_package "$@" ;;
     bundle) shift; __bundle_the_given_installed_package "$@" ;;
 
-    integrate)
+    completion)
         shift
         case $1 in
             zsh)
                 shift
-                __integrate_zsh_completions "$XCPKG_ZSH_COMPLETION_SCRIPT_URL" "$@"
+                __zsh_completions "$XCPKG_ZSH_COMPLETION_SCRIPT_URL" "$@"
                 ;;
-            *)  abort 1 "xcpkg integrate $1: not support."
+            *)  abort 1 "xcpkg completion $1: not support."
         esac
         ;;
 

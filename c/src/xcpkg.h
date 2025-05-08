@@ -527,9 +527,9 @@ int xcpkg_uninstall(const char * packageName, const char * targetPlatformSpec, c
 
 int xcpkg_upgrade_self(const bool verbose);
 
-int xcpkg_integrate_zsh_completion (const char * outputDIR, const bool verbose);
-int xcpkg_integrate_bash_completion(const char * outputDIR, const bool verbose);
-int xcpkg_integrate_fish_completion(const char * outputDIR, const bool verbose);
+int xcpkg_completion_zsh ();
+int xcpkg_completion_bash();
+int xcpkg_completion_fish();
 
 int xcpkg_setup(const bool verbose);
 

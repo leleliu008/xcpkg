@@ -30,8 +30,8 @@
 
     If DEVELOPER-DIR is unspecified, the environment variable [0;31mDEVELOPER_DIR[0m is honored, if the environment variable DEVELOPER_DIR is not set, it would be determined by running command [0;35mxcode-select -p[0m
 
-[0;32mxcpkg integrate zsh [-v][0m
-    install a zsh-completion script file to a approprivate location.
+[0;32mxcpkg completion zsh[0m
+    show tab-completion script for zsh.
 
 [0;32mxcpkg update[0m
     update all available formula repositories.

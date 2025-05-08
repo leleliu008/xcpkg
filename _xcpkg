@@ -8,7 +8,7 @@ _xcpkg_actions=(
     'about:show basic information about this software.'
     'sysinfo:show basic information about your current running operation system.'
     'xcinfo:show Xcode information.'
-    'integrate:integrate zsh completions.'
+    'completion:show tab-completion script for zsh/bash/fish.'
     'cleanup:delete the unused cached files.'
     'ls-available:list the available packages.'
     'ls-installed:list the installed packages.'
@@ -68,14 +68,6 @@ function _xcpkg() {
     case $state in
         option)
             case $words[1] in
-                ls-target-platform-versions)
-                    _arguments ':platform:($(xcpkg ls-target-platform-names))'
-                    ;;
-                ls-target-platform-archs)
-                    _arguments \
-                        ':platform:($(xcpkg ls-target-platform-names))' \
-                        ':bit:(64bit 32bit all)'
-                    ;;
                 formula-repo-add)
                     _arguments \
                         '1:formula-repo-name:(name)' \
@@ -295,10 +287,6 @@ function _xcpkg() {
                     ;;
                 ls-outdated)
                     _arguments '1:package-name:_xcpkg_outdated_packages' '-v[verbose mode]'
-                    ;;
-
-                integrate)
-                    _arguments '1:reg:()' '-v[verbose mode]'
                     ;;
 
                 integrate)

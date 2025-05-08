@@ -34,25 +34,16 @@ static inline int xcpkg_action_about(int argc, char* argv[]) {
     return ret;
 }
 
-static inline int xcpkg_action_integrate(int argc, char* argv[]) {
-    bool verbose = false;
-
-    for (int i = 3; i < argc; i++) {
-        if (strcmp(argv[i], "-v") == 0) {
-            verbose = true;
-            break;
-        }
-    }
-
+static inline int xcpkg_action_completion(int argc, char* argv[]) {
     if (argv[2] == NULL) {
-        fprintf(stderr, "Usage: %s integrate <zsh|bash|fish>\n", argv[0]);
+        fprintf(stderr, "Usage: %s completion <zsh|bash|fish>\n", argv[0]);
         return XCPKG_ERROR_PACKAGE_NAME_IS_NULL;
     } else if (strcmp(argv[2], "zsh") == 0) {
-        return xcpkg_integrate_zsh_completion (NULL, verbose);
+        return xcpkg_completion_zsh();
     } else if (strcmp(argv[2], "bash") == 0) {
-        return xcpkg_integrate_bash_completion(NULL, verbose);
+        return xcpkg_completion_bash();
     } else if (strcmp(argv[2], "fish") == 0) {
-        return xcpkg_integrate_fish_completion(NULL, verbose);
+        return xcpkg_completion_fish();
     } else {
         LOG_ERROR2("unrecognized argument: ", argv[2]);
         return XCPKG_ERROR_PACKAGE_NAME_IS_INVALID;
@@ -1774,8 +1765,8 @@ int xcpkg_main(int argc, char* argv[]) {
         return ret;
     }
 
-    if (strcmp(argv[1], "integrate") == 0) {
-        return xcpkg_action_integrate(argc, argv);
+    if (strcmp(argv[1], "completion") == 0) {
+        return xcpkg_action_completion(argc, argv);
     }
 
     if (strcmp(argv[1], "upgrade-self") == 0) {
