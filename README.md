@@ -164,12 +164,6 @@ You are allowed to change this by setting `XCPKG_HOME` envionment variable.
     xcpkg xcinfo /Applications/Xcode12.app/Contents/Developer
     ```
 
-- **generate url-transform sample**
-
-    ```bash
-    xcpkg gen-url-transform-sample
-    ```
-
 - **integrate `zsh-completion` script**
 
     ```bash
@@ -437,19 +431,13 @@ You are allowed to change this by setting `XCPKG_HOME` envionment variable.
     export XCPKG_HOME=$HOME/xcpkg-home
     ```
 
-- **XCPKG_URL_TRANSFORM**
+- **XCPKG_GITHUB_PROXY**
 
     ```bash
-    export XCPKG_URL_TRANSFORM=/path/of/url-transform
+    export XCPKG_GITHUB_PROXY='https://ghfast.top'
     ```
 
-    `/path/of/url-transform` command would be invoked as `/path/of/url-transform <URL>`
-
-    `/path/of/url-transform` command must output a `<URL>`
-
-    you can generate a url-transform sample via `xcpkg gen-url-transform-sample`
-
-    If you want to change the request url, you can set this environment variable. It is very useful for chinese users.
+    This is very useful for chinese users.
 
 - **XCPKG_XTRACE**
 

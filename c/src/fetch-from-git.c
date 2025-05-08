@@ -193,34 +193,6 @@ int xcpkg_git_sync(const char * repositoryDIR, const char * remoteUrl, const cha
 
     //////////////////////////////////////////////////////////////////////////////////////////////
 
-    char transformedUrl[1025] = {0};
-
-    const char * urlTransformCommandPath = getenv("XCPKG_URL_TRANSFORM");
-
-    if ((urlTransformCommandPath == NULL) || (urlTransformCommandPath[0] == '\0')) {
-        strncpy(transformedUrl, remoteUrl, strlen(remoteUrl));
-        transformedUrl[1024] = '\0';
-    } else {
-        fprintf(stderr, "\nyou have set XCPKG_URL_TRANSFORM=%s\n", urlTransformCommandPath);
-        fprintf(stderr, "transform from: %s\n", remoteUrl);
-
-        size_t writtenSize = 0U;
-
-        if (url_transform(urlTransformCommandPath, remoteUrl, transformedUrl, 1024, &writtenSize, true) != 0) {
-            perror(urlTransformCommandPath);
-            return XCPKG_ERROR;
-        }
-
-        if (writtenSize == 0U) {
-            fprintf(stderr, "a new url was expected to be output, but it was not.\n");
-            return XCPKG_ERROR;
-        }
-
-        fprintf(stderr, "transform   to: %s\n", transformedUrl);
-    }
-
-    //////////////////////////////////////////////////////////////////////////////////////////////
-
     bool needInitGitRepo = false;
 
     struct stat st;
@@ -285,6 +257,15 @@ int xcpkg_git_sync(const char * repositoryDIR, const char * remoteUrl, const cha
 
     //////////////////////////////////////////////////////////////////////////////////////////////
 
+    char * transformedUrl = NULL;
+
+    switch (transform_url(remoteUrl, &transformedUrl)) {
+        case -1: return XCPKG_ERROR_MEMORY_ALLOCATE;
+        case  1: remoteUrl = transformedUrl;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////////////////////
+
     if (needInitGitRepo) {
         ret = git_repository_init(&gitRepo, repositoryDIR, false);
 
@@ -294,6 +275,7 @@ int xcpkg_git_sync(const char * repositoryDIR, const char * remoteUrl, const cha
             git_repository_state_cleanup(gitRepo);
             git_repository_free(gitRepo);
             git_libgit2_shutdown();
+            free(transformedUrl);
             return abs(ret) + XCPKG_ERROR_LIBGIT2_BASE;
         }
 
@@ -306,6 +288,7 @@ int xcpkg_git_sync(const char * repositoryDIR, const char * remoteUrl, const cha
             git_repository_state_cleanup(gitRepo);
             git_repository_free(gitRepo);
             git_libgit2_shutdown();
+            free(transformedUrl);
             return abs(ret) + XCPKG_ERROR_LIBGIT2_BASE;
         }
     } else {
@@ -317,6 +300,7 @@ int xcpkg_git_sync(const char * repositoryDIR, const char * remoteUrl, const cha
             git_repository_state_cleanup(gitRepo);
             git_repository_free(gitRepo);
             git_libgit2_shutdown();
+            free(transformedUrl);
             return abs(ret) + XCPKG_ERROR_LIBGIT2_BASE;
         }
 
@@ -336,6 +320,7 @@ int xcpkg_git_sync(const char * repositoryDIR, const char * remoteUrl, const cha
             git_repository_state_cleanup(gitRepo);
             git_repository_free(gitRepo);
             git_libgit2_shutdown();
+            free(transformedUrl);
             return abs(ret) + XCPKG_ERROR_LIBGIT2_BASE;
         }
     }
@@ -374,6 +359,10 @@ int xcpkg_git_sync(const char * repositoryDIR, const char * remoteUrl, const cha
 
         if (ret < 0) {
             perror(NULL);
+            git_repository_state_cleanup(gitRepo);
+            git_repository_free(gitRepo);
+            git_libgit2_shutdown();
+            free(transformedUrl);
             return XCPKG_ERROR;
         }
 
@@ -505,6 +494,10 @@ finalize:
         if (gitError != NULL) {
             fprintf(stderr, "%s\n", gitError->message);
         }
+    }
+
+    if (transformedUrl != NULL) {
+        free(transformedUrl);
     }
 
     git_repository_state_cleanup(gitRepo);

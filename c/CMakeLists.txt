@@ -83,7 +83,7 @@ endif()
 aux_source_directory(src/core CORE_SRCS)
 aux_source_directory(src           SRCS)
 
-add_executable(xcpkg "${CORE_SRCS};src/core/regex/posix.c;${SRCS};src/data.c")
+add_executable(xcpkg "${CORE_SRCS};src/core/regex/posix.c;${SRCS}")
 
 ########################################################################################
 

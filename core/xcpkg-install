@@ -79,10 +79,15 @@ git_checkout() {
     unset GIT_CHECKOUT_BRANCH_NAME
     unset GIT_WORK_DIR
 
-    if [ -z "$XCPKG_URL_TRANSFORM" ] ; then
+    if [ -z "$XCPKG_GITHUB_PROXY" ] ; then
         GIT_FETCH_FROM_URL="$1"
     else
-        GIT_FETCH_FROM_URL="$("$XCPKG_URL_TRANSFORM" "$1")"
+        case $1 in
+            https://github.com/*)
+                GIT_FETCH_FROM_URL="$XCPKG_GITHUB_PROXY/$1"
+                ;;
+            *)  GIT_FETCH_FROM_URL="$1"
+        esac
     fi
 
     shift
@@ -143,7 +148,7 @@ git_submodule_update_recursive() {
     GIT_SUBMODULE_HAVE="$(cd "$GIT_REPO_ROOT_DIR" && find . -type f -name '.gitmodules' -print -quit)"
 
     if [ -n "$GIT_SUBMODULE_HAVE" ] ; then
-        if [ -z "$XCPKG_URL_TRANSFORM" ] ; then
+        if [ -z "$XCPKG_GITHUB_PROXY" ] ; then
             run git submodule update --init --recursive
         else
             unset GIT_SUBMODULE_BASEDIR_STACK
@@ -174,7 +179,17 @@ git_submodule_update_recursive() {
                 do
                     GIT_SUBMODULE_PATH="$(git config --file=.gitmodules --get "submodule.$GIT_SUBMODULE_NAME.path")"
                     GIT_SUBMODULE_URL="$(git config --file=.gitmodules --get "submodule.$GIT_SUBMODULE_NAME.url")"
-                    GIT_SUBMODULE_URI="$("$XCPKG_URL_TRANSFORM" "$GIT_SUBMODULE_URL")"
+
+                    if [ -z "$XCPKG_GITHUB_PROXY" ] ; then
+                        GIT_SUBMODULE_URI="$GIT_SUBMODULE_URL"
+                    else
+                        case $GIT_SUBMODULE_URL in
+                            https://github.com/*)
+                                GIT_SUBMODULE_URI="$XCPKG_GITHUB_PROXY/$GIT_SUBMODULE_URL"
+                                ;;
+                            *)  GIT_SUBMODULE_URI="$GIT_SUBMODULE_URL"
+                        esac
+                    fi
 
                     run git submodule set-url "$GIT_SUBMODULE_PATH" "$GIT_SUBMODULE_URI"
                 done

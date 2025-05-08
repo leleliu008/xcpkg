@@ -8,8 +8,7 @@
 #include <limits.h>
 #include <sys/stat.h>
 
-#include "core/http.h"
-#include "core/url.h"
+#include "core/urlcode.h"
 
 #include "xcpkg.h"
 
@@ -194,20 +193,8 @@ static inline int xcpkg_depends_output_box(const char * packageName, const char 
         return XCPKG_ERROR;
     }
 
-    //printf("url=%s\n", url);
-
     if (outputPath == NULL) {
-        int ret = http_fetch_to_stream(url, stdout, false, false);
-
-        if (ret == -1) {
-            return XCPKG_ERROR;
-        }
-
-        if (ret > 0) {
-            return XCPKG_ERROR_NETWORK_BASE + ret;
-        }
-
-        return XCPKG_OK;
+        return xcpkg_http_fetch_to_stream(url, stdout, false, false);
     } else {
         char   sessionDIR[PATH_MAX];
         size_t sessionDIRLength;
@@ -230,26 +217,21 @@ static inline int xcpkg_depends_output_box(const char * packageName, const char 
             return XCPKG_ERROR;
         }
 
-        ret = http_fetch_to_file(url, tmpFilePath, false, false);
+        ret = xcpkg_http_fetch_to_file(url, tmpFilePath, false, false);
 
-        if (ret == -1) {
-            perror(tmpFilePath);
-            return XCPKG_ERROR;
+        if (ret != XCPKG_OK) {
+            return ret;
         }
 
-        if (ret > 0) {
-            return XCPKG_ERROR_NETWORK_BASE + ret;
-        } else {
-            char outputFilePath[PATH_MAX];
+        char outputFilePath[PATH_MAX];
 
-            ret = get_output_file_path(outputFilePath, packageName, XCPKGDependsOutputType_BOX, outputPath, NULL);
+        ret = get_output_file_path(outputFilePath, packageName, XCPKGDependsOutputType_BOX, outputPath, NULL);
 
-            if (ret != XCPKG_OK) {
-                return ret;
-            }
-
-            return xcpkg_rename_or_copy_file(tmpFilePath, outputFilePath);
+        if (ret != XCPKG_OK) {
+            return ret;
         }
+
+        return xcpkg_rename_or_copy_file(tmpFilePath, outputFilePath);
     }
 }
 

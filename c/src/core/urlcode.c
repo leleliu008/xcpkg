@@ -3,7 +3,7 @@
 #include <errno.h>
 #include <string.h>
 
-#include "url.h"
+#include "urlcode.h"
 
 int url_encode(char outputBuf[], size_t * writtenSizeInBytes, unsigned char inputBuf[], size_t inputBufSizeInBytes, const bool isToUpper) {
     const char * const table = isToUpper ? "0123456789ABCDEF" : "0123456789abcdef";

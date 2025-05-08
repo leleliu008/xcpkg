@@ -1,5 +1,5 @@
-#ifndef _URL_H_
-#define _URL_H_
+#ifndef _URL_CODE_H_
+#define _URL_CODE_H_
     
 #include <stdlib.h>
 #include <stdbool.h>

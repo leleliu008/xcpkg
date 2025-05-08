@@ -1774,10 +1774,6 @@ int xcpkg_main(int argc, char* argv[]) {
         return ret;
     }
 
-    if (strcmp(argv[1], "setup") == 0) {
-        return xcpkg_action_setup(argc, argv);
-    }
-
     if (strcmp(argv[1], "integrate") == 0) {
         return xcpkg_action_integrate(argc, argv);
     }
@@ -1788,10 +1784,6 @@ int xcpkg_main(int argc, char* argv[]) {
 
     if (strcmp(argv[1], "cleanup") == 0) {
         return xcpkg_action_cleanup(argc, argv);
-    }
-
-    if (strcmp(argv[1], "gen-url-transform-sample") == 0) {
-        return xcpkg_generate_url_transform_sample();
     }
 
     if (strcmp(argv[1], "update") == 0) {

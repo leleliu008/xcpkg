@@ -29,6 +29,5 @@ EOF
 
 ./file2c xcpkg-install         XCPKG_INSTALL_SHELL_SCRIPT_STRING
 ./file2c ../xcpkg-help.txt     XCPKG_HELP_STRING
-./file2c ../xcpkg-url-transform.sample XCPKG_URL_TRANSFORM_SAMPLE_STRING
 ./file2c ../xcpkg-zsh-completion XCPKG_ZSH_COMPLETION_SCRIPT_STRING
 } >> "$1"
