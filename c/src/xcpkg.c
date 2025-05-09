@@ -483,6 +483,15 @@ static inline int xcpkg_action_install(int argc, char* argv[]) {
         } else if (strcmp(argv[i], "-x-ld") == 0) {
             installOptions.logLevel = XCPKGLogLevel_normal;
             installOptions.verbose_ld = true;
+        } else if (strcmp(argv[i], "-v-bs") == 0) {
+            installOptions.logLevel = XCPKGLogLevel_normal;
+            installOptions.verbose_bs = true;
+        } else if (strcmp(argv[i], "-v-xcode") == 0) {
+            installOptions.logLevel = XCPKGLogLevel_normal;
+            installOptions.verbose_xcode = true;
+        } else if (strcmp(argv[i], "-v-formula") == 0) {
+            installOptions.logLevel = XCPKGLogLevel_normal;
+            installOptions.verbose_formula = true;
         } else if (strcmp(argv[i], "--dry-run") == 0) {
             installOptions.dryrun = true;
         } else if (strcmp(argv[i], "-K") == 0) {
@@ -532,11 +541,29 @@ static inline int xcpkg_action_install(int argc, char* argv[]) {
                 fprintf(stderr, "--target=<TARGET-PLATFORM-SPEC>, <TARGET-PLATFORM-SPEC> should be a non-empty string.\n");
                 return XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY;
             }
+        } else if (strncmp(argv[i], "--developer-dir=", 15) == 0) {
+            const char * developerDIR = &argv[i][15];
+
+            if (developerDIR[0] == '\0') {
+                fprintf(stderr, "--developer-dir=<DEVELOPER-DIR>, <DEVELOPER-DIR> should be a non-empty string.\n");
+                return XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY;
+            }
+
+            struct stat st;
+
+            if (stat(developerDIR, &st) == 0 && S_ISDIR(st.st_mode)) {
+                if (setenv("DEVELOPER_DIR", developerDIR, 1) != 0) {
+                    perror("DEVELOPER_DIR");
+                    return XCPKG_ERROR;
+                }
+            } else {
+                fprintf(stderr, "--developer-dir=<DEVELOPER-DIR>, <DEVELOPER-DIR> '%s' directory does not exist.\n", developerDIR);
+                return XCPKG_ERROR_ARG_IS_INVALID;
+            }
         } else if (argv[i][0] == '-') {
             LOG_ERROR2("unrecognized argument: ", argv[i]);
             return XCPKG_ERROR_PACKAGE_NAME_IS_INVALID;
         } else {
-        puts(argv[i]);
             packageIndexArray[packageIndexArraySize] = i;
             packageIndexArraySize++;
         }
@@ -1597,6 +1624,32 @@ static inline int xcpkg_action_bundle(int argc, char* argv[]) {
 }
 
 static inline int xcpkg_action_xcinfo(int argc, char* argv[]) {
+    for (int i = 2; i < argc; i++) {
+        if (strncmp(argv[i], "--developer-dir=", 15) == 0) {
+            const char * developerDIR = &argv[i][15];
+
+            if (developerDIR[0] == '\0') {
+                fprintf(stderr, "--developer-dir=<DEVELOPER-DIR>, <DEVELOPER-DIR> should be a non-empty string.\n");
+                return XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY;
+            }
+
+            struct stat st;
+
+            if (stat(developerDIR, &st) == 0 && S_ISDIR(st.st_mode)) {
+                if (setenv("DEVELOPER_DIR", developerDIR, 1) != 0) {
+                    perror("DEVELOPER_DIR");
+                    return XCPKG_ERROR;
+                }
+            } else {
+                fprintf(stderr, "--developer-dir=<DEVELOPER-DIR>, <DEVELOPER-DIR> '%s' directory does not exist.\n", developerDIR);
+                return XCPKG_ERROR_ARG_IS_INVALID;
+            }
+        } else {
+            LOG_ERROR2("unrecognized argument: ", argv[i]);
+            return XCPKG_ERROR_PACKAGE_NAME_IS_INVALID;
+        }
+    }
+
     XCPKGToolChain toolchain = {0};
 
     int ret = xcpkg_toolchain_find(&toolchain);

@@ -92,7 +92,9 @@ int xcpkg_http_fetch_to_stream(const char * url, FILE * outputFile, const bool v
         case  1: url = transformedUrl;
     }
 
-    fprintf(stderr, "Fetching: %s\n", url);
+    if (verbose) {
+        fprintf(stderr, "Fetching: %s\n", url);
+    }
 
     ///////////////////////////////////////////////////////////
 

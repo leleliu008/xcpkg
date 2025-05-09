@@ -10,10 +10,6 @@
 #include "xcpkg.h"
 
 int xcpkg_bundle(const char * packageName, const char * targetPlatformSpec, ArchiveType outputType, const char * outputPath, const bool verbose) {
-    if (targetPlatformSpec == NULL) {
-        return XCPKG_ERROR_ARG_IS_NULL;
-    }
-
     XCPKGReceipt * receipt = NULL;
 
     int ret = xcpkg_receipt_parse(packageName, targetPlatformSpec, &receipt);

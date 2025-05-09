@@ -2661,9 +2661,9 @@ static int xcpkg_install_package(
 
     p[targetPlatformSpecLength] = '\0';
 
-    printf("targetPlatformName=%s\n", targetPlatformName);
-    printf("targetPlatformVers=%s\n", targetPlatformVers);
-    printf("targetPlatformArch=%s\n", targetPlatformArch);
+    //printf("targetPlatformName=%s\n", targetPlatformName);
+    //printf("targetPlatformVers=%s\n", targetPlatformVers);
+    //printf("targetPlatformArch=%s\n", targetPlatformArch);
 
     //////////////////////////////////////////////////////////////////////////////
 
@@ -4220,7 +4220,10 @@ static int xcpkg_install_package(
         return XCPKG_ERROR;
     }
 
-    printenv();
+    if (installOptions->verbose_env) {
+        printenv();
+    }
+
     //////////////////////////////////////////////////////////////////////////////
 
     ret = xcpkg_fork_exec2(3, "/bin/sh", shellScriptFilePath, "target");
@@ -4861,6 +4864,22 @@ static int setup_core_tools(const char * sessionDIR, const size_t sessionDIRLeng
 
     for (;;) {
         if (rename("core", xcpkgCoreDIR) == 0) {
+            size_t cacertFilePathCapacity = xcpkgCoreDIRCapacity + 11U;
+            char   cacertFilePath[cacertFilePathCapacity];
+
+            ret = snprintf(cacertFilePath, cacertFilePathCapacity, "%s/cacert.pem", xcpkgCoreDIR);
+
+            if (ret < 0) {
+                perror(NULL);
+                return XCPKG_ERROR;
+            }
+
+            // https://www.openssl.org/docs/man1.1.1/man3/SSL_CTX_set_default_verify_paths.html
+            if (setenv("SSL_CERT_FILE", cacertFilePath, 1) != 0) {
+                perror("SSL_CERT_FILE");
+                return XCPKG_ERROR;
+            }
+
             return XCPKG_OK;
         } else {
             if (errno == ENOTEMPTY || errno == EEXIST) {
@@ -5126,7 +5145,9 @@ int xcpkg_install(const char * packageName, const char * targetPlatformSpec, con
         return ret;
     }
 
-    xcpkg_toolchain_dump(&toolchain);
+    if (installOptions->verbose_xcode) {
+        xcpkg_toolchain_dump(&toolchain);
+    }
 
     const KV proxiedTools[3] = {
         { "XCPKG_COMPILER_C",    toolchain.cc  },
@@ -5305,13 +5326,15 @@ int xcpkg_install(const char * packageName, const char * targetPlatformSpec, con
 
     //////////////////////////////////////////////////////////////////////////////
 
-    printf("install packages in order:");
+    if (packageSetSize > 1) {
+        printf("install packages in order:");
 
-    for (int i = packageSetSize - 1; i >= 0; i--) {
-        printf(" %s", packageSet[i]->packageName);
+        for (int i = packageSetSize - 1; i >= 0; i--) {
+            printf(" %s", packageSet[i]->packageName);
+        }
+
+        printf("\n");
     }
-
-    printf("\n");
 
     //////////////////////////////////////////////////////////////////////////////
 
@@ -5331,6 +5354,10 @@ int xcpkg_install(const char * packageName, const char * targetPlatformSpec, con
         if (setenv("PATH", PATH, 1) != 0) {
             perror("PATH");
             goto finalize;
+        }
+
+        if (installOptions->verbose_formula) {
+            xcpkg_formula_dump(package->formula);
         }
 
         ret = xcpkg_install_package(packageName, targetPlatformSpec, package->formula, installOptions, &toolchain, &sysinfo, ccForNativeBuild, cxxForNativeBuild, cppForNativeBuild, objcForNativeBuild, ccForTargetBuild, cxxForTargetBuild, cppForTargetBuild, objcForTargetBuild, extraCCFlags, extraCCFlags, "", extraLDFlags, extraCCFlags, extraLDFlags, uppmPackageInstalledRootDIR, uppmPackageInstalledRootDIRCapacity, xcpkgExeFilePath, xcpkgHomeDIR, xcpkgHomeDIRLength, xcpkgCoreDIR, xcpkgCoreDIRCapacity, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, sessionDIR, sessionDIRLength, packageSet, packageSetSize);

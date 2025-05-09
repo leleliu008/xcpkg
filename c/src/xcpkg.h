@@ -510,6 +510,9 @@ typedef struct {
     bool verbose_env;
     bool verbose_cc;
     bool verbose_ld;
+    bool verbose_bs;
+    bool verbose_xcode;
+    bool verbose_formula;
 
     size_t parallelJobsCount;
 
