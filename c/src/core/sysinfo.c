@@ -85,13 +85,16 @@ int sysinfo_vers(char * buf, size_t bufCapacity) {
         goto finally;
     }
 
-    size_t len = q - p;
+    size_t m = bufCapacity - 1;
+    size_t n = q - p;
 
-    size_t n = (len > bufCapacity - 1) ? bufCapacity - 1 : len;
+    size_t len = (m > n) ? n : m;
 
-    strncpy(buf, p, n);
+    for (size_t i = 0; i < len; i++) {
+        buf[i] = p[i];
+    }
 
-    buf[n] = '\0';
+    buf[len] = '\0';
 
 finally:
     if (munmap(data, st.st_size) == -1) {
