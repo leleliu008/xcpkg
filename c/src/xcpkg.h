@@ -514,6 +514,8 @@ typedef struct {
     bool verbose_xcode;
     bool verbose_formula;
 
+    bool debug_bs;
+
     size_t parallelJobsCount;
 
     XCPKGLogLevel logLevel;

@@ -484,8 +484,11 @@ static inline int xcpkg_action_install(int argc, char* argv[]) {
             installOptions.logLevel = XCPKGLogLevel_normal;
             installOptions.verbose_ld = true;
         } else if (strcmp(argv[i], "-v-bs") == 0) {
-            installOptions.logLevel = XCPKGLogLevel_normal;
+            installOptions.logLevel = XCPKGLogLevel_verbose;
             installOptions.verbose_bs = true;
+        } else if (strcmp(argv[i], "-x-bs") == 0) {
+            installOptions.logLevel = XCPKGLogLevel_very_verbose;
+            installOptions.debug_bs = true;
         } else if (strcmp(argv[i], "-v-xcode") == 0) {
             installOptions.logLevel = XCPKGLogLevel_normal;
             installOptions.verbose_xcode = true;

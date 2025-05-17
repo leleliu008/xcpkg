@@ -995,6 +995,345 @@ static int install_dependent_packages_via_uppm(
     return XCPKG_OK;
 }
 
+static int setenv_rustflags(const char * rustTarget, const size_t rustTargetLength, const char * cc, const char * ldflags, const char * libDIR, const size_t libDIRCapacity) {
+    size_t envNameLength = rustTargetLength + 25U;
+    char   envName[envNameLength];
+
+    // https://doc.rust-lang.org/cargo/reference/environment-variables.html
+    int ret = snprintf(envName, envNameLength, "CARGO_TARGET_%s_RUSTFLAGS", rustTarget);
+
+    if (ret < 0) {
+        perror(NULL);
+        return XCPKG_ERROR;
+    }
+
+    size_t rustFlagsCapacity = 1024U;
+    size_t rustFlagsLength = 0U;
+    char * rustFlags = (char*)malloc(rustFlagsCapacity);
+
+    if (rustFlags == NULL) {
+        perror(NULL);
+        return XCPKG_ERROR_MEMORY_ALLOCATE;
+    }
+
+    // https://doc.rust-lang.org/rustc/command-line-arguments.html
+    ret = snprintf(rustFlags, 1024, "-Clinker=%s -L native=%s", cc, libDIR);
+
+    if (ret < 0) {
+        perror(NULL);
+        ret = XCPKG_ERROR;
+        goto finalize;
+    }
+
+    rustFlagsLength = ret;
+
+    /////////////////////////////////////////
+
+    if (ldflags != NULL && ldflags[0] != '\0') {
+        size_t  ldflagsCopyCapacity = strlen(ldflags) + 1U;
+        char    ldflagsCopy[ldflagsCopyCapacity];
+        strncpy(ldflagsCopy, ldflags, ldflagsCopyCapacity);
+
+        char * item = strtok(ldflagsCopy, " ");
+
+        while (item != NULL) {
+            size_t capacity = strlen(item) + 13U;
+
+            if (rustFlagsCapacity < (rustTargetLength + capacity)) {
+                char * p = (char*)realloc(rustFlags, rustFlagsCapacity + 1024U);
+
+                if (p == NULL) {
+                    ret = XCPKG_ERROR_MEMORY_ALLOCATE;
+                    goto finalize;
+                }
+
+                rustFlags = p;
+            }
+
+            ret = snprintf(rustFlags + rustFlagsLength, capacity, " -Clink-arg=%s", item);
+
+            if (ret < 0) {
+                perror(NULL);
+                ret = XCPKG_ERROR;
+                goto finalize;
+            }
+
+            rustFlagsLength += ret;
+
+            item = strtok(NULL, " ");
+        }
+    }
+
+    /////////////////////////////////////////
+
+    if (setenv(envName, rustFlags, 1) != 0) {
+        perror(envName);
+        ret = XCPKG_ERROR;
+        goto finalize;
+    }
+
+    ret = XCPKG_OK;
+
+finalize:
+    free(rustFlags);
+    return ret;
+}
+
+static int setup_rust_env2(const bool isForTarget, const char * rustTarget, const char * libDIR, const size_t libDIRCapacity) {
+    const char * ar;
+    const char * cc;
+    const char * cxx;
+    const char * cflags;
+    const char * cxxflags;
+    const char * cppflags;
+    const char * ldflags;
+
+    if (isForTarget) {
+        ar       = getenv("AR");
+        cc       = getenv("CC");
+        cxx      = getenv("CXX");
+        cflags   = getenv("CFLAGS");
+        cxxflags = getenv("CXXFLAGS");
+        cppflags = getenv("CPPFLAGS");
+        ldflags  = getenv("LDFLAGS");
+    } else {
+        ar       = getenv("AR_FOR_BUILD");
+        cc       = getenv("CC_FOR_BUILD");
+        cxx      = getenv("CXX_FOR_BUILD");
+        cflags   = getenv("CFLAGS_FOR_BUILD");
+        cxxflags = getenv("CXXFLAGS_FOR_BUILD");
+        cppflags = getenv("CPPFLAGS_FOR_BUILD");
+        ldflags  = getenv("LDFLAGS_FOR_BUILD");
+    }
+
+    /////////////////////////////////////////
+
+    char uu[30];
+
+    size_t i;
+
+    for (i = 0U; rustTarget[i] != '\0'; i++) {
+        if (rustTarget[i] == '-') {
+            uu[i] = '_';
+        } else if (rustTarget[i] >= 'a' && rustTarget[i] <= 'z') {
+            uu[i] = rustTarget[i] - 32;
+        } else {
+            uu[i] = rustTarget[i];
+
+            if (uu[i] == '\0') {
+                break;
+            }
+        }
+    }
+
+    /////////////////////////////////////////
+
+    size_t envNameLinkerLength = i + 21U;
+    char   envNameLinker[envNameLinkerLength];
+
+    // https://doc.rust-lang.org/cargo/reference/environment-variables.html
+    int ret = snprintf(envNameLinker, envNameLinkerLength, "CARGO_TARGET_%s_LINKER", uu);
+
+    if (ret < 0) {
+        perror(NULL);
+        return XCPKG_ERROR;
+    }
+
+    if (setenv(envNameLinker, cc, 1) != 0) {
+        perror(envNameLinker);
+        return XCPKG_ERROR;
+    }
+
+    /////////////////////////////////////////
+
+    ret = setenv_rustflags(uu, i, cc, ldflags, libDIR, libDIRCapacity);
+
+    if (ret != XCPKG_OK) {
+        return ret;
+    }
+
+    /////////////////////////////////////////
+
+    if (cppflags == NULL) {
+        cppflags = "";
+    }
+
+    const size_t cppflagsLength = strlen(cppflags);
+
+    /////////////////////////////////////////
+
+    size_t CFLAGSCapacity = strlen(cflags) + cppflagsLength + 2U;
+    char   CFLAGS[CFLAGSCapacity];
+
+    ret = snprintf(CFLAGS, CFLAGSCapacity, "%s %s", cflags, cppflags);
+
+    if (ret < 0) {
+        perror(NULL);
+        return XCPKG_ERROR;
+    }
+
+    /////////////////////////////////////////
+
+    size_t CXXFLAGSCapacity = strlen(cxxflags) + cppflagsLength + 2U;
+    char   CXXFLAGS[CXXFLAGSCapacity];
+
+    ret = snprintf(CXXFLAGS, CXXFLAGSCapacity, "%s %s", cxxflags, cppflags);
+
+    if (ret < 0) {
+        perror(NULL);
+        return XCPKG_ERROR;
+    }
+
+    /////////////////////////////////////////
+
+    char p[100];
+
+    for (size_t i = 0U; ; i++) {
+        if (rustTarget[i] == '-') {
+            p[i] = '_';
+        } else {
+            p[i] = rustTarget[i];
+
+            if (p[i] == '\0') {
+                break;
+            }
+        }
+    }
+
+    /////////////////////////////////////////
+
+    KV envs[6] = {
+        { "AR",       ar },
+        { "CC",       cc },
+        { "CXX",      cxx },
+        { "CFLAGS",   CFLAGS },
+        { "CXXFLAGS", CXXFLAGS },
+        { "PKG_CONFIG_PATH", isForTarget ? getenv("PKG_CONFIG_PATH") : getenv("PKG_CONFIG_PATH_FOR_BUILD") }
+    };
+
+    char key[100];
+
+    for (int i = 0; i < 5; i++) {
+        ret = snprintf(key, 100, "%s_%s", envs[i].name, p);
+
+        if (ret < 0) {
+            perror(NULL);
+            return XCPKG_ERROR;
+        }
+
+        if (setenv(key, envs[i].value, 1) != 0) {
+            perror(key);
+            return XCPKG_ERROR;
+        }
+    }
+
+    return XCPKG_OK;
+}
+
+static int setup_rust_env(const char * targetPlatformArch, const char * packageWorkingLibDIR, const size_t packageWorkingLibDIRCapacity, const bool isCrossBuild, const size_t njobs) {
+    // https://doc.rust-lang.org/cargo/reference/config.html#buildrustflags
+    // https://doc.rust-lang.org/cargo/reference/environment-variables.html
+
+    // https://libraries.io/cargo/cc
+    // https://crates.io/crates/cc
+    // https://docs.rs/cc/latest/cc/
+    // https://github.com/alexcrichton/cc-rs
+
+    // https://docs.rs/pkg-config/latest/pkg_config/
+    const char * unsetenvs[] = {
+        "CARGO_ENCODED_RUSTFLAGS",
+
+        "HOST_CC",
+        "HOST_CXX",
+        "HOST_AR",
+        "HOST_CFLAGS",
+        "HOST_CXXFLAGS",
+
+        "TARGET_CC",
+        "TARGET_CXX",
+        "TARGET_AR",
+        "TARGET_CFLAGS",
+        "TARGET_CXXFLAGS",
+
+        NULL
+    };
+
+    for (int i = 0; unsetenvs[i] != NULL; i++) {
+        if (unsetenv(unsetenvs[i]) != 0) {
+            perror(unsetenvs[i]);
+            return XCPKG_ERROR;
+        }
+    }
+
+    /////////////////////////////////////////
+
+    // https://docs.rs/backtrace/latest/backtrace/
+    if (setenv("RUST_BACKTRACE", "1", 1) != 0) {
+        perror("RUST_BACKTRACE");
+        return XCPKG_ERROR;
+    }
+
+    /////////////////////////////////////////
+
+    char ns[4];
+
+    int ret = snprintf(ns, 4, "%zu", njobs);
+
+    if (ret < 0) {
+        perror(NULL);
+        return XCPKG_ERROR;
+    }
+
+    if (setenv("CARGO_BUILD_JOBS", ns, 1) != 0) {
+        perror("CARGO_BUILD_JOBS");
+        return XCPKG_ERROR;
+    }
+
+    /////////////////////////////////////////
+
+    const char * rustTarget;
+
+    if (strcmp(targetPlatformArch, "arm64") == 0) {
+        rustTarget = "aarch64-apple-darwin";
+    } else {
+        rustTarget = "x86_64-apple-darwin";
+    }
+
+    /////////////////////////////////////////
+
+    // RUST_TARGET environment variable is not defined by Rust, but it is widely used by lots of third-party projects. 
+    if (setenv("RUST_TARGET", rustTarget, 1) != 0) {
+        perror("RUST_TARGET");
+        return XCPKG_ERROR;
+    }
+
+    /////////////////////////////////////////
+
+    ret = setup_rust_env2(true, rustTarget, packageWorkingLibDIR, packageWorkingLibDIRCapacity);
+
+    if (ret != XCPKG_OK) {
+        return ret;
+    }
+
+    /////////////////////////////////////////
+
+    if (isCrossBuild) {
+#if defined(__x86_64__)
+        rustTarget = "x86_64-apple-darwin";
+#else
+        rustTarget = "aarch64-apple-darwin";
+#endif
+
+        ret = setup_rust_env2(false, rustTarget, packageWorkingLibDIR, packageWorkingLibDIRCapacity);
+
+        if (ret != XCPKG_OK) {
+            return ret;
+        }
+    }
+
+    return XCPKG_OK;
+}
+
 static int generate_shell_script_file(
         const char * shellScriptFilePath,
         const char * packageName,
@@ -1230,6 +1569,22 @@ static int generate_shell_script_file(
     //////////////////////////////////////////////////////////////////////////////
 
     KB kbs[] = {
+        {"VERBOSE_MESON", installOptions->verbose_bs},
+        {"VERBOSE_NINJA", installOptions->verbose_bs},
+        {"VERBOSE_GMAKE", installOptions->verbose_bs},
+        {"VERBOSE_CMAKE", installOptions->verbose_bs},
+        {"VERBOSE_XMAKE", installOptions->verbose_bs},
+        {"VERBOSE_CARGO", installOptions->verbose_bs},
+        {"VERBOSE_GO",    installOptions->verbose_bs},
+
+        {"DEBUG_MESON", installOptions->debug_bs},
+        {"DEBUG_NINJA", installOptions->debug_bs},
+        {"DEBUG_GMAKE", installOptions->debug_bs},
+        {"DEBUG_CMAKE", installOptions->debug_bs},
+        {"DEBUG_XMAKE", installOptions->debug_bs},
+        {"DEBUG_CARGO", installOptions->debug_bs},
+        {"DEBUG_GO",    installOptions->debug_bs},
+
         {"PACKAGE_BINBSTD", formula->binbstd},
         {"PACKAGE_SYMLINK", formula->symlink},
         {"PACKAGE_BUILD_IN_PARALLEL", formula->support_build_in_parallel},
@@ -3927,265 +4282,10 @@ static int xcpkg_install_package(
     //////////////////////////////////////////////////////////////////////////////
 
     if (formula->useBuildSystemCargo) {
-        // https://docs.rs/backtrace/latest/backtrace/
-        if (setenv("RUST_BACKTRACE", "1", 1) != 0) {
-            perror("RUST_BACKTRACE");
-            return XCPKG_ERROR;
-        }
+        ret = setup_rust_env(targetPlatformArch, packageWorkingLibDIR, packageWorkingLibDIRCapacity, isCrossBuild, njobs);
 
-        /////////////////////////////////////////
-
-        char ns[4];
-
-        ret = snprintf(ns, 4, "%zu", njobs);
-
-        if (ret < 0) {
-            perror(NULL);
-            return XCPKG_ERROR;
-        }
-
-        // https://doc.rust-lang.org/cargo/reference/environment-variables.html
-        if (setenv("CARGO_BUILD_JOBS", ns, 1) != 0) {
-            perror("CARGO_BUILD_JOBS");
-            return XCPKG_ERROR;
-        }
-
-        /////////////////////////////////////////
-
-        const char * rustTarget;
-
-        if (strcmp(targetPlatformArch, "arm64") == 0) {
-            rustTarget = "aarch64-apple-darwin";
-        } else {
-            rustTarget = "x86_64-apple-darwin";
-        }
-
-        if (setenv("RUST_TARGET", rustTarget, 1) != 0) {
-            perror("RUST_TARGET");
-            return XCPKG_ERROR;
-        }
-
-        /////////////////////////////////////////
-
-        char p[30];
-
-        size_t i;
-
-        for (i = 0U; rustTarget[i] != '\0'; i++) {
-            if (rustTarget[i] == '-') {
-                p[i] = '_';
-            } else if (rustTarget[i] >= 'a' && rustTarget[i] <= 'z') {
-                p[i] = rustTarget[i] - 32;
-            } else {
-                p[i] = rustTarget[i];
-            }
-        }
-
-        p[i] = '\0';
-
-        size_t envNameLinkerLength = i + 21U;
-        char   envNameLinker[envNameLinkerLength];
-
-        // https://doc.rust-lang.org/cargo/reference/environment-variables.html
-        // https://doc.rust-lang.org/cargo/reference/config.html#targettriplelinker
-        ret = snprintf(envNameLinker, envNameLinkerLength, "CARGO_TARGET_%s_LINKER", p);
-
-        if (ret < 0) {
-            perror(NULL);
-            return XCPKG_ERROR;
-        }
-
-        if (setenv(envNameLinker, getenv("CC"), 1) != 0) {
-            perror(envNameLinker);
-            return XCPKG_ERROR;
-        }
-
-        /////////////////////////////////////////
-
-        // https://doc.rust-lang.org/cargo/reference/config.html#buildrustflags
-        // we want to use RUSTFLAGS
-        if (unsetenv("CARGO_ENCODED_RUSTFLAGS") != 0) {
-            perror("CARGO_ENCODED_RUSTFLAGS");
-            return XCPKG_ERROR;
-        }
-
-        /////////////////////////////////////////
-
-        size_t rustFlagsCapacity = strlen(getenv("CC")) + 10U;
-        char   rustFlags[rustFlagsCapacity];
-
-        ret = snprintf(rustFlags, rustFlagsCapacity, "-Clinker=%s", getenv("CC"));
-
-        if (ret < 0) {
-            perror(NULL);
-            return XCPKG_ERROR;
-        }
-
-        if (setenv("RUSTFLAGS", rustFlags, 1) != 0) {
-            perror("RUSTFLAGS");
-            return XCPKG_ERROR;
-        }
-
-        /////////////////////////////////////////
-
-        const char * LDFLAGS = getenv("LDFLAGS");
-
-        if (LDFLAGS != NULL && LDFLAGS[0] != '\0') {
-            size_t  ldflagsCopyCapacity = strlen(LDFLAGS) + 1U;
-            char    ldflagsCopy[ldflagsCopyCapacity];
-            strncpy(ldflagsCopy, LDFLAGS, ldflagsCopyCapacity);
-
-            char * item = strtok(ldflagsCopy, " ");
-
-            while (item != NULL) {
-                const char * const RUSTFLAGS = getenv("RUSTFLAGS");
-
-                size_t newRUSTFLAGSCapacity = strlen(RUSTFLAGS) + strlen(item) + 13U;
-                char   newRUSTFLAGS[newRUSTFLAGSCapacity];
-
-                ret = snprintf(newRUSTFLAGS, newRUSTFLAGSCapacity, "%s -Clink-arg=%s", RUSTFLAGS, item);
-
-                if (ret < 0) {
-                    perror(NULL);
-                    return XCPKG_ERROR;
-                }
-
-                // https://doc.rust-lang.org/rustc/codegen-options/index.html#link-arg
-                if (setenv("RUSTFLAGS", newRUSTFLAGS, 1) != 0) {
-                    perror("RUSTFLAGS");
-                    return XCPKG_ERROR;
-                }
-
-                item = strtok(NULL, " ");
-            }
-        }
-
-        /////////////////////////////////////////
-
-        // https://libraries.io/cargo/cc
-        // https://crates.io/crates/cc
-        // https://docs.rs/cc/latest/cc/
-        // https://github.com/alexcrichton/cc-rs
-
-        const char *    cflagsForTarget = getenv("CFLAGS");
-        const char *  cxxflagsForTarget = getenv("CXXFLAGS");
-        const char *  cppflagsForTarget = getenv("CPPFLAGS");
-
-        if (cppflagsForTarget == NULL) {
-            cppflagsForTarget = "";
-        }
-
-        const size_t cppflagsForTargetLength = strlen(cppflagsForTarget);
-
-        /////////////////////////////////////////
-
-        size_t CFLAGSForTargetCapacity = strlen(cflagsForTarget) + cppflagsForTargetLength + 2U;
-        char   CFLAGSForTarget[CFLAGSForTargetCapacity];
-
-        ret = snprintf(CFLAGSForTarget, CFLAGSForTargetCapacity, "%s %s", cflagsForTarget, cppflagsForTarget);
-
-        if (ret < 0) {
-            perror(NULL);
-            return XCPKG_ERROR;
-        }
-
-        /////////////////////////////////////////
-
-        size_t CXXFLAGSForTargetCapacity = strlen(cxxflagsForTarget) + cppflagsForTargetLength + 2U;
-        char   CXXFLAGSForTarget[CXXFLAGSForTargetCapacity];
-
-        ret = snprintf(CXXFLAGSForTarget, CXXFLAGSForTargetCapacity, "%s %s", cxxflagsForTarget, cppflagsForTarget);
-
-        if (ret < 0) {
-            perror(NULL);
-            return XCPKG_ERROR;
-        }
-
-        /////////////////////////////////////////
-
-        KV envsForTargetBuild[5] = {
-            { "TARGET_CC",       getenv("CC") },
-            { "TARGET_CXX",      getenv("CXX") },
-            { "TARGET_AR",       getenv("AR") },
-            { "TARGET_CFLAGS",   CFLAGSForTarget },
-            { "TARGET_CXXFLAGS", CXXFLAGSForTarget }
-        };
-
-        for (int i = 0; i < 5; i++) {
-            if (setenv(envsForTargetBuild[i].name, envsForTargetBuild[i].value, 1) != 0) {
-                perror(envsForTargetBuild[i].name);
-                return XCPKG_ERROR;
-            }
-        }
-
-        /////////////////////////////////////////
-
-        if (isCrossBuild) {
-            const char *    cflagsForNative = getenv("CFLAGS_FOR_BUILD");
-            const char *  cxxflagsForNative = getenv("CXXFLAGS_FOR_BUILD");
-            const char *  cppflagsForNative = getenv("CPPFLAGS_FOR_BUILD");
-
-            if (cppflagsForNative == NULL) {
-                cppflagsForNative = "";
-            }
-
-            const size_t cppflagsForNativeLength = strlen(cppflagsForNative);
-
-            /////////////////////////////////////////
-
-            size_t CFLAGSForNativeCapacity = strlen(cflagsForNative) + cppflagsForNativeLength + 2U;
-            char   CFLAGSForNative[CFLAGSForNativeCapacity];
-
-            ret = snprintf(CFLAGSForNative, CFLAGSForNativeCapacity, "%s %s", cflagsForNative, cppflagsForNative);
-
-            if (ret < 0) {
-                perror(NULL);
-                return XCPKG_ERROR;
-            }
-
-            /////////////////////////////////////////
-
-            size_t CXXFLAGSForNativeCapacity = strlen(cxxflagsForNative) + cppflagsForNativeLength + 2U;
-            char   CXXFLAGSForNative[CXXFLAGSForTargetCapacity];
-
-            ret = snprintf(CXXFLAGSForNative, CXXFLAGSForNativeCapacity, "%s %s", cxxflagsForNative, cppflagsForNative);
-
-            if (ret < 0) {
-                perror(NULL);
-                return XCPKG_ERROR;
-            }
-
-            /////////////////////////////////////////
-
-            KV envsForNativeBuild[5] = {
-                { "HOST_CC",         toolchain->cc },
-                { "HOST_CXX",        toolchain->cxx },
-                { "HOST_AR",         toolchain->ar },
-                { "HOST_CFLAGS",     CFLAGSForNative },
-                { "HOST_CXXFLAGS",   CXXFLAGSForNative },
-            };
-
-            for (int i = 0; i < 5; i++) {
-                if (setenv(envsForNativeBuild[i].name, envsForNativeBuild[i].value, 1) != 0) {
-                    perror(envsForNativeBuild[i].name);
-                    return XCPKG_ERROR;
-                }
-            }
-        } else {
-            KV envsForNativeBuild[5] = {
-                { "HOST_CC",         getenv("TARGET_CC") },
-                { "HOST_CXX",        getenv("TARGET_CXX") },
-                { "HOST_AR",         getenv("TARGET_AR") },
-                { "HOST_CFLAGS",     getenv("TARGET_CFLAGS") },
-                { "HOST_CXXFLAGS",   getenv("TARGET_CXXFLAGS") },
-            };
-
-            for (int i = 0; i < 5; i++) {
-                if (setenv(envsForNativeBuild[i].name, envsForNativeBuild[i].value, 1) != 0) {
-                    perror(envsForNativeBuild[i].name);
-                    return XCPKG_ERROR;
-                }
-            }
+        if (ret != XCPKG_OK) {
+            return ret;
         }
     }
 

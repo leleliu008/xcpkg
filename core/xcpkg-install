@@ -64,7 +64,7 @@ isInteger() {
 }
 
 wfetch() {
-    "$XCPKG_PATH" util wfetch "$@"
+    "$XCPKG_PATH" util http-fetch "$@"
 }
 
 # git_checkout <URL> --ref-from=<FROM> --ref-to=<TO> --depth=<N> -B <CHECKOUT-BRANCH-NAME> -C <WORKDIR> --recursive
