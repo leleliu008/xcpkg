@@ -497,14 +497,12 @@ static int xcpkg_formula_set_value(XCPKGFormulaKeyCode keyCode, char * value, XC
     }
 
     for (;;) {
-        char c = value[0];
-
-        if (c == '\0') {
+        if (value[0] == '\0') {
             return XCPKG_OK;
         }
 
         // non-printable ASCII characters and space
-        if (c <= 32) {
+        if (value[0] <= 32) {
             value++;
         } else {
             break;
@@ -867,7 +865,7 @@ static int xcpkg_formula_check(XCPKGFormula * formula, const char * formulaFileP
                     }
                 }
             }
-        } else if (formula->git_url != NULL) {
+        } else if (formula->git_url != NULL && formula->git_ref != NULL) {
             char version[20]; version[0] = '\0';
 
             int ret = xcpkg_extract_version_from_git_ref(formula->git_ref, version, 20);
