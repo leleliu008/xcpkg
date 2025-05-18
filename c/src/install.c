@@ -2448,7 +2448,7 @@ static int install_files_to_metainfo_dir(struct stat st, const char * fromDIR, s
         return XCPKG_ERROR;
     }
 
-    if (stat(fromFilePath, &st) == 0) {
+    if (stat(fromFilePath, &st) == 0 && S_ISREG(st.st_mode)) {
         return xcpkg_copy_file(fromFilePath, toFilePath);
     }
 
@@ -3477,10 +3477,10 @@ static int xcpkg_install_package(
         char* a[2] = { "pip", formula->dep_pym };
 
         for (int i = 0; i < 2; i++) {
-            size_t pipInstallCmdCapacity = nativePackageInstalledRootDIRCapacity + sLength + strlen(a[i]);
+            size_t pipInstallCmdCapacity = uppmPackageInstalledRootDIRCapacity + sLength + strlen(a[i]);
             char   pipInstallCmd[pipInstallCmdCapacity];
 
-            ret = snprintf(pipInstallCmd, pipInstallCmdCapacity, "%s%s%s", nativePackageInstalledRootDIR, s, a[i]);
+            ret = snprintf(pipInstallCmd, pipInstallCmdCapacity, "%s%s%s", uppmPackageInstalledRootDIR, s, a[i]);
 
             if (ret < 0) {
                 perror(NULL);
@@ -3498,10 +3498,10 @@ static int xcpkg_install_package(
     //////////////////////////////////////////////////////////////////////////////
 
     if (formula->dep_plm != NULL) {
-        size_t cpanInstallCmdLength = nativePackageInstalledRootDIRCapacity + strlen(formula->dep_plm) + 24U;
+        size_t cpanInstallCmdLength = uppmPackageInstalledRootDIRCapacity + strlen(formula->dep_plm) + 24U;
         char   cpanInstallCmd[cpanInstallCmdLength];
 
-        ret = snprintf(cpanInstallCmd, cpanInstallCmdLength, "%s/perl/bin/cpan %s", nativePackageInstalledRootDIR, formula->dep_plm);
+        ret = snprintf(cpanInstallCmd, cpanInstallCmdLength, "%s/perl/bin/cpan %s", uppmPackageInstalledRootDIR, formula->dep_plm);
 
         if (ret < 0) {
             perror(NULL);
