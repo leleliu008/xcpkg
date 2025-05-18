@@ -30,6 +30,8 @@ jobs:
       - run: ./ppkg install xcpkg
       - run: ./ppkg bundle  xcpkg .tar.xz
 
+      - run: rm -rf ppkg ~/.ppkg
+
       - run: tar vxf *.tar.xz --strip-components=1
 
       - run: bin/xcpkg
@@ -44,6 +46,8 @@ jobs:
 
       - run: bin/xcpkg about
       - run: bin/xcpkg about -v
+
+      - run: bin/xcpkg sysinfo
 
       - run: bin/xcpkg completion zsh
       - run: bin/xcpkg completion zsh -v
