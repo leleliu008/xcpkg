@@ -160,6 +160,7 @@ int xcpkg_http_fetch_to_stream(const char * url, FILE * outputFile, const bool v
 
     // https://curl.se/libcurl/c/libcurl-errors.html
     if (curlcode != CURLE_OK) {
+        fprintf(stderr, "SSL_CERT_FILE=%s\n", SSL_CERT_FILE);
         fprintf(stderr, "%s\n", curl_easy_strerror(curlcode));
 
         // https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status
