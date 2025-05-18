@@ -5121,6 +5121,23 @@ int xcpkg_install(const char * packageName, const char * targetPlatformSpec, con
 
     //////////////////////////////////////////////////////////////////////////////
 
+    size_t pkgconfigCapacity = uppmPackageInstalledRootDIRCapacity + 26U;
+    char   pkgconfig[pkgconfigCapacity];
+
+    ret = snprintf(pkgconfig, pkgconfigCapacity, "%s/pkg-config/bin/pkg-config", uppmPackageInstalledRootDIR);
+
+    if (ret < 0) {
+        perror(NULL);
+        return XCPKG_ERROR;
+    }
+
+    if (setenv("PKG_CONFIG", pkgconfig, 1) != 0) {
+        perror("PKG_CONFIG");
+        return XCPKG_ERROR;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+
     SysInfo sysinfo = {0};
 
     ret = sysinfo_make(&sysinfo);
