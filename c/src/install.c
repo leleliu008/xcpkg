@@ -4230,7 +4230,10 @@ static int xcpkg_install_package(
 
     if (formula->useBuildSystemGolang) {
         // https://pkg.go.dev/cmd/cgo
-        KV goenvs[6] = {
+        // https://golang.org/doc/install/source#environment
+        KV goenvs[8] = {
+            { "GOOS",         "darwin" },
+            { "GOARCH",       strcmp(targetPlatformArch, "x86_64") == 0 ? "amd64" : targetPlatformArch },
             { "GO111MODULE",  "auto" },
             { "CGO_ENABLED",  "0" },
             { "CGO_CFLAGS",   getenv("CFLAGS") },
@@ -4239,7 +4242,7 @@ static int xcpkg_install_package(
             { "CGO_LDFLAGS",  getenv("LDFLAGS") },
         };
 
-        for (int i = 0; i < 6; i++) {
+        for (int i = 0; i < 8; i++) {
             const char * name  = goenvs[i].name;
             const char * value = goenvs[i].value;
 
@@ -4249,30 +4252,6 @@ static int xcpkg_install_package(
 
             if (setenv(name, value, 1) != 0) {
                 perror(name);
-                return XCPKG_ERROR;
-            }
-        }
-
-        // https://golang.org/doc/install/source#environment
-
-        if (isCrossBuild) {
-            if (setenv("GOOS", targetPlatformName, 1) != 0) {
-                perror("GOOS");
-                return XCPKG_ERROR;
-            }
-
-            if (setenv("GOARCH", strcmp(targetPlatformArch, "x86_64") == 0 ? "amd64" : targetPlatformArch, 1) != 0) {
-                perror("GOARCH");
-                return XCPKG_ERROR;
-            }
-        } else {
-            if (unsetenv("GOOS") != 0) {
-                perror("GOOS");
-                return XCPKG_ERROR;
-            }
-
-            if (unsetenv("GOARCH") != 0) {
-                perror("GOARCH");
                 return XCPKG_ERROR;
             }
         }
