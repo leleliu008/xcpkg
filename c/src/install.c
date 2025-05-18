@@ -49,8 +49,12 @@ static int fetch_gnu_config(const char * sessionDIR, const size_t sessionDIRCapa
     //////////////////////////////////////////////////////////////////////////////
 
     if (mkdir(gnuconfigDIR, S_IRWXU) != 0) {
-        perror(gnuconfigDIR);
-        return XCPKG_ERROR;
+        if (errno == EEXIST) {
+            return XCPKG_OK;
+        } else {
+            perror(gnuconfigDIR);
+            return XCPKG_ERROR;
+        }
     }
 
     //////////////////////////////////////////////////////////////////////////////
