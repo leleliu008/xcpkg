@@ -660,11 +660,7 @@ static int xcpkg_formula_check_bsystem(XCPKGFormula * formula) {
 
     const char * p = formula->install;
 
-    for (;;) {
-        if (p[0] == '\0') {
-            return XCPKG_OK;
-        }
-
+    while (p[0] != '\0') {
         if (p[0] <= 32) {
             p++;
             continue;
@@ -923,6 +919,51 @@ static int xcpkg_formula_check(XCPKGFormula * formula, const char * formulaFileP
 
     char * bsystem = strtok(bsystemBuf, " ");
 
+    if (formula->install == NULL) {
+        const char * dobuildActions;
+
+               if (strcmp(bsystem, "autogen") == 0) {
+            dobuildActions = "configure";
+        } else if (strcmp(bsystem, "autotools") == 0) {
+            dobuildActions = "configure";
+        } else if (strcmp(bsystem, "configure") == 0) {
+            dobuildActions = "configure";
+        } else if (strcmp(bsystem, "cmake") == 0) {
+            dobuildActions = "cmakew";
+        } else if (strcmp(bsystem, "cmake-ninja") == 0) {
+            dobuildActions = "cmakew";
+        } else if (strcmp(bsystem, "cmake-gmake") == 0) {
+            dobuildActions = "cmakew";
+        } else if (strcmp(bsystem, "xmake") == 0) {
+            dobuildActions = "xmakew";
+        } else if (strcmp(bsystem, "gmake") == 0) {
+            dobuildActions = "gmakew clean && gmakew && gmakew install";
+        } else if (strcmp(bsystem, "ninja") == 0) {
+            dobuildActions = "ninjaw clean && ninjaw && ninjaw install";
+        } else if (strcmp(bsystem, "meson") == 0) {
+            dobuildActions = "mesonw";
+        } else if (strcmp(bsystem, "cabal") == 0) {
+            dobuildActions = "cabal_v2_install";
+        } else if (strcmp(bsystem, "cargo") == 0) {
+            dobuildActions = "cargow install";
+        } else if (strcmp(bsystem, "go") == 0) {
+            dobuildActions = "gow";
+        } else if (strcmp(bsystem, "gn") == 0) {
+            dobuildActions = "gnw";
+        } else {
+            fprintf(stderr, "scheme error in formula file: %s : install mapping not found.\n", formula->path);
+            return XCPKG_ERROR_FORMULA_SCHEME;
+        }
+
+        formula->install = strdup(dobuildActions);
+
+        if (formula->install == NULL) {
+            return XCPKG_ERROR_MEMORY_ALLOCATE;
+        }
+    }
+
+    //////////////////////////////////////////////////////////////////////////////////////////////////////
+
     while (bsystem != NULL) {
                if (strcmp(bsystem, "autogen") == 0) {
             formula->useBuildSystemAutogen = true;
@@ -1076,43 +1117,6 @@ static int xcpkg_formula_check(XCPKGFormula * formula, const char * formulaFileP
     }
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    if (formula->install == NULL) {
-        const char * dobuildActions;
-
-        if (formula->useBuildSystemAutogen) {
-            dobuildActions = "configure";
-        } else if (formula->useBuildSystemAutotools) {
-            dobuildActions = "configure";
-        } else if (formula->useBuildSystemConfigure) {
-            dobuildActions = "configure";
-        } else if (formula->useBuildSystemCmake) {
-            dobuildActions = "cmakew";
-        } else if (formula->useBuildSystemXmake) {
-            dobuildActions = "xmakew";
-        } else if (formula->useBuildSystemMeson) {
-            dobuildActions = "mesonw";
-        } else if (formula->useBuildSystemNinja) {
-            dobuildActions = "ninjaw clean && ninjaw && ninjaw install";
-        } else if (formula->useBuildSystemGmake) {
-            dobuildActions = "gmakew clean && gmakew && gmakew install";
-        } else if (formula->useBuildSystemCargo) {
-            dobuildActions = "cargow install";
-        } else if (formula->useBuildSystemGolang) {
-            dobuildActions = "gow";
-        } else if (formula->useBuildSystemCabal) {
-            dobuildActions = "cabal_v2_install";
-        } else {
-            fprintf(stderr, "scheme error in formula file: %s : dobuild mapping not found.\n", formula->path);
-            return XCPKG_ERROR_FORMULA_SCHEME;
-        }
-
-        formula->install = strdup(dobuildActions);
-
-        if (formula->install == NULL) {
-            return XCPKG_ERROR_MEMORY_ALLOCATE;
-        }
-    }
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////
 

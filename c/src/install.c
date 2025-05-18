@@ -1186,22 +1186,6 @@ static int setup_rust_env2(const bool isForTarget, const char * rustTarget, cons
 
     /////////////////////////////////////////
 
-    char p[100];
-
-    for (size_t i = 0U; ; i++) {
-        if (rustTarget[i] == '-') {
-            p[i] = '_';
-        } else {
-            p[i] = rustTarget[i];
-
-            if (p[i] == '\0') {
-                break;
-            }
-        }
-    }
-
-    /////////////////////////////////////////
-
     KV envs[6] = {
         { "AR",       ar },
         { "CC",       cc },
@@ -1214,7 +1198,7 @@ static int setup_rust_env2(const bool isForTarget, const char * rustTarget, cons
     char key[100];
 
     for (int i = 0; i < 5; i++) {
-        ret = snprintf(key, 100, "%s_%s", envs[i].name, p);
+        ret = snprintf(key, 100, "%s_%s", envs[i].name, rustTarget);
 
         if (ret < 0) {
             perror(NULL);
@@ -1569,6 +1553,8 @@ static int generate_shell_script_file(
     //////////////////////////////////////////////////////////////////////////////
 
     KB kbs[] = {
+        {"DUMP_ENV",      installOptions->verbose_env},
+
         {"VERBOSE_MESON", installOptions->verbose_bs},
         {"VERBOSE_NINJA", installOptions->verbose_bs},
         {"VERBOSE_GMAKE", installOptions->verbose_bs},
@@ -3249,6 +3235,7 @@ static int xcpkg_install_package(
     bool needToBuildHelp2man = false;
     bool needToBuildIntltool = false;
     bool needToBuildPerlXMLParser = false;
+    bool needToBuildLibOpenssl = false;
 
     size_t depPackageNamesLength = (formula->dep_upp == NULL) ? 0U : strlen(formula->dep_upp);
 
@@ -3298,6 +3285,9 @@ static int xcpkg_install_package(
                 needToInstallGm4   = true;
             } else if (strcmp(depPackageName, "perl-XML-Parser") == 0) {
                 needToBuildPerlXMLParser = true;
+                needToInstallGmake = true;
+            } else if (strcmp(depPackageName, "libopenssl") == 0) {
+                needToBuildLibOpenssl = true;
                 needToInstallGmake = true;
             } else {
                 int len = snprintf(uppmPackageNames + uppmPackageNamesLength, strlen(depPackageName) + 2U, " %s", depPackageName);
@@ -3394,6 +3384,11 @@ static int xcpkg_install_package(
 
     if (needToBuildPerlXMLParser) {
         nativePackageIDArray[nativePackageIDArraySize] = NATIVE_PACKAGE_ID_PERL_XML_PARSER;
+        nativePackageIDArraySize++;
+    }
+
+    if (needToBuildLibOpenssl) {
+        nativePackageIDArray[nativePackageIDArraySize] = NATIVE_PACKAGE_ID_OPENSSL;
         nativePackageIDArraySize++;
     }
 
@@ -4318,10 +4313,6 @@ static int xcpkg_install_package(
         perror(SHELL);
 
         return XCPKG_ERROR;
-    }
-
-    if (installOptions->verbose_env) {
-        printenv();
     }
 
     //////////////////////////////////////////////////////////////////////////////
