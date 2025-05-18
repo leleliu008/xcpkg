@@ -35,11 +35,17 @@ int xcpkg_setenv_SSL_CERT_FILE() {
 
     struct stat st;
 
-    if (stat(cacertFilePath, &st) == 0 && S_ISREG(st.st_mode)) {
-        // https://www.openssl.org/docs/man1.1.1/man3/SSL_CTX_set_default_verify_paths.html
-        if (setenv("SSL_CERT_FILE", cacertFilePath, 1) != 0) {
-            perror("SSL_CERT_FILE");
-            return XCPKG_ERROR;
+    char* a[2] = {cacertFilePath, "/etc/ssl/cert.pem"};
+
+    for (int i = 0; i < 2; i++) {
+        if (stat(a[i], &st) == 0 && S_ISREG(st.st_mode)) {
+            // https://www.openssl.org/docs/man1.1.1/man3/SSL_CTX_set_default_verify_paths.html
+            if (setenv("SSL_CERT_FILE", a[i], 1) != 0) {
+                perror("SSL_CERT_FILE");
+                return XCPKG_ERROR;
+            } else {
+                return XCPKG_OK;
+            }
         }
     }
 
