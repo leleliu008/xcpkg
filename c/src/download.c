@@ -14,6 +14,10 @@
 #include "xcpkg.h"
 
 int xcpkg_download(const char * url, const char * uri, const char * expectedSHA256SUM, const char * outputPath, const bool verbose) {
+    if (verbose) {
+        fprintf(stderr, "Downloading %s %s %s => %s\n", url, uri, expectedSHA256SUM, outputPath);
+    }
+
     if (url == NULL) {
         return XCPKG_ERROR_ARG_IS_NULL;
     }
@@ -97,15 +101,17 @@ int xcpkg_download(const char * url, const char * uri, const char * expectedSHA2
 
     if (stat(outputFilePath, &st) == 0) {
         if (S_ISREG(st.st_mode)) {
-            char actualSHA256SUM[65] = {0};
+            if (expectedSHA256SUM != NULL) {
+                char actualSHA256SUM[65] = {0};
 
-            if (sha256sum_of_file(actualSHA256SUM, outputFilePath) != 0) {
-                return XCPKG_ERROR;
-            }
+                if (sha256sum_of_file(actualSHA256SUM, outputFilePath) != 0) {
+                    return XCPKG_ERROR;
+                }
 
-            if (strcmp(actualSHA256SUM, expectedSHA256SUM) == 0) {
-                fprintf(stderr, "%s already downloaded into %s\n", url, outputFilePath);
-                return XCPKG_OK;
+                if (strcmp(actualSHA256SUM, expectedSHA256SUM) == 0) {
+                    fprintf(stderr, "%s already downloaded into %s\n", url, outputFilePath);
+                    return XCPKG_OK;
+                }
             }
         } else {
             fprintf(stderr, "%s was expected to be a regular file, but it was not.\n", outputFilePath);
@@ -198,22 +204,28 @@ int xcpkg_download(const char * url, const char * uri, const char * expectedSHA2
 
     //////////////////////////////////////////////////////////////////////////
 
-    char actualSHA256SUM[65] = {0};
+    if (expectedSHA256SUM != NULL) {
+        char actualSHA256SUM[65] = {0};
 
-    if (sha256sum_of_file(actualSHA256SUM, tmpFilePath) != 0) {
-        return XCPKG_ERROR;
-    }
-
-    if (strcmp(actualSHA256SUM, expectedSHA256SUM) == 0) {
-        if (rename(tmpFilePath, outputFilePath) == 0) {
-            printf("%s\n", outputFilePath);
-            return XCPKG_OK;
-        } else {
-            perror(outputFilePath);
+        if (sha256sum_of_file(actualSHA256SUM, tmpFilePath) != 0) {
             return XCPKG_ERROR;
         }
+
+        if (strcmp(actualSHA256SUM, expectedSHA256SUM) != 0) {
+            fprintf(stderr, "sha256sum mismatch.\n    expect : %s\n    actual : %s\n", expectedSHA256SUM, actualSHA256SUM);
+            return XCPKG_ERROR_SHA256_MISMATCH;
+        }
+    }
+
+    //////////////////////////////////////////////////////////////////////////
+
+    if (rename(tmpFilePath, outputFilePath) == 0) {
+        if (verbose) {
+            fprintf(stderr, "%s => %s\n", url, outputFilePath);
+        }
+        return XCPKG_OK;
     } else {
-        fprintf(stderr, "sha256sum mismatch.\n    expect : %s\n    actual : %s\n", expectedSHA256SUM, actualSHA256SUM);
-        return XCPKG_ERROR_SHA256_MISMATCH;
+        perror(outputFilePath);
+        return XCPKG_ERROR;
     }
 }
