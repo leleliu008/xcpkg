@@ -12,13 +12,6 @@
 
 #include "xcpkg.h"
 
-#define XCPKG_BUILD_SYSTEM_ID_GMAKE  1
-#define XCPKG_BUILD_SYSTEM_ID_XMAKE  2
-#define XCPKG_BUILD_SYSTEM_ID_CABAL  3
-#define XCPKG_BUILD_SYSTEM_ID_CARGO  4
-#define XCPKG_BUILD_SYSTEM_ID_GOLANG 5
-
-
 static inline __attribute__((always_inline)) void string_buffer_append(char buf[], size_t * bufLengthP, const char * s) {
     size_t bufLength = (*bufLengthP);
 
@@ -750,7 +743,7 @@ static int xcpkg_formula_check_bsystem(XCPKGFormula * formula) {
     return XCPKG_OK;
 }
 
-static int xcpkg_formula_check(XCPKGFormula * formula, const char * formulaFilePath, int * bsystemMaster) {
+static int xcpkg_formula_check(XCPKGFormula * formula, const char * formulaFilePath) {
     if (formula->summary == NULL) {
         fprintf(stderr, "scheme error in formula file: %s : summary mapping not found.\n", formulaFilePath);
         return XCPKG_ERROR_FORMULA_SCHEME;
@@ -941,23 +934,18 @@ static int xcpkg_formula_check(XCPKGFormula * formula, const char * formulaFileP
             dobuildActions = "cmakew";
         } else if (strcmp(bsystem, "xmake") == 0) {
             dobuildActions = "xmakew";
-            *bsystemMaster = XCPKG_BUILD_SYSTEM_ID_XMAKE;
         } else if (strcmp(bsystem, "gmake") == 0) {
             dobuildActions = "gmakew clean && gmakew && gmakew install";
-            *bsystemMaster = XCPKG_BUILD_SYSTEM_ID_GMAKE;
         } else if (strcmp(bsystem, "ninja") == 0) {
             dobuildActions = "ninjaw clean && ninjaw && ninjaw install";
         } else if (strcmp(bsystem, "meson") == 0) {
             dobuildActions = "mesonw";
         } else if (strcmp(bsystem, "cabal") == 0) {
             dobuildActions = "cabal_v2_install";
-            *bsystemMaster = XCPKG_BUILD_SYSTEM_ID_CABAL;
         } else if (strcmp(bsystem, "cargo") == 0) {
             dobuildActions = "cargow install";
-            *bsystemMaster = XCPKG_BUILD_SYSTEM_ID_CARGO;
         } else if (strcmp(bsystem, "go") == 0) {
             dobuildActions = "gow";
-            *bsystemMaster = XCPKG_BUILD_SYSTEM_ID_GOLANG;
         } else if (strcmp(bsystem, "gn") == 0) {
             dobuildActions = "gnw";
         } else {
@@ -1240,9 +1228,7 @@ finalize:
     fclose(file);
 
     if (ret == XCPKG_OK) {
-        int bsystemMaster = -1;
-
-        ret = xcpkg_formula_check(formula, formulaFilePath, &bsystemMaster);
+        ret = xcpkg_formula_check(formula, formulaFilePath);
 
         if (ret == XCPKG_OK) {
             if (symlink == -1) {
@@ -1271,18 +1257,20 @@ finalize:
             }
 
             if (binbstd == -1) {
+                binbstd = 0;
                 formula->binbstd_is_calculated = true;
 
-                switch (bsystemMaster) {
-                    case XCPKG_BUILD_SYSTEM_ID_GMAKE:
-                    case XCPKG_BUILD_SYSTEM_ID_XMAKE:
-                    case XCPKG_BUILD_SYSTEM_ID_CABAL:
-                    case XCPKG_BUILD_SYSTEM_ID_CARGO:
-                    case XCPKG_BUILD_SYSTEM_ID_GOLANG:
-                        binbstd = 1;
-                        break;
-                    default:
-                        binbstd = 0;
+                if (formula->bsystem != NULL) {
+                    const char * p = formula->bsystem;
+
+                    for (size_t i = 0U; ; i++) {
+                        if (p[i] == ' ' || p[i] == '\0') {
+                            if (strncmp(p, "gmake", i) == 0 || strncmp(p, "xmake", i) == 0 || strncmp(p, "cabal", i) == 0 || strncmp(p, "cargo", i) == 0 || strncmp(p, "go", i) == 0) {
+                                binbstd = 1;
+                            }
+                            break;
+                        }
+                    }
                 }
             }
 
