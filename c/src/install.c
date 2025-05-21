@@ -1590,6 +1590,7 @@ static int generate_shell_script_file(
         {"PACKAGE_USE_BSYSTEM_CARGO", formula->useBuildSystemCargo},
         {"PACKAGE_USE_BSYSTEM_GO", formula->useBuildSystemGolang},
         {"PACKAGE_USE_BSYSTEM_GN", formula->useBuildSystemGN},
+        {"PACKAGE_USE_BSYSTEM_ZIG", formula->useBuildSystemZIG},
         {NULL,false}
     };
 

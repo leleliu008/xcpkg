@@ -340,6 +340,7 @@ int xcpkg_git_sync(const char * repositoryDIR, const char * remoteUrl, const cha
 
     git_fetch_options gitFetchOptions = GIT_FETCH_OPTIONS_INIT;
     gitFetchOptions.callbacks = gitRemoteCallbacks;
+    gitFetchOptions.download_tags = GIT_REMOTE_DOWNLOAD_TAGS_NONE;
 
     // this feature was introduced in libgit2-1.7.0
 #if ((LIBGIT2_VER_MAJOR == 1) && (LIBGIT2_VER_MINOR >= 7)) || (LIBGIT2_VER_MAJOR > 1)
@@ -378,6 +379,23 @@ int xcpkg_git_sync(const char * repositoryDIR, const char * remoteUrl, const cha
         gitError = git_error_last();
         goto finalize;
     }
+
+    //////////////////////////////////////////////////////////////////////////////////////////////
+
+    git_strarray refs = {0};
+    ret = git_reference_list(&refs, gitRepo);
+
+    if (ret != GIT_OK) {
+        gitError = git_error_last();
+        goto finalize;
+    }
+
+    for (size_t i = 0U; i < refs.count; i++) {
+        printf("ref:%s\n", refs.strings[i]);
+        free(refs.strings[i]);
+    }
+
+    free(refs.strings);
 
     //////////////////////////////////////////////////////////////////////////////////////////////
 

@@ -776,6 +776,11 @@ cmakew_for_target() {
         CMAKE_FIND_DEBUG_MODE=OFF
     fi
 
+    case $PROFILE in
+        debug)   CMAKE_BUILD_TYPE=Debug   ;;
+        release) CMAKE_BUILD_TYPE=Release ;;
+    esac
+
     CMAKE_FIND_ROOT_PATH="$PACKAGE_WORKING_DIR"
 
     for DEPENDENT_PACKAGE_NAME in $PACKAGE_DEP_PKG_R
@@ -821,6 +826,8 @@ message(STATUS "     CMAKE_SYSTEM_NAME: \${CMAKE_SYSTEM_NAME}")
 if ("\${BUILD_SHARED_LIBS}" STREQUAL "")
     set(BUILD_SHARED_LIBS $BUILD_SHARED_LIBS)
 endif()
+
+set(CMAKE_BUILD_TYPE  $CMAKE_BUILD_TYPE)
 
 set(CMAKE_C_COMPILER "$CC")
 set(CMAKE_C_FLAGS "$CFLAGS $CPPFLAGS")

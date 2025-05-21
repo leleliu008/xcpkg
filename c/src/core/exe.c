@@ -208,58 +208,57 @@ int exe_where(const char * commandName, char buf[]) {
     struct stat st;
 
     char tmpBuf[PATH_MAX];
-    char outBuf[PATH_MAX];
 
-    while (p != NULL) {
-        for (int i = 0;; i++) {
-            if (p[i] == '\0') {
-                p = NULL;
-                tmpBuf[i] = '\0';
-
-                if (i != 0) {
-                    if ((stat(tmpBuf, &st) == 0) && S_ISDIR(st.st_mode)) {
-                        int n = snprintf(outBuf, PATH_MAX, "%s/%s", tmpBuf, commandName);
-
-                        if (n < 0) {
-                            return -1;
-                        }
-
-                        if (access(outBuf, X_OK) == 0) {
-                            strncpy(buf, outBuf, n);
-
-                            buf[n] = '\0';
-
-                            return n;
-                        }
-                    }
-                }
-
-                break;
+    for (;;) {
+        for (;;) {
+            if (p[0] == '\0') {
+                return 0;
             }
 
-            if (p[i] == ':') {
-                p += i + 1;
+            if (p[0] <= 32 || p[0] == ':') {
+                p++;
+            } else {
+                break;
+            }
+        }
+
+        for (size_t i = 0U; ; i++) {
+            if (p[i] == ':' || p[i] == '\0') {
                 tmpBuf[i] = '\0';
 
-                if (i != 0) {
-                    if ((stat(tmpBuf, &st) == 0) && S_ISDIR(st.st_mode)) {
-                        int n = snprintf(outBuf, PATH_MAX, "%s/%s", tmpBuf, commandName);
+                if ((stat(tmpBuf, &st) == 0) && S_ISDIR(st.st_mode)) {
+                    tmpBuf[i] = '/';
 
-                        if (n < 0) {
-                            return -1;
+                    char * q = tmpBuf + i + 1;
+
+                    size_t n;
+
+                    for (size_t j = 0U; ; j++) {
+                        q[j] = commandName[j];
+
+                        if (q[j] == '\0') {
+                            n = i + j + 1U;
+                            break;
+                        }
+                    }
+
+                    if (access(tmpBuf, X_OK) == 0) {
+                        for (size_t j = 0U; j < n; j++) {
+                            buf[j] = tmpBuf[j];
                         }
 
-                        if (access(outBuf, X_OK) == 0) {
-                            strncpy(buf, outBuf, n);
+                        buf[n] = '\0';
 
-                            buf[n] = '\0';
-
-                            return n;
-                        }
+                        return n;
                     }
                 }
 
-                break;
+                if (p[i] == '\0') {
+                    return 0;
+                } else {
+                    p += i + 1;
+                    break;
+                }
             }
 
             tmpBuf[i] = p[i];

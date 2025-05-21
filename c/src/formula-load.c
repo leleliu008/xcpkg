@@ -646,103 +646,6 @@ static int xcpkg_formula_set_value(XCPKGFormulaKeyCode keyCode, char * value, XC
     return XCPKG_OK;
 }
 
-static int xcpkg_formula_check_bsystem(XCPKGFormula * formula) {
-    if (formula->bsystem != NULL) {
-        return XCPKG_OK;
-    }
-
-    if (formula->install == NULL) {
-        fprintf(stderr, "scheme error in formula file: %s : neither bsystem nor install mapping is found.\n", formula->path);
-        return XCPKG_ERROR_FORMULA_SCHEME;
-    }
-
-    const char * p = formula->install;
-
-    while (p[0] != '\0') {
-        if (p[0] <= 32) {
-            p++;
-            continue;
-        }
-
-        for (int i = 0; ; i++) {
-            if (p[i] <= 32) {
-                if (strncmp(p, "configure", i) == 0) {
-                    formula->bsystem = strdup("configure");
-                    formula->bsystem_is_calculated = true;
-                    return XCPKG_OK;
-                }
-
-                if (strncmp(p, "cmakew", i) == 0) {
-                    formula->bsystem = strdup("cmake");
-                    formula->bsystem_is_calculated = true;
-                    return XCPKG_OK;
-                }
-
-                if (strncmp(p, "xmakew", i) == 0) {
-                    formula->bsystem = strdup("xmake");
-                    formula->bsystem_is_calculated = true;
-                    return XCPKG_OK;
-                }
-
-                if (strncmp(p, "gmakew", i) == 0) {
-                    formula->bsystem = strdup("gmake");
-                    formula->bsystem_is_calculated = true;
-                    return XCPKG_OK;
-                }
-
-                if (strncmp(p, "mesonw", i) == 0) {
-                    formula->bsystem = strdup("meson");
-                    formula->bsystem_is_calculated = true;
-                    return XCPKG_OK;
-                }
-
-                if (strncmp(p, "cabal_v2_install", i) == 0) {
-                    formula->bsystem = strdup("cabal");
-                    formula->bsystem_is_calculated = true;
-                    return XCPKG_OK;
-                }
-
-                if (strncmp(p, "cargow", i) == 0) {
-                    formula->bsystem = strdup("cargo");
-                    formula->bsystem_is_calculated = true;
-                    return XCPKG_OK;
-                }
-
-                if (strncmp(p, "gow", i) == 0) {
-                    formula->bsystem = strdup("go");
-                    formula->bsystem_is_calculated = true;
-                    return XCPKG_OK;
-                }
-
-                if (strncmp(p, "gnw", i) == 0) {
-                    formula->bsystem = strdup("gn");
-                    formula->bsystem_is_calculated = true;
-                    return XCPKG_OK;
-                }
-
-                p += i;
-
-                for (;;) {
-                    if (p[0] == '\0') {
-                        return XCPKG_OK;
-                    }
-
-                    if (p[0] == '\n') {
-                        p++;
-                        break;
-                    } else {
-                        p++;
-                    }
-                }
-
-                break;
-            }
-        }
-    }
-
-    return XCPKG_OK;
-}
-
 static int xcpkg_formula_check(XCPKGFormula * formula, const char * formulaFilePath) {
     if (formula->summary == NULL) {
         fprintf(stderr, "scheme error in formula file: %s : summary mapping not found.\n", formulaFilePath);
@@ -901,112 +804,221 @@ static int xcpkg_formula_check(XCPKGFormula * formula, const char * formulaFileP
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    int ret = xcpkg_formula_check_bsystem(formula);
-
-    if (ret != XCPKG_OK) {
-        return ret;
-    }
+    char   dep_upp_extra_buf[256]; dep_upp_extra_buf[0] = '\0';
+    size_t dep_upp_extra_buf_len = 0U;
 
     if (formula->bsystem == NULL) {
-        return XCPKG_OK;
-    }
-
-    size_t  bsystemBufCapcity = strlen(formula->bsystem) + 1U;
-    char    bsystemBuf[bsystemBufCapcity];
-    strncpy(bsystemBuf, formula->bsystem, bsystemBufCapcity);
-
-    char * bsystem = strtok(bsystemBuf, " ");
-
-    if (formula->install == NULL) {
-        const char * dobuildActions;
-
-               if (strcmp(bsystem, "autogen") == 0) {
-            dobuildActions = "configure";
-        } else if (strcmp(bsystem, "autotools") == 0) {
-            dobuildActions = "configure";
-        } else if (strcmp(bsystem, "configure") == 0) {
-            dobuildActions = "configure";
-        } else if (strcmp(bsystem, "cmake") == 0) {
-            dobuildActions = "cmakew";
-        } else if (strcmp(bsystem, "cmake-ninja") == 0) {
-            dobuildActions = "cmakew";
-        } else if (strcmp(bsystem, "cmake-gmake") == 0) {
-            dobuildActions = "cmakew";
-        } else if (strcmp(bsystem, "xmake") == 0) {
-            dobuildActions = "xmakew";
-        } else if (strcmp(bsystem, "gmake") == 0) {
-            dobuildActions = "gmakew clean && gmakew && gmakew install";
-        } else if (strcmp(bsystem, "ninja") == 0) {
-            dobuildActions = "ninjaw clean && ninjaw && ninjaw install";
-        } else if (strcmp(bsystem, "meson") == 0) {
-            dobuildActions = "mesonw";
-        } else if (strcmp(bsystem, "cabal") == 0) {
-            dobuildActions = "cabal_v2_install";
-        } else if (strcmp(bsystem, "cargo") == 0) {
-            dobuildActions = "cargow install";
-        } else if (strcmp(bsystem, "go") == 0) {
-            dobuildActions = "gow";
-        } else if (strcmp(bsystem, "gn") == 0) {
-            dobuildActions = "gnw";
-        } else {
-            fprintf(stderr, "scheme error in formula file: %s : install mapping not found.\n", formula->path);
+        if (formula->install == NULL) {
+            fprintf(stderr, "scheme error in formula file: %s : neither bsystem nor install mapping is found.\n", formula->path);
             return XCPKG_ERROR_FORMULA_SCHEME;
         }
 
-        formula->install = strdup(dobuildActions);
+        const char * p = formula->install;
+
+        while (p[0] != '\0') {
+            if (p[0] <= 32) {
+                p++;
+                continue;
+            }
+
+            for (int i = 0; ; i++) {
+                if (p[i] <= 32) {
+                    if (strncmp(p, "configure", i) == 0) {
+                        formula->bsystem = strdup("configure");
+                        formula->bsystem_is_calculated = true;
+                        formula->useBuildSystemConfigure = true;
+                        return XCPKG_OK;
+                    }
+
+                    if (strncmp(p, "cmakew", i) == 0) {
+                        formula->bsystem = strdup("cmake");
+                        formula->bsystem_is_calculated = true;
+                        formula->useBuildSystemCmake = true;
+                        formula->useBuildSystemNinja = true;
+                        return XCPKG_OK;
+                    }
+
+                    if (strncmp(p, "xmakew", i) == 0) {
+                        formula->bsystem = strdup("xmake");
+                        formula->bsystem_is_calculated = true;
+                        formula->useBuildSystemXmake = true;
+                        return XCPKG_OK;
+                    }
+
+                    if (strncmp(p, "gmakew", i) == 0) {
+                        formula->bsystem = strdup("gmake");
+                        formula->bsystem_is_calculated = true;
+                        formula->useBuildSystemGmake = true;
+                        return XCPKG_OK;
+                    }
+
+                    if (strncmp(p, "mesonw", i) == 0) {
+                        formula->bsystem = strdup("meson");
+                        formula->bsystem_is_calculated = true;
+                        formula->useBuildSystemMeson = true;
+                        formula->useBuildSystemNinja = true;
+                        return XCPKG_OK;
+                    }
+
+                    if (strncmp(p, "cabal_v2_install", i) == 0) {
+                        formula->bsystem = strdup("cabal");
+                        formula->bsystem_is_calculated = true;
+                        formula->useBuildSystemCabal = true;
+                        formula->useBuildSystemGmake = true;
+                        return XCPKG_OK;
+                    }
+
+                    if (strncmp(p, "cargow", i) == 0) {
+                        formula->bsystem = strdup("cargo");
+                        formula->bsystem_is_calculated = true;
+                        formula->useBuildSystemCargo = true;
+                        return XCPKG_OK;
+                    }
+
+                    if (strncmp(p, "gow", i) == 0) {
+                        formula->bsystem = strdup("go");
+                        formula->bsystem_is_calculated = true;
+                        formula->useBuildSystemGolang = true;
+                        return XCPKG_OK;
+                    }
+
+                    if (strncmp(p, "gnw", i) == 0) {
+                        formula->bsystem = strdup("gn");
+                        formula->bsystem_is_calculated = true;
+                        formula->useBuildSystemGN = true;
+                        return XCPKG_OK;
+                    }
+
+                    if (strncmp(p, "zig", i) == 0) {
+                        formula->bsystem = strdup("zig");
+                        formula->bsystem_is_calculated = true;
+                        formula->useBuildSystemZIG = true;
+                        string_buffer_append(dep_upp_extra_buf, &dep_upp_extra_buf_len, "zig");
+                        return XCPKG_OK;
+                    }
+
+                    p += i;
+
+                    for (;;) {
+                        if (p[0] == '\0') {
+                            return XCPKG_OK;
+                        }
+
+                        if (p[0] == '\n') {
+                            p++;
+                            break;
+                        } else {
+                            p++;
+                        }
+                    }
+
+                    break;
+                }
+            }
+        }
+    } else {
+        size_t  bsystemBufCapcity = strlen(formula->bsystem) + 1U;
+        char    bsystemBuf[bsystemBufCapcity];
+        strncpy(bsystemBuf, formula->bsystem, bsystemBufCapcity);
+
+        char * bsystem = strtok(bsystemBuf, " ");
 
         if (formula->install == NULL) {
-            return XCPKG_ERROR_MEMORY_ALLOCATE;
+            const char * dobuildActions;
+
+                   if (strcmp(bsystem, "autogen") == 0) {
+                dobuildActions = "configure";
+            } else if (strcmp(bsystem, "autotools") == 0) {
+                dobuildActions = "configure";
+            } else if (strcmp(bsystem, "configure") == 0) {
+                dobuildActions = "configure";
+            } else if (strcmp(bsystem, "cmake") == 0) {
+                dobuildActions = "cmakew";
+            } else if (strcmp(bsystem, "cmake-ninja") == 0) {
+                dobuildActions = "cmakew";
+            } else if (strcmp(bsystem, "cmake-gmake") == 0) {
+                dobuildActions = "cmakew";
+            } else if (strcmp(bsystem, "xmake") == 0) {
+                dobuildActions = "xmakew";
+            } else if (strcmp(bsystem, "gmake") == 0) {
+                dobuildActions = "gmakew clean && gmakew && gmakew install";
+            } else if (strcmp(bsystem, "ninja") == 0) {
+                dobuildActions = "ninjaw clean && ninjaw && ninjaw install";
+            } else if (strcmp(bsystem, "meson") == 0) {
+                dobuildActions = "mesonw";
+            } else if (strcmp(bsystem, "cabal") == 0) {
+                dobuildActions = "cabal_v2_install";
+            } else if (strcmp(bsystem, "cargo") == 0) {
+                dobuildActions = "cargow install";
+            } else if (strcmp(bsystem, "go") == 0) {
+                dobuildActions = "gow";
+            } else if (strcmp(bsystem, "gn") == 0) {
+                dobuildActions = "gnw";
+            } else if (strcmp(bsystem, "zig") == 0) {
+                dobuildActions = "zig";
+            } else if (strncmp(bsystem, "zig@", 4U) == 0) {
+                dobuildActions = "zig";
+            } else {
+                fprintf(stderr, "scheme error in formula file: %s : install mapping not found.\n", formula->path);
+                return XCPKG_ERROR_FORMULA_SCHEME;
+            }
+
+            formula->install = strdup(dobuildActions);
+
+            if (formula->install == NULL) {
+                return XCPKG_ERROR_MEMORY_ALLOCATE;
+            }
+        }
+
+        while (bsystem != NULL) {
+                   if (strcmp(bsystem, "autogen") == 0) {
+                formula->useBuildSystemAutogen = true;
+                formula->useBuildSystemGmake = true;
+            } else if (strcmp(bsystem, "autotools") == 0) {
+                formula->useBuildSystemAutotools = true;
+                formula->useBuildSystemGmake = true;
+            } else if (strcmp(bsystem, "configure") == 0) {
+                formula->useBuildSystemConfigure = true;
+                formula->useBuildSystemGmake = true;
+            } else if (strcmp(bsystem, "cmake") == 0) {
+                formula->useBuildSystemCmake = true;
+                formula->useBuildSystemNinja = true;
+            } else if (strcmp(bsystem, "cmake-ninja") == 0) {
+                formula->useBuildSystemCmake = true;
+                formula->useBuildSystemNinja = true;
+            } else if (strcmp(bsystem, "cmake-gmake") == 0) {
+                formula->useBuildSystemCmake = true;
+                formula->useBuildSystemGmake = true;
+            } else if (strcmp(bsystem, "xmake") == 0) {
+                formula->useBuildSystemXmake = true;
+            } else if (strcmp(bsystem, "gmake") == 0) {
+                formula->useBuildSystemGmake = true;
+            } else if (strcmp(bsystem, "ninja") == 0) {
+                formula->useBuildSystemNinja = true;
+            } else if (strcmp(bsystem, "meson") == 0) {
+                formula->useBuildSystemMeson = true;
+                formula->useBuildSystemNinja = true;
+            } else if (strcmp(bsystem, "cabal") == 0) {
+                formula->useBuildSystemCabal = true;
+            } else if (strcmp(bsystem, "cargo") == 0) {
+                formula->useBuildSystemCargo = true;
+            } else if (strcmp(bsystem, "go") == 0) {
+                formula->useBuildSystemGolang = true;
+            } else if (strcmp(bsystem, "gn") == 0) {
+                formula->useBuildSystemGN = true;
+            } else if (strcmp(bsystem, "zig") == 0) {
+                formula->useBuildSystemZIG = true;
+                string_buffer_append(dep_upp_extra_buf, &dep_upp_extra_buf_len, "zig");
+            } else if (strncmp(bsystem, "zig@", 4U) == 0) {
+                formula->useBuildSystemZIG = true;
+                string_buffer_append(dep_upp_extra_buf, &dep_upp_extra_buf_len, bsystem);
+            }
+
+            bsystem = strtok(NULL, " ");
         }
     }
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    while (bsystem != NULL) {
-               if (strcmp(bsystem, "autogen") == 0) {
-            formula->useBuildSystemAutogen = true;
-            formula->useBuildSystemGmake = true;
-        } else if (strcmp(bsystem, "autotools") == 0) {
-            formula->useBuildSystemAutotools = true;
-            formula->useBuildSystemGmake = true;
-        } else if (strcmp(bsystem, "configure") == 0) {
-            formula->useBuildSystemConfigure = true;
-            formula->useBuildSystemGmake = true;
-        } else if (strcmp(bsystem, "cmake") == 0) {
-            formula->useBuildSystemCmake = true;
-            formula->useBuildSystemNinja = true;
-        } else if (strcmp(bsystem, "cmake-ninja") == 0) {
-            formula->useBuildSystemCmake = true;
-            formula->useBuildSystemNinja = true;
-        } else if (strcmp(bsystem, "cmake-gmake") == 0) {
-            formula->useBuildSystemCmake = true;
-            formula->useBuildSystemGmake = true;
-        } else if (strcmp(bsystem, "xmake") == 0) {
-            formula->useBuildSystemXmake = true;
-        } else if (strcmp(bsystem, "gmake") == 0) {
-            formula->useBuildSystemGmake = true;
-        } else if (strcmp(bsystem, "ninja") == 0) {
-            formula->useBuildSystemNinja = true;
-        } else if (strcmp(bsystem, "meson") == 0) {
-            formula->useBuildSystemMeson = true;
-            formula->useBuildSystemNinja = true;
-        } else if (strcmp(bsystem, "cabal") == 0) {
-            formula->useBuildSystemCabal = true;
-        } else if (strcmp(bsystem, "cargo") == 0) {
-            formula->useBuildSystemCargo = true;
-        } else if (strcmp(bsystem, "go") == 0) {
-            formula->useBuildSystemGolang = true;
-        } else if (strcmp(bsystem, "gn") == 0) {
-            formula->useBuildSystemGN = true;
-        }
-
-        bsystem = strtok(NULL, " ");
-    }
-
-    //////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    char   dep_upp_extra_buf[256] = {0};
-    size_t dep_upp_extra_buf_len = 0U;
 
     if (formula->useBuildSystemAutogen || formula->useBuildSystemAutotools) {
         string_buffer_append(dep_upp_extra_buf, &dep_upp_extra_buf_len, "automake autoconf perl gm4");
@@ -1067,10 +1079,11 @@ static int xcpkg_formula_check(XCPKGFormula * formula, const char * formulaFileP
                 return XCPKG_ERROR_MEMORY_ALLOCATE;
             }
 
-            ret = snprintf(p, newLength, "%s %s", formula->dep_upp, dep_upp_extra_buf);
+            int ret = snprintf(p, newLength, "%s %s", formula->dep_upp, dep_upp_extra_buf);
 
             if (ret < 0) {
                 perror(NULL);
+                free(p);
                 return XCPKG_ERROR;
             }
 
@@ -1101,10 +1114,11 @@ static int xcpkg_formula_check(XCPKGFormula * formula, const char * formulaFileP
                 return XCPKG_ERROR_MEMORY_ALLOCATE;
             }
 
-            ret = snprintf(p, newLength, "%s meson", formula->dep_pym);
+            int ret = snprintf(p, newLength, "%s meson", formula->dep_pym);
 
             if (ret < 0) {
                 perror(NULL);
+                free(p);
                 return XCPKG_ERROR;
             }
 
@@ -1265,7 +1279,7 @@ finalize:
 
                     for (size_t i = 0U; ; i++) {
                         if (p[i] == ' ' || p[i] == '\0') {
-                            if (strncmp(p, "gmake", i) == 0 || strncmp(p, "xmake", i) == 0 || strncmp(p, "cabal", i) == 0 || strncmp(p, "cargo", i) == 0 || strncmp(p, "go", i) == 0) {
+                            if (strncmp(p, "gmake", i) == 0 || strncmp(p, "xmake", i) == 0 || strncmp(p, "cabal", i) == 0 || strncmp(p, "cargo", i) == 0 || strncmp(p, "go", i) == 0 || strncmp(p, "zig", 3) == 0) {
                                 binbstd = 1;
                             }
                             break;

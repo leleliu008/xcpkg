@@ -445,21 +445,37 @@ int install_native_package(
         }
     }
 
-    size_t receiptFilePath2Length = packageInstalledDIRCapacity + 14U;
-    char   receiptFilePath2[receiptFilePath2Length];
+    //////////////////////////////////////////////////////////////////////////////
 
-    ret = snprintf(receiptFilePath2, receiptFilePath2Length, "%s/receipt.txt", packageInstalledDIR);
-
-    if (ret < 0) {
-        perror(NULL);
+    if (chdir(packageInstalledDIR) != 0) {
+        perror(packageInstalledDIR);
         return XCPKG_ERROR;
     }
 
-    ret = xcpkg_write_file(receiptFilePath2, srcSha, 0);
+    //////////////////////////////////////////////////////////////////////////////
+
+    switch (packageID) {
+        case NATIVE_PACKAGE_ID_LIBTOOL:
+            if (symlink("libtool", "bin/glibtool") == -1) {
+                perror("libtool");
+                return XCPKG_ERROR;
+            }
+            if (symlink("libtoolize", "bin/glibtoolize") == -1) {
+                perror("libtoolize");
+                return XCPKG_ERROR;
+            }
+            break;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+
+    ret = xcpkg_write_file("receipt.txt", srcSha, 64U);
 
     if (ret != XCPKG_OK) {
         return ret;
     }
+
+    //////////////////////////////////////////////////////////////////////////////
 
     if (chdir(packageInstalledRootDIR) != 0) {
         perror(packageInstalledRootDIR);

@@ -250,6 +250,7 @@ typedef struct {
     bool useBuildSystemCargo;
     bool useBuildSystemGolang;
     bool useBuildSystemGN;
+    bool useBuildSystemZIG;
 
     XCPKGPkgType pkgtype;
 } XCPKGFormula;
