@@ -821,13 +821,14 @@ static int xcpkg_formula_check(XCPKGFormula * formula, const char * formulaFileP
                 continue;
             }
 
-            for (int i = 0; ; i++) {
+            for (size_t i = 0; ; i++) {
                 if (p[i] <= 32) {
                     if (strncmp(p, "configure", i) == 0) {
                         formula->bsystem = strdup("configure");
                         formula->bsystem_is_calculated = true;
                         formula->useBuildSystemConfigure = true;
-                        return XCPKG_OK;
+                        formula->useBuildSystemGmake = true;
+                        goto next;
                     }
 
                     if (strncmp(p, "cmakew", i) == 0) {
@@ -835,21 +836,21 @@ static int xcpkg_formula_check(XCPKGFormula * formula, const char * formulaFileP
                         formula->bsystem_is_calculated = true;
                         formula->useBuildSystemCmake = true;
                         formula->useBuildSystemNinja = true;
-                        return XCPKG_OK;
+                        goto next;
                     }
 
                     if (strncmp(p, "xmakew", i) == 0) {
                         formula->bsystem = strdup("xmake");
                         formula->bsystem_is_calculated = true;
                         formula->useBuildSystemXmake = true;
-                        return XCPKG_OK;
+                        goto next;
                     }
 
                     if (strncmp(p, "gmakew", i) == 0) {
                         formula->bsystem = strdup("gmake");
                         formula->bsystem_is_calculated = true;
                         formula->useBuildSystemGmake = true;
-                        return XCPKG_OK;
+                        goto next;
                     }
 
                     if (strncmp(p, "mesonw", i) == 0) {
@@ -857,7 +858,7 @@ static int xcpkg_formula_check(XCPKGFormula * formula, const char * formulaFileP
                         formula->bsystem_is_calculated = true;
                         formula->useBuildSystemMeson = true;
                         formula->useBuildSystemNinja = true;
-                        return XCPKG_OK;
+                        goto next;
                     }
 
                     if (strncmp(p, "cabal_v2_install", i) == 0) {
@@ -865,28 +866,28 @@ static int xcpkg_formula_check(XCPKGFormula * formula, const char * formulaFileP
                         formula->bsystem_is_calculated = true;
                         formula->useBuildSystemCabal = true;
                         formula->useBuildSystemGmake = true;
-                        return XCPKG_OK;
+                        goto next;
                     }
 
                     if (strncmp(p, "cargow", i) == 0) {
                         formula->bsystem = strdup("cargo");
                         formula->bsystem_is_calculated = true;
                         formula->useBuildSystemCargo = true;
-                        return XCPKG_OK;
+                        goto next;
                     }
 
                     if (strncmp(p, "gow", i) == 0) {
                         formula->bsystem = strdup("go");
                         formula->bsystem_is_calculated = true;
                         formula->useBuildSystemGolang = true;
-                        return XCPKG_OK;
+                        goto next;
                     }
 
                     if (strncmp(p, "gnw", i) == 0) {
                         formula->bsystem = strdup("gn");
                         formula->bsystem_is_calculated = true;
                         formula->useBuildSystemGN = true;
-                        return XCPKG_OK;
+                        goto next;
                     }
 
                     if (strncmp(p, "zig", i) == 0) {
@@ -894,25 +895,22 @@ static int xcpkg_formula_check(XCPKGFormula * formula, const char * formulaFileP
                         formula->bsystem_is_calculated = true;
                         formula->useBuildSystemZIG = true;
                         string_buffer_append(dep_upp_extra_buf, &dep_upp_extra_buf_len, "zig");
-                        return XCPKG_OK;
+                        goto next;
                     }
 
                     p += i;
 
                     for (;;) {
                         if (p[0] == '\0') {
-                            return XCPKG_OK;
+                            goto next;
                         }
+
+                        p++;
 
                         if (p[0] == '\n') {
-                            p++;
                             break;
-                        } else {
-                            p++;
                         }
                     }
-
-                    break;
                 }
             }
         }
@@ -1020,6 +1018,7 @@ static int xcpkg_formula_check(XCPKGFormula * formula, const char * formulaFileP
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////
 
+next:
     if (formula->useBuildSystemAutogen || formula->useBuildSystemAutotools) {
         string_buffer_append(dep_upp_extra_buf, &dep_upp_extra_buf_len, "automake autoconf perl gm4");
     }
