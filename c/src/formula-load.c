@@ -821,96 +821,101 @@ static int xcpkg_formula_check(XCPKGFormula * formula, const char * formulaFileP
                 continue;
             }
 
-            for (size_t i = 0; ; i++) {
+            size_t i = 0;
+
+            for (; ; i++) {
                 if (p[i] <= 32) {
-                    if (strncmp(p, "configure", i) == 0) {
-                        formula->bsystem = strdup("configure");
-                        formula->bsystem_is_calculated = true;
-                        formula->useBuildSystemConfigure = true;
-                        formula->useBuildSystemGmake = true;
-                        goto next;
-                    }
+                    break;
+                }
+            }
 
-                    if (strncmp(p, "cmakew", i) == 0) {
-                        formula->bsystem = strdup("cmake");
-                        formula->bsystem_is_calculated = true;
-                        formula->useBuildSystemCmake = true;
-                        formula->useBuildSystemNinja = true;
-                        goto next;
-                    }
+            if (strncmp(p, "configure", i) == 0) {
+                formula->bsystem = strdup("configure");
+                formula->bsystem_is_calculated = true;
+                formula->useBuildSystemConfigure = true;
+                formula->useBuildSystemGmake = true;
+                break;
+            }
 
-                    if (strncmp(p, "xmakew", i) == 0) {
-                        formula->bsystem = strdup("xmake");
-                        formula->bsystem_is_calculated = true;
-                        formula->useBuildSystemXmake = true;
-                        goto next;
-                    }
+            if (strncmp(p, "cmakew", i) == 0) {
+                formula->bsystem = strdup("cmake");
+                formula->bsystem_is_calculated = true;
+                formula->useBuildSystemCmake = true;
+                formula->useBuildSystemNinja = true;
+                break;
+            }
 
-                    if (strncmp(p, "gmakew", i) == 0) {
-                        formula->bsystem = strdup("gmake");
-                        formula->bsystem_is_calculated = true;
-                        formula->useBuildSystemGmake = true;
-                        goto next;
-                    }
+            if (strncmp(p, "xmakew", i) == 0) {
+                formula->bsystem = strdup("xmake");
+                formula->bsystem_is_calculated = true;
+                formula->useBuildSystemXmake = true;
+                break;
+            }
 
-                    if (strncmp(p, "mesonw", i) == 0) {
-                        formula->bsystem = strdup("meson");
-                        formula->bsystem_is_calculated = true;
-                        formula->useBuildSystemMeson = true;
-                        formula->useBuildSystemNinja = true;
-                        goto next;
-                    }
+            if (strncmp(p, "gmakew", i) == 0) {
+                formula->bsystem = strdup("gmake");
+                formula->bsystem_is_calculated = true;
+                formula->useBuildSystemGmake = true;
+                break;
+            }
 
-                    if (strncmp(p, "cabal_v2_install", i) == 0) {
-                        formula->bsystem = strdup("cabal");
-                        formula->bsystem_is_calculated = true;
-                        formula->useBuildSystemCabal = true;
-                        formula->useBuildSystemGmake = true;
-                        goto next;
-                    }
+            if (strncmp(p, "mesonw", i) == 0) {
+                formula->bsystem = strdup("meson");
+                formula->bsystem_is_calculated = true;
+                formula->useBuildSystemMeson = true;
+                formula->useBuildSystemNinja = true;
+                break;
+            }
 
-                    if (strncmp(p, "cargow", i) == 0) {
-                        formula->bsystem = strdup("cargo");
-                        formula->bsystem_is_calculated = true;
-                        formula->useBuildSystemCargo = true;
-                        goto next;
-                    }
+            if (strncmp(p, "cabal_v2_install", i) == 0) {
+                formula->bsystem = strdup("cabal");
+                formula->bsystem_is_calculated = true;
+                formula->useBuildSystemCabal = true;
+                formula->useBuildSystemGmake = true;
+                break;
+            }
 
-                    if (strncmp(p, "gow", i) == 0) {
-                        formula->bsystem = strdup("go");
-                        formula->bsystem_is_calculated = true;
-                        formula->useBuildSystemGolang = true;
-                        goto next;
-                    }
+            if (strncmp(p, "cargow", i) == 0) {
+                formula->bsystem = strdup("cargo");
+                formula->bsystem_is_calculated = true;
+                formula->useBuildSystemCargo = true;
+                break;
+            }
 
-                    if (strncmp(p, "gnw", i) == 0) {
-                        formula->bsystem = strdup("gn");
-                        formula->bsystem_is_calculated = true;
-                        formula->useBuildSystemGN = true;
-                        goto next;
-                    }
+            if (strncmp(p, "gow", i) == 0) {
+                formula->bsystem = strdup("go");
+                formula->bsystem_is_calculated = true;
+                formula->useBuildSystemGolang = true;
+                break;
+            }
 
-                    if (strncmp(p, "zig", i) == 0) {
-                        formula->bsystem = strdup("zig");
-                        formula->bsystem_is_calculated = true;
-                        formula->useBuildSystemZIG = true;
-                        string_buffer_append(dep_upp_extra_buf, &dep_upp_extra_buf_len, "zig");
-                        goto next;
-                    }
+            if (strncmp(p, "gnw", i) == 0) {
+                formula->bsystem = strdup("gn");
+                formula->bsystem_is_calculated = true;
+                formula->useBuildSystemGN = true;
+                break;
+            }
 
-                    p += i;
+            if (strncmp(p, "zig", i) == 0) {
+                formula->bsystem = strdup("zig");
+                formula->bsystem_is_calculated = true;
+                formula->useBuildSystemZIG = true;
+                string_buffer_append(dep_upp_extra_buf, &dep_upp_extra_buf_len, "zig");
+                break;
+            }
 
-                    for (;;) {
-                        if (p[0] == '\0') {
-                            goto next;
-                        }
+            p += i;
 
-                        p++;
+            for (;;) {
+                if (p[0] == '\0') {
+                    break;
+                }
 
-                        if (p[0] == '\n') {
-                            break;
-                        }
-                    }
+                if (p[0] == '\n') {
+                    p++;
+                    break;
+                } else {
+                    p++;
                 }
             }
         }
@@ -1018,7 +1023,6 @@ static int xcpkg_formula_check(XCPKGFormula * formula, const char * formulaFileP
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-next:
     if (formula->useBuildSystemAutogen || formula->useBuildSystemAutotools) {
         string_buffer_append(dep_upp_extra_buf, &dep_upp_extra_buf_len, "automake autoconf perl gm4");
     }
