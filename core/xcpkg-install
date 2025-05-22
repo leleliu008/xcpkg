@@ -1432,6 +1432,18 @@ __install_for_target() {
 
     #########################################################################################
 
+    for item in $PACKAGE_DEP_LIB
+    do
+        case $item in
+            -l*);;
+            *)  item="$(pkg-config --libs-only-l "$item")"
+        esac
+
+        XCPKG_COMPILER_ARGS="$XCPKG_COMPILER_ARGS $item"
+    done
+
+    #########################################################################################
+
     step "install for target"
 
     run install -d "$PACKAGE_BCACHED_DIR"

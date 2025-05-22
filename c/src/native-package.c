@@ -1,5 +1,6 @@
 #include <errno.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "sha256sum.h"
@@ -352,15 +353,35 @@ int install_native_package(
             perror("PERL5LIB");
             return XCPKG_ERROR;
         }
+    } else if (packageID == NATIVE_PACKAGE_ID_TEXINFO) {
+        if (setenv("PERL_EXT_CC", getenv("CC"), 1) != 0) {
+            perror("PERL_EXT_CC");
+            return XCPKG_ERROR;
+        }
+
+        if (setenv("PERL_EXT_CFLAGS", getenv("CFLAGS"), 1) != 0) {
+            perror("PERL_EXT_CFLAGS");
+            return XCPKG_ERROR;
+        }
+
+        if (setenv("PERL_EXT_CPPFLAGS", getenv("CPPFLAGS"), 1) != 0) {
+            perror("PERL_EXT_CPPFLAGS");
+            return XCPKG_ERROR;
+        }
+
+        if (setenv("PERL_EXT_LDFLAGS", getenv("LDFLAGS"), 1) != 0) {
+            perror("PERL_EXT_LDFLAGS");
+            return XCPKG_ERROR;
+        }
     }
 
     //////////////////////////////////////////////////////////////////////////////
 
     if (buildSystemType == BUILD_SYSTEM_TYPE_CMAKE) {
-        size_t configurePhaseCmdLength = packageInstalledDIRCapacity + strlen(buildConfigureArgs) + 140U;
+        size_t configurePhaseCmdLength = packageInstalledDIRCapacity + strlen(buildConfigureArgs) + 160U;
         char   configurePhaseCmd[configurePhaseCmdLength];
 
-        ret = snprintf(configurePhaseCmd, configurePhaseCmdLength, "cmake -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_INSTALL_PREFIX=%s -DEXPAT_SHARED_LIBS=OFF -DCMAKE_VERBOSE_MAKEFILE=%s %s -G Ninja -S . -B build.d", packageInstalledDIR, (installOptions->logLevel >= XCPKGLogLevel_verbose) ? "ON" : "OFF", buildConfigureArgs);
+        ret = snprintf(configurePhaseCmd, configurePhaseCmdLength, "cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_INSTALL_PREFIX=%s -DEXPAT_SHARED_LIBS=OFF -DCMAKE_VERBOSE_MAKEFILE=%s %s -G Ninja -S . -B build.d", packageInstalledDIR, (installOptions->logLevel >= XCPKGLogLevel_verbose) ? "ON" : "OFF", buildConfigureArgs);
 
         if (ret < 0) {
             perror(NULL);

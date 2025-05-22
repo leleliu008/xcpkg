@@ -1682,6 +1682,7 @@ static int generate_shell_script_file(
         {"PACKAGE_RESLIST", formula->reslist},
         {"PACKAGE_FIXLIST", formula->patches},
 
+        {"PACKAGE_DEP_LIB", formula->dep_lib},
         {"PACKAGE_DEP_PKG", formula->dep_pkg},
         {"PACKAGE_DEP_PKG_R", recursiveDependentPackageNames},
         {"PACKAGE_DEP_UPP", formula->dep_upp},
@@ -4325,7 +4326,7 @@ static int xcpkg_install_package(
 
     struct stat st;
 
-    for (int i = 0; i < 2; i++) {
+    for (size_t i = 0; i < 2; i++) {
         if (stat(a[i], &st) == 0) {
             if (unlink(a[i]) != 0) {
                 perror(a[i]);
@@ -4349,7 +4350,7 @@ static int xcpkg_install_package(
     if (formula->dep_pkg != NULL) {
         const char* item[4] = { "dependencies.dot", "dependencies.d2", "dependencies.svg", "dependencies.png" };
 
-        for (int i = 0; i < 4; i++) {
+        for (size_t i = 0; i < 4; i++) {
             ret = install_files_to_metainfo_dir(st, packageWorkingTopDIR, packageWorkingTopDIRCapacity, packageMetaInfoDIR, packageMetaInfoDIRCapacity, item[i], strlen(item[i]));
 
             if (ret != XCPKG_OK) {
@@ -4452,8 +4453,8 @@ static int xcpkg_install_package(
 
     const char* y[3] = { "", ".md", ".rst" };
 
-    for (int i = 0; i < 12; i++) {
-        for (int j = 0; j < 3; j++) {
+    for (size_t i = 0; i < 12; i++) {
+        for (size_t j = 0; j < 3; j++) {
             size_t itemCapacity = strlen(x[i]) + strlen(y[j]) + 1U;
             char   item[itemCapacity];
 
@@ -4480,12 +4481,14 @@ static int xcpkg_install_package(
         }
     }
 
+    puts("=============generate_manifest");
     ret = generate_manifest(packageInstalledDIR);
 
     if (ret != XCPKG_OK) {
         return ret;
     }
 
+    puts("=============generate_receipt");
     ret = generate_receipt(packageName, formula, targetPlatformSpec, sysinfo, ts, packageMetaInfoDIR, packageMetaInfoDIRCapacity);
 
     if (ret != XCPKG_OK) {
