@@ -505,7 +505,7 @@ typedef struct {
     bool dryrun;
     bool force;
     bool xtrace;
-    bool createMostlyStaticallyLinkedExecutables;
+    bool linkSharedLibs;
 
     bool verbose_net;
     bool verbose_env;

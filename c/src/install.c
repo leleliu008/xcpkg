@@ -4082,7 +4082,7 @@ static int xcpkg_install_package(
 
     //////////////////////////////////////////////////////////////////////////////
 
-    bool needToCopyStaticLibs = formula->support_create_mostly_statically_linked_executable && installOptions->createMostlyStaticallyLinkedExecutables;
+    bool needToCopyStaticLibs = formula->support_create_mostly_statically_linked_executable && (!installOptions->linkSharedLibs);
 
     if (recursiveDependentPackageNames[0] != '\0') {
         setenv_fn fns[5] = { setenv_CPPFLAGS, setenv_LDFLAGS, setenv_PKG_CONFIG_PATH, setenv_ACLOCAL_PATH, setenv_XDG_DATA_DIRS };

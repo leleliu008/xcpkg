@@ -509,8 +509,8 @@ static inline int xcpkg_action_install(int argc, char* argv[]) {
             installOptions.buildType = XCPKGBuildProfile_debug;
         } else if (strcmp(argv[i], "--profile=release") == 0) {
             installOptions.buildType = XCPKGBuildProfile_release;
-        } else if (strcmp(argv[i], "--prefer-static") == 0) {
-            installOptions.createMostlyStaticallyLinkedExecutables = true;
+        } else if (strcmp(argv[i], "--prefer-shared") == 0) {
+            installOptions.linkSharedLibs = true;
         } else if (strncmp(argv[i], "--jobs=", 7) == 0) {
             char * jobsStr = &argv[i][7];
 
@@ -677,8 +677,8 @@ static inline int xcpkg_action_reinstall(int argc, char* argv[]) {
             installOptions.buildType = XCPKGBuildProfile_debug;
         } else if (strcmp(argv[i], "--profile=release") == 0) {
             installOptions.buildType = XCPKGBuildProfile_release;
-        } else if (strcmp(argv[i], "--prefer-static") == 0) {
-            installOptions.createMostlyStaticallyLinkedExecutables = true;
+        } else if (strcmp(argv[i], "--prefer-shared") == 0) {
+            installOptions.linkSharedLibs = true;
         } else if (strncmp(argv[i], "--jobs=", 7) == 0) {
             char * jobsStr = &argv[i][7];
 
@@ -822,8 +822,8 @@ static inline int xcpkg_action_upgtade(int argc, char* argv[]) {
             installOptions.buildType = XCPKGBuildProfile_debug;
         } else if (strcmp(argv[i], "--profile=release") == 0) {
             installOptions.buildType = XCPKGBuildProfile_release;
-        } else if (strcmp(argv[i], "--prefer-static") == 0) {
-            installOptions.createMostlyStaticallyLinkedExecutables = true;
+        } else if (strcmp(argv[i], "--prefer-shared") == 0) {
+            installOptions.linkSharedLibs = true;
         } else if (strncmp(argv[i], "--jobs=", 7) == 0) {
             char * jobsStr = &argv[i][7];
 
