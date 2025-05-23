@@ -1115,11 +1115,11 @@ static int setup_rust_env2(const bool isForTarget, const char * rustTarget, cons
 
     /////////////////////////////////////////
 
-    char uu[30];
+    char uu[31]; uu[30] = '\0';
 
     size_t i;
 
-    for (i = 0U; rustTarget[i] != '\0'; i++) {
+    for (i = 0U; i < 30U; i++) {
         if (rustTarget[i] == '-') {
             uu[i] = '_';
         } else if (rustTarget[i] >= 'a' && rustTarget[i] <= 'z') {
@@ -1135,11 +1135,11 @@ static int setup_rust_env2(const bool isForTarget, const char * rustTarget, cons
 
     /////////////////////////////////////////
 
-    size_t envNameLinkerLength = i + 21U;
-    char   envNameLinker[envNameLinkerLength];
+    size_t envNameLinkerCapacity = i + 21U;
+    char   envNameLinker[envNameLinkerCapacity];
 
     // https://doc.rust-lang.org/cargo/reference/environment-variables.html
-    int ret = snprintf(envNameLinker, envNameLinkerLength, "CARGO_TARGET_%s_LINKER", uu);
+    int ret = snprintf(envNameLinker, envNameLinkerCapacity, "CARGO_TARGET_%s_LINKER", uu);
 
     if (ret < 0) {
         perror(NULL);
@@ -1204,7 +1204,7 @@ static int setup_rust_env2(const bool isForTarget, const char * rustTarget, cons
 
     char key[100];
 
-    for (int i = 0; i < 5; i++) {
+    for (size_t i = 0; i < 6; i++) {
         ret = snprintf(key, 100, "%s_%s", envs[i].name, rustTarget);
 
         if (ret < 0) {
