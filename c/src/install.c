@@ -1011,7 +1011,7 @@ static int setenv_rustflags(const char * rustTarget, const size_t rustTargetLeng
         return XCPKG_ERROR;
     }
 
-    size_t rustFlagsCapacity = 1024U * sizeof(char);
+    size_t rustFlagsCapacity = strlen(cc) + libDIRCapacity + 20U;
     size_t rustFlagsLength = 0U;
     char * rustFlags = (char*)malloc(rustFlagsCapacity);
 
@@ -1021,7 +1021,7 @@ static int setenv_rustflags(const char * rustTarget, const size_t rustTargetLeng
     }
 
     // https://doc.rust-lang.org/rustc/command-line-arguments.html
-    ret = snprintf(rustFlags, 1024, "-Clinker=%s -L native=%s", cc, libDIR);
+    ret = snprintf(rustFlags, rustFlagsCapacity, "-Clinker=%s -L native=%s", cc, libDIR);
 
     if (ret < 0) {
         perror(NULL);
@@ -1041,10 +1041,12 @@ static int setenv_rustflags(const char * rustTarget, const size_t rustTargetLeng
         char * item = strtok(ldflagsCopy, " ");
 
         while (item != NULL) {
-            size_t capacity = strlen(item) + 13U;
+            size_t newNeededCapacity = strlen(item) + 13U;
 
-            if (rustFlagsCapacity < (rustTargetLength + capacity)) {
-                char * p = (char*)realloc(rustFlags, (rustFlagsCapacity + 1024U) * sizeof(char));
+            if (rustFlagsCapacity < (rustFlagsLength + newNeededCapacity)) {
+                size_t newCapacity = (rustFlagsCapacity + newNeededCapacity + 2048U) * sizeof(char);
+
+                char * p = (char*)realloc(rustFlags, newCapacity);
 
                 if (p == NULL) {
                     ret = XCPKG_ERROR_MEMORY_ALLOCATE;
@@ -1052,9 +1054,10 @@ static int setenv_rustflags(const char * rustTarget, const size_t rustTargetLeng
                 }
 
                 rustFlags = p;
+                rustFlagsCapacity = newCapacity;
             }
 
-            ret = snprintf(rustFlags + rustFlagsLength, capacity, " -Clink-arg=%s", item);
+            ret = snprintf(rustFlags + rustFlagsLength, newNeededCapacity, " -Clink-arg=%s", item);
 
             if (ret < 0) {
                 perror(NULL);
@@ -4261,7 +4264,6 @@ static int xcpkg_install_package(
 
     //////////////////////////////////////////////////////////////////////////////
 
-    puts("=============>>1");
     if (formula->useBuildSystemCargo) {
         ret = setup_rust_env(targetPlatformArch, packageWorkingLibDIR, packageWorkingLibDIRCapacity, isCrossBuild, njobs);
 
@@ -4270,7 +4272,6 @@ static int xcpkg_install_package(
         }
     }
 
-    puts("=============>>2");
     //////////////////////////////////////////////////////////////////////////////
 
     // override the default search directory (usually /usr/lib/pkgconfig:/usr/share/pkgconfig)
@@ -4483,14 +4484,12 @@ static int xcpkg_install_package(
         }
     }
 
-    puts("=============generate_manifest");
     ret = generate_manifest(packageInstalledDIR);
 
     if (ret != XCPKG_OK) {
         return ret;
     }
 
-    puts("=============generate_receipt");
     ret = generate_receipt(packageName, formula, targetPlatformSpec, sysinfo, ts, packageMetaInfoDIR, packageMetaInfoDIRCapacity);
 
     if (ret != XCPKG_OK) {
