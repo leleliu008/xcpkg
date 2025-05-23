@@ -205,6 +205,9 @@ jobs:
       - run: bin/xcpkg fetch gsed -v
 
       - run: bin/xcpkg install libzip -v
+      - run: bin/xcpkg install hurl -v-env
+      - run: bin/xcpkg install silicon -v-env
+      - run: bin/xcpkg install tectonic -v-env
 
       - run: bin/xcpkg tree libzip
 

@@ -378,7 +378,7 @@ int install_native_package(
     //////////////////////////////////////////////////////////////////////////////
 
     if (buildSystemType == BUILD_SYSTEM_TYPE_CMAKE) {
-        size_t configurePhaseCmdLength = packageInstalledDIRCapacity + strlen(buildConfigureArgs) + 160U;
+        size_t configurePhaseCmdLength = packageInstalledDIRCapacity + strlen(buildConfigureArgs) + 164U;
         char   configurePhaseCmd[configurePhaseCmdLength];
 
         ret = snprintf(configurePhaseCmd, configurePhaseCmdLength, "cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_LIBDIR=lib -DCMAKE_INSTALL_PREFIX=%s -DEXPAT_SHARED_LIBS=OFF -DCMAKE_VERBOSE_MAKEFILE=%s %s -G Ninja -S . -B build.d", packageInstalledDIR, (installOptions->logLevel >= XCPKGLogLevel_verbose) ? "ON" : "OFF", buildConfigureArgs);

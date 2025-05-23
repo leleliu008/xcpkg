@@ -1011,7 +1011,7 @@ static int setenv_rustflags(const char * rustTarget, const size_t rustTargetLeng
         return XCPKG_ERROR;
     }
 
-    size_t rustFlagsCapacity = 1024U;
+    size_t rustFlagsCapacity = 1024U * sizeof(char);
     size_t rustFlagsLength = 0U;
     char * rustFlags = (char*)malloc(rustFlagsCapacity);
 
@@ -1044,7 +1044,7 @@ static int setenv_rustflags(const char * rustTarget, const size_t rustTargetLeng
             size_t capacity = strlen(item) + 13U;
 
             if (rustFlagsCapacity < (rustTargetLength + capacity)) {
-                char * p = (char*)realloc(rustFlags, rustFlagsCapacity + 1024U);
+                char * p = (char*)realloc(rustFlags, (rustFlagsCapacity + 1024U) * sizeof(char));
 
                 if (p == NULL) {
                     ret = XCPKG_ERROR_MEMORY_ALLOCATE;
@@ -4261,6 +4261,7 @@ static int xcpkg_install_package(
 
     //////////////////////////////////////////////////////////////////////////////
 
+    puts("=============>>1");
     if (formula->useBuildSystemCargo) {
         ret = setup_rust_env(targetPlatformArch, packageWorkingLibDIR, packageWorkingLibDIRCapacity, isCrossBuild, njobs);
 
@@ -4269,6 +4270,7 @@ static int xcpkg_install_package(
         }
     }
 
+    puts("=============>>2");
     //////////////////////////////////////////////////////////////////////////////
 
     // override the default search directory (usually /usr/lib/pkgconfig:/usr/share/pkgconfig)
