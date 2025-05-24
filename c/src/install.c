@@ -3208,8 +3208,13 @@ static int xcpkg_install_package(
         "PKG_CONFIG_PATH",
         "ACLOCAL_PATH",
         "XDG_DATA_DIRS",
+        "PERL_EXT_CC",
+        "PERL_EXT_CFLAGS",
+        "PERL_EXT_CPPFLAGS",
+        "PERL_EXT_LDFLAGS",
         "PERL5LIB",
         "LIBS",
+        "LDDLFLAGS",
         NULL
     };
 

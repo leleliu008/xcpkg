@@ -3,6 +3,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <fcntl.h>
+#include <unistd.h>
+
 #include "sha256sum.h"
 
 #include "native-package.h"
@@ -373,6 +376,57 @@ int install_native_package(
             perror("PERL_EXT_LDFLAGS");
             return XCPKG_ERROR;
         }
+    } else if (packageID == NATIVE_PACKAGE_ID_PERL_XML_PARSER) {
+        int fd = open("configure", O_CREAT | O_TRUNC | O_WRONLY, 0755);
+
+        if (fd == -1) {
+            perror("configure");
+            return XCPKG_ERROR;
+        }
+
+        int ret = dprintf(fd, "#!/bin/sh\nset -ex\n");
+
+        if (ret < 0) {
+            close(fd);
+            return XCPKG_ERROR;
+        }
+
+        ret = dprintf(fd, "export EXPATLIBPATH='%s/libexpat/lib'\n", packageInstalledRootDIR);
+
+        if (ret < 0) {
+            close(fd);
+            return XCPKG_ERROR;
+        }
+
+        ret = dprintf(fd, "export EXPATINCPATH='%s/libexpat/include'\n", packageInstalledRootDIR);
+
+        if (ret < 0) {
+            close(fd);
+            return XCPKG_ERROR;
+        }
+
+        ret = dprintf(fd, "gsed -i '/check_lib/a not_execute,' Makefile.PL\n");
+
+        if (ret < 0) {
+            close(fd);
+            return XCPKG_ERROR;
+        }
+
+        ret = dprintf(fd, "install -d %s\n", packageInstalledDIR);
+
+        if (ret < 0) {
+            close(fd);
+            return XCPKG_ERROR;
+        }
+
+        ret = dprintf(fd, "perl Makefile.PL \"$@\"\n");
+
+        if (ret < 0) {
+            close(fd);
+            return XCPKG_ERROR;
+        }
+
+        close(fd);
     }
 
     //////////////////////////////////////////////////////////////////////////////
