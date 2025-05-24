@@ -419,7 +419,7 @@ int install_native_package(
             return XCPKG_ERROR;
         }
 
-        ret = dprintf(fd, "perl Makefile.PL \"$@\"\n");
+        ret = dprintf(fd, "perl Makefile.PL INSTALL_BASE=%s\n", packageInstalledDIR);
 
         if (ret < 0) {
             close(fd);

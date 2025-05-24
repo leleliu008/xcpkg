@@ -262,6 +262,7 @@ jobs:
 
       - run: xcpkg install libzip
       - run: xcpkg install hurl -v-env
+      - run: xcpkg install timg -v-env
       - run: xcpkg install silicon -v-env
       - run: xcpkg install tectonic -v-env
 
