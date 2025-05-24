@@ -93,7 +93,47 @@ int xcpkg_download_via_http_then_unpack(const char * url, const char * uri, cons
         ret = xcpkg_http_fetch_to_file(url, tmpFilePath, verbose, verbose);
 
         if (ret != XCPKG_OK) {
-            if (uri != NULL) {
+            if (uri == NULL || uri[0] == '\0') {
+                size_t slashIndex = 0U;
+
+                size_t i = 0U;
+
+                for (; ; i++) {
+                    if (url[i] == '\0') break;
+                    if (url[i] == '?')  break;
+                    if (url[i] == '/')  slashIndex = i;
+                }
+
+                if (slashIndex == 0U) {
+                    return XCPKG_ERROR_INVALID_URL;
+                }
+
+                const char * s = "https://fossies.org/linux/misc/";
+
+                size_t capacity = strlen(s) + i - slashIndex;
+
+                char buf[capacity];
+
+                char * p = buf;
+
+                while (s[0] != '\0') {
+                    p[0] = s[0];
+                    p++;
+                    s++;
+                }
+
+                s = url + slashIndex + 1;
+
+                while (s[0] != '\0' && s[0] != '?') {
+                    p[0] = s[0];
+                    p++;
+                    s++;
+                }
+
+                p[0] = '\0';
+
+                ret = xcpkg_http_fetch_to_file(buf, tmpFilePath, verbose, verbose);
+            } else {
                 ret = xcpkg_http_fetch_to_file(uri, tmpFilePath, verbose, verbose);
             }
         }
