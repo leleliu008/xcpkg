@@ -1212,6 +1212,8 @@ static int setup_rust_env2(const bool isForTarget, const char * rustTarget, cons
             return XCPKG_ERROR;
         }
 
+        if (envs[i].value == NULL) continue;
+
         if (setenv(key, envs[i].value, 1) != 0) {
             perror(key);
             return XCPKG_ERROR;
