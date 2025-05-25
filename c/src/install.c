@@ -4130,23 +4130,23 @@ static int xcpkg_install_package(
                 }
             }
 
-            if (isCrossBuild) {
-                size_t nativePkgInstalledDIRCapacity = nativePackageInstalledRootDIRCapacity + strlen(dependentPackageName) + 1U;
-                char   nativePkgInstalledDIR[nativePkgInstalledDIRCapacity];
+            size_t nativePkgInstalledDIRCapacity = nativePackageInstalledRootDIRCapacity + strlen(dependentPackageName) + 1U;
+            char   nativePkgInstalledDIR[nativePkgInstalledDIRCapacity];
 
-                ret = snprintf(nativePkgInstalledDIR, nativePkgInstalledDIRCapacity, "%s/%s", nativePackageInstalledRootDIR, dependentPackageName);
+            ret = snprintf(nativePkgInstalledDIR, nativePkgInstalledDIRCapacity, "%s/%s", nativePackageInstalledRootDIR, dependentPackageName);
 
-                if (ret < 0) {
-                    perror(NULL);
-                    return XCPKG_ERROR;
-                }
+            if (ret < 0) {
+                perror(NULL);
+                return XCPKG_ERROR;
+            }
 
-                ret = setenv_PATH(nativePkgInstalledDIR, nativePkgInstalledDIRCapacity);
+            ret = setenv_PATH(nativePkgInstalledDIR, nativePkgInstalledDIRCapacity);
 
-                if (ret != XCPKG_OK) {
-                    return ret;
-                }
-            } else {
+            if (ret != XCPKG_OK) {
+                return ret;
+            }
+
+            if (!isCrossBuild) {
                 ret = setenv_PATH(depPkgInstalledDIR, depPkgInstalledDIRCapacity);
 
                 if (ret != XCPKG_OK) {

@@ -1212,6 +1212,7 @@ int xcpkg_formula_load(const char * packageName, const char * targetPlatformName
                             goto finalize;
                         }
 
+                        formula->git_nth = 1;
                         formula->path = strdup(formulaFilePath);
 
                         if (formula->path == NULL) {

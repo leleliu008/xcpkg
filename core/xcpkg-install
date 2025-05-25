@@ -1495,30 +1495,9 @@ __install_for_target() {
 
     step "docheck"
 
-    unset NEEDED_SYSTEM_SHARED_LIBS
-    unset NEEDED_EXTERN_SHARED_LIBS
-
     unset FILES_NEED_TO_SET_RPATH
 
     __check_mach_o_files
-
-    if [ -n "$NEEDED_EXTERN_SHARED_LIBS" ] ; then
-        step "copy dependent external shared libraries"
-
-        echo "NEEDED_EXTERN_SHARED_LIBS=$NEEDED_EXTERN_SHARED_LIBS"
-
-        install -d -v .xcpkg/dependencies/lib
-
-        for f in $NEEDED_EXTERN_SHARED_LIBS
-        do
-            n="${f##*/}"
-            F=".xcpkg/dependencies/lib/$n"
-
-            [ -f "$F" ] || {
-                cp -L -v "$f" .xcpkg/dependencies/lib/
-            }
-        done
-    fi
 
     if [ -n "$FILES_NEED_TO_SET_RPATH" ] ; then
         step "set rpath for executables"
@@ -1540,7 +1519,13 @@ __install_for_target() {
 }
 
 __check_mach_o_files() {
-    find -type f -printf '%P\n' > files.txt
+    if [ -n "$PACKAGE_DEP_PKG_R" ] ; then
+        install -d .xcpkg/dependencies/lib/
+    fi
+
+    install -d .xcpkg/0/
+
+    find -type f -not -name files.txt -printf '%P\n' > files.txt
 
     while read -r FILEPATH
     do
@@ -1645,6 +1630,11 @@ EOF
     done < files.txt
 
     rm files.txt
+    rm -rf .xcpkg/0/
+
+    if [ -z "$(find .xcpkg/dependencies/lib -not -path '.xcpkg/dependencies/lib' -print -quit)" ] ; then
+        rm -rf .xcpkg/dependencies/
+    fi
 }
 
 # __find_needed_shared_library <NEEDED_SHARED_LIBRARY_FILENAME>
@@ -1715,22 +1705,32 @@ EOF
 
                 NEEDED_SHARED_LIBRARY_DIR="${NEEDED%/*}"
 
-                if [ "$EXECUTABLE" = 1 ] ; then
+                if [ "$2" = 1 ] ; then
                     RELATIVE_PATH="${NEEDED_SHARED_LIBRARY_DIR#$PACKAGE_INSTALL_DIR/}"
                     FILES_NEED_TO_SET_RPATH="$FILES_NEED_TO_SET_RPATH
 $1|$RELATIVE_PATH"
                 fi
+
+                if [ -L ".xcpkg/0/$NEEDED_SHARED_LIBRARY_FILENAME" ] ; then
+                    continue
+                else
+                    ln -sv "$NEEDED" .xcpkg/0/
+                fi
                 ;;
             /*)
+                if [ "$2" = 1 ] ; then
+                    FILES_NEED_TO_SET_RPATH="$FILES_NEED_TO_SET_RPATH
+$1|1"
+                fi
+
                 NEEDED_SHARED_LIBRARY_FILENAME="${NEEDED##*/}"
 
                 run install_name_tool -change "$NEEDED" "@rpath/$NEEDED_SHARED_LIBRARY_FILENAME" "$1"
 
-                NEEDED_EXTERN_SHARED_LIBS="$NEEDED_EXTERN_SHARED_LIBS
-$NEEDED"
-                if [ "$EXECUTABLE" = 1 ] ; then
-                    FILES_NEED_TO_SET_RPATH="$FILES_NEED_TO_SET_RPATH
-$1|1"
+                if [ -f ".xcpkg/dependencies/lib/$NEEDED" ] ; then
+                    continue
+                else
+                    cp -L -v "$NEEDED" .xcpkg/dependencies/lib/
                 fi
                 ;;
             lib*.dylib)
@@ -1744,18 +1744,27 @@ $1|1"
 
                 case $NEEDED_SHARED_LIBRARY_FILEPATH in
                     /*)
-                        NEEDED_EXTERN_SHARED_LIBS="$NEEDED_EXTERN_SHARED_LIBS
-$NEEDED_SHARED_LIBRARY_FILEPATH"
-
                         if [ "$2" = 1 ] ; then
                             FILES_NEED_TO_SET_RPATH="$FILES_NEED_TO_SET_RPATH
 $1|1"
+                        fi
+
+                        if [ -f ".xcpkg/dependencies/lib/$NEEDED" ] ; then
+                            continue
+                        else
+                            cp -L -v "$NEEDED_SHARED_LIBRARY_FILEPATH" .xcpkg/dependencies/lib/
                         fi
                         ;;
                     *)
                         if [ "$2" = 1 ] ; then
                             FILES_NEED_TO_SET_RPATH="$FILES_NEED_TO_SET_RPATH
 $1|${NEEDED_SHARED_LIBRARY_FILEPATH%/*}"
+                        fi
+
+                        if [ -L ".xcpkg/0/$NEEDED" ] ; then
+                            continue
+                        else
+                            ln -sv "$NEEDED_SHARED_LIBRARY_FILEPATH" .xcpkg/0/
                         fi
                 esac
 
@@ -1774,18 +1783,27 @@ $1|${NEEDED_SHARED_LIBRARY_FILEPATH%/*}"
 
                 case $NEEDED_SHARED_LIBRARY_FILEPATH in
                     /*)
-                        NEEDED_EXTERN_SHARED_LIBS="$NEEDED_EXTERN_SHARED_LIBS
-$NEEDED_SHARED_LIBRARY_FILEPATH"
-
                         if [ "$2" = 1 ] ; then
                             FILES_NEED_TO_SET_RPATH="$FILES_NEED_TO_SET_RPATH
 $1|1"
+                        fi
+
+                        if [ -f ".xcpkg/dependencies/lib/$NEEDED_SHARED_LIBRARY_FILENAME" ] ; then
+                            continue
+                        else
+                            cp -L -v "$NEEDED_SHARED_LIBRARY_FILEPATH" .xcpkg/dependencies/lib/
                         fi
                         ;;
                     *)
                         if [ "$2" = 1 ] ; then
                             FILES_NEED_TO_SET_RPATH="$FILES_NEED_TO_SET_RPATH
 $1|${NEEDED_SHARED_LIBRARY_FILEPATH%/*}"
+                        fi
+
+                        if [ -L ".xcpkg/0/$NEEDED_SHARED_LIBRARY_FILENAME" ] ; then
+                            continue
+                        else
+                            ln -sv "$NEEDED_SHARED_LIBRARY_FILEPATH" .xcpkg/0/
                         fi
                 esac
 
