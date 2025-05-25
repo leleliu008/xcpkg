@@ -1519,11 +1519,7 @@ __install_for_target() {
 }
 
 __check_mach_o_files() {
-    if [ -n "$PACKAGE_DEP_PKG_R" ] ; then
-        install -d .xcpkg/dependencies/lib/
-    fi
-
-    install -d .xcpkg/0/
+    install -d .xcpkg/dependencies/lib/ .xcpkg/0/
 
     find -type f -not -name files.txt -printf '%P\n' > files.txt
 

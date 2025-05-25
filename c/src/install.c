@@ -3759,6 +3759,11 @@ static int xcpkg_install_package(
     //////////////////////////////////////////////////////////////////////////////
 
     if (formula->dofetch != NULL) {
+        if (chdir (packageWorkingTopDIR) != 0) {
+            perror(packageWorkingTopDIR);
+            return XCPKG_ERROR;
+        }
+
         ret = xcpkg_fork_exec2(3, "/bin/sh", shellScriptFilePath, "dofetch");
 
         if (ret != XCPKG_OK) {
