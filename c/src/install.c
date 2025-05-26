@@ -3774,18 +3774,20 @@ static int xcpkg_install_package(
     //////////////////////////////////////////////////////////////////////////////
 
     if (formula->src_url == NULL) {
-        const char * remoteRef;
+        if (formula->git_url != NULL) {
+            const char * remoteRef;
 
-        if (formula->git_sha == NULL) {
-            remoteRef = (formula->git_ref == NULL) ? "HEAD" : formula->git_ref;
-        } else {
-            remoteRef = formula->git_sha;
-        }
+            if (formula->git_sha == NULL) {
+                remoteRef = (formula->git_ref == NULL) ? "HEAD" : formula->git_ref;
+            } else {
+                remoteRef = formula->git_sha;
+            }
 
-        ret = xcpkg_git_sync(packageWorkingSrcDIR, formula->git_url, remoteRef, "refs/remotes/origin/master", "master", formula->git_nth);
+            ret = xcpkg_git_sync(packageWorkingSrcDIR, formula->git_url, remoteRef, "refs/remotes/origin/master", "master", formula->git_nth);
 
-        if (ret != XCPKG_OK) {
-            return ret;
+            if (ret != XCPKG_OK) {
+                return ret;
+            }
         }
     } else {
         if (formula->src_is_dir) {

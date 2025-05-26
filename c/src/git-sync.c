@@ -101,12 +101,17 @@ static int git_submodule_foreach_callback(git_submodule * submodule, const char 
     return git_submodule_update(submodule, true, NULL);
 }
 
-static int check_if_is_a_empty_dir(const char * dirpath, bool * value) {
+/**
+ *  check if the given path is a empty dir
+ *  error occurs, -1 is returned and errno is set to indicate the error
+ *  is a empty dir, 0 is returned
+ *  not a empty dir, 1 is returned
+ */
+static int is_empty_dir(const char * const dirpath) {
     DIR * dir = opendir(dirpath);
 
     if (dir == NULL) {
-        perror(dirpath);
-        return XCPKG_ERROR;
+        return -1;
     }
 
     for (;;) {
@@ -117,27 +122,28 @@ static int check_if_is_a_empty_dir(const char * dirpath, bool * value) {
         if (dir_entry == NULL) {
             if (errno == 0) {
                 closedir(dir);
-                break;
+                return 0;
             } else {
-                perror(dirpath);
+                int err = errno;
                 closedir(dir);
-                return XCPKG_ERROR;
+                errno = err;
+                return -1;
             }
         }
 
-        //puts(dir_entry->d_name);
-        if ((strcmp(dir_entry->d_name, ".") == 0) || (strcmp(dir_entry->d_name, "..") == 0)) {
-            continue;
+        const char * const p = dir_entry->d_name;
+
+        if (p[0] == '.') {
+            if (p[1] == '\0') continue;
+            if (p[1] == '.') {
+                if (p[2] == '\0') continue;
+            }
         }
 
         closedir(dir);
 
-        (*value) = false;
-        return XCPKG_OK;
+        return 1;
     }
-
-    (*value) = true;
-    return XCPKG_OK;
 }
 
 // implement following steps:
@@ -199,18 +205,15 @@ int xcpkg_git_sync(const char * repositoryDIR, const char * remoteUrl, const cha
 
     if (stat(repositoryDIR, &st) == 0) {
         if (S_ISDIR(st.st_mode)) {
-            bool isEmptyDIR = false;
-
-            int ret = check_if_is_a_empty_dir(repositoryDIR, &isEmptyDIR);
-
-            if (ret != XCPKG_OK) {
-                return XCPKG_ERROR;
-            }
-
-            if (isEmptyDIR) {
-                needInitGitRepo = true;
-            } else {
-                needInitGitRepo = false;
+            switch (is_empty_dir(repositoryDIR)) {
+                case -1:
+                    perror(repositoryDIR);
+                    return XCPKG_ERROR;
+                case 0:
+                    needInitGitRepo = true;
+                    break;
+                case 1:
+                    needInitGitRepo = false;
             }
         } else {
             fprintf(stderr, "%s exist and it is not a git repository.", repositoryDIR);
