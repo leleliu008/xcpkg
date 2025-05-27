@@ -673,11 +673,6 @@ static int xcpkg_receipt_check(XCPKGReceipt * receipt, const char * receiptFileP
         }
     }
 
-    if (receipt->bsystem == NULL) {
-        fprintf(stderr, "scheme error in receipt file: %s : bsystem mapping not found.\n", receiptFilePath);
-        return XCPKG_ERROR_FORMULA_SCHEME;
-    }
-
     if (receipt->builtBy == NULL) {
         fprintf(stderr, "scheme error in receipt file: %s : builtby mapping not found.\n", receiptFilePath);
         return XCPKG_ERROR_RECEIPT_SCHEME;

@@ -134,7 +134,7 @@ finally:
     return XCPKG_OK;
 }
 
-static int fetch_fixlist(const char * fixlist, const char * xcpkgDownloadsDIR, const size_t xcpkgDownloadsDIRCapacity, const char * packageWorkingFixDIR, const size_t packageWorkingFixDIRCapacity, bool verbose) {
+static int fetch_fixlist(const char * fixlist, const char * xcpkgDownloadsDIR, const size_t xcpkgDownloadsDIRCapacity, bool verbose) {
     size_t  bufCapacity = strlen(fixlist) + 1U;
     char    buf[bufCapacity];
     strncpy(buf, fixlist, bufCapacity);
@@ -246,7 +246,7 @@ static int fetch_fixlist(const char * fixlist, const char * xcpkgDownloadsDIR, c
         }
 
         action:
-        ret = xcpkg_download_via_http_then_unpack(url, uri, sha, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, packageWorkingFixDIR, packageWorkingFixDIRCapacity, verbose);
+        ret = xcpkg_download_via_http_then_unpack(url, uri, sha, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, "fix", 4U, verbose);
 
         if (ret != XCPKG_OK) {
             if (fd != -1) {
@@ -267,15 +267,7 @@ static int fetch_fixlist(const char * fixlist, const char * xcpkgDownloadsDIR, c
         }
 
         if (fd == -1) {
-            size_t capacity = packageWorkingFixDIRCapacity + 6U;
-            char   fp[capacity];
-
-            ret = snprintf(fp, capacity, "%s/index", packageWorkingFixDIR);
-
-            if (ret < 0) {
-                perror(NULL);
-                return XCPKG_ERROR;
-            }
+            const char * fp = "fix/index";
 
             fd = open(fp, O_CREAT | O_TRUNC | O_WRONLY, 0666);
 
@@ -301,7 +293,7 @@ static int fetch_fixlist(const char * fixlist, const char * xcpkgDownloadsDIR, c
     return XCPKG_OK;
 }
 
-static int fetch_reslist(const char * reslist, const char * xcpkgDownloadsDIR, const size_t xcpkgDownloadsDIRCapacity, const char * packageWorkingResDIR, const size_t packageWorkingResDIRCapacity, bool verbose) {
+static int fetch_reslist(const char * reslist, const char * xcpkgDownloadsDIR, const size_t xcpkgDownloadsDIRCapacity, bool verbose) {
     size_t  bufCapacity = strlen(reslist) + 1U;
     char    buf[bufCapacity];
     strncpy(buf, reslist, bufCapacity);
@@ -383,7 +375,7 @@ static int fetch_reslist(const char * reslist, const char * xcpkgDownloadsDIR, c
         }
 
         action:
-        ret = xcpkg_download_via_http_then_unpack(url, uri, sha, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, packageWorkingResDIR, packageWorkingResDIRCapacity, verbose);
+        ret = xcpkg_download_via_http_then_unpack(url, uri, sha, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, "res", 4U, verbose);
 
         if (ret != XCPKG_OK) {
             return ret;
@@ -1223,7 +1215,7 @@ static int setup_rust_env2(const bool isForTarget, const char * rustTarget, cons
     return XCPKG_OK;
 }
 
-static int setup_rust_env(const char * targetPlatformArch, const char * packageWorkingLibDIR, const size_t packageWorkingLibDIRCapacity, const bool isCrossBuild, const size_t njobs) {
+static int setup_rust_env(const char * targetPlatformArch, const char * packageWorkingTopDIR, const size_t packageWorkingTopDIRCapacity, const bool isCrossBuild, const size_t njobs) {
     // https://doc.rust-lang.org/cargo/reference/config.html#buildrustflags
     // https://doc.rust-lang.org/cargo/reference/environment-variables.html
 
@@ -1302,7 +1294,7 @@ static int setup_rust_env(const char * targetPlatformArch, const char * packageW
 
     /////////////////////////////////////////
 
-    ret = setup_rust_env2(true, rustTarget, packageWorkingLibDIR, packageWorkingLibDIRCapacity);
+    ret = setup_rust_env2(true, rustTarget, packageWorkingTopDIR, packageWorkingTopDIRCapacity);
 
     if (ret != XCPKG_OK) {
         return ret;
@@ -1317,7 +1309,7 @@ static int setup_rust_env(const char * targetPlatformArch, const char * packageW
         rustTarget = "aarch64-apple-darwin";
 #endif
 
-        ret = setup_rust_env2(false, rustTarget, packageWorkingLibDIR, packageWorkingLibDIRCapacity);
+        ret = setup_rust_env2(false, rustTarget, packageWorkingTopDIR, packageWorkingTopDIRCapacity);
 
         if (ret != XCPKG_OK) {
             return ret;
@@ -1328,7 +1320,7 @@ static int setup_rust_env(const char * targetPlatformArch, const char * packageW
 }
 
 static int generate_shell_script_file(
-        const char * shellScriptFilePath,
+        const char * shellScriptFileName,
         const char * packageName,
         const XCPKGFormula * formula,
         const XCPKGInstallOptions * installOptions,
@@ -1348,18 +1340,16 @@ static int generate_shell_script_file(
         const char * xcpkgDownloadsDIR,
         const char * sessionDIR,
         const char * packageWorkingTopDIR,
-        const char * packageWorkingSrcDIR,
         const char * packageInstalledRootDIR,
         const size_t packageInstalledRootDIRCapacity,
         const char * packageInstalledDIR,
-        const char * packageMetaInfoDIR,
 
         const char * recursiveDependentPackageNames,
         const size_t recursiveDependentPackageNamesLength) {
-    int fd = open(shellScriptFilePath, O_CREAT | O_TRUNC | O_WRONLY, 0666);
+    int fd = open(shellScriptFileName, O_CREAT | O_TRUNC | O_WRONLY, 0666);
 
     if (fd == -1) {
-        perror(shellScriptFilePath);
+        perror(shellScriptFileName);
         return XCPKG_ERROR;
     }
 
@@ -1704,7 +1694,6 @@ static int generate_shell_script_file(
 
         {"PACKAGE_WORKING_DIR", packageWorkingTopDIR},
         {"PACKAGE_INSTALL_DIR", packageInstalledDIR},
-        {"PACKAGE_METAINF_DIR", packageMetaInfoDIR},
 
         {NULL, NULL},
     };
@@ -1728,28 +1717,28 @@ static int generate_shell_script_file(
     //////////////////////////////////////////////////////////////////////////////
 
     if (formula->bscript == NULL) {
-        ret = dprintf(fd, "PACKAGE_BSCRIPT_DIR='%s'\n", packageWorkingSrcDIR);
+        ret = dprintf(fd, "PACKAGE_BSCRIPT_DIR='%s/src'\n", packageWorkingTopDIR);
 
         if (ret < 0) {
             close(fd);
             return XCPKG_ERROR;
         }
 
-        ret = dprintf(fd, "PACKAGE_BCACHED_DIR='%s/_'\n", packageWorkingSrcDIR);
+        ret = dprintf(fd, "PACKAGE_BCACHED_DIR='%s/src/_'\n", packageWorkingTopDIR);
 
         if (ret < 0) {
             close(fd);
             return XCPKG_ERROR;
         }
     } else {
-        ret = dprintf(fd, "PACKAGE_BSCRIPT_DIR='%s/%s'\n", packageWorkingSrcDIR, formula->bscript);
+        ret = dprintf(fd, "PACKAGE_BSCRIPT_DIR='%s/src/%s'\n", packageWorkingTopDIR, formula->bscript);
 
         if (ret < 0) {
             close(fd);
             return XCPKG_ERROR;
         }
 
-        ret = dprintf(fd, "PACKAGE_BCACHED_DIR='%s/%s/_'\n", packageWorkingSrcDIR, formula->bscript);
+        ret = dprintf(fd, "PACKAGE_BCACHED_DIR='%s/src/%s/_'\n", packageWorkingTopDIR, formula->bscript);
 
         if (ret < 0) {
             close(fd);
@@ -1760,14 +1749,14 @@ static int generate_shell_script_file(
     //////////////////////////////////////////////////////////////////////////////
 
     if (formula->bscript == NULL) {
-        ret = dprintf(fd, "\n NATIVE_BCACHED_DIR='%s/-'\n", packageWorkingSrcDIR);
+        ret = dprintf(fd, "\n NATIVE_BCACHED_DIR='%s/src/-'\n", packageWorkingTopDIR);
 
         if (ret < 0) {
             close(fd);
             return XCPKG_ERROR;
         }
     } else {
-        ret = dprintf(fd, "\n NATIVE_BCACHED_DIR='%s/%s/-'\n", packageWorkingSrcDIR, formula->bscript);
+        ret = dprintf(fd, "\n NATIVE_BCACHED_DIR='%s/src/%s/-'\n", packageWorkingTopDIR, formula->bscript);
 
         if (ret < 0) {
             close(fd);
@@ -2155,61 +2144,112 @@ static int adjust_macho_files(const char * packageInstalledDIR, const size_t pac
     return XCPKG_OK;
 }
 
-static int backup_formulas(const char * sessionDIR, const char * packageMetaInfoDIR, const size_t packageMetaInfoDIRCapacity, const char * recursiveDependentPackageNames, const size_t recursiveDependentPackageNamesLength) {
-    size_t packageInstalledFormulaDIRLength = packageMetaInfoDIRCapacity + 9U;
-    char   packageInstalledFormulaDIR[packageInstalledFormulaDIRLength];
+static int backup_formulas(const char * sessionDIR, const size_t sessionDIRLength, const char * recursiveDependentPackageNames) {
+    size_t fromFilePathCapacity = sessionDIRLength + 60U;
+    char   fromFilePath[fromFilePathCapacity];
 
-    int ret = snprintf(packageInstalledFormulaDIR, packageInstalledFormulaDIRLength, "%s/formula", packageMetaInfoDIR);
+    char   toFilePath[70];
 
-    if (ret < 0) {
-        perror(NULL);
-        return XCPKG_ERROR;
+    ///////////////////////////////////////
+
+    char * m;
+
+    for (size_t i = 0U; ; i++) {
+        if (sessionDIR[i] == '\0') {
+            fromFilePath[i] = '/';
+            m = fromFilePath + i + 1;
+            break;
+        }
+
+        fromFilePath[i] = sessionDIR[i];
     }
 
-    if (mkdir(packageInstalledFormulaDIR, S_IRWXU) != 0) {
-        perror(packageInstalledFormulaDIR);
-        return XCPKG_ERROR;
+    ///////////////////////////////////////
+
+    const char * s = "dependencies";
+    char * n;
+
+    for (size_t i = 0U; ; i++) {
+        if (s[i] == '\0') {
+            toFilePath[i] = '/';
+            n = toFilePath + i + 1;
+            break;
+        }
+
+        toFilePath[i] = s[i];
     }
 
-    size_t  recursiveDependentPackageNamesStringCopyCapacity = recursiveDependentPackageNamesLength + 1U;
-    char    recursiveDependentPackageNamesStringCopy[recursiveDependentPackageNamesStringCopyCapacity];
-    strncpy(recursiveDependentPackageNamesStringCopy, recursiveDependentPackageNames, recursiveDependentPackageNamesStringCopyCapacity);
+    ///////////////////////////////////////
 
-    char * packageName = strtok(recursiveDependentPackageNamesStringCopy, " ");
-
-    while (packageName != NULL) {
-        size_t packageNameLength = strlen(packageName);
-
-        size_t fromFilePathLength = strlen(sessionDIR) + packageNameLength  + 6U;
-        char   fromFilePath[fromFilePathLength];
-
-        ret = snprintf(fromFilePath, fromFilePathLength, "%s/%s.yml", sessionDIR, packageName);
-
-        if (ret < 0) {
-            perror(NULL);
+    if (mkdir(toFilePath, S_IRWXU) != 0) {
+        if (errno != EEXIST) {
+            perror(toFilePath);
             return XCPKG_ERROR;
         }
-
-        size_t toFilePathLength = packageInstalledFormulaDIRLength + packageNameLength + 6U;
-        char   toFilePath[toFilePathLength];
-
-        ret = snprintf(toFilePath, toFilePathLength, "%s/%s.yml", packageInstalledFormulaDIR, packageName);
-
-        if (ret < 0) {
-            perror(NULL);
-            return XCPKG_ERROR;
-        }
-
-        ret = xcpkg_copy_file(fromFilePath, toFilePath);
-
-        if (ret != XCPKG_OK) {
-            return ret;
-        }
-
-        packageName = strtok(NULL, " ");
     }
 
-    return XCPKG_OK;
+    ///////////////////////////////////////
+
+    const char * p = recursiveDependentPackageNames;
+
+loop:
+    for (;;) {
+        if (p[0] == '\0') {
+            return XCPKG_OK;
+        }
+
+        if (p[0] == ' ') {
+            p++;
+            continue;
+        }
+
+        break;
+    }
+
+    char * x = m;
+    char * y = n;
+
+    /////////////////////////////
+
+    for (;;) {
+        if (p[0] == ' ' || p[0] == '\0') {
+            s = ".yml";
+
+            for (;;) {
+                x[0] = s[0];
+                y[0] = s[0];
+
+                if (s[0] == '\0') {
+                    break;
+                }
+
+                x++;
+                y++;
+                s++;
+            }
+
+            fprintf(stderr, "copy %s => %s\n", fromFilePath, toFilePath);
+
+            int ret = xcpkg_copy_file(fromFilePath, toFilePath);
+
+            if (ret != XCPKG_OK) {
+                return ret;
+            }
+
+            if (p[0] == '\0') {
+                return XCPKG_OK;
+            }
+
+            goto loop;
+        } else {
+            x[0] = p[0];
+            y[0] = p[0];
+
+            x++;
+            y++;
+            p++;
+        }
+    }
 }
 
 static int generate_manifest_r(const char * dirPath, const size_t offset, FILE * installedManifestFile) {
@@ -2325,21 +2365,13 @@ int generate_manifest(const char * installedDIRPath) {
     return ret;
 }
 
-static int generate_receipt(const char * packageName, const XCPKGFormula * formula, const char * targetPlatformSpec, const SysInfo * sysinfo, const time_t ts, const char * packageMetaInfoDIR, const size_t packageMetaInfoDIRCapacity) {
-    size_t receiptFilePathLength = packageMetaInfoDIRCapacity + sizeof(XCPKG_RECEIPT_FILEPATH_RELATIVE_TO_METADATA_DIR);
-    char   receiptFilePath[receiptFilePathLength];
+static int generate_receipt(const char * packageName, const XCPKGFormula * formula, const char * targetPlatformSpec, const SysInfo * sysinfo, const time_t ts) {
+    const char * const f = "RECEIPT.yml";
 
-    int ret = snprintf(receiptFilePath, receiptFilePathLength, "%s%s", packageMetaInfoDIR, XCPKG_RECEIPT_FILEPATH_RELATIVE_TO_METADATA_DIR);
-
-    if (ret < 0) {
-        perror(NULL);
-        return XCPKG_ERROR;
-    }
-
-    FILE * receiptFile = fopen(receiptFilePath, "w");
+    FILE * receiptFile = fopen(f, "w");
 
     if (receiptFile == NULL) {
-        perror(receiptFilePath);
+        perror(f);
         return XCPKG_ERROR;
     }
 
@@ -2412,7 +2444,7 @@ static int generate_receipt(const char * packageName, const XCPKGFormula * formu
 
         if (size > 0) {
             if (fwrite(buff, 1, size, receiptFile) != size || ferror(receiptFile)) {
-                perror(receiptFilePath);
+                perror(f);
                 fclose(receiptFile);
                 fclose(formulaFile);
                 return XCPKG_ERROR;
@@ -2434,39 +2466,11 @@ static int generate_receipt(const char * packageName, const XCPKGFormula * formu
     return XCPKG_OK;
 }
 
-static int install_files_to_metainfo_dir(struct stat st, const char * fromDIR, size_t fromDIRLength, const char * toDIR, size_t toDIRLength, const char * item, size_t itemLength) {
-    size_t fromFilePathLength = fromDIRLength + itemLength + 2U;
-    char   fromFilePath[fromFilePathLength];
-
-    int ret = snprintf(fromFilePath, fromFilePathLength, "%s/%s", fromDIR, item);
-
-    if (ret < 0) {
-        perror(NULL);
-        return XCPKG_ERROR;
-    }
-
-    size_t toFilePathLength = toDIRLength + itemLength + 2U;
-    char   toFilePath[toFilePathLength];
-
-    ret = snprintf(toFilePath, toFilePathLength, "%s/%s", toDIR, item);
-
-    if (ret < 0) {
-        perror(NULL);
-        return XCPKG_ERROR;
-    }
-
-    if (stat(fromFilePath, &st) == 0 && S_ISREG(st.st_mode)) {
-        return xcpkg_copy_file(fromFilePath, toFilePath);
-    }
-
-    return XCPKG_OK;
-}
-
 static int copy_dependent_libraries(
         const char * depPackageInstalledDIR,
         const size_t depPackageInstalledDIRLength,
-        const char * toDIR,
-        const size_t toDIRLength) {
+        const char * packageWorkingTopDIR,
+        const size_t packageWorkingTopDIRCapacity) {
 
     size_t fromDIRCapacity = depPackageInstalledDIRLength + 5U;
     char   fromDIR[fromDIRCapacity];
@@ -2520,8 +2524,8 @@ static int copy_dependent_libraries(
             fileNameLength = strlen(fileName);
 
             if (fileNameLength > 5 && strcmp(fileName + fileNameLength - 2U, ".a") == 0) {
-                size_t   fromFilePathCapacity = fromDIRCapacity + fileNameLength + 2U;
-                char     fromFilePath[fromFilePathCapacity];
+                size_t fromFilePathCapacity = fromDIRCapacity + fileNameLength + 2U;
+                char   fromFilePath[fromFilePathCapacity];
 
                 ret = snprintf(fromFilePath, fromFilePathCapacity, "%s/%s", fromDIR, fileName);
 
@@ -2531,10 +2535,10 @@ static int copy_dependent_libraries(
                     return XCPKG_ERROR;
                 }
 
-                size_t   toFilePathCapacity = toDIRLength + fileNameLength + 2U;
-                char     toFilePath[toFilePathCapacity];
+                size_t toFilePathCapacity = packageWorkingTopDIRCapacity + fileNameLength + 5U;
+                char   toFilePath[toFilePathCapacity];
 
-                ret = snprintf(toFilePath, toFilePathCapacity, "%s/%s", toDIR, fileName);
+                ret = snprintf(toFilePath, toFilePathCapacity, "%s/lib/%s", packageWorkingTopDIR, fileName);
 
                 if (ret < 0) {
                     perror(NULL);
@@ -2562,8 +2566,7 @@ static int xcpkg_build_for_native(
         const char * nativePackageInstalledRootDIR,
         const size_t nativePackageInstalledRootDIRCapacity,
         const char * packageInstalledSHA,
-        const char * shellScriptFilePath,
-        const size_t shellScriptFilePathCapacity,
+        const char * shellScriptFileName,
         const bool verbose) {
     size_t receiptFilePathLength = nativePackageInstalledRootDIRCapacity + packageNameLength + 14U;
     char   receiptFilePath[receiptFilePathLength];
@@ -2649,7 +2652,7 @@ static int xcpkg_build_for_native(
 
     //////////////////////////////////////////////////////////////////////////////
 
-    ret = xcpkg_fork_exec2(3, "/bin/sh", shellScriptFilePath, "native");
+    ret = xcpkg_fork_exec2(3, "/bin/sh", shellScriptFileName, "native");
 
     if (ret != XCPKG_OK) {
         return ret;
@@ -2991,27 +2994,27 @@ static int xcpkg_install_package(
 
     const size_t targetPlatformSpecLength = strlen(targetPlatformSpec);
 
-    char p[targetPlatformSpecLength + 1];
+    char buf[targetPlatformSpecLength + 1];
 
-    char * targetPlatformName = p;
+    char * targetPlatformName = buf;
     char * targetPlatformVers = NULL;
     char * targetPlatformArch = NULL;
 
     for (size_t i = 0; i < targetPlatformSpecLength; i++) {
-        p[i] = targetPlatformSpec[i];
+        buf[i] = targetPlatformSpec[i];
 
-        if (p[i] == '-') {
-            p[i] = '\0';
+        if (buf[i] == '-') {
+            buf[i] = '\0';
 
             if (targetPlatformVers == NULL) {
-                targetPlatformVers = p + i + 1;
+                targetPlatformVers = buf + i + 1;
             } else if (targetPlatformArch == NULL) {
-                targetPlatformArch = p + i + 1;
+                targetPlatformArch = buf + i + 1;
             }
         }
     }
 
-    p[targetPlatformSpecLength] = '\0';
+    buf[targetPlatformSpecLength] = '\0';
 
     //printf("targetPlatformName=%s\n", targetPlatformName);
     //printf("targetPlatformVers=%s\n", targetPlatformVers);
@@ -3546,121 +3549,13 @@ static int xcpkg_install_package(
 
     //////////////////////////////////////////////////////////////////////////////
 
-    size_t packageWorkingSrcDIRCapacity = packageWorkingTopDIRCapacity + 5U;
-    char   packageWorkingSrcDIR[packageWorkingSrcDIRCapacity];
+    const char* dirs[7] = {"src", "fix", "res", "bin", "lib", "include", "tmp"};
 
-    ret = snprintf(packageWorkingSrcDIR, packageWorkingSrcDIRCapacity, "%s/src", packageWorkingTopDIR);
-
-    if (ret < 0) {
-        perror(NULL);
-        return XCPKG_ERROR;
-    }
-
-    if (mkdir(packageWorkingSrcDIR, S_IRWXU) != 0) {
-        perror(packageWorkingSrcDIR);
-        return XCPKG_ERROR;
-    }
-
-    //////////////////////////////////////////////////////////////////////////////
-
-    size_t packageWorkingFixDIRCapacity = packageWorkingTopDIRCapacity + 5U;
-    char   packageWorkingFixDIR[packageWorkingFixDIRCapacity];
-
-    ret = snprintf(packageWorkingFixDIR, packageWorkingFixDIRCapacity, "%s/fix", packageWorkingTopDIR);
-
-    if (ret < 0) {
-        perror(NULL);
-        return XCPKG_ERROR;
-    }
-
-    if (mkdir(packageWorkingFixDIR, S_IRWXU) != 0) {
-        perror(packageWorkingFixDIR);
-        return XCPKG_ERROR;
-    }
-
-    //////////////////////////////////////////////////////////////////////////////
-
-    size_t packageWorkingResDIRCapacity = packageWorkingTopDIRCapacity + 5U;
-    char   packageWorkingResDIR[packageWorkingResDIRCapacity];
-
-    ret = snprintf(packageWorkingResDIR, packageWorkingResDIRCapacity, "%s/res", packageWorkingTopDIR);
-
-    if (ret < 0) {
-        perror(NULL);
-        return XCPKG_ERROR;
-    }
-
-    if (mkdir(packageWorkingResDIR, S_IRWXU) != 0) {
-        perror(packageWorkingResDIR);
-        return XCPKG_ERROR;
-    }
-
-    //////////////////////////////////////////////////////////////////////////////
-
-    size_t packageWorkingBinDIRCapacity = packageWorkingTopDIRCapacity + 5U;
-    char   packageWorkingBinDIR[packageWorkingBinDIRCapacity];
-
-    ret = snprintf(packageWorkingBinDIR, packageWorkingBinDIRCapacity, "%s/bin", packageWorkingTopDIR);
-
-    if (ret < 0) {
-        perror(NULL);
-        return XCPKG_ERROR;
-    }
-
-    if (mkdir(packageWorkingBinDIR, S_IRWXU) != 0) {
-        perror(packageWorkingBinDIR);
-        return XCPKG_ERROR;
-    }
-
-    //////////////////////////////////////////////////////////////////////////////
-
-    size_t packageWorkingIncDIRCapacity = packageWorkingTopDIRCapacity + 9U;
-    char   packageWorkingIncDIR[packageWorkingIncDIRCapacity];
-
-    ret = snprintf(packageWorkingIncDIR, packageWorkingIncDIRCapacity, "%s/include", packageWorkingTopDIR);
-
-    if (ret < 0) {
-        perror(NULL);
-        return XCPKG_ERROR;
-    }
-
-    if (mkdir(packageWorkingIncDIR, S_IRWXU) != 0) {
-        perror(packageWorkingIncDIR);
-        return XCPKG_ERROR;
-    }
-
-    //////////////////////////////////////////////////////////////////////////////
-
-    size_t packageWorkingLibDIRCapacity = packageWorkingTopDIRCapacity + 5U;
-    char   packageWorkingLibDIR[packageWorkingLibDIRCapacity];
-
-    ret = snprintf(packageWorkingLibDIR, packageWorkingLibDIRCapacity, "%s/lib", packageWorkingTopDIR);
-
-    if (ret < 0) {
-        perror(NULL);
-        return XCPKG_ERROR;
-    }
-
-    if (mkdir(packageWorkingLibDIR, S_IRWXU) != 0) {
-        perror(packageWorkingLibDIR);
-        return XCPKG_ERROR;
-    }
-
-    //////////////////////////////////////////////////////////////////////////////
-
-    size_t packageWorkingTmpDIRCapacity = packageWorkingTopDIRCapacity + 5U;
-    char   packageWorkingTmpDIR[packageWorkingTmpDIRCapacity];
-
-    ret = snprintf(packageWorkingTmpDIR, packageWorkingTmpDIRCapacity, "%s/tmp", packageWorkingTopDIR);
-
-    if (ret < 0) {
-        perror(NULL);
-        return XCPKG_ERROR;
-    }
-
-    if (mkdir(packageWorkingTmpDIR, S_IRWXU) != 0) {
-        perror(packageWorkingTmpDIR);
-        return XCPKG_ERROR;
+    for (size_t i = 0; i < 7; i++) {
+        if (mkdir(dirs[i], S_IRWXU) != 0) {
+            perror(dirs[i]);
+            return XCPKG_ERROR;
+        }
     }
 
     //////////////////////////////////////////////////////////////////////////////
@@ -3681,30 +3576,6 @@ static int xcpkg_install_package(
     char   packageInstalledDIR[packageInstalledDIRCapacity];
 
     ret = snprintf(packageInstalledDIR, packageInstalledDIRCapacity, "%s/%s", packageInstalledRootDIR, packageInstalledSHA);
-
-    if (ret < 0) {
-        perror(NULL);
-        return XCPKG_ERROR;
-    }
-
-    //////////////////////////////////////////////////////////////////////////////
-
-    size_t packageMetaInfoDIRCapacity = packageInstalledDIRCapacity + sizeof(XCPKG_METADATA_DIR_PATH_RELATIVE_TO_INSTALLED_ROOT);
-    char   packageMetaInfoDIR[packageMetaInfoDIRCapacity];
-
-    ret = snprintf(packageMetaInfoDIR, packageMetaInfoDIRCapacity, "%s%s", packageInstalledDIR, XCPKG_METADATA_DIR_PATH_RELATIVE_TO_INSTALLED_ROOT);
-
-    if (ret < 0) {
-        perror(NULL);
-        return XCPKG_ERROR;
-    }
-
-    //////////////////////////////////////////////////////////////////////////////
-
-    size_t shellScriptFilePathCapacity = packageWorkingTopDIRCapacity + 12U;
-    char   shellScriptFilePath[shellScriptFilePathCapacity];
-
-    ret = snprintf(shellScriptFilePath, shellScriptFilePathCapacity, "%s/vars.sh", packageWorkingTopDIR);
 
     if (ret < 0) {
         perror(NULL);
@@ -3750,7 +3621,16 @@ static int xcpkg_install_package(
 
     //////////////////////////////////////////////////////////////////////////////
 
-    ret = generate_shell_script_file(shellScriptFilePath, packageName, formula, installOptions, sysinfo, uppmPackageInstalledRootDIR, nativePackageInstalledRootDIR, xcpkgExeFilePath, ts, njobs, isCrossBuild, targetPlatformSpec, targetPlatformName, targetPlatformVers, targetPlatformArch, xcpkgHomeDIR, xcpkgCoreDIR, xcpkgDownloadsDIR, sessionDIR, packageWorkingTopDIR, packageWorkingSrcDIR, packageInstalledRootDIR, packageInstalledRootDIRCapacity, packageInstalledDIR, packageMetaInfoDIR, recursiveDependentPackageNames, recursiveDependentPackageNamesLength);
+    if (chdir (packageWorkingTopDIR) != 0) {
+        perror(packageWorkingTopDIR);
+        return XCPKG_ERROR;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+
+    const char * const shellScriptFileName = "vars.sh";
+
+    ret = generate_shell_script_file(shellScriptFileName, packageName, formula, installOptions, sysinfo, uppmPackageInstalledRootDIR, nativePackageInstalledRootDIR, xcpkgExeFilePath, ts, njobs, isCrossBuild, targetPlatformSpec, targetPlatformName, targetPlatformVers, targetPlatformArch, xcpkgHomeDIR, xcpkgCoreDIR, xcpkgDownloadsDIR, sessionDIR, packageWorkingTopDIR, packageInstalledRootDIR, packageInstalledRootDIRCapacity, packageInstalledDIR, recursiveDependentPackageNames, recursiveDependentPackageNamesLength);
 
     if (ret != XCPKG_OK) {
         return ret;
@@ -3759,12 +3639,7 @@ static int xcpkg_install_package(
     //////////////////////////////////////////////////////////////////////////////
 
     if (formula->dofetch != NULL) {
-        if (chdir (packageWorkingTopDIR) != 0) {
-            perror(packageWorkingTopDIR);
-            return XCPKG_ERROR;
-        }
-
-        ret = xcpkg_fork_exec2(3, "/bin/sh", shellScriptFilePath, "dofetch");
+        ret = xcpkg_fork_exec2(3, "/bin/sh", shellScriptFileName, "dofetch");
 
         if (ret != XCPKG_OK) {
             return ret;
@@ -3783,7 +3658,7 @@ static int xcpkg_install_package(
                 remoteRef = formula->git_sha;
             }
 
-            ret = xcpkg_git_sync(packageWorkingSrcDIR, formula->git_url, remoteRef, "refs/remotes/origin/master", "master", formula->git_nth);
+            ret = xcpkg_git_sync("src", formula->git_url, remoteRef, "refs/remotes/origin/master", "master", formula->git_nth);
 
             if (ret != XCPKG_OK) {
                 return ret;
@@ -3794,10 +3669,10 @@ static int xcpkg_install_package(
             char * srcDIR = &formula->src_url[6];
             size_t srcDIRLength = strlen(srcDIR);
 
-            size_t cmdCapacity = srcDIRLength + packageWorkingSrcDIRCapacity + 10U;
+            size_t cmdCapacity = srcDIRLength + 14U;
             char   cmd[cmdCapacity];
 
-            ret = snprintf(cmd, cmdCapacity, "cp -r %s/. %s", srcDIR, packageWorkingSrcDIR);
+            ret = snprintf(cmd, cmdCapacity, "cp -r %s/. src/", srcDIR);
 
             if (ret < 0) {
                 perror(NULL);
@@ -3810,7 +3685,7 @@ static int xcpkg_install_package(
                 return ret;
             }
         } else {
-            ret = xcpkg_download_via_http_then_unpack(formula->src_url, formula->src_uri, formula->src_sha, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, packageWorkingSrcDIR, packageWorkingSrcDIRCapacity, installOptions->verbose_net);
+            ret = xcpkg_download_via_http_then_unpack(formula->src_url, formula->src_uri, formula->src_sha, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, "src", 4U, installOptions->verbose_net);
 
             if (ret != XCPKG_OK) {
                 return ret;
@@ -3819,7 +3694,7 @@ static int xcpkg_install_package(
     }
 
     if (formula->fix_url != NULL) {
-        ret = xcpkg_download_via_http_then_unpack(formula->fix_url, formula->fix_uri, formula->fix_sha, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, packageWorkingFixDIR, packageWorkingFixDIRCapacity, installOptions->verbose_net);
+        ret = xcpkg_download_via_http_then_unpack(formula->fix_url, formula->fix_uri, formula->fix_sha, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, "fix", 4U, installOptions->verbose_net);
 
         if (ret != XCPKG_OK) {
             return ret;
@@ -3827,7 +3702,7 @@ static int xcpkg_install_package(
     }
 
     if (formula->res_url != NULL) {
-        ret = xcpkg_download_via_http_then_unpack(formula->res_url, formula->res_uri, formula->res_sha, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, packageWorkingResDIR, packageWorkingResDIRCapacity, installOptions->verbose_net);
+        ret = xcpkg_download_via_http_then_unpack(formula->res_url, formula->res_uri, formula->res_sha, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, "res", 4U, installOptions->verbose_net);
 
         if (ret != XCPKG_OK) {
             return ret;
@@ -3835,7 +3710,7 @@ static int xcpkg_install_package(
     }
 
     if (formula->patches != NULL) {
-        ret = fetch_fixlist(formula->patches, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, packageWorkingFixDIR, packageWorkingFixDIRCapacity, installOptions->verbose_net);
+        ret = fetch_fixlist(formula->patches, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, installOptions->verbose_net);
 
         if (ret != XCPKG_OK) {
             return ret;
@@ -3843,7 +3718,7 @@ static int xcpkg_install_package(
     }
 
     if (formula->reslist != NULL) {
-        ret = fetch_reslist(formula->reslist, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, packageWorkingResDIR, packageWorkingResDIRCapacity, installOptions->verbose_net);
+        ret = fetch_reslist(formula->reslist, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, installOptions->verbose_net);
 
         if (ret != XCPKG_OK) {
             return ret;
@@ -3861,7 +3736,7 @@ static int xcpkg_install_package(
     //////////////////////////////////////////////////////////////////////////////
 
     if (formula->do12345 != NULL) {
-        ret = xcpkg_build_for_native(formula, packageName, packageNameLength, packageWorkingTopDIR, packageWorkingTopDIRCapacity, nativePackageInstalledRootDIR, nativePackageInstalledRootDIRCapacity, packageInstalledSHA, shellScriptFilePath, shellScriptFilePathCapacity, installOptions->verbose_net);
+        ret = xcpkg_build_for_native(formula, packageName, packageNameLength, packageWorkingTopDIR, packageWorkingTopDIRCapacity, nativePackageInstalledRootDIR, nativePackageInstalledRootDIRCapacity, packageInstalledSHA, shellScriptFileName, installOptions->verbose_net);
 
         if (ret != XCPKG_OK) {
             return ret;
@@ -4032,10 +3907,10 @@ static int xcpkg_install_package(
     //////////////////////////////////////////////////////////////////////////////
 
     if (formula->ppflags == NULL) {
-        size_t cppflagsCapacity = packageWorkingIncDIRCapacity + 2U;
+        size_t cppflagsCapacity = packageWorkingTopDIRCapacity + 10U;
         char   cppflags[cppflagsCapacity];
 
-        ret = snprintf(cppflags, cppflagsCapacity, "-I%s", packageWorkingIncDIR);
+        ret = snprintf(cppflags, cppflagsCapacity, "-I%s/include", packageWorkingTopDIR);
 
         if (ret < 0) {
             perror(NULL);
@@ -4047,10 +3922,10 @@ static int xcpkg_install_package(
             return XCPKG_ERROR;
         }
     } else {
-        size_t cppflagsCapacity = packageWorkingIncDIRCapacity + strlen(formula->ppflags) + 4U;
+        size_t cppflagsCapacity = packageWorkingTopDIRCapacity + strlen(formula->ppflags) + 12U;
         char   cppflags[cppflagsCapacity];
 
-        ret = snprintf(cppflags, cppflagsCapacity, "-I%s %s", packageWorkingIncDIR, formula->ppflags);
+        ret = snprintf(cppflags, cppflagsCapacity, "-I%s/include %s", packageWorkingTopDIR, formula->ppflags);
 
         if (ret < 0) {
             perror(NULL);
@@ -4066,10 +3941,10 @@ static int xcpkg_install_package(
     //////////////////////////////////////////////////////////////////////////////
 
     if (formula->ldflags == NULL) {
-        size_t ldflagsCapacity = commonflagsCapacity + strlen(extraLDFlagsForTargetBuild) + packageWorkingLibDIRCapacity + packageInstalledRootDIRCapacity + packageNameLength + 50U;
+        size_t ldflagsCapacity = commonflagsCapacity + strlen(extraLDFlagsForTargetBuild) + packageWorkingTopDIRCapacity + packageInstalledRootDIRCapacity + packageNameLength + 50U;
         char   ldflags[ldflagsCapacity];
 
-        ret = snprintf(ldflags, ldflagsCapacity, "%s %s -L%s -Wl,-rpath,%s/%s/lib", commonflags, extraLDFlagsForTargetBuild, packageWorkingLibDIR, packageInstalledRootDIR, packageName);
+        ret = snprintf(ldflags, ldflagsCapacity, "%s %s -L%s/lib -Wl,-rpath,%s/%s/lib", commonflags, extraLDFlagsForTargetBuild, packageWorkingTopDIR, packageInstalledRootDIR, packageName);
 
         if (ret < 0) {
             perror(NULL);
@@ -4081,10 +3956,10 @@ static int xcpkg_install_package(
             return XCPKG_ERROR;
         }
     } else {
-        size_t ldflagsCapacity = commonflagsCapacity + strlen(extraLDFlagsForTargetBuild) + packageWorkingLibDIRCapacity + packageInstalledRootDIRCapacity + packageNameLength + strlen(formula->ldflags) + 50U;
+        size_t ldflagsCapacity = commonflagsCapacity + strlen(extraLDFlagsForTargetBuild) + packageWorkingTopDIRCapacity + packageInstalledRootDIRCapacity + packageNameLength + strlen(formula->ldflags) + 50U;
         char   ldflags[ldflagsCapacity];
 
-        ret = snprintf(ldflags, ldflagsCapacity, "%s %s -L%s -Wl,-rpath,%s/%s/lib %s", commonflags, extraLDFlagsForTargetBuild, packageWorkingLibDIR, packageInstalledRootDIR, packageName, formula->ldflags);
+        ret = snprintf(ldflags, ldflagsCapacity, "%s %s -L%s/lib -Wl,-rpath,%s/%s/lib %s", commonflags, extraLDFlagsForTargetBuild, packageWorkingTopDIR, packageInstalledRootDIR, packageName, formula->ldflags);
 
         if (ret < 0) {
             perror(NULL);
@@ -4130,7 +4005,7 @@ static int xcpkg_install_package(
             }
 
             if (needToCopyStaticLibs) {
-                ret = copy_dependent_libraries(depPkgInstalledDIR, depPkgInstalledDIRCapacity, packageWorkingLibDIR, packageWorkingLibDIRCapacity);
+                ret = copy_dependent_libraries(depPkgInstalledDIR, depPkgInstalledDIRCapacity, packageWorkingTopDIR, packageWorkingTopDIRCapacity);
 
                 if (ret != XCPKG_OK) {
                     return ret;
@@ -4278,8 +4153,34 @@ static int xcpkg_install_package(
 
     //////////////////////////////////////////////////////////////////////////////
 
+    char pathBuf[PATH_MAX];
+
+    char * p;
+
+    for (size_t i = 0U; ; i++) {
+        if (packageWorkingTopDIR[i] == '\0') {
+            pathBuf[i] = '/';
+            p = pathBuf + i + 1;
+            break;
+        }
+
+        pathBuf[i] = packageWorkingTopDIR[i];
+    }
+
+    const char * s = "lib";
+
+    for (size_t i = 0U; ; i++) {
+        p[i] = s[i];
+
+        if (p[i] == '\0') {
+            break;
+        }
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+
     if (formula->useBuildSystemCargo) {
-        ret = setup_rust_env(targetPlatformArch, packageWorkingLibDIR, packageWorkingLibDIRCapacity, isCrossBuild, njobs);
+        ret = setup_rust_env(targetPlatformArch, pathBuf, packageWorkingTopDIRCapacity + 4U, isCrossBuild, njobs);
 
         if (ret != XCPKG_OK) {
             return ret;
@@ -4290,7 +4191,7 @@ static int xcpkg_install_package(
 
     // override the default search directory (usually /usr/lib/pkgconfig:/usr/share/pkgconfig)
     // because we only want to use our own
-    if (setenv("PKG_CONFIG_LIBDIR", packageWorkingLibDIR, 1) != 0) {
+    if (setenv("PKG_CONFIG_LIBDIR", pathBuf, 1) != 0) {
         perror("PKG_CONFIG_LIBDIR");
         return XCPKG_ERROR;
     }
@@ -4319,7 +4220,7 @@ static int xcpkg_install_package(
 
     //////////////////////////////////////////////////////////////////////////////
 
-    ret = xcpkg_fork_exec2(3, "/bin/sh", shellScriptFilePath, "target");
+    ret = xcpkg_fork_exec2(3, "/bin/sh", shellScriptFileName, "target");
 
     if (ret != XCPKG_OK) {
         return ret;
@@ -4344,7 +4245,7 @@ static int xcpkg_install_package(
     struct stat st;
 
     for (size_t i = 0; i < 2; i++) {
-        if (stat(a[i], &st) == 0) {
+        if (stat(a[i], &st) == 0 && S_ISREG(st.st_mode)) {
             if (unlink(a[i]) != 0) {
                 perror(a[i]);
                 return XCPKG_ERROR;
@@ -4354,6 +4255,8 @@ static int xcpkg_install_package(
 
     //////////////////////////////////////////////////////////////////////////////
 
+    const char * const packageMetaInfoDIR = ".xcpkg";
+
     if (mkdir(packageMetaInfoDIR, S_IRWXU) != 0) {
         if (errno != EEXIST) {
             perror(packageMetaInfoDIR);
@@ -4361,101 +4264,43 @@ static int xcpkg_install_package(
         }
     }
 
+    if (chdir (packageMetaInfoDIR) != 0) {
+        perror(packageMetaInfoDIR);
+        return XCPKG_ERROR;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+
+    if (recursiveDependentPackageNames[0] != '\0') {
+        ret = backup_formulas(sessionDIR, sessionDIRLength, recursiveDependentPackageNames);
+
+        if (ret != XCPKG_OK) {
+            return ret;
+        }
+    }
+
     //////////////////////////////////////////////////////////////////////////////
     // install dependency graph files
 
     if (formula->dep_pkg != NULL) {
-        const char* item[4] = { "dependencies.dot", "dependencies.d2", "dependencies.svg", "dependencies.png" };
-
-        for (size_t i = 0; i < 4; i++) {
-            ret = install_files_to_metainfo_dir(st, packageWorkingTopDIR, packageWorkingTopDIRCapacity, packageMetaInfoDIR, packageMetaInfoDIRCapacity, item[i], strlen(item[i]));
-
-            if (ret != XCPKG_OK) {
-                return ret;
-            }
-        }
-    }
-
-    //////////////////////////////////////////////////////////////////////////////
-    // install config.log
-
-    size_t packageBuildScriptDIRBufCapacity = packageWorkingSrcDIRCapacity + (formula->bscript == NULL ? 0U : strlen(formula->bscript)) + 2U;
-    char   packageBuildScriptDIRBuf[packageBuildScriptDIRBufCapacity];
-
-    const char * packageBuildScriptDIR;
-
-    if (formula->bscript == NULL) {
-        packageBuildScriptDIR = packageWorkingSrcDIR;
-    } else {
-        ret = snprintf(packageBuildScriptDIRBuf, packageBuildScriptDIRBufCapacity, "%s/%s", packageWorkingSrcDIR, formula->bscript);
-
-        if (ret < 0) {
-            perror(NULL);
-            return XCPKG_ERROR;
-        }
-
-        packageBuildScriptDIR = packageBuildScriptDIRBuf;
-    }
-
-    const char* b[2] = { packageWorkingTmpDIR, packageBuildScriptDIR };
-
-    for (int i = 0; i < 2; i++) {
-        size_t fromFilePathCapacity = strlen(b[i]) + 12U;
-        char   fromFilePath[fromFilePathCapacity];
-
-        ret = snprintf(fromFilePath, fromFilePathCapacity, "%s/config.log", b[i]);
-
-        if (ret < 0) {
-            perror(NULL);
-            return XCPKG_ERROR;
-        }
-
-        if (stat(fromFilePath, &st) == 0) {
-            size_t toFilePathCapacity = packageMetaInfoDIRCapacity + 12U;
-            char   toFilePath[toFilePathCapacity];
-
-            ret = snprintf(toFilePath, toFilePathCapacity, "%s/config.log", packageMetaInfoDIR);
-
-            if (ret < 0) {
-                perror(NULL);
-                return XCPKG_ERROR;
+        for (size_t i = 0U; i < 4U; i++) {
+            switch (i) {
+                case 0: s = "dependencies.dot"; break;
+                case 1: s = "dependencies.d2" ; break;
+                case 2: s = "dependencies.svg"; break;
+                case 3: s = "dependencies.png"; break;
             }
 
-            ret = xcpkg_rename_or_copy_file(fromFilePath, toFilePath);
+            for (size_t j = 0U; ; j++) {
+                p[j] = s[j];
 
-            if (ret != XCPKG_OK) {
-                return ret;
-            }
-        }
-    }
-
-    //////////////////////////////////////////////////////////////////////////////
-    // install compile_commands.json
-
-    if (installOptions->exportCompileCommandsJson) {
-        for (int i = 0; i < 2; i++) {
-            size_t fromFilePathCapacity = strlen(b[i]) + 23U;
-            char   fromFilePath[fromFilePathCapacity];
-
-            ret = snprintf(fromFilePath, fromFilePathCapacity, "%s/compile_commands.json", b[i]);
-
-            if (ret < 0) {
-                perror(NULL);
-                return XCPKG_ERROR;
-            }
-
-            if (stat(fromFilePath, &st) == 0) {
-                size_t toFilePathCapacity = packageMetaInfoDIRCapacity + 23U;
-                char   toFilePath[toFilePathCapacity];
-
-                ret = snprintf(toFilePath, toFilePathCapacity, "%s/compile_commands.json", packageMetaInfoDIR);
-
-                if (ret < 0) {
-                    perror(NULL);
-                    return XCPKG_ERROR;
+                if (p[j] == '\0') {
+                    break;
                 }
+            }
 
-                ret = xcpkg_rename_or_copy_file(fromFilePath, toFilePath);
+            if (stat(pathBuf, &st) == 0 && S_ISREG(st.st_mode)) {
+                ret = xcpkg_rename_or_copy_file(pathBuf, s);
 
                 if (ret != XCPKG_OK) {
                     return ret;
@@ -4465,24 +4310,94 @@ static int xcpkg_install_package(
     }
 
     //////////////////////////////////////////////////////////////////////////////
-    
-    const char* x[12] = { "AUTHORS", "LICENSE", "COPYING", "FAQ", "TODO", "NEWS", "THANKS", "CHANGELOG", "CHANGES", "README", "CONTRIBUTORS", "CONTRIBUTING" };
 
-    const char* y[3] = { "", ".md", ".rst" };
+    s = "src/";
 
-    for (size_t i = 0; i < 12; i++) {
-        for (size_t j = 0; j < 3; j++) {
-            size_t itemCapacity = strlen(x[i]) + strlen(y[j]) + 1U;
-            char   item[itemCapacity];
+    for (size_t i = 0U; ; i++) {
+        p[i] = s[i];
 
-            ret = snprintf(item, itemCapacity, "%s%s", x[i], y[j]);
+        if (p[i] == '\0') {
+            p = &p[i];
+            break;
+        }
+    }
 
-            if (ret < 0) {
-                perror(NULL);
-                return XCPKG_ERROR;
+    //////////////////////////////////////////////////////////////////////////////
+
+    const char* arr1[12] = { "AUTHORS", "LICENSE", "COPYING", "FAQ", "TODO", "NEWS", "THANKS", "CHANGELOG", "CHANGES", "README", "CONTRIBUTORS", "CONTRIBUTING" };
+
+    const char* arr2[3] = { "", ".md", ".rst" };
+
+    for (size_t i = 0U; i < 12U; i++) {
+        char * q = p;
+
+        for (size_t k = 0U; ; k++) {
+            q[k] = arr1[i][k];
+
+            if (q[k] == '\0') {
+                q = &q[k];
+                break;
+            }
+        }
+
+        for (size_t j = 0U; j < 3U; j++) {
+            for (size_t k = 0U; ; k++) {
+                q[k] = arr2[j][k];
+
+                if (q[k] == '\0') {
+                    break;
+                }
             }
 
-            ret = install_files_to_metainfo_dir(st, packageWorkingSrcDIR, packageWorkingSrcDIRCapacity, packageMetaInfoDIR, packageMetaInfoDIRCapacity, item, itemCapacity);
+            fprintf(stderr, "%s => %s\n", pathBuf, p);
+
+            if (stat(pathBuf, &st) == 0 && S_ISREG(st.st_mode)) {
+                ret = xcpkg_rename_or_copy_file(pathBuf, p);
+
+                if (ret != XCPKG_OK) {
+                    return ret;
+                }
+            }
+        }
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+    // install config.log
+
+    s = "config.log";
+
+    for (size_t i = 0U; ; i++) {
+        p[i] = s[i];
+
+        if (p[i] == '\0') {
+            break;
+        }
+    }
+
+    if (stat(pathBuf, &st) == 0 && S_ISREG(st.st_mode)) {
+        ret = xcpkg_rename_or_copy_file(pathBuf, s);
+
+        if (ret != XCPKG_OK) {
+            return ret;
+        }
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+    // install compile_commands.json
+
+    if (installOptions->exportCompileCommandsJson) {
+        s = "compile_commands.json";
+
+        for (size_t i = 0U; ; i++) {
+            p[i] = s[i];
+
+            if (p[i] == '\0') {
+                break;
+            }
+        }
+
+        if (stat(pathBuf, &st) == 0 && S_ISREG(st.st_mode)) {
+            ret = xcpkg_rename_or_copy_file(pathBuf, s);
 
             if (ret != XCPKG_OK) {
                 return ret;
@@ -4490,13 +4405,18 @@ static int xcpkg_install_package(
         }
     }
 
-    if (recursiveDependentPackageNames[0] != '\0') {
-        ret = backup_formulas(sessionDIR, packageMetaInfoDIR, packageMetaInfoDIRCapacity, recursiveDependentPackageNames, recursiveDependentPackageNamesLength);
+    //////////////////////////////////////////////////////////////////////////////
 
-        if (ret != XCPKG_OK) {
-            return ret;
+    s = "dependencies/lib/";
+
+    if (rmdir(s) != 0) {
+        if (errno != ENOENT && errno != ENOTEMPTY) {
+            perror(s);
+            return XCPKG_ERROR;
         }
     }
+
+    //////////////////////////////////////////////////////////////////////////////
 
     ret = generate_manifest(packageInstalledDIR);
 
@@ -4504,11 +4424,15 @@ static int xcpkg_install_package(
         return ret;
     }
 
-    ret = generate_receipt(packageName, formula, targetPlatformSpec, sysinfo, ts, packageMetaInfoDIR, packageMetaInfoDIRCapacity);
+    //////////////////////////////////////////////////////////////////////////////
+
+    ret = generate_receipt(packageName, formula, targetPlatformSpec, sysinfo, ts);
 
     if (ret != XCPKG_OK) {
         return ret;
     }
+
+    //////////////////////////////////////////////////////////////////////////////
 
     size_t treeCmdCapacity = uppmPackageInstalledRootDIRCapacity + packageInstalledDIRCapacity + 30U;
     char   treeCmd[treeCmdCapacity];
@@ -4525,6 +4449,8 @@ static int xcpkg_install_package(
     if (ret != XCPKG_OK) {
         return ret;
     }
+
+    //////////////////////////////////////////////////////////////////////////////
 
     if (chdir (packageInstalledRootDIR) != 0) {
         perror(packageInstalledRootDIR);
@@ -4557,6 +4483,8 @@ static int xcpkg_install_package(
             }
         }
     }
+
+    //////////////////////////////////////////////////////////////////////////////
 
     if (installOptions->keepSessionDIR) {
         return XCPKG_OK;

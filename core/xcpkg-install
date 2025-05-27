@@ -1627,10 +1627,6 @@ EOF
 
     rm files.txt
     rm -rf .xcpkg/0/
-
-    if [ -z "$(find .xcpkg/dependencies/lib -not -path '.xcpkg/dependencies/lib' -print -quit)" ] ; then
-        rm -rf .xcpkg/dependencies/
-    fi
 }
 
 # __find_needed_shared_library <NEEDED_SHARED_LIBRARY_FILENAME>

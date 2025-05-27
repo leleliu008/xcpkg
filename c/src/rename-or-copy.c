@@ -1,6 +1,7 @@
 #include <errno.h>
 #include <stdio.h>
-#include <string.h>
+
+#include <sys/stat.h>
 
 #include "xcpkg.h"
 
@@ -21,29 +22,26 @@ int xcpkg_rename_or_copy_file(const char * fromFilePath, const char * toFilePath
         return XCPKG_ERROR_ARG_IS_NULL;
     }
 
-    size_t i = 0U;
-    size_t j = 0U;
+    size_t slashIndex = 0U;
 
-    for (;;) {
-        char c = toFilePath[i];
-
-        if (c == '\0') {
+    for (size_t i = 0U; ; i++) {
+        if (toFilePath[i] == '\0') {
             break;
         }
 
-        if (c == '/') {
-            j = i;
+        if (toFilePath[i] == '/') {
+            slashIndex = i;
         }
-
-        i++;
     }
 
-    if (j > 0U) {
-        char outputDIR[j + 2U];
+    if (slashIndex > 0U) {
+        char outputDIR[slashIndex + 1U];
 
-        strncpy(outputDIR, toFilePath, j);
+        for (size_t i = 0U; i < slashIndex; i++) {
+            outputDIR[i] = toFilePath[i];
+        }
 
-        outputDIR[j] = '\0';
+        outputDIR[slashIndex] = '\0';
 
         int ret = xcpkg_mkdir_p(outputDIR, false);
 
@@ -52,14 +50,50 @@ int xcpkg_rename_or_copy_file(const char * fromFilePath, const char * toFilePath
         }
     }
 
-    if (rename(fromFilePath, toFilePath) == 0) {
-        return XCPKG_OK;
-    } else {
-        if (errno == EXDEV) {
-            return xcpkg_copy_file(fromFilePath, toFilePath);
+    struct stat st;
+
+    if (lstat(fromFilePath, &st) == -1) {
+        perror(fromFilePath);
+        return XCPKG_ERROR;
+    }
+
+    if (S_ISREG(st.st_mode)) {
+        if (rename(fromFilePath, toFilePath) == 0) {
+            return XCPKG_OK;
         } else {
-            perror(toFilePath);
+            if (errno == EXDEV) {
+                return xcpkg_copy_file(fromFilePath, toFilePath);
+            } else {
+                perror(toFilePath);
+                return XCPKG_ERROR;
+            }
+        }
+    }
+
+    if (S_ISDIR(st.st_mode)) {
+        fprintf(stderr, "%s is expected to be a regular file, but it is actually a directory.\n", fromFilePath);
+        return XCPKG_ERROR;
+    }
+
+    if (S_ISLNK(st.st_mode)) {
+        if (stat(fromFilePath, &st) == 0) {
+            if (S_ISREG(st.st_mode)) {
+                return xcpkg_copy_file(fromFilePath, toFilePath);
+            }
+
+            if (S_ISDIR(st.st_mode)) {
+                fprintf(stderr, "%s is expected to be a regular file, but it is actually a directory.\n", fromFilePath);
+                return XCPKG_ERROR;
+            }
+
+            fprintf(stderr, "%s is expected to be a regular file, but it is actually not.\n", fromFilePath);
+            return XCPKG_ERROR;
+        } else {
+            perror(fromFilePath);
             return XCPKG_ERROR;
         }
     }
+
+    fprintf(stderr, "%s is expected to be a regular file, but it is actually not.\n", fromFilePath);
+    return XCPKG_ERROR;
 }
