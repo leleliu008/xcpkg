@@ -863,10 +863,9 @@ static int native_package_installed_callback(const char * packageInstalledDIR, c
 }
 
 static int install_dependent_packages_via_uppm(
+        const char * uppmPackageNames,
         const char * xcpkgHomeDIR,
         const size_t xcpkgHomeDIRLength,
-        const char * uppmPackageNames,
-        const size_t uppmPackageNamesLength,
         const char * uppmPackageInstalledRootDIR,
         const size_t uppmPackageInstalledRootDIRCapacity,
         const bool   verbose) {
@@ -890,102 +889,131 @@ static int install_dependent_packages_via_uppm(
 
     //////////////////////////////////////////////////////////////////////////////
 
-    size_t  uppmPackageNamesCapacity = uppmPackageNamesLength + 1U;
-    char    uppmPackageNamesCopy[uppmPackageNamesCapacity];
-    strncpy(uppmPackageNamesCopy, uppmPackageNames, uppmPackageNamesCapacity);
-
     fprintf(stderr, "uppm packages to be installed in order: %s\n", uppmPackageNames);
 
-    char * q;
-    char * uppmPackageName = strtok_r(uppmPackageNamesCopy, " ", &q);
+    const char * p = uppmPackageNames;
 
-    while (uppmPackageName != NULL) {
-        ret = uppm_install(uppmHomeDIR, uppmHomeDIRLength, uppmPackageName, verbose, false);
+    char uppmPackageName[51];
 
-        if (ret != XCPKG_OK) {
-            return ret;
+    size_t i;
+
+loop:
+    if (p[0] == '\0') {
+        return XCPKG_OK;
+    }
+
+    if (p[0] == ' ') {
+        p++;
+        goto loop;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+
+    for(i = 0U; p[i] != ' ' && p[i] != '\0'; i++) {
+        if (i == 50U) {
+            fprintf(stderr, "uppm package name must be no more than 50 characters\n");
+            return XCPKG_ERROR;
         }
 
-        size_t uppmPackageInstalledDIRCapacity = uppmPackageInstalledRootDIRCapacity + strlen(uppmPackageName) + 2U;
-        char   uppmPackageInstalledDIR[uppmPackageInstalledDIRCapacity];
+        uppmPackageName[i] = p[i];
+    }
 
-        ret = snprintf(uppmPackageInstalledDIR, uppmPackageInstalledDIRCapacity, "%s/%s", uppmPackageInstalledRootDIR, uppmPackageName);
+    uppmPackageName[i] = '\0';
+
+    //////////////////////////////////////////////////////////////////////////////
+
+    ret = uppm_install(uppmHomeDIR, uppmHomeDIRLength, uppmPackageName, verbose, false);
+
+    if (ret != XCPKG_OK) {
+        return ret;
+    }
+
+    size_t uppmPackageInstalledDIRCapacity = uppmPackageInstalledRootDIRCapacity + strlen(uppmPackageName) + 2U;
+    char   uppmPackageInstalledDIR[uppmPackageInstalledDIRCapacity];
+
+    ret = snprintf(uppmPackageInstalledDIR, uppmPackageInstalledDIRCapacity, "%s/%s", uppmPackageInstalledRootDIR, uppmPackageName);
+
+    if (ret < 0) {
+        perror(NULL);
+        return XCPKG_ERROR;
+    }
+
+    ret = setenv_PATH(uppmPackageInstalledDIR, uppmPackageInstalledDIRCapacity);
+
+    if (ret != XCPKG_OK) {
+        return ret;
+    }
+
+    ret = setenv_ACLOCAL_PATH(uppmPackageInstalledDIR, uppmPackageInstalledDIRCapacity);
+
+    if (ret != XCPKG_OK) {
+        return ret;
+    }
+
+    ret = setenv_XDG_DATA_DIRS(uppmPackageInstalledDIR, uppmPackageInstalledDIRCapacity);
+
+    if (ret != XCPKG_OK) {
+        return ret;
+    }
+
+    if (strcmp(uppmPackageName, "git") == 0) {
+        // https://git-scm.com/book/en/v2/Git-Internals-Environment-Variables
+
+        size_t gitCoreDIRCapacity = uppmPackageInstalledDIRCapacity + 18U;
+        char   gitCoreDIR[gitCoreDIRCapacity];
+
+        ret = snprintf(gitCoreDIR, gitCoreDIRCapacity, "%s/libexec/git-core", uppmPackageInstalledDIR);
 
         if (ret < 0) {
             perror(NULL);
             return XCPKG_ERROR;
         }
 
-        ret = setenv_PATH(uppmPackageInstalledDIR, uppmPackageInstalledDIRCapacity);
-
-        if (ret != XCPKG_OK) {
-            return ret;
+        if (setenv("GIT_EXEC_PATH" , gitCoreDIR, 1) != 0) {
+            perror("GIT_EXEC_PATH");
+            return XCPKG_ERROR;
         }
 
-        ret = setenv_ACLOCAL_PATH(uppmPackageInstalledDIR, uppmPackageInstalledDIRCapacity);
+        size_t gitTemplateDIRCapacity = uppmPackageInstalledDIRCapacity + 26U;
+        char   gitTemplateDIR[gitTemplateDIRCapacity];
 
-        if (ret != XCPKG_OK) {
-            return ret;
+        ret = snprintf(gitTemplateDIR, gitTemplateDIRCapacity, "%s/share/git-core/templates", uppmPackageInstalledDIR);
+
+        if (ret < 0) {
+            perror(NULL);
+            return XCPKG_ERROR;
         }
 
-        ret = setenv_XDG_DATA_DIRS(uppmPackageInstalledDIR, uppmPackageInstalledDIRCapacity);
+        if (setenv("GIT_TEMPLATE_DIR" , gitTemplateDIR, 1) != 0) {
+            perror("GIT_TEMPLATE_DIR");
+            return XCPKG_ERROR;
+        }
+    } else if (strcmp(uppmPackageName, "docbook-xsl") == 0) {
+        // http://xmlsoft.org/xslt/xsltproc.html
 
-        if (ret != XCPKG_OK) {
-            return ret;
+        size_t xmlCatalogFilePathCapacity = uppmPackageInstalledDIRCapacity + 13U;
+        char   xmlCatalogFilePath[xmlCatalogFilePathCapacity];
+
+        ret = snprintf(xmlCatalogFilePath, xmlCatalogFilePathCapacity, "%s/catalog.xml", uppmPackageInstalledDIR);
+
+        if (ret < 0) {
+            perror(NULL);
+            return XCPKG_ERROR;
         }
 
-        if (strcmp(uppmPackageName, "git") == 0) {
-            // https://git-scm.com/book/en/v2/Git-Internals-Environment-Variables
-
-            size_t gitCoreDIRCapacity = uppmPackageInstalledDIRCapacity + 18U;
-            char   gitCoreDIR[gitCoreDIRCapacity];
-
-            ret = snprintf(gitCoreDIR, gitCoreDIRCapacity, "%s/libexec/git-core", uppmPackageInstalledDIR);
-
-            if (ret < 0) {
-                perror(NULL);
-                return XCPKG_ERROR;
-            }
-
-            if (setenv("GIT_EXEC_PATH" , gitCoreDIR, 1) != 0) {
-                perror("GIT_EXEC_PATH");
-                return XCPKG_ERROR;
-            }
-
-            size_t gitTemplateDIRCapacity = uppmPackageInstalledDIRCapacity + 26U;
-            char   gitTemplateDIR[gitTemplateDIRCapacity];
-
-            ret = snprintf(gitTemplateDIR, gitTemplateDIRCapacity, "%s/share/git-core/templates", uppmPackageInstalledDIR);
-
-            if (ret < 0) {
-                perror(NULL);
-                return XCPKG_ERROR;
-            }
-
-            if (setenv("GIT_TEMPLATE_DIR" , gitTemplateDIR, 1) != 0) {
-                perror("GIT_TEMPLATE_DIR");
-                return XCPKG_ERROR;
-            }
-        } else if (strcmp(uppmPackageName, "docbook-xsl") == 0) {
-            // http://xmlsoft.org/xslt/xsltproc.html
-
-            size_t xmlCatalogFilePathCapacity = uppmPackageInstalledDIRCapacity + 13U;
-            char   xmlCatalogFilePath[xmlCatalogFilePathCapacity];
-
-            ret = snprintf(xmlCatalogFilePath, xmlCatalogFilePathCapacity, "%s/catalog.xml", uppmPackageInstalledDIR);
-
-            if (ret < 0) {
-                perror(NULL);
-                return XCPKG_ERROR;
-            }
-
-            if (setenv("XML_CATALOG_FILES" , xmlCatalogFilePath, 1) != 0) {
-                perror("XML_CATALOG_FILES");
-                return XCPKG_ERROR;
-            }
+        if (setenv("XML_CATALOG_FILES" , xmlCatalogFilePath, 1) != 0) {
+            perror("XML_CATALOG_FILES");
+            return XCPKG_ERROR;
         }
+    }
 
-        uppmPackageName = strtok_r(NULL, " ", &q);
+    //////////////////////////////////////////////////////////////////////////////
+
+    p = &p[i];
+
+    if (p[0] == ' ') {
+        p++;
+        goto loop;
     }
 
     return XCPKG_OK;
@@ -1003,79 +1031,83 @@ static int setenv_rustflags(const char * rustTarget, const size_t rustTargetLeng
         return XCPKG_ERROR;
     }
 
-    size_t rustFlagsCapacity = strlen(cc) + libDIRCapacity + 20U;
-    size_t rustFlagsLength = 0U;
-    char * rustFlags = (char*)malloc(rustFlagsCapacity);
+    /////////////////////////////////////////
 
-    if (rustFlags == NULL) {
-        perror(NULL);
-        return XCPKG_ERROR_MEMORY_ALLOCATE;
+    const char * const s = " -C link-arg=";
+
+    size_t k;
+
+    for(k = 0U; s[k] != '\0'; k++);
+
+    /////////////////////////////////////////
+
+    size_t i = 1U;
+    size_t j = 1U;
+
+    for(i = 0U; ldflags[i] != '\0'; i++) {
+        if (ldflags[i] == ' ') j++;
     }
 
+    size_t rustFlagsCapacity = i + j * k + strlen(cc) + libDIRCapacity + 21U;
+
+    char rustFlags[rustFlagsCapacity];
+
+    /////////////////////////////////////////
+
     // https://doc.rust-lang.org/rustc/command-line-arguments.html
-    ret = snprintf(rustFlags, rustFlagsCapacity, "-Clinker=%s -L native=%s", cc, libDIR);
+    ret = snprintf(rustFlags, rustFlagsCapacity, "-C linker=%s -L native=%s", cc, libDIR);
 
     if (ret < 0) {
         perror(NULL);
-        ret = XCPKG_ERROR;
-        goto finalize;
+        return XCPKG_ERROR;
     }
-
-    rustFlagsLength = ret;
 
     /////////////////////////////////////////
 
-    if (ldflags != NULL && ldflags[0] != '\0') {
-        size_t  ldflagsCopyCapacity = strlen(ldflags) + 1U;
-        char    ldflagsCopy[ldflagsCopyCapacity];
-        strncpy(ldflagsCopy, ldflags, ldflagsCopyCapacity);
+    char * p = rustFlags + ret;
 
-        char * item = strtok(ldflagsCopy, " ");
+loop:
+    if (ldflags[0] == '\0') {
+        goto finally;
+    }
 
-        while (item != NULL) {
-            size_t newNeededCapacity = strlen(item) + 13U;
+    if (ldflags[0] == ' ') {
+        ldflags++;
+        goto loop;
+    }
 
-            if (rustFlagsCapacity < (rustFlagsLength + newNeededCapacity)) {
-                size_t newCapacity = (rustFlagsCapacity + newNeededCapacity + 2048U) * sizeof(char);
+    //////////////////////////////////////
 
-                char * p = (char*)realloc(rustFlags, newCapacity);
+    for(i = 0U; i < k; i++) {
+        p[i] = s[i];
+    }
 
-                if (p == NULL) {
-                    ret = XCPKG_ERROR_MEMORY_ALLOCATE;
-                    goto finalize;
-                }
+    p += k;
 
-                rustFlags = p;
-                rustFlagsCapacity = newCapacity;
-            }
+    //////////////////////////////////////
 
-            ret = snprintf(rustFlags + rustFlagsLength, newNeededCapacity, " -Clink-arg=%s", item);
+    for(i = 0U; ; i++) {
+        p[i] = ldflags[i];
 
-            if (ret < 0) {
-                perror(NULL);
-                ret = XCPKG_ERROR;
-                goto finalize;
-            }
+        if (ldflags[i] == '\0') {
+            break;
+        }
 
-            rustFlagsLength += ret;
-
-            item = strtok(NULL, " ");
+        if (ldflags[i] == ' ') {
+            ldflags += i + 1;
+            p[i] = '\0';
+            p += i;
+            goto loop;
         }
     }
 
-    /////////////////////////////////////////
-
-    if (setenv(envName, rustFlags, 1) != 0) {
+finally:
+    if (setenv(envName, rustFlags, 1) == -1) {
         perror(envName);
-        ret = XCPKG_ERROR;
-        goto finalize;
+        return XCPKG_ERROR;
     }
 
-    ret = XCPKG_OK;
-
-finalize:
-    free(rustFlags);
-    return ret;
+    return XCPKG_OK;
 }
 
 static int setup_rust_env2(const bool isForTarget, const char * rustTarget, const char * libDIR, const size_t libDIRCapacity) {
@@ -1286,7 +1318,7 @@ static int setup_rust_env(const char * targetPlatformArch, const char * packageW
 
     /////////////////////////////////////////
 
-    // RUST_TARGET environment variable is not defined by Rust, but it is widely used by lots of third-party projects. 
+    // RUST_TARGET environment variable is not defined by Rust, but it is widely used by lots of third-party projects.
     if (setenv("RUST_TARGET", rustTarget, 1) != 0) {
         perror("RUST_TARGET");
         return XCPKG_ERROR;
@@ -1319,6 +1351,305 @@ static int setup_rust_env(const char * targetPlatformArch, const char * packageW
     return XCPKG_OK;
 }
 
+static int copy_dependent_libraries(
+        const char * depPackageInstalledDIR,
+        const size_t depPackageInstalledDIRLength,
+        const char * packageWorkingTopDIR,
+        const size_t packageWorkingTopDIRCapacity) {
+
+    size_t fromDIRCapacity = depPackageInstalledDIRLength + 5U;
+    char   fromDIR[fromDIRCapacity];
+
+    int ret = snprintf(fromDIR, fromDIRCapacity, "%s/lib", depPackageInstalledDIR);
+
+    if (ret < 0) {
+        perror(NULL);
+        return XCPKG_ERROR;
+    }
+
+    struct stat st;
+
+    if (stat(fromDIR, &st) != 0) {
+        return XCPKG_OK;
+    }
+
+    DIR * dir = opendir(fromDIR);
+
+    if (dir == NULL) {
+        perror(fromDIR);
+        return XCPKG_ERROR;
+    }
+
+    char * fileName;
+    size_t fileNameLength;
+
+    struct dirent * dir_entry;
+
+    for (;;) {
+        errno = 0;
+
+        dir_entry = readdir(dir);
+
+        if (dir_entry == NULL) {
+            if (errno == 0) {
+                closedir(dir);
+                return XCPKG_OK;
+            } else {
+                perror(fromDIR);
+                closedir(dir);
+                return XCPKG_ERROR;
+            }
+        }
+
+        //puts(dir_entry->d_name);
+
+        fileName = dir_entry->d_name;
+
+        if (strncmp(fileName, "lib", 3) == 0) {
+            fileNameLength = strlen(fileName);
+
+            if (fileNameLength > 5 && strcmp(fileName + fileNameLength - 2U, ".a") == 0) {
+                size_t fromFilePathCapacity = fromDIRCapacity + fileNameLength + 2U;
+                char   fromFilePath[fromFilePathCapacity];
+
+                ret = snprintf(fromFilePath, fromFilePathCapacity, "%s/%s", fromDIR, fileName);
+
+                if (ret < 0) {
+                    perror(NULL);
+                    closedir(dir);
+                    return XCPKG_ERROR;
+                }
+
+                size_t toFilePathCapacity = packageWorkingTopDIRCapacity + fileNameLength + 5U;
+                char   toFilePath[toFilePathCapacity];
+
+                ret = snprintf(toFilePath, toFilePathCapacity, "%s/lib/%s", packageWorkingTopDIR, fileName);
+
+                if (ret < 0) {
+                    perror(NULL);
+                    closedir(dir);
+                    return XCPKG_ERROR;
+                }
+
+                ret = xcpkg_copy_file(fromFilePath, toFilePath);
+
+                if (ret != XCPKG_OK) {
+                    closedir(dir);
+                    return ret;
+                }
+            }
+        }
+    }
+}
+
+static inline int config_envs_for_target(const char * recursiveDependentPackageNames, const char * packageInstalledRootDIR, const size_t packageInstalledRootDIRCapacity, const char * nativePackageInstalledRootDIR, const size_t nativePackageInstalledRootDIRCapacity, const char * packageWorkingTopDIR, const size_t packageWorkingTopDIRCapacity, const bool needToCopyStaticLibs, const bool isCrossBuild) {
+    size_t packageInstalledDIRCapacity = packageInstalledRootDIRCapacity + 52U;
+    char   packageInstalledDIR[packageInstalledDIRCapacity];
+
+    size_t i;
+
+    char * m;
+
+    for (i = 0U; ; i++) {
+        packageInstalledDIR[i] = packageInstalledRootDIR[i];
+
+        if (packageInstalledDIR[i] == '\0') {
+            packageInstalledDIR[i] = '/';
+            m = packageInstalledDIR + i + 1;
+            break;
+        }
+    }
+
+    //////////////////////////////////////
+
+    size_t nativePkgInstalledDIRCapacity = nativePackageInstalledRootDIRCapacity + 52U;
+    char   nativePkgInstalledDIR[nativePkgInstalledDIRCapacity];
+
+    char * n;
+
+    for (i = 0U; ; i++) {
+        nativePkgInstalledDIR[i] = nativePackageInstalledRootDIR[i];
+
+        if (nativePkgInstalledDIR[i] == '\0') {
+            nativePkgInstalledDIR[i] = '/';
+            n = nativePkgInstalledDIR + i + 1;
+            break;
+        }
+    }
+
+    //////////////////////////////////////
+
+    const char * p = recursiveDependentPackageNames;
+
+    setenv_fn fns[5] = { setenv_CPPFLAGS, setenv_LDFLAGS, setenv_PKG_CONFIG_PATH, setenv_ACLOCAL_PATH, setenv_XDG_DATA_DIRS };
+
+    int ret;
+
+loop:
+    if (p[0] == '\0') {
+        return XCPKG_OK;
+    }
+
+    if (p[0] == ' ') {
+        p++;
+        goto loop;
+    }
+
+    //////////////////////////////////////
+
+    for (i = 0U; ; i++) {
+        m[i] = p[i];
+        n[i] = p[i];
+
+        if (p[i] == '\0') {
+            break;
+        }
+
+        if (p[i] == ' ') {
+            m[i] = '\0';
+            n[i] = '\0';
+            break;
+        }
+    }
+
+    fprintf(stderr, "packageInstalledDIR=%s\n", packageInstalledDIR);
+    fprintf(stderr, "nativePkgInstalledDIR=%s\n", nativePkgInstalledDIR);
+
+    //////////////////////////////////////
+
+    for (size_t j = 0U; j < 5U; j++) {
+        ret = fns[j](packageInstalledDIR, packageInstalledDIRCapacity);
+
+        if (ret != XCPKG_OK) {
+            return ret;
+        }
+    }
+
+    if (needToCopyStaticLibs) {
+        ret = copy_dependent_libraries(packageInstalledDIR, packageInstalledDIRCapacity, packageWorkingTopDIR, packageWorkingTopDIRCapacity);
+
+        if (ret != XCPKG_OK) {
+            return ret;
+        }
+    }
+
+    ret = setenv_PATH(nativePkgInstalledDIR, nativePkgInstalledDIRCapacity);
+
+    if (ret != XCPKG_OK) {
+        return ret;
+    }
+
+    if (!isCrossBuild) {
+        ret = setenv_PATH(packageInstalledDIR, packageInstalledDIRCapacity);
+
+        if (ret != XCPKG_OK) {
+            return ret;
+        }
+    }
+
+    //////////////////////////////////////
+
+    p += i;
+
+    if (p[0] == ' ') {
+        p++;
+        goto loop;
+    }
+
+    return XCPKG_OK;
+}
+
+static inline int write_shell_script_file(const int fd, const char * recursiveDependentPackageNames, const char * packageInstalledRootDIR, const size_t packageInstalledRootDIRCapacity) {
+    size_t packageInstalledDIRCapacity = packageInstalledRootDIRCapacity + 52U;
+    char   packageInstalledDIR[packageInstalledDIRCapacity];
+
+    size_t i;
+
+    char * q;
+
+    for (i = 0U; ; i++) {
+        packageInstalledDIR[i] = packageInstalledRootDIR[i];
+
+        if (packageInstalledDIR[i] == '\0') {
+            packageInstalledDIR[i] = '/';
+            q = packageInstalledDIR + i + 1;
+            break;
+        }
+    }
+
+    //////////////////////////////////////
+
+    const char * p = recursiveDependentPackageNames;
+
+    char packageName[51];
+
+loop:
+    if (p[0] == '\0') {
+        return XCPKG_OK;
+    }
+
+    if (p[0] == ' ') {
+        p++;
+        goto loop;
+    }
+
+    //////////////////////////////////////
+
+    for (i = 0U; ; i++) {
+        q[i] = p[i];
+
+        if (p[i] == '@' || p[i] == '+' || p[i] == '-' || p[i] == '.') {
+            packageName[i] = '_';
+        } else {
+            packageName[i] = p[i];
+        }
+
+        if (p[i] == '\0') {
+            break;
+        }
+
+        if (p[i] == ' ') {
+            q[i] = '\0';
+            packageName[i] = '\0';
+            break;
+        }
+    }
+
+    //////////////////////////////////////
+
+    int ret = dprintf(fd, "\n%s_INSTALL_DIR='%s'\n", packageName, packageInstalledDIR);
+
+    if (ret < 0) {
+        perror(NULL);
+        return XCPKG_ERROR;
+    }
+
+    ret = dprintf(fd, "%s_INCLUDE_DIR='%s/include'\n", packageName, packageInstalledDIR);
+
+    if (ret < 0) {
+        perror(NULL);
+        return XCPKG_ERROR;
+    }
+
+    ret = dprintf(fd, "%s_LIBRARY_DIR='%s/lib'\n", packageName, packageInstalledDIR);
+
+    if (ret < 0) {
+        perror(NULL);
+        return XCPKG_ERROR;
+    }
+
+    //////////////////////////////////////
+
+    p += i;
+
+    if (p[0] == ' ') {
+        p++;
+        goto loop;
+    }
+
+    return XCPKG_OK;
+}
+
 static int generate_shell_script_file(
         const char * shellScriptFileName,
         const char * packageName,
@@ -1344,8 +1675,7 @@ static int generate_shell_script_file(
         const size_t packageInstalledRootDIRCapacity,
         const char * packageInstalledDIR,
 
-        const char * recursiveDependentPackageNames,
-        const size_t recursiveDependentPackageNamesLength) {
+        const char * recursiveDependentPackageNames) {
     int fd = open(shellScriptFileName, O_CREAT | O_TRUNC | O_WRONLY, 0666);
 
     if (fd == -1) {
@@ -1840,81 +2170,11 @@ static int generate_shell_script_file(
     //////////////////////////////////////////////////////////////////////////////
 
     if (recursiveDependentPackageNames[0] != '\0') {
-        size_t  recursiveDependentPackageNamesStringCopyCapacity = recursiveDependentPackageNamesLength + 1U;
-        char    recursiveDependentPackageNamesStringCopy[recursiveDependentPackageNamesStringCopyCapacity];
-        strncpy(recursiveDependentPackageNamesStringCopy, recursiveDependentPackageNames, recursiveDependentPackageNamesStringCopyCapacity);
+        ret = write_shell_script_file(fd, recursiveDependentPackageNames, packageInstalledRootDIR, packageInstalledRootDIRCapacity);
 
-        char * dependentPackageName = strtok(recursiveDependentPackageNamesStringCopy, " ");
-
-        while (dependentPackageName != NULL) {
-            size_t installedDIRCapacity = packageInstalledRootDIRCapacity + strlen(dependentPackageName) + 1U;
-            char   installedDIR[installedDIRCapacity];
-
-            ret = snprintf(installedDIR, installedDIRCapacity, "%s/%s", packageInstalledRootDIR, dependentPackageName);
-
-            if (ret < 0) {
-                perror(NULL);
-                close(fd);
-                return XCPKG_ERROR;
-            }
-
-            size_t libDIRCapacity = installedDIRCapacity + 4U;
-            char   libDIR[libDIRCapacity];
-
-            ret = snprintf(libDIR, libDIRCapacity, "%s/lib", installedDIR);
-
-            if (ret < 0) {
-                perror(NULL);
-                close(fd);
-                return XCPKG_ERROR;
-            }
-
-            size_t includeDIRCapacity = installedDIRCapacity + 8U;
-            char   includeDIR[includeDIRCapacity];
-
-            ret = snprintf(includeDIR, includeDIRCapacity, "%s/include", installedDIR);
-
-            if (ret < 0) {
-                perror(NULL);
-                close(fd);
-                return XCPKG_ERROR;
-            }
-
-            for (int i = 0; ; i++) {
-                char c = dependentPackageName[i];
-
-                if (c == '\0') {
-                    break;
-                }
-
-                if (c == '@' || c == '+' || c == '-' || c == '.') {
-                    dependentPackageName[i] = '_';
-                }
-            }
-
-            KV kvs[3] = {
-                {"INSTALL", installedDIR},
-                {"INCLUDE", includeDIR},
-                {"LIBRARY", libDIR}
-            };
-
-            ret = write(fd, "\n", 1);
-
-            if (ret == -1) {
-                perror(NULL);
-                return XCPKG_ERROR;
-            }
-
-            for (int i = 0; i < 3; i++) {
-                ret = dprintf(fd, "%s_%s_DIR='%s'\n", dependentPackageName, kvs[i].name, kvs[i].value);
-
-                if (ret < 0) {
-                    close(fd);
-                    return XCPKG_ERROR;
-                }
-            }
-
-            dependentPackageName = strtok(NULL, " ");
+        if (ret != XCPKG_OK) {
+            close(fd);
+            return ret;
         }
     }
 
@@ -2193,63 +2453,58 @@ static int backup_formulas(const char * sessionDIR, const size_t sessionDIRLengt
     const char * p = recursiveDependentPackageNames;
 
 loop:
-    for (;;) {
-        if (p[0] == '\0') {
-            return XCPKG_OK;
-        }
-
-        if (p[0] == ' ') {
-            p++;
-            continue;
-        }
-
-        break;
+    if (p[0] == '\0') {
+        return XCPKG_OK;
     }
+
+    if (p[0] == ' ') {
+        p++;
+        goto loop;
+    }
+
+    /////////////////////////////
 
     char * x = m;
     char * y = n;
 
-    /////////////////////////////
+    for (;;) {
+        x[0] = p[0];
+        y[0] = p[0];
+
+        if (p[0] == ' ' || p[0] == '\0') break;
+
+        x++;
+        y++;
+        p++;
+    }
+
+    s = ".yml";
 
     for (;;) {
-        if (p[0] == ' ' || p[0] == '\0') {
-            s = ".yml";
+        x[0] = s[0];
+        y[0] = s[0];
 
-            for (;;) {
-                x[0] = s[0];
-                y[0] = s[0];
+        if (s[0] == '\0') break;
 
-                if (s[0] == '\0') {
-                    break;
-                }
-
-                x++;
-                y++;
-                s++;
-            }
-
-            fprintf(stderr, "copy %s => %s\n", fromFilePath, toFilePath);
-
-            int ret = xcpkg_copy_file(fromFilePath, toFilePath);
-
-            if (ret != XCPKG_OK) {
-                return ret;
-            }
-
-            if (p[0] == '\0') {
-                return XCPKG_OK;
-            }
-
-            goto loop;
-        } else {
-            x[0] = p[0];
-            y[0] = p[0];
-
-            x++;
-            y++;
-            p++;
-        }
+        x++;
+        y++;
+        s++;
     }
+
+    fprintf(stderr, "copy %s => %s\n", fromFilePath, toFilePath);
+
+    int ret = xcpkg_copy_file(fromFilePath, toFilePath);
+
+    if (ret != XCPKG_OK) {
+        return ret;
+    }
+
+    if (p[0] == ' ') {
+        p++;
+        goto loop;
+    }
+
+    return XCPKG_OK;
 }
 
 static int generate_manifest_r(const char * dirPath, const size_t offset, FILE * installedManifestFile) {
@@ -2464,97 +2719,6 @@ static int generate_receipt(const char * packageName, const XCPKGFormula * formu
     fclose(receiptFile);
 
     return XCPKG_OK;
-}
-
-static int copy_dependent_libraries(
-        const char * depPackageInstalledDIR,
-        const size_t depPackageInstalledDIRLength,
-        const char * packageWorkingTopDIR,
-        const size_t packageWorkingTopDIRCapacity) {
-
-    size_t fromDIRCapacity = depPackageInstalledDIRLength + 5U;
-    char   fromDIR[fromDIRCapacity];
-
-    int ret = snprintf(fromDIR, fromDIRCapacity, "%s/lib", depPackageInstalledDIR);
-
-    if (ret < 0) {
-        perror(NULL);
-        return XCPKG_ERROR;
-    }
-
-    struct stat st;
-
-    if (stat(fromDIR, &st) != 0) {
-        return XCPKG_OK;
-    }
-
-    DIR * dir = opendir(fromDIR);
-
-    if (dir == NULL) {
-        perror(fromDIR);
-        return XCPKG_ERROR;
-    }
-
-    char * fileName;
-    size_t fileNameLength;
-
-    struct dirent * dir_entry;
-
-    for (;;) {
-        errno = 0;
-
-        dir_entry = readdir(dir);
-
-        if (dir_entry == NULL) {
-            if (errno == 0) {
-                closedir(dir);
-                return XCPKG_OK;
-            } else {
-                perror(fromDIR);
-                closedir(dir);
-                return XCPKG_ERROR;
-            }
-        }
-
-        //puts(dir_entry->d_name);
-
-        fileName = dir_entry->d_name;
-
-        if (strncmp(fileName, "lib", 3) == 0) {
-            fileNameLength = strlen(fileName);
-
-            if (fileNameLength > 5 && strcmp(fileName + fileNameLength - 2U, ".a") == 0) {
-                size_t fromFilePathCapacity = fromDIRCapacity + fileNameLength + 2U;
-                char   fromFilePath[fromFilePathCapacity];
-
-                ret = snprintf(fromFilePath, fromFilePathCapacity, "%s/%s", fromDIR, fileName);
-
-                if (ret < 0) {
-                    perror(NULL);
-                    closedir(dir);
-                    return XCPKG_ERROR;
-                }
-
-                size_t toFilePathCapacity = packageWorkingTopDIRCapacity + fileNameLength + 5U;
-                char   toFilePath[toFilePathCapacity];
-
-                ret = snprintf(toFilePath, toFilePathCapacity, "%s/lib/%s", packageWorkingTopDIR, fileName);
-
-                if (ret < 0) {
-                    perror(NULL);
-                    closedir(dir);
-                    return XCPKG_ERROR;
-                }
-
-                ret = xcpkg_copy_file(fromFilePath, toFilePath);
-
-                if (ret != XCPKG_OK) {
-                    closedir(dir);
-                    return ret;
-                }
-            }
-        }
-    }
 }
 
 static int xcpkg_build_for_native(
@@ -3337,7 +3501,7 @@ static int xcpkg_install_package(
 
     //////////////////////////////////////////////////////////////////////////////
 
-    ret = install_dependent_packages_via_uppm(xcpkgHomeDIR, xcpkgHomeDIRLength, uppmPackageNames, uppmPackageNamesLength, uppmPackageInstalledRootDIR, uppmPackageInstalledRootDIRCapacity, installOptions->verbose_net);
+    ret = install_dependent_packages_via_uppm(uppmPackageNames, xcpkgHomeDIR, xcpkgHomeDIRLength, uppmPackageInstalledRootDIR, uppmPackageInstalledRootDIRCapacity, installOptions->verbose_net);
 
     if (ret != XCPKG_OK) {
         return ret;
@@ -3630,7 +3794,7 @@ static int xcpkg_install_package(
 
     const char * const shellScriptFileName = "vars.sh";
 
-    ret = generate_shell_script_file(shellScriptFileName, packageName, formula, installOptions, sysinfo, uppmPackageInstalledRootDIR, nativePackageInstalledRootDIR, xcpkgExeFilePath, ts, njobs, isCrossBuild, targetPlatformSpec, targetPlatformName, targetPlatformVers, targetPlatformArch, xcpkgHomeDIR, xcpkgCoreDIR, xcpkgDownloadsDIR, sessionDIR, packageWorkingTopDIR, packageInstalledRootDIR, packageInstalledRootDIRCapacity, packageInstalledDIR, recursiveDependentPackageNames, recursiveDependentPackageNamesLength);
+    ret = generate_shell_script_file(shellScriptFileName, packageName, formula, installOptions, sysinfo, uppmPackageInstalledRootDIR, nativePackageInstalledRootDIR, xcpkgExeFilePath, ts, njobs, isCrossBuild, targetPlatformSpec, targetPlatformName, targetPlatformVers, targetPlatformArch, xcpkgHomeDIR, xcpkgCoreDIR, xcpkgDownloadsDIR, sessionDIR, packageWorkingTopDIR, packageInstalledRootDIR, packageInstalledRootDIRCapacity, packageInstalledDIR, recursiveDependentPackageNames);
 
     if (ret != XCPKG_OK) {
         return ret;
@@ -3974,69 +4138,13 @@ static int xcpkg_install_package(
 
     //////////////////////////////////////////////////////////////////////////////
 
-    bool needToCopyStaticLibs = formula->support_create_mostly_statically_linked_executable && (!installOptions->linkSharedLibs);
-
     if (recursiveDependentPackageNames[0] != '\0') {
-        setenv_fn fns[5] = { setenv_CPPFLAGS, setenv_LDFLAGS, setenv_PKG_CONFIG_PATH, setenv_ACLOCAL_PATH, setenv_XDG_DATA_DIRS };
+        bool needToCopyStaticLibs = formula->support_create_mostly_statically_linked_executable && (!installOptions->linkSharedLibs);
 
-        size_t  recursiveDependentPackageNamesStringCopyCapacity = recursiveDependentPackageNamesLength + 1U;
-        char    recursiveDependentPackageNamesStringCopy[recursiveDependentPackageNamesStringCopyCapacity];
-        strncpy(recursiveDependentPackageNamesStringCopy, recursiveDependentPackageNames, recursiveDependentPackageNamesStringCopyCapacity);
+        ret = config_envs_for_target(recursiveDependentPackageNames, packageInstalledRootDIR, packageInstalledRootDIRCapacity, nativePackageInstalledRootDIR, nativePackageInstalledRootDIRCapacity, packageWorkingTopDIR, packageWorkingTopDIRCapacity, needToCopyStaticLibs, isCrossBuild);
 
-        char * dependentPackageName = strtok(recursiveDependentPackageNamesStringCopy, " ");
-
-        while (dependentPackageName != NULL) {
-            size_t depPkgInstalledDIRCapacity = packageInstalledRootDIRCapacity + strlen(dependentPackageName) + 1U;
-            char   depPkgInstalledDIR[depPkgInstalledDIRCapacity];
-
-            ret = snprintf(depPkgInstalledDIR, depPkgInstalledDIRCapacity, "%s/%s", packageInstalledRootDIR, dependentPackageName);
-
-            if (ret < 0) {
-                perror(NULL);
-                return XCPKG_ERROR;
-            }
-
-            for (int i = 0; i < 5; i++) {
-                ret = fns[i](depPkgInstalledDIR, depPkgInstalledDIRCapacity);
-
-                if (ret != XCPKG_OK) {
-                    return ret;
-                }
-            }
-
-            if (needToCopyStaticLibs) {
-                ret = copy_dependent_libraries(depPkgInstalledDIR, depPkgInstalledDIRCapacity, packageWorkingTopDIR, packageWorkingTopDIRCapacity);
-
-                if (ret != XCPKG_OK) {
-                    return ret;
-                }
-            }
-
-            size_t nativePkgInstalledDIRCapacity = nativePackageInstalledRootDIRCapacity + strlen(dependentPackageName) + 1U;
-            char   nativePkgInstalledDIR[nativePkgInstalledDIRCapacity];
-
-            ret = snprintf(nativePkgInstalledDIR, nativePkgInstalledDIRCapacity, "%s/%s", nativePackageInstalledRootDIR, dependentPackageName);
-
-            if (ret < 0) {
-                perror(NULL);
-                return XCPKG_ERROR;
-            }
-
-            ret = setenv_PATH(nativePkgInstalledDIR, nativePkgInstalledDIRCapacity);
-
-            if (ret != XCPKG_OK) {
-                return ret;
-            }
-
-            if (!isCrossBuild) {
-                ret = setenv_PATH(depPkgInstalledDIR, depPkgInstalledDIRCapacity);
-
-                if (ret != XCPKG_OK) {
-                    return ret;
-                }
-            }
-
-            dependentPackageName = strtok(NULL, " ");
+        if (ret != XCPKG_OK) {
+            return ret;
         }
     }
 

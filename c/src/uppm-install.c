@@ -1,3 +1,4 @@
+#include <stdatomic.h>
 #include <time.h>
 #include <errno.h>
 #include <stdio.h>
@@ -753,34 +754,57 @@ int uppm_install(const char * uppmHomeDIR, const size_t uppmHomeDIRLength, const
 
     //////////////////////////////////////////////////////////////////////////
 
-    if (formula->dep_pkg != NULL) {
-        size_t depPackageNamesLength = strlen(formula->dep_pkg);
+    char depPackageName[51];
 
-        size_t depPackageNamesCopyLength = depPackageNamesLength + 1U;
-        char   depPackageNamesCopy[depPackageNamesCopyLength];
-        strncpy(depPackageNamesCopy, formula->dep_pkg, depPackageNamesCopyLength);
+    size_t i;
 
-        char * depPackageNameArrayList[10];
-        size_t depPackageNameArrayListSize = 0;
+    const char * p = formula->dep_pkg;
 
-        char * depPackageName = strtok(depPackageNamesCopy, " ");
+    if (p == NULL) goto finally;
 
-        while (depPackageName != NULL) {
-            depPackageNameArrayList[depPackageNameArrayListSize] = depPackageName;
-            depPackageNameArrayListSize++;
-            depPackageName = strtok(NULL, " ");
-        }
-
-        for (size_t i = 0; i < depPackageNameArrayListSize; i++) {
-            ret = uppm_install(uppmHomeDIR, uppmHomeDIRLength, depPackageNameArrayList[i], verbose, force);
-
-            if (ret != XCPKG_OK) {
-                uppm_formula_free(formula);
-                return ret;
-            }
-        }
+loop:
+    if (p[0] == '\0') {
+        goto finally;
     }
 
+    if (p[0] == ' ') {
+        p++;
+        goto loop;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+
+    for(i = 0U; p[i] != ' ' && p[i] != '\0'; i++) {
+        if (i == 50U) {
+            fprintf(stderr, "uppm package name must be no more than 50 characters\n");
+            return XCPKG_ERROR;
+        }
+
+        depPackageName[i] = p[i];
+    }
+
+    depPackageName[i] = '\0';
+
+    //////////////////////////////////////////////////////////////////////////////
+
+    fprintf(stderr, "depPackageName=%s\n", depPackageName);
+    ret = uppm_install(uppmHomeDIR, uppmHomeDIRLength, depPackageName, verbose, force);
+
+    if (ret != XCPKG_OK) {
+        uppm_formula_free(formula);
+        return ret;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+
+    p += i;
+
+    if (p[0] == ' ') {
+        p++;
+        goto loop;
+    }
+
+finally:
     ret = uppm_install_internal(uppmHomeDIR, uppmHomeDIRLength, packageName, formula, verbose, force);
 
     uppm_formula_free(formula);

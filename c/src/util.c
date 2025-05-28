@@ -405,6 +405,8 @@ static inline __attribute__((always_inline)) int xcpkg_util_which(int argc, char
 
         free(pathList);
         pathList = NULL;
+
+        ret = 0;
     }
 
     return ret;

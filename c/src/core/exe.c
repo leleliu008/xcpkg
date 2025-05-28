@@ -1,5 +1,6 @@
 #include <errno.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include <unistd.h>
@@ -24,90 +25,150 @@ int exe_search(const char * commandName, char *** listP, const bool findAll) {
         return -1;
     }
 
-    const char * const PATH = getenv("PATH");
+    //////////////////////////////////
 
-    if (PATH == NULL) {
+    const char * p = getenv("PATH");
+
+    if (p == NULL) {
         return -2;
     }
 
-    if (PATH[0] == '\0') {
+    if (p[0] == '\0') {
         return -3;
     }
 
-    size_t  PATH2Capacity = strlen(PATH) + 1U;
-    char    PATH2[PATH2Capacity];
-    strncpy(PATH2, PATH, PATH2Capacity);
-
-    struct stat st;
-
-    size_t commandNameLength = strlen(commandName);
+    //////////////////////////////////
 
     char ** stringArrayList = NULL;
     size_t  stringArrayListSize    = 0U;
     size_t  stringArrayListCapacity = 0U;
 
-    char * PATHItem = strtok(PATH2, ":");
+    struct stat st;
 
-    while (PATHItem != NULL) {
-        if ((stat(PATHItem, &st) == 0) && S_ISDIR(st.st_mode)) {
-            size_t fullPathCapacity = strlen(PATHItem) + commandNameLength + 2U;
-            char   fullPath[fullPathCapacity];
+    char pathBuf[PATH_MAX];
 
-            int ret = snprintf(fullPath, fullPathCapacity, "%s/%s", PATHItem, commandName);
+    char * q;
 
-            if (ret < 0) {
-                return -1;
-            }
+    size_t i;
+    size_t n;
 
-            if (access(fullPath, X_OK) == 0) {
-                if (stringArrayListCapacity == stringArrayListSize) {
-                    stringArrayListCapacity += 2U;
-
-                    char** paths = (char**)realloc(stringArrayList, stringArrayListCapacity * sizeof(char*));
-
-                    if (paths == NULL) {
-                        if (stringArrayList != NULL) {
-                            for (size_t i = 0; i < stringArrayListSize; i++) {
-                                free(stringArrayList[i]);
-                                stringArrayList[i] = NULL;
-                            }
-                            free(stringArrayList);
-                        }
-                        errno = ENOMEM;
-                        return -1;
-                    } else {
-                        stringArrayList = paths;
-                    }
-                }
-
-                char * fullPathDup = strdup(fullPath);
-
-                if (fullPathDup == NULL) {
-                    if (stringArrayList != NULL) {
-                        for (size_t i = 0; i < stringArrayListSize; i++) {
-                            free(stringArrayList[i]);
-                            stringArrayList[i] = NULL;
-                        }
-                        free(stringArrayList);
-                    }
-                    errno = ENOMEM;
-                    return -1;
-                }
-
-                stringArrayList[stringArrayListSize] = fullPathDup;
-                stringArrayListSize += 1U;
-
-                if (!findAll) {
-                    break;
-                }
-            }
-        }
-
-        PATHItem = strtok(NULL, ":");
+loop:
+    if (p[0] == '\0') {
+        return 0;
     }
 
-    (*listP) = stringArrayList;
+    if (p[0] == ' ' || p[0] == ':') {
+        p++;
+        goto loop;
+    }
 
+    //////////////////////////////////
+
+    for (i = 0U; ; i++) {
+        pathBuf[i] = p[i];
+
+        if (p[i] == '\0') {
+            break;
+        }
+
+        if (p[i] == ':') {
+            pathBuf[i] = '\0';
+            break;
+        }
+    }
+
+    //////////////////////////////////
+
+    if (stat(pathBuf, &st) != 0) goto next;
+
+    if (!S_ISDIR(st.st_mode)) goto next;
+
+    //////////////////////////////////
+
+    q = pathBuf + i;
+
+    q[0] = '/';
+
+    q++;
+
+    for (size_t j = 0U; ; j++) {
+        q[j] = commandName[j];
+
+        if (q[j] == '\0') {
+            n = i + j + 1U;
+            break;
+        }
+    }
+
+    //////////////////////////////////
+
+    if (access(pathBuf, X_OK) != 0) goto next;
+
+    //////////////////////////////////
+
+    char * s = malloc(n + 1);
+
+    if (s == NULL) {
+        if (stringArrayList != NULL) {
+            for (size_t i = 0; i < stringArrayListSize; i++) {
+                free(stringArrayList[i]);
+                stringArrayList[i] = NULL;
+            }
+            free(stringArrayList);
+        }
+        errno = ENOMEM;
+        return -1;
+    }
+
+    //////////////////////////////////
+
+    if (stringArrayListCapacity == stringArrayListSize) {
+        stringArrayListCapacity += 2U;
+
+        char** paths = (char**)realloc(stringArrayList, stringArrayListCapacity * sizeof(char*));
+
+        if (paths == NULL) {
+            if (stringArrayList != NULL) {
+                for (size_t i = 0; i < stringArrayListSize; i++) {
+                    free(stringArrayList[i]);
+                    stringArrayList[i] = NULL;
+                }
+                free(stringArrayList);
+            }
+            errno = ENOMEM;
+            return -1;
+        } else {
+            stringArrayList = paths;
+        }
+    }
+
+    stringArrayList[stringArrayListSize] = s;
+    stringArrayListSize += 1U;
+
+    //////////////////////////////////
+
+    for (size_t j = 0U; j < n; j++) {
+        s[j] = pathBuf[j];
+    }
+
+    s[n] = '\0';
+
+    //////////////////////////////////
+
+    if (!findAll) {
+        goto finally;
+    }
+
+next:
+    p += i;
+
+    if (p[0] == ':') {
+        p++;
+        goto loop;
+    }
+
+finally:
+    (*listP) = stringArrayList;
     return stringArrayListSize;
 }
 
@@ -127,55 +188,101 @@ int exe_lookup(const char * commandName, char ** pathP) {
         return -1;
     }
 
-    const char * const PATH = getenv("PATH");
+    //////////////////////////////////
 
-    if (PATH == NULL) {
+    const char * p = getenv("PATH");
+
+    if (p == NULL) {
         return -2;
     }
 
-    if (PATH[0] == '\0') {
+    if (p[0] == '\0') {
         return -3;
     }
 
-    size_t  PATH2Capacity = strlen(PATH) + 1U;
-    char    PATH2[PATH2Capacity];
-    strncpy(PATH2, PATH, PATH2Capacity);
+    //////////////////////////////////
 
     struct stat st;
 
-    size_t commandNameLength = strlen(commandName);
+    char pathBuf[PATH_MAX];
 
-    char * PATHItem = strtok(PATH2, ":");
+    char * q;
 
-    while (PATHItem != NULL) {
-        if ((stat(PATHItem, &st) == 0) && S_ISDIR(st.st_mode)) {
-            size_t fullPathCapacity = strlen(PATHItem) + commandNameLength + 2U;
-            char   fullPath[fullPathCapacity];
+    size_t i;
+    size_t n;
 
-            int ret = snprintf(fullPath, fullPathCapacity, "%s/%s", PATHItem, commandName);
+loop:
+    if (p[0] == '\0') {
+        return 0;
+    }
 
-            if (ret < 0) {
-                return -1;
-            }
+    if (p[0] == ' ' || p[0] == ':') {
+        p++;
+        goto loop;
+    }
 
-            if (access(fullPath, X_OK) == 0) {
-                char * p = strdup(fullPath);
+    //////////////////////////////////
 
-                if (p == NULL) {
-                    errno = ENOMEM;
-                    return -1;
-                }
+    for (i = 0U; ; i++) {
+        pathBuf[i] = p[i];
 
-                (*pathP) = p;
+        if (p[i] == '\0') {
+            break;
+        }
 
-                return ret;
+        if (p[i] == ':') {
+            pathBuf[i] = '\0';
+            break;
+        }
+    }
+
+    //////////////////////////////////
+
+    if ((stat(pathBuf, &st) == 0) && S_ISDIR(st.st_mode)) {
+        q = &pathBuf[i];
+
+        q[0] = '/';
+
+        q++;
+
+        for (size_t j = 0U; ; j++) {
+            q[j] = commandName[j];
+
+            if (q[j] == '\0') {
+                n = i + j + 1U;
+                break;
             }
         }
 
-        PATHItem = strtok(NULL, ":");
+        if (access(pathBuf, X_OK) == 0) {
+            char * s = malloc(n + 1);
+
+            if (s == NULL) {
+                errno = ENOMEM;
+                return -1;
+            }
+
+            for (size_t j = 0U; j < n; j++) {
+                s[j] = pathBuf[j];
+            }
+
+            s[n] = '\0';
+
+            (*pathP) = s;
+
+            return n;
+        }
     }
 
-    (*pathP) = NULL;
+    //////////////////////////////////
+
+    p += i;
+
+    if (p[0] == ':') {
+        p++;
+        goto loop;
+    }
+
     return 0;
 }
 
@@ -195,6 +302,8 @@ int exe_where(const char * commandName, char buf[]) {
         return -1;
     }
 
+    //////////////////////////////////
+
     const char * p = getenv("PATH");
 
     if (p == NULL) {
@@ -205,64 +314,78 @@ int exe_where(const char * commandName, char buf[]) {
         return -3;
     }
 
+    //////////////////////////////////
+
     struct stat st;
 
-    char tmpBuf[PATH_MAX];
+    char pathBuf[PATH_MAX];
 
-    for (;;) {
-        for (;;) {
-            if (p[0] == '\0') {
-                return 0;
-            }
+    char * q;
 
-            if (p[0] <= 32 || p[0] == ':') {
-                p++;
-            } else {
+    size_t i;
+    size_t n;
+
+loop:
+    if (p[0] == '\0') {
+        return 0;
+    }
+
+    if (p[0] == ' ' || p[0] == ':') {
+        p++;
+        goto loop;
+    }
+
+    //////////////////////////////////
+
+    for (i = 0U; ; i++) {
+        pathBuf[i] = p[i];
+
+        if (p[i] == '\0') {
+            break;
+        }
+
+        if (p[i] == ':') {
+            pathBuf[i] = '\0';
+            break;
+        }
+    }
+
+    //////////////////////////////////
+
+    if ((stat(pathBuf, &st) == 0) && S_ISDIR(st.st_mode)) {
+        q = &pathBuf[i];
+
+        q[0] = '/';
+
+        q++;
+
+        for (size_t j = 0U; ; j++) {
+            q[j] = commandName[j];
+
+            if (q[j] == '\0') {
+                n = i + j + 1U;
                 break;
             }
         }
 
-        for (size_t i = 0U; ; i++) {
-            if (p[i] == ':' || p[i] == '\0') {
-                tmpBuf[i] = '\0';
-
-                if ((stat(tmpBuf, &st) == 0) && S_ISDIR(st.st_mode)) {
-                    tmpBuf[i] = '/';
-
-                    char * q = tmpBuf + i + 1;
-
-                    size_t n;
-
-                    for (size_t j = 0U; ; j++) {
-                        q[j] = commandName[j];
-
-                        if (q[j] == '\0') {
-                            n = i + j + 1U;
-                            break;
-                        }
-                    }
-
-                    if (access(tmpBuf, X_OK) == 0) {
-                        for (size_t j = 0U; j < n; j++) {
-                            buf[j] = tmpBuf[j];
-                        }
-
-                        buf[n] = '\0';
-
-                        return n;
-                    }
-                }
-
-                if (p[i] == '\0') {
-                    return 0;
-                } else {
-                    p += i + 1;
-                    break;
-                }
+        if (access(pathBuf, X_OK) == 0) {
+            for (size_t j = 0U; j < n; j++) {
+                buf[j] = pathBuf[j];
             }
 
-            tmpBuf[i] = p[i];
+            buf[n] = '\0';
+
+            return n;
         }
+    }
+
+    //////////////////////////////////
+
+    p += i;
+
+    if (p[0] == ':') {
+        p++;
+        goto loop;
     }
 
     return 0;
