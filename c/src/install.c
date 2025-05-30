@@ -1019,6 +1019,302 @@ loop:
     return XCPKG_OK;
 }
 
+static int install_native_packages_via_uppm_or_build(
+        const char * depPackageNames,
+        const char * xcpkgHomeDIR,
+        const size_t xcpkgHomeDIRLength,
+        const char * xcpkgDownloadsDIR,
+        const size_t xcpkgDownloadsDIRCapacity,
+        const char * sessionDIR,
+        const size_t sessionDIRLength,
+        const char * uppmPackageInstalledRootDIR,
+        const size_t uppmPackageInstalledRootDIRCapacity,
+        const char * nativePackageInstalledRootDIR,
+        const size_t nativePackageInstalledRootDIRCapacity,
+        const XCPKGInstallOptions * installOptions,
+        const unsigned int njobs,
+        const KV flagsForNativeBuild[]) {
+
+    // these packages are not relocatable, we need to build them from source locally.
+    bool needToBuildLibtool  = false;
+    bool needToBuildAutomake = false;
+    bool needToBuildAutoconf = false;
+    bool needToBuildTexinfo  = false;
+    bool needToBuildHelp2man = false;
+    bool needToBuildIntltool = false;
+    bool needToBuildPerlXMLParser = false;
+    bool needToBuildLibOpenssl = false;
+
+    bool needToInstallGmake = false;
+    bool needToInstallGm4   = false;
+
+    size_t uppmPackageNamesCapacity = 100U;
+
+    if (depPackageNames == NULL) {
+        depPackageNames = "";
+    } else {
+        for (size_t i = 0U; ; i++) {
+            if (depPackageNames[i] == '\0') {
+                uppmPackageNamesCapacity += i;
+                break;
+            }
+        }
+    }
+
+    char uppmPackageNames[uppmPackageNamesCapacity];
+
+    const char * s = "bash coreutils findutils gsed gawk grep tree pkg-config";
+
+    char * p = uppmPackageNames;
+
+    for (;;) {
+        p[0] = s[0];
+
+        if (s[0] == '\0') break;
+
+        p++;
+        s++;
+    }
+
+    if (installOptions->enableCcache) {
+        s = " ccache";
+
+        for (;;) {
+            p[0] = s[0];
+
+            if (s[0] == '\0') break;
+
+            p++;
+            s++;
+        }
+    }
+
+    const char * q = depPackageNames;
+
+loop:
+    if (q[0] == '\0') goto next;
+
+    if (q[0] == ' ') {
+        q++;
+        goto loop;
+    }
+
+    for (size_t i = 0U; ; i++) {
+        if (q[i] == ' ' || q[i] == '\0') {
+            if (strncmp(q, "texinfo", i) == 0) {
+                needToBuildTexinfo = true;
+                needToInstallGmake = true;
+            } else if (strncmp(q, "help2man", i) == 0) {
+                needToBuildHelp2man = true;
+                needToInstallGmake = true;
+            } else if (strncmp(q, "intltool", i) == 0) {
+                needToBuildIntltool = true;
+                needToInstallGmake = true;
+            } else if (strncmp(q, "libtool", i) == 0) {
+                needToBuildLibtool = true;
+                needToInstallGmake = true;
+                needToInstallGm4   = true;
+            } else if (strncmp(q, "autoconf", i) == 0) {
+                needToBuildAutoconf = true;
+                needToInstallGmake = true;
+                needToInstallGm4   = true;
+            } else if (strncmp(q, "automake", i) == 0) {
+                needToBuildAutomake = true;
+                needToInstallGmake = true;
+                needToInstallGm4   = true;
+            } else if (strncmp(q, "perl-XML-Parser", i) == 0) {
+                needToBuildPerlXMLParser = true;
+                needToInstallGmake = true;
+            } else if (strncmp(q, "libopenssl", i) == 0) {
+                needToBuildLibOpenssl = true;
+                needToInstallGmake = true;
+            } else {
+                p[0] = ' ';
+
+                p++;
+
+                for (size_t j = 0U; j < i; j++) {
+                    p[j] = q[j];
+                }
+
+                p += i ;
+                p[0] = '\0';
+            }
+
+            if (q[i] == '\0') {
+                goto next;
+            } else {
+                q += i + 1;
+                goto loop;
+            }
+        }
+    }
+
+next:
+    if (needToInstallGmake) {
+        s = " gmake";
+
+        for (;;) {
+            p[0] = s[0];
+
+            if (s[0] == '\0') break;
+
+            p++;
+            s++;
+        }
+    }
+
+    if (needToInstallGm4) {
+        s = " gm4";
+
+        for (;;) {
+            p[0] = s[0];
+
+            if (s[0] == '\0') break;
+
+            p++;
+            s++;
+        }
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+
+    int ret = install_dependent_packages_via_uppm(uppmPackageNames, xcpkgHomeDIR, xcpkgHomeDIRLength, uppmPackageInstalledRootDIR, uppmPackageInstalledRootDIRCapacity, installOptions->verbose_net);
+
+    if (ret != XCPKG_OK) {
+        return ret;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+
+    char m4Path[PATH_MAX];
+
+    ret = exe_where("m4", m4Path);
+
+    switch (ret) {
+        case -3:
+            return XCPKG_ERROR_ENV_PATH_NOT_SET;
+        case -2:
+            return XCPKG_ERROR_ENV_PATH_NOT_SET;
+        case -1:
+            perror(NULL);
+            return XCPKG_ERROR;
+    }
+
+    if (ret > 0) {
+        if (setenv("M4", m4Path, 1) != 0) {
+            perror("M4");
+            return XCPKG_ERROR;
+        }
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+
+    int    nativePackageIDArray[10] = {0};
+    size_t nativePackageIDArraySize = 0U;
+
+    if (needToBuildLibtool) {
+        nativePackageIDArray[nativePackageIDArraySize] = NATIVE_PACKAGE_ID_LIBTOOL;
+        nativePackageIDArraySize++;
+    }
+
+    if (needToBuildAutoconf) {
+        nativePackageIDArray[nativePackageIDArraySize] = NATIVE_PACKAGE_ID_AUTOCONF;
+        nativePackageIDArraySize++;
+    }
+
+    if (needToBuildAutomake) {
+        nativePackageIDArray[nativePackageIDArraySize] = NATIVE_PACKAGE_ID_AUTOMAKE;
+        nativePackageIDArraySize++;
+    }
+
+    if (needToBuildTexinfo) {
+        nativePackageIDArray[nativePackageIDArraySize] = NATIVE_PACKAGE_ID_TEXINFO;
+        nativePackageIDArraySize++;
+    }
+
+    if (needToBuildHelp2man) {
+        nativePackageIDArray[nativePackageIDArraySize] = NATIVE_PACKAGE_ID_HELP2MAN;
+        nativePackageIDArraySize++;
+    }
+
+    if (needToBuildIntltool) {
+        nativePackageIDArray[nativePackageIDArraySize] = NATIVE_PACKAGE_ID_INTLTOOL;
+        nativePackageIDArraySize++;
+    }
+
+    if (needToBuildPerlXMLParser) {
+        nativePackageIDArray[nativePackageIDArraySize] = NATIVE_PACKAGE_ID_PERL_XML_PARSER;
+        nativePackageIDArraySize++;
+    }
+
+    if (needToBuildLibOpenssl) {
+        nativePackageIDArray[nativePackageIDArraySize] = NATIVE_PACKAGE_ID_OPENSSL;
+        nativePackageIDArraySize++;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+
+    for (size_t i = 0U; i < nativePackageIDArraySize; i++) {
+        for (int j = 0U; ; j++) {
+            const char * name  = flagsForNativeBuild[j].name;
+            const char * value = flagsForNativeBuild[j].value;
+
+            if (name == NULL) {
+                break;
+            }
+
+            if (value == NULL) {
+                if (unsetenv(name) != 0) {
+                    perror(name);
+                    return XCPKG_ERROR;
+                }
+
+                char key[20];
+
+                ret = snprintf(key, 20, "%s_FOR_BUILD", name);
+
+                if (ret < 0) {
+                    perror(NULL);
+                    return XCPKG_ERROR;
+                }
+
+                if (unsetenv(key) != 0) {
+                    perror(key);
+                    return XCPKG_ERROR;
+                }
+            } else {
+                if (setenv(name, value, 1) != 0) {
+                    perror(name);
+                    return XCPKG_ERROR;
+                }
+
+                char key[20];
+
+                ret = snprintf(key, 20, "%s_FOR_BUILD", name);
+
+                if (ret < 0) {
+                    perror(NULL);
+                    return XCPKG_ERROR;
+                }
+
+                if (setenv(key, value, 1) != 0) {
+                    perror(key);
+                    return XCPKG_ERROR;
+                }
+            }
+        }
+
+        ret = install_native_package(nativePackageIDArray[i], xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, sessionDIR, sessionDIRLength + 1, nativePackageInstalledRootDIR, nativePackageInstalledRootDIRCapacity, njobs, installOptions, native_package_installed_callback);
+
+        if (ret != XCPKG_OK) {
+            return ret;
+        }
+    }
+
+    return XCPKG_OK;
+}
+
 static int setenv_rustflags(const char * rustTarget, const size_t rustTargetLength, const char * cc, const char * ldflags, const char * libDIR, const size_t libDIRCapacity) {
     size_t envNameLength = rustTargetLength + 25U;
     char   envName[envNameLength];
@@ -2908,17 +3204,27 @@ typedef struct {
     XCPKGFormula * formula;
 } XCPKGPackage;
 
-static inline __attribute__((always_inline)) void string_buffer_append(char buf[], size_t * bufLengthP, const char * s) {
-    size_t bufLength = (*bufLengthP);
+static inline __attribute__((always_inline)) bool is_a_in_b(const char * a, const char * b) {
+loop:
+    if (b[0] == '\0') return false;
 
-    char * p = buf + bufLength;
+    if (b[0] == ' ') {
+        b++;
+        goto loop;
+    }
 
-    for (int i = 0; ; i++) {
-        p[i] = s[i];
+    for (size_t i = 0U; ; i++) {
+        if (b[i] == '\0') {
+            return (strcmp(a, b) == 0);
+        }
 
-        if (p[i] == '\0') {
-            (*bufLengthP) = bufLength + i;
-            break;
+        if (b[i] == ' ') {
+            if (strncmp(a, b, i) == 0) {
+                return true;
+            } else {
+                b += i + 1;
+                goto loop;
+            }
         }
     }
 }
@@ -2935,13 +3241,23 @@ static int generate_dependencies_tree(const char * packageName, XCPKGPackage ** 
 
     ////////////////////////////////////////////////////////////////
 
-    char * p = buf;
-
     size_t bufLength = 0U;
     size_t d2StrLength = 0U;
     size_t dotStrLength = 0U;
 
-    string_buffer_append(dotStr, &dotStrLength, "digraph G {\n");
+    ////////////////////////////////////////////////////////////////
+
+    const char * const s = "digraph G {\n";
+
+    for (size_t i = 0U; ; i++) {
+        dotStr[i] = s[i];
+
+        if (dotStr[i] == '\0') {
+            dotStr += i;
+            dotStrLength = i;
+            break;
+        }
+    }
 
     ////////////////////////////////////////////////////////////////
 
@@ -2966,23 +3282,7 @@ static int generate_dependencies_tree(const char * packageName, XCPKGPackage ** 
         ////////////////////////////////////////////////////////////////
 
         if (bufLength != 0U) {
-            bool alreadyInBuf = false;
-
-            size_t  bufCapacity = bufLength + 1U;
-            char    bufCopy[bufCapacity];
-            strncpy(bufCopy, buf, bufCapacity);
-
-            char * dependentPackageName = strtok(bufCopy, " ");
-
-            while (dependentPackageName != NULL) {
-                if (strcmp(dependentPackageName, packageName) == 0) {
-                    alreadyInBuf = true;
-                    break;
-                }
-                dependentPackageName = strtok(NULL, " ");
-            }
-
-            if (alreadyInBuf) {
+            if (is_a_in_b(packageName, buf)) {
                 continue;
             }
         }
@@ -2991,16 +3291,16 @@ static int generate_dependencies_tree(const char * packageName, XCPKGPackage ** 
 
         if (bufLength != 0U) {
             bufLength++;
-            p[0] = ' ';
-            p++;
+            buf[0] = ' ';
+            buf++;
         }
 
-        for (int i = 0; ; i++) {
-            p[i] = packageName[i];
+        for (size_t i = 0U; ; i++) {
+            buf[i] = packageName[i];
 
-            if (p[i] == '\0') {
+            if (buf[i] == '\0') {
+                buf += i;
                 bufLength += i;
-                p += i;
                 break;
             }
         }
@@ -3009,7 +3309,7 @@ static int generate_dependencies_tree(const char * packageName, XCPKGPackage ** 
 
         XCPKGPackage * package = NULL;
 
-        for (size_t i = 0; i < packageSetSize; i++) {
+        for (size_t i = 0U; i < packageSetSize; i++) {
             if (strcmp(packageSet[i]->packageName, packageName) == 0) {
                 package = packageSet[i];
                 break;
@@ -3026,72 +3326,168 @@ static int generate_dependencies_tree(const char * packageName, XCPKGPackage ** 
 
         ////////////////////////////////////////////////////////////////
 
-        string_buffer_append(dotStr, &dotStrLength, "    \"");
-        string_buffer_append(dotStr, &dotStrLength, packageName);
-        string_buffer_append(dotStr, &dotStrLength, "\" -> {");
+        dotStr[0] = ' ';
+        dotStr[1] = ' ';
+        dotStr[2] = ' ';
+        dotStr[3] = ' ';
+        dotStr[4] = '"';
+        dotStr += 5;
+        dotStrLength += 5;
 
         ////////////////////////////////////////////////////////////////
 
-        size_t  depPackageNamesLength = strlen(formula->dep_pkg);
+        for (size_t i = 0U; ; i++) {
+            dotStr[i] = packageName[i];
 
-        size_t  depPackageNamesCopyLength = depPackageNamesLength + 1U;
-        char    depPackageNamesCopy[depPackageNamesCopyLength];
-        strncpy(depPackageNamesCopy, formula->dep_pkg, depPackageNamesCopyLength);
-
-        char * depPackageName = strtok(depPackageNamesCopy, " ");
-
-        while (depPackageName != NULL) {
-            XCPKGPackage * depPackage = NULL;
-
-            for (size_t i = 0U; i < packageSetSize; i++) {
-                if (strcmp(packageSet[i]->packageName, depPackageName) == 0) {
-                    depPackage = packageSet[i];
-                    break;
-                }
+            if (dotStr[i] == '\0') {
+                dotStr += i;
+                dotStrLength += i;
+                break;
             }
-
-            ////////////////////////////////////////////////////////////////
-
-            if (packageNameStackSize == packageNameStackCapacity) {
-                char ** p = (char**)realloc(packageNameStack, (packageNameStackCapacity + 8U) * sizeof(char*));
-
-                if (p == NULL) {
-                    free(packageNameStack);
-                    packageNameStack = NULL;
-
-                    return XCPKG_ERROR_MEMORY_ALLOCATE;
-                }
-
-                packageNameStack = p;
-                packageNameStackCapacity += 8U;
-            }
-
-            packageNameStack[packageNameStackSize] = depPackage->packageName;
-            packageNameStackSize++;
-
-            ////////////////////////////////////////////////////////////////
-
-            string_buffer_append(dotStr, &dotStrLength, " \"");
-            string_buffer_append(dotStr, &dotStrLength, depPackageName);
-            string_buffer_append(dotStr, &dotStrLength, "\"");
-
-            ////////////////////////////////////////////////////////////////
-
-            string_buffer_append(d2Str, &d2StrLength, "\"");
-            string_buffer_append(d2Str, &d2StrLength, packageName);
-            string_buffer_append(d2Str, &d2StrLength, "\" -> \"");
-            string_buffer_append(d2Str, &d2StrLength, depPackageName);
-            string_buffer_append(d2Str, &d2StrLength, "\"\n");
-
-            ////////////////////////////////////////////////////////////////
-
-            depPackageName = strtok(NULL, " ");
         }
 
-        string_buffer_append(dotStr, &dotStrLength, " }\n");
+        ////////////////////////////////////////////////////////////////
+
+        dotStr[0] = '"';
+        dotStr[1] = ' ';
+        dotStr[2] = '-';
+        dotStr[3] = '>';
+        dotStr[4] = ' ';
+        dotStr[5] = '{';
+        dotStr += 6;
+        dotStrLength += 6;
+
+        ////////////////////////////////////////////////////////////////
+
+        XCPKGPackage * depPackage = NULL;
+
+        char * p = formula->dep_pkg;
+
+        size_t i;
+
+        bool b = false;
+
+        loop:
+
+        if (p[0] == '\0') goto next;
+
+        if (p[0] == ' ') {
+            p++;
+            goto loop;
+        }
+
+        for (i = 0U; p[i] != '\0'; i++) {
+            if (p[i] == ' ') {
+                p[i] = '\0';
+                b = true;
+                break;
+            }
+        }
+
+        for (size_t j = 0U; j < packageSetSize; j++) {
+            if (strcmp(packageSet[j]->packageName, p) == 0) {
+                depPackage = packageSet[j];
+                break;
+            }
+        }
+
+        if (b) p[i] = ' ';
+
+        ////////////////////////////////////////////////////////////////
+
+        if (packageNameStackSize == packageNameStackCapacity) {
+            char ** q = (char**)realloc(packageNameStack, (packageNameStackCapacity + 8U) * sizeof(char*));
+
+            if (q == NULL) {
+                free(packageNameStack);
+                packageNameStack = NULL;
+
+                return XCPKG_ERROR_MEMORY_ALLOCATE;
+            }
+
+            packageNameStack = q;
+            packageNameStackCapacity += 8U;
+        }
+
+        packageNameStack[packageNameStackSize] = depPackage->packageName;
+        packageNameStackSize++;
+
+        ////////////////////////////////////////////////////////////////
+
+        dotStr[0] = ' ';
+        dotStr[1] = '"';
+        dotStr += 2;
+        dotStrLength += 2;
+
+        for (size_t j = 0U; j < i; j++) {
+            dotStr[j] = p[j];
+        }
+
+        dotStr += i;
+        dotStrLength += i;
+
+        dotStr[0] = '"';
+        dotStr++;
+        dotStrLength++;
+
+        ////////////////////////////////////////////////////////////////
+
+        d2Str[0] = '"';
+        d2Str++;
+        d2StrLength++;
+
+        for (size_t j = 0U; ; j++) {
+            d2Str[j] = packageName[j];
+
+            if (d2Str[j] == '\0') {
+                d2Str += j;
+                d2StrLength += j;
+                break;
+            }
+        }
+
+        d2Str[0] = '"';
+        d2Str[1] = ' ';
+        d2Str[2] = '-';
+        d2Str[3] = '>';
+        d2Str[4] = ' ';
+        d2Str[5] = '"';
+        d2Str += 6;
+        d2StrLength += 6;
+
+        for (size_t j = 0U; j < i; j++) {
+            d2Str[j] = p[j];
+        }
+
+        d2Str += i;
+        d2StrLength += i;
+
+        d2Str[0] = '"';
+        d2Str[1] = '\n';
+        d2Str += 2;
+        d2StrLength += 2;
+
+        ////////////////////////////////////////////////////////////////
+
+        if (b) {
+            p += i + 1;
+            goto loop;
+        }
+
+        next:
+
+        dotStr[0] = ' ';
+        dotStr[1] = '}';
+        dotStr[2] = '\n';
+        dotStr[3] = '\0';
+        dotStr += 3;
+        dotStrLength += 3;
     }
 
-    string_buffer_append(dotStr, &dotStrLength, "}\n");
+    dotStr[0] = '}';
+    dotStr[1] = '\n';
+    dotStr[2] = '\0';
+    dotStrLength += 2;
 
     free(packageNameStack);
 
@@ -3313,7 +3709,7 @@ static int xcpkg_install_package(
         { NULL, NULL }
     };
 
-    for (int i = 0; ; i++) {
+    for (size_t i = 0; ; i++) {
         const char * name  = flagsForNativeBuild[i].name;
         const char * value = flagsForNativeBuild[i].value;
 
@@ -3410,173 +3806,6 @@ static int xcpkg_install_package(
 
     //////////////////////////////////////////////////////////////////////////////
 
-    // these packages are not relocatable, we need to build them from source locally.
-    bool needToBuildLibtool  = false;
-    bool needToBuildAutomake = false;
-    bool needToBuildAutoconf = false;
-    bool needToBuildTexinfo  = false;
-    bool needToBuildHelp2man = false;
-    bool needToBuildIntltool = false;
-    bool needToBuildPerlXMLParser = false;
-    bool needToBuildLibOpenssl = false;
-
-    size_t depPackageNamesLength = (formula->dep_upp == NULL) ? 0U : strlen(formula->dep_upp);
-
-    size_t uppmPackageNamesCapacity = depPackageNamesLength + 100U;
-    char   uppmPackageNames[uppmPackageNamesCapacity];
-
-    ret = snprintf(uppmPackageNames, 75U, "bash coreutils findutils gsed gawk grep tree pkg-config %s", installOptions->enableCcache ? " ccache" : "");
-
-    if (ret < 0) {
-        perror(NULL);
-        return XCPKG_ERROR;
-    }
-
-    size_t uppmPackageNamesLength = ret;
-
-    bool needToInstallGmake = false;
-    bool needToInstallGm4   = false;
-
-    if (formula->dep_upp != NULL) {
-        size_t  depPackageNamesCopyCapacity = depPackageNamesLength + 1U;
-        char    depPackageNamesCopy[depPackageNamesCopyCapacity];
-        strncpy(depPackageNamesCopy, formula->dep_upp, depPackageNamesCopyCapacity);
-
-        char * depPackageName = strtok(depPackageNamesCopy, " ");
-
-        while (depPackageName != NULL) {
-            if (strcmp(depPackageName, "texinfo") == 0) {
-                needToBuildTexinfo = true;
-                needToInstallGmake = true;
-            } else if (strcmp(depPackageName, "help2man") == 0) {
-                needToBuildHelp2man = true;
-                needToInstallGmake = true;
-            } else if (strcmp(depPackageName, "intltool") == 0) {
-                needToBuildIntltool = true;
-                needToInstallGmake = true;
-            } else if (strcmp(depPackageName, "libtool") == 0) {
-                needToBuildLibtool = true;
-                needToInstallGmake = true;
-                needToInstallGm4   = true;
-            } else if (strcmp(depPackageName, "autoconf") == 0) {
-                needToBuildAutoconf = true;
-                needToInstallGmake = true;
-                needToInstallGm4   = true;
-            } else if (strcmp(depPackageName, "automake") == 0) {
-                needToBuildAutomake = true;
-                needToInstallGmake = true;
-                needToInstallGm4   = true;
-            } else if (strcmp(depPackageName, "perl-XML-Parser") == 0) {
-                needToBuildPerlXMLParser = true;
-                needToInstallGmake = true;
-            } else if (strcmp(depPackageName, "libopenssl") == 0) {
-                needToBuildLibOpenssl = true;
-                needToInstallGmake = true;
-            } else {
-                int len = snprintf(uppmPackageNames + uppmPackageNamesLength, strlen(depPackageName) + 2U, " %s", depPackageName);
-
-                if (len < 0) {
-                    perror(NULL);
-                    return XCPKG_ERROR;
-                }
-
-                uppmPackageNamesLength += len;
-            }
-
-            depPackageName = strtok(NULL, " ");
-        }
-
-        if (needToInstallGmake) {
-            strncpy(uppmPackageNames + uppmPackageNamesLength, " gmake", 6U);
-            uppmPackageNamesLength += 6U;
-        }
-
-        if (needToInstallGm4) {
-            strncpy(uppmPackageNames + uppmPackageNamesLength, " gm4", 4U);
-            uppmPackageNamesLength += 4U;
-        }
-
-        uppmPackageNames[uppmPackageNamesLength] = '\0';
-    }
-
-    //////////////////////////////////////////////////////////////////////////////
-
-    ret = install_dependent_packages_via_uppm(uppmPackageNames, xcpkgHomeDIR, xcpkgHomeDIRLength, uppmPackageInstalledRootDIR, uppmPackageInstalledRootDIRCapacity, installOptions->verbose_net);
-
-    if (ret != XCPKG_OK) {
-        return ret;
-    }
-
-    //////////////////////////////////////////////////////////////////////////////
-
-    char m4Path[PATH_MAX];
-
-    ret = exe_where("m4", m4Path);
-
-    switch (ret) {
-        case -3:
-            return XCPKG_ERROR_ENV_PATH_NOT_SET;
-        case -2:
-            return XCPKG_ERROR_ENV_PATH_NOT_SET;
-        case -1:
-            perror(NULL);
-            return XCPKG_ERROR;
-    }
-
-    if (ret > 0) {
-        if (setenv("M4", m4Path, 1) != 0) {
-            perror("M4");
-            return XCPKG_ERROR;
-        }
-    }
-
-    //////////////////////////////////////////////////////////////////////////////
-
-    int nativePackageIDArray[10] = {0};
-    int nativePackageIDArraySize = 0;
-
-    if (needToBuildLibtool) {
-        nativePackageIDArray[nativePackageIDArraySize] = NATIVE_PACKAGE_ID_LIBTOOL;
-        nativePackageIDArraySize++;
-    }
-
-    if (needToBuildAutoconf) {
-        nativePackageIDArray[nativePackageIDArraySize] = NATIVE_PACKAGE_ID_AUTOCONF;
-        nativePackageIDArraySize++;
-    }
-
-    if (needToBuildAutomake) {
-        nativePackageIDArray[nativePackageIDArraySize] = NATIVE_PACKAGE_ID_AUTOMAKE;
-        nativePackageIDArraySize++;
-    }
-
-    if (needToBuildTexinfo) {
-        nativePackageIDArray[nativePackageIDArraySize] = NATIVE_PACKAGE_ID_TEXINFO;
-        nativePackageIDArraySize++;
-    }
-
-    if (needToBuildHelp2man) {
-        nativePackageIDArray[nativePackageIDArraySize] = NATIVE_PACKAGE_ID_HELP2MAN;
-        nativePackageIDArraySize++;
-    }
-
-    if (needToBuildIntltool) {
-        nativePackageIDArray[nativePackageIDArraySize] = NATIVE_PACKAGE_ID_INTLTOOL;
-        nativePackageIDArraySize++;
-    }
-
-    if (needToBuildPerlXMLParser) {
-        nativePackageIDArray[nativePackageIDArraySize] = NATIVE_PACKAGE_ID_PERL_XML_PARSER;
-        nativePackageIDArraySize++;
-    }
-
-    if (needToBuildLibOpenssl) {
-        nativePackageIDArray[nativePackageIDArraySize] = NATIVE_PACKAGE_ID_OPENSSL;
-        nativePackageIDArraySize++;
-    }
-
-    //////////////////////////////////////////////////////////////////////////////
-
     size_t nativePackageInstalledRootDIRCapacity = xcpkgHomeDIRLength + 8U;
     char   nativePackageInstalledRootDIR[nativePackageInstalledRootDIRCapacity];
 
@@ -3589,61 +3818,10 @@ static int xcpkg_install_package(
 
     //////////////////////////////////////////////////////////////////////////////
 
-    for (int i = 0; i < nativePackageIDArraySize; i++) {
-        for (int j = 0; ; j++) {
-            const char * name  = flagsForNativeBuild[j].name;
-            const char * value = flagsForNativeBuild[j].value;
+    ret = install_native_packages_via_uppm_or_build(formula->dep_upp, xcpkgHomeDIR, xcpkgHomeDIRLength, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, sessionDIR, sessionDIRLength, uppmPackageInstalledRootDIR, uppmPackageInstalledRootDIRCapacity, nativePackageInstalledRootDIR, nativePackageInstalledRootDIRCapacity, installOptions, njobs, flagsForNativeBuild);
 
-            if (name == NULL) {
-                break;
-            }
-
-            if (value == NULL) {
-                if (unsetenv(name) != 0) {
-                    perror(name);
-                    return XCPKG_ERROR;
-                }
-
-                char key[20];
-
-                ret = snprintf(key, 20, "%s_FOR_BUILD", name);
-
-                if (ret < 0) {
-                    perror(NULL);
-                    return XCPKG_ERROR;
-                }
-
-                if (unsetenv(key) != 0) {
-                    perror(key);
-                    return XCPKG_ERROR;
-                }
-            } else {
-                if (setenv(name, value, 1) != 0) {
-                    perror(name);
-                    return XCPKG_ERROR;
-                }
-
-                char key[20];
-
-                ret = snprintf(key, 20, "%s_FOR_BUILD", name);
-
-                if (ret < 0) {
-                    perror(NULL);
-                    return XCPKG_ERROR;
-                }
-
-                if (setenv(key, value, 1) != 0) {
-                    perror(key);
-                    return XCPKG_ERROR;
-                }
-            }
-        }
-
-        ret = install_native_package(nativePackageIDArray[i], xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, sessionDIR, sessionDIRLength + 1, nativePackageInstalledRootDIR, nativePackageInstalledRootDIRCapacity, njobs, installOptions, native_package_installed_callback);
-
-        if (ret != XCPKG_OK) {
-            return ret;
-        }
+    if (ret != XCPKG_OK) {
+        return ret;
     }
 
     //////////////////////////////////////////////////////////////////////////////
@@ -3715,7 +3893,7 @@ static int xcpkg_install_package(
 
     const char* dirs[7] = {"src", "fix", "res", "bin", "lib", "include", "tmp"};
 
-    for (size_t i = 0; i < 7; i++) {
+    for (size_t i = 0U; i < 7U; i++) {
         if (mkdir(dirs[i], S_IRWXU) != 0) {
             perror(dirs[i]);
             return XCPKG_ERROR;
@@ -4727,47 +4905,66 @@ static int check_and_read_formula_in_cache(const char * packageName, const char 
             continue;
         }
 
-        size_t  depPackageNamesLength = strlen(formula->dep_pkg);
+        const char * p = formula->dep_pkg;
 
-        size_t  depPackageNamesCopyLength = depPackageNamesLength + 1U;
-        char    depPackageNamesCopy[depPackageNamesCopyLength];
-        strncpy(depPackageNamesCopy, formula->dep_pkg, depPackageNamesCopyLength);
+        size_t i;
 
-        char * depPackageName = strtok(depPackageNamesCopy, " ");
+        loop:
+            if (p[0] == '\0') continue;
 
-        while (depPackageName != NULL) {
-            if (strcmp(depPackageName, packageName) == 0) {
+            if (p[0] == ' ') {
+                p++;
+                goto loop;
+            }
+
+            ///////////////////////////////////////////
+
+            for (i = 0U; ; i++) {
+                if (p[i] == ' ' || p[i] == '\0') break;
+            }
+
+            ///////////////////////////////////////////
+
+            if (strncmp(p, packageName, i) == 0) {
                 fprintf(stderr, "package '%s' depends itself.\n", packageName);
                 ret = XCPKG_ERROR;
                 goto finalize;
             }
 
-            ////////////////////////////////////////////////////////////////
+            ///////////////////////////////////////////
 
             if (packageNameStackSize == packageNameStackCapacity) {
-                char ** p = (char**)realloc(packageNameStack, (packageNameStackCapacity + 10U) * sizeof(char*));
+                char ** q = (char**)realloc(packageNameStack, (packageNameStackCapacity + 10U) * sizeof(char*));
 
-                if (p == NULL) {
+                if (q == NULL) {
                     ret = XCPKG_ERROR_MEMORY_ALLOCATE;
                     goto finalize;
                 }
 
-                packageNameStack = p;
+                packageNameStack = q;
                 packageNameStackCapacity += 10U;
             }
 
-            char * p = strdup(depPackageName);
+            char * q = (char*)malloc(i + 1);
 
-            if (p == NULL) {
+            if (q == NULL) {
                 ret = XCPKG_ERROR_MEMORY_ALLOCATE;
                 goto finalize;
             }
 
-            packageNameStack[packageNameStackSize] = p;
+            for (size_t j = 0U; j < i; j++) {
+                q[j] = p[j];
+            }
+
+            q[i] = '\0';
+
+            packageNameStack[packageNameStackSize] = q;
             packageNameStackSize++;
 
-            depPackageName = strtok (NULL, " ");
-        }
+            if (p[i] == ' ') {
+                p += i + 1;
+                goto loop;
+            }
     }
 
 finalize:
