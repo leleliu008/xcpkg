@@ -1019,6 +1019,31 @@ loop:
     return XCPKG_OK;
 }
 
+
+/**
+ * a is nul or space terminated
+ * b is nul terminated
+ */
+static inline __attribute__((always_inline)) bool _str_equal(const char * a, const char * b) {
+    for (;;) {
+        if (a[0] == ' ' || a[0] == '\0') {
+            return (b[0] == '\0');
+        }
+
+        if (b[0] == '\0') {
+            return (a[0] == ' ' || a[0] == '\0');
+        }
+
+        if (a[0] == b[0]) {
+            a++;
+            b++;
+        } else {
+            return false;
+        }
+    }
+}
+
+
 static int install_native_packages_via_uppm_or_build(
         const char * depPackageNames,
         const char * xcpkgHomeDIR,
@@ -1101,31 +1126,31 @@ loop:
 
     for (size_t i = 0U; ; i++) {
         if (q[i] == ' ' || q[i] == '\0') {
-            if (strncmp(q, "texinfo", i) == 0) {
+            if (_str_equal(q, "texinfo")) {
                 needToBuildTexinfo = true;
                 needToInstallGmake = true;
-            } else if (strncmp(q, "help2man", i) == 0) {
+            } else if (_str_equal(q, "help2man")) {
                 needToBuildHelp2man = true;
                 needToInstallGmake = true;
-            } else if (strncmp(q, "intltool", i) == 0) {
+            } else if (_str_equal(q, "intltool")) {
                 needToBuildIntltool = true;
                 needToInstallGmake = true;
-            } else if (strncmp(q, "libtool", i) == 0) {
+            } else if (_str_equal(q, "libtool")) {
                 needToBuildLibtool = true;
                 needToInstallGmake = true;
                 needToInstallGm4   = true;
-            } else if (strncmp(q, "autoconf", i) == 0) {
+            } else if (_str_equal(q, "autoconf")) {
                 needToBuildAutoconf = true;
                 needToInstallGmake = true;
                 needToInstallGm4   = true;
-            } else if (strncmp(q, "automake", i) == 0) {
+            } else if (_str_equal(q, "automake")) {
                 needToBuildAutomake = true;
                 needToInstallGmake = true;
                 needToInstallGm4   = true;
-            } else if (strncmp(q, "perl-XML-Parser", i) == 0) {
+            } else if (_str_equal(q, "perl-XML-Parser")) {
                 needToBuildPerlXMLParser = true;
                 needToInstallGmake = true;
-            } else if (strncmp(q, "libopenssl", i) == 0) {
+            } else if (_str_equal(q, "libopenssl")) {
                 needToBuildLibOpenssl = true;
                 needToInstallGmake = true;
             } else {
@@ -3213,17 +3238,35 @@ loop:
         goto loop;
     }
 
-    for (size_t i = 0U; ; i++) {
-        if (b[i] == '\0') {
-            return (strcmp(a, b) == 0);
+    for (;;) {
+        if (a[0] == '\0') {
+            return (b[0] == ' ' || b[0] == '\0');
         }
 
-        if (b[i] == ' ') {
-            if (strncmp(a, b, i) == 0) {
-                return true;
-            } else {
-                b += i + 1;
+        if (b[0] == '\0') {
+            return (a[0] == '\0');
+        }
+
+        if (a[0] == b[0]) {
+            a++;
+            b++;
+        } else {
+            if (b[0] == ' ') {
+                b++;
                 goto loop;
+            } else {
+                for (;;) {
+                    b++;
+
+                    if (b[0] == '\0') {
+                        return false;
+                    }
+
+                    if (b[0] == ' ') {
+                        b++;
+                        goto loop;
+                    }
+                }
             }
         }
     }
@@ -4925,7 +4968,7 @@ static int check_and_read_formula_in_cache(const char * packageName, const char 
 
             ///////////////////////////////////////////
 
-            if (strncmp(p, packageName, i) == 0) {
+            if (_str_equal(p, packageName)) {
                 fprintf(stderr, "package '%s' depends itself.\n", packageName);
                 ret = XCPKG_ERROR;
                 goto finalize;
