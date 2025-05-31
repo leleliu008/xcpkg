@@ -1107,13 +1107,13 @@ static inline int xcpkg_formula_check(XCPKGFormula * formula, const char * formu
                 return XCPKG_ERROR_FORMULA_SCHEME;
             }
 
-            char * q = strdup(dobuildActions);
+            char * p = strdup(dobuildActions);
 
-            if (q == NULL) {
+            if (p == NULL) {
                 return XCPKG_ERROR_MEMORY_ALLOCATE;
             }
 
-            formula->install = q;
+            formula->install = p;
         }
 
         int ret = xcpkg_parse_bsystem(formula, dep_upp_extra_buf, &dep_upp_extra_buf_len);

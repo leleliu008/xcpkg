@@ -440,6 +440,7 @@ int xcpkg_depends(const char * packageName, const char * targetPlatformName, XCP
         }
 
         if (formula->dep_pkg == NULL) {
+            fprintf(stderr, "1:packageName=%s\n", packageName);
             xcpkg_formula_free(formula);
             continue;
         }
@@ -616,6 +617,7 @@ int xcpkg_depends(const char * packageName, const char * targetPlatformName, XCP
             bufLength += 3;
         }
 
+        fprintf(stderr, "2:packageName=%s\n", packageName);
         xcpkg_formula_free(formula);
     }
 
