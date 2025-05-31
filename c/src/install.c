@@ -3271,17 +3271,6 @@ loop:
 }
 
 static int generate_dependencies_tree(const char * packageName, XCPKGPackage ** packageSet, size_t packageSetSize, char buf[], size_t * bufLengthP, char dotStr[], size_t * dotStrLengthP, char d2Str[], size_t * d2StrLengthP) {
-    XCPKGPackage * package = NULL;
-
-    for (size_t i = 0U; i < packageSetSize; i++) {
-        if (strcmp(packageSet[i]->packageName, packageName) == 0) {
-            package = packageSet[i];
-            break;
-        }
-    }
-
-    ////////////////////////////////////////////////////////////////
-
     size_t bufLength = 0U;
     size_t d2StrLength = 0U;
     size_t dotStrLength = 0U;
@@ -3302,16 +3291,16 @@ static int generate_dependencies_tree(const char * packageName, XCPKGPackage ** 
 
     ////////////////////////////////////////////////////////////////
 
-    size_t   packageNameStackCapacity = 8U;
-    size_t   packageNameStackSize     = 0U;
-    char * * packageNameStack = (char**)malloc(8 * sizeof(char*));
+    size_t  packageNameStackCapacity = 8U;
+    size_t  packageNameStackSize     = 0U;
+    char ** packageNameStack = (char**)malloc(8 * sizeof(char*));
 
     if (packageNameStack == NULL) {
         return XCPKG_ERROR_MEMORY_ALLOCATE;
     }
 
     packageNameStackSize = 1U;
-    packageNameStack[0] = package->packageName;
+    packageNameStack[0] = (char*)packageName;
 
     ////////////////////////////////////////////////////////////////
 
@@ -3965,7 +3954,7 @@ static int xcpkg_install_package(
 
     const bool isCrossBuild = !((strcmp("MacOSX", targetPlatformName) == 0) && (strcmp(sysinfo->arch, targetPlatformArch) == 0));
 
-    char   recursiveDependentPackageNames[1024]; recursiveDependentPackageNames[0] = '\0';
+    char   recursiveDependentPackageNames[2048]; recursiveDependentPackageNames[0] = '\0';
     size_t recursiveDependentPackageNamesLength = 0U;
 
     if (formula->dep_pkg != NULL) {
