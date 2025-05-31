@@ -44,7 +44,7 @@ static inline int get_output_file_path(char outputFilePath[PATH_MAX], const char
 
     ////////////////////////////////////////////////////////////////
 
-    if (outputPath == NULL || outputPath[0] == '\0' || strcmp(outputPath, ".") == 0) {
+    if (outputPath == NULL || outputPath[0] == '\0' || (outputPath[0] == '.' && outputPath[1] == '\0')) {
         ret = snprintf(outputFilePath, strlen(owd) + defaultFileNameCapacity, "%s/%s", owd, defaultFileName);
     } else {
         size_t outputPathLength = strlen(outputPath);
@@ -435,15 +435,55 @@ int xcpkg_depends(const char * packageName, const char * targetPlatformName, XCP
         ret = xcpkg_formula_load(packageName, targetPlatformName, NULL, &formula);
 
         if (ret != XCPKG_OK) {
-            puts(packageName);
             goto finalize;
         }
 
-        if (formula->dep_pkg == NULL) {
-            fprintf(stderr, "1:packageName=%s\n", packageName);
+        ////////////////////////////////////////////////////////////////
+
+        char * q = formula->dep_pkg;
+
+        if (q == NULL || q[0] == '\0') {
             xcpkg_formula_free(formula);
             continue;
         }
+
+        ////////////////////////////////////////////////////////////////
+
+        for(;;) {
+            if (q[0] == '\0') break;
+
+            if (q[0] == '\n' || q[0] == ' ') {
+                q++;
+                continue;
+            } else {
+                break;
+            }
+        }
+
+        ////////////////////////////////////////////////////////////////
+
+        if (q[0] == '\0') {
+            xcpkg_formula_free(formula);
+            continue;
+        }
+
+        ////////////////////////////////////////////////////////////////
+
+        size_t i;
+
+        for (i = 0U; q[i] != '\0'; i++);
+
+        char s[i + 1];
+
+        for (i = 0U; q[i] != '\0'; i++) {
+            s[i] = q[i];
+        }
+
+        s[i] = '\0';
+
+        q = s;
+
+        xcpkg_formula_free(formula);
 
         ////////////////////////////////////////////////////////////////
 
@@ -482,131 +522,121 @@ int xcpkg_depends(const char * packageName, const char * targetPlatformName, XCP
 
         ////////////////////////////////////////////////////////////////
 
-        char * q = formula->dep_pkg;
-
-        size_t i;
-
-        bool b = false;
-
-        loop:
-
-        if (q[0] == '\0') goto next;
-
-        if (q[0] == ' ') {
-            q++;
-            goto loop;
-        }
-
-        for (i = 0U; q[i] != '\0'; i++) {
-            if (q[i] == ' ') {
-                q[i] = '\0';
-                b = true;
-                break;
-            }
-        }
-
-        if (strcmp(q, packageName) == 0) {
-            fprintf(stderr, "package '%s' depends itself.\n", packageName);
-            xcpkg_formula_free(formula);
-            ret = XCPKG_ERROR;
-            goto finalize;
-        }
-
-        ////////////////////////////////////////////////////////////////
-
-        if (needGenerateDotScript) {
-            p[0] = ' ';
-            p[1] = '"';
-            p += 2;
-            bufLength += 2;
-
-            for (size_t j = 0U; j < i; j++) {
-                p[j] = q[j];
+        while (q[0] != '\0') {
+            if (q[0] == ' ' || q[0] == '\n') {
+                q++;
+                continue;
             }
 
-            p += i;
-            bufLength += i;
+            bool b = false;
 
-            p[0] = '"';
-            p++;
-            bufLength++;
-        } else {
-            p[0] = '"';
-            p++;
-            bufLength++;
-
-            for (size_t j = 0U; ; j++) {
-                p[j] = packageName[j];
-
-                if (p[j] == '\0') {
-                    p += j;
-                    bufLength += j;
+            for (i = 0U; q[i] != '\0'; i++) {
+                if (q[i] == ' ') {
+                    q[i] = '\0';
+                    b = true;
                     break;
                 }
             }
 
-            p[0] = '"';
-            p[1] = ' ';
-            p[2] = '-';
-            p[3] = '>';
-            p[4] = ' ';
-            p[5] = '"';
-            p += 6;
-            bufLength += 6;
-
-            for (size_t j = 0U; j < i; j++) {
-                p[j] = q[j];
+            if (strcmp(q, packageName) == 0) {
+                fprintf(stderr, "package '%s' depends itself.\n", packageName);
+                ret = XCPKG_ERROR;
+                goto finalize;
             }
 
-            p += i;
-            bufLength += i;
+            ////////////////////////////////////////////////////////////////
 
-            p[0] = '"';
-            p[1] = '\n';
-            p += 2;
-            bufLength += 2;
-        }
+            if (needGenerateDotScript) {
+                p[0] = ' ';
+                p[1] = '"';
+                p += 2;
+                bufLength += 2;
 
-        ////////////////////////////////////////////////////////////////
+                for (size_t j = 0U; j < i; j++) {
+                    p[j] = q[j];
+                }
 
-        if (packageNameStackSize == packageNameStackCapacity) {
-            char ** q = (char**)realloc(packageNameStack, (packageNameStackCapacity + 10U) * sizeof(char*));
+                p += i;
+                bufLength += i;
 
-            if (q == NULL) {
-                xcpkg_formula_free(formula);
+                p[0] = '"';
+                p++;
+                bufLength++;
+            } else {
+                p[0] = '"';
+                p++;
+                bufLength++;
+
+                for (size_t j = 0U; ; j++) {
+                    p[j] = packageName[j];
+
+                    if (p[j] == '\0') {
+                        p += j;
+                        bufLength += j;
+                        break;
+                    }
+                }
+
+                p[0] = '"';
+                p[1] = ' ';
+                p[2] = '-';
+                p[3] = '>';
+                p[4] = ' ';
+                p[5] = '"';
+                p += 6;
+                bufLength += 6;
+
+                for (size_t j = 0U; j < i; j++) {
+                    p[j] = q[j];
+                }
+
+                p += i;
+                bufLength += i;
+
+                p[0] = '"';
+                p[1] = '\n';
+                p += 2;
+                bufLength += 2;
+            }
+
+            ////////////////////////////////////////////////////////////////
+
+            if (packageNameStackSize == packageNameStackCapacity) {
+                char ** q = (char**)realloc(packageNameStack, (packageNameStackCapacity + 10U) * sizeof(char*));
+
+                if (q == NULL) {
+                    ret = XCPKG_ERROR_MEMORY_ALLOCATE;
+                    goto finalize;
+                }
+
+                memset(q + packageNameStackCapacity, 0, 10);
+
+                packageNameStack = q;
+                packageNameStackCapacity += 10;
+            }
+
+            char * x = (char*)malloc(i + 1);
+
+            if (x == NULL) {
                 ret = XCPKG_ERROR_MEMORY_ALLOCATE;
                 goto finalize;
             }
 
-            memset(q + packageNameStackCapacity, 0, 10);
+            for (size_t j = 0U; j < i; j++) {
+                x[j] = q[j];
+            }
 
-            packageNameStack = q;
-            packageNameStackCapacity += 10;
+            x[i] = '\0';
+
+            packageNameStack[packageNameStackSize] = x;
+            packageNameStackSize++;
+
+            if (b) {
+                q += i + 1;
+            } else {
+                q += i;
+            }
         }
-
-        char * x = (char*)malloc(i + 1);
-
-        if (x == NULL) {
-            xcpkg_formula_free(formula);
-            ret = XCPKG_ERROR_MEMORY_ALLOCATE;
-            goto finalize;
-        }
-
-        for (size_t j = 0U; j < i; j++) {
-            x[j] = q[j];
-        }
-
-        x[i] = '\0';
-
-        packageNameStack[packageNameStackSize] = x;
-        packageNameStackSize++;
-
-        if (b) {
-            q += i + 1;
-            goto loop;
-        }
-
-        next:
 
         if (needGenerateDotScript) {
             p[0] = ' ';
@@ -616,9 +646,6 @@ int xcpkg_depends(const char * packageName, const char * targetPlatformName, XCP
             p += 3;
             bufLength += 3;
         }
-
-        fprintf(stderr, "2:packageName=%s\n", packageName);
-        xcpkg_formula_free(formula);
     }
 
     if (needGenerateDotScript) {
