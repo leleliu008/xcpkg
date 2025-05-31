@@ -1019,19 +1019,18 @@ loop:
     return XCPKG_OK;
 }
 
-
 /**
- * a is nul or space terminated
- * b is nul terminated
+ * a is \0 or \n or space terminated
+ * b is \0 terminated
  */
 static inline __attribute__((always_inline)) bool _str_equal(const char * a, const char * b) {
     for (;;) {
-        if (a[0] == ' ' || a[0] == '\0') {
+        if (a[0] == ' ' || a[0] == '\n' || a[0] == '\0') {
             return (b[0] == '\0');
         }
 
         if (b[0] == '\0') {
-            return (a[0] == ' ' || a[0] == '\0');
+            return (a[0] == ' ' || a[0] == '\n' || a[0] == '\0');
         }
 
         if (a[0] == b[0]) {
@@ -1042,7 +1041,6 @@ static inline __attribute__((always_inline)) bool _str_equal(const char * a, con
         }
     }
 }
-
 
 static int install_native_packages_via_uppm_or_build(
         const char * depPackageNames,
@@ -3350,22 +3348,31 @@ static int generate_dependencies_tree(const char * packageName, XCPKGPackage ** 
 
         ////////////////////////////////////////////////////////////////
 
-        XCPKGPackage * package = NULL;
+        char * p = NULL;
 
         for (size_t i = 0U; i < packageSetSize; i++) {
             if (strcmp(packageSet[i]->packageName, packageName) == 0) {
-                package = packageSet[i];
+                p = packageSet[i]->formula->dep_pkg;
                 break;
             }
         }
 
         ////////////////////////////////////////////////////////////////
 
-        XCPKGFormula * formula = package->formula;
+        if (p == NULL || p[0] == '\0') continue;
 
-        if (formula->dep_pkg == NULL) {
-            continue;
+        for(;;) {
+            if (p[0] == '\0') break;
+
+            if (p[0] == '\n' || p[0] == ' ') {
+                p++;
+                continue;
+            } else {
+                break;
+            }
         }
+
+        if (p[0] == '\0') continue;
 
         ////////////////////////////////////////////////////////////////
 
@@ -3402,122 +3409,109 @@ static int generate_dependencies_tree(const char * packageName, XCPKGPackage ** 
 
         ////////////////////////////////////////////////////////////////
 
-        XCPKGPackage * depPackage = NULL;
-
-        char * p = formula->dep_pkg;
-
-        size_t i;
-
-        bool b = false;
-
-        loop:
-
-        if (p[0] == '\0') goto next;
-
-        if (p[0] == ' ') {
-            p++;
-            goto loop;
-        }
-
-        for (i = 0U; p[i] != '\0'; i++) {
-            if (p[i] == ' ') {
-                p[i] = '\0';
-                b = true;
-                break;
-            }
-        }
-
-        for (size_t j = 0U; j < packageSetSize; j++) {
-            if (strcmp(packageSet[j]->packageName, p) == 0) {
-                depPackage = packageSet[j];
-                break;
-            }
-        }
-
-        if (b) p[i] = ' ';
-
-        ////////////////////////////////////////////////////////////////
-
-        if (packageNameStackSize == packageNameStackCapacity) {
-            char ** q = (char**)realloc(packageNameStack, (packageNameStackCapacity + 8U) * sizeof(char*));
-
-            if (q == NULL) {
-                free(packageNameStack);
-                packageNameStack = NULL;
-
-                return XCPKG_ERROR_MEMORY_ALLOCATE;
+        while (p[0] != '\0') {
+            if (p[0] == ' ' || p[0] == '\n') {
+                p++;
+                continue;
             }
 
-            packageNameStack = q;
-            packageNameStackCapacity += 8U;
-        }
+            size_t i;
 
-        packageNameStack[packageNameStackSize] = depPackage->packageName;
-        packageNameStackSize++;
-
-        ////////////////////////////////////////////////////////////////
-
-        dotStr[0] = ' ';
-        dotStr[1] = '"';
-        dotStr += 2;
-        dotStrLength += 2;
-
-        for (size_t j = 0U; j < i; j++) {
-            dotStr[j] = p[j];
-        }
-
-        dotStr += i;
-        dotStrLength += i;
-
-        dotStr[0] = '"';
-        dotStr++;
-        dotStrLength++;
-
-        ////////////////////////////////////////////////////////////////
-
-        d2Str[0] = '"';
-        d2Str++;
-        d2StrLength++;
-
-        for (size_t j = 0U; ; j++) {
-            d2Str[j] = packageName[j];
-
-            if (d2Str[j] == '\0') {
-                d2Str += j;
-                d2StrLength += j;
-                break;
+            for (i = 0U; ; i++) {
+                if (p[i] == ' ' || p[i] == '\n' || p[i] == '\0') {
+                    break;
+                }
             }
+
+            //////////////////////////////////////
+
+            char * depPackageName = NULL;
+
+            for (size_t j = 0U; j < packageSetSize; j++) {
+                if (_str_equal(p, packageSet[j]->packageName)) {
+                    depPackageName = packageSet[j]->packageName;
+                    break;
+                }
+            }
+
+            //////////////////////////////////////
+
+            if (packageNameStackSize == packageNameStackCapacity) {
+                char ** q = (char**)realloc(packageNameStack, (packageNameStackCapacity + 8U) * sizeof(char*));
+
+                if (q == NULL) {
+                    free(packageNameStack);
+                    packageNameStack = NULL;
+
+                    return XCPKG_ERROR_MEMORY_ALLOCATE;
+                }
+
+                packageNameStack = q;
+                packageNameStackCapacity += 8U;
+            }
+
+            packageNameStack[packageNameStackSize] = depPackageName;
+            packageNameStackSize++;
+
+            //////////////////////////////////////
+
+            dotStr[0] = ' ';
+            dotStr[1] = '"';
+            dotStr += 2;
+            dotStrLength += 2;
+
+            for (size_t j = 0U; j < i; j++) {
+                dotStr[j] = p[j];
+            }
+
+            dotStr += i;
+            dotStrLength += i;
+
+            dotStr[0] = '"';
+            dotStr++;
+            dotStrLength++;
+
+            //////////////////////////////////////
+
+            d2Str[0] = '"';
+            d2Str++;
+            d2StrLength++;
+
+            for (size_t j = 0U; ; j++) {
+                d2Str[j] = packageName[j];
+
+                if (d2Str[j] == '\0') {
+                    d2Str += j;
+                    d2StrLength += j;
+                    break;
+                }
+            }
+
+            d2Str[0] = '"';
+            d2Str[1] = ' ';
+            d2Str[2] = '-';
+            d2Str[3] = '>';
+            d2Str[4] = ' ';
+            d2Str[5] = '"';
+            d2Str += 6;
+            d2StrLength += 6;
+
+            for (size_t j = 0U; j < i; j++) {
+                d2Str[j] = p[j];
+            }
+
+            d2Str += i;
+            d2StrLength += i;
+
+            d2Str[0] = '"';
+            d2Str[1] = '\n';
+            d2Str += 2;
+            d2StrLength += 2;
+
+            //////////////////////////////////////
+
+            p += i;
         }
-
-        d2Str[0] = '"';
-        d2Str[1] = ' ';
-        d2Str[2] = '-';
-        d2Str[3] = '>';
-        d2Str[4] = ' ';
-        d2Str[5] = '"';
-        d2Str += 6;
-        d2StrLength += 6;
-
-        for (size_t j = 0U; j < i; j++) {
-            d2Str[j] = p[j];
-        }
-
-        d2Str += i;
-        d2StrLength += i;
-
-        d2Str[0] = '"';
-        d2Str[1] = '\n';
-        d2Str += 2;
-        d2StrLength += 2;
-
-        ////////////////////////////////////////////////////////////////
-
-        if (b) {
-            p += i + 1;
-            goto loop;
-        }
-
-        next:
 
         dotStr[0] = ' ';
         dotStr[1] = '}';
