@@ -3269,8 +3269,8 @@ loop:
 }
 
 static int generate_dependencies_graph(const char * packageName, XCPKGPackage ** packageSet, size_t packageSetSize, char buf[], size_t * bufLengthP) {
-    char dotBuf[4096];
-    char d2Buf[4096];
+    char dotBuf[6144];
+    char d2Buf[8192];
 
     char * a = dotBuf;
     char * b = d2Buf;
