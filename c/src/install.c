@@ -1278,6 +1278,8 @@ next:
 
     //////////////////////////////////////////////////////////////////////////////
 
+    char key[20];
+
     for (size_t i = 0U; i < nativePackageIDArraySize; i++) {
         for (int j = 0U; ; j++) {
             const char * name  = flagsForNativeBuild[j].name;
@@ -1292,8 +1294,6 @@ next:
                     perror(name);
                     return XCPKG_ERROR;
                 }
-
-                char key[20];
 
                 ret = snprintf(key, 20, "%s_FOR_BUILD", name);
 
@@ -1311,8 +1311,6 @@ next:
                     perror(name);
                     return XCPKG_ERROR;
                 }
-
-                char key[20];
 
                 ret = snprintf(key, 20, "%s_FOR_BUILD", name);
 
@@ -3270,21 +3268,27 @@ loop:
     }
 }
 
-static int generate_dependencies_tree(const char * packageName, XCPKGPackage ** packageSet, size_t packageSetSize, char buf[], size_t * bufLengthP, char dotStr[], size_t * dotStrLengthP, char d2Str[], size_t * d2StrLengthP) {
+static int generate_dependencies_graph(const char * packageName, XCPKGPackage ** packageSet, size_t packageSetSize, char buf[], size_t * bufLengthP) {
+    char dotBuf[4096];
+    char d2Buf[4096];
+
+    char * a = dotBuf;
+    char * b = d2Buf;
+
+    size_t dotBufLength = 0U;
+    size_t d2BufLength = 0U;
     size_t bufLength = 0U;
-    size_t d2StrLength = 0U;
-    size_t dotStrLength = 0U;
 
     ////////////////////////////////////////////////////////////////
 
     const char * const s = "digraph G {\n";
 
     for (size_t i = 0U; ; i++) {
-        dotStr[i] = s[i];
+        a[i] = s[i];
 
-        if (dotStr[i] == '\0') {
-            dotStr += i;
-            dotStrLength = i;
+        if (a[i] == '\0') {
+            a += i;
+            dotBufLength = i;
             break;
         }
     }
@@ -3365,36 +3369,36 @@ static int generate_dependencies_tree(const char * packageName, XCPKGPackage ** 
 
         ////////////////////////////////////////////////////////////////
 
-        dotStr[0] = ' ';
-        dotStr[1] = ' ';
-        dotStr[2] = ' ';
-        dotStr[3] = ' ';
-        dotStr[4] = '"';
-        dotStr += 5;
-        dotStrLength += 5;
+        a[0] = ' ';
+        a[1] = ' ';
+        a[2] = ' ';
+        a[3] = ' ';
+        a[4] = '"';
+        a += 5;
+        dotBufLength += 5;
 
         ////////////////////////////////////////////////////////////////
 
         for (size_t i = 0U; ; i++) {
-            dotStr[i] = packageName[i];
+            a[i] = packageName[i];
 
-            if (dotStr[i] == '\0') {
-                dotStr += i;
-                dotStrLength += i;
+            if (a[i] == '\0') {
+                a += i;
+                dotBufLength += i;
                 break;
             }
         }
 
         ////////////////////////////////////////////////////////////////
 
-        dotStr[0] = '"';
-        dotStr[1] = ' ';
-        dotStr[2] = '-';
-        dotStr[3] = '>';
-        dotStr[4] = ' ';
-        dotStr[5] = '{';
-        dotStr += 6;
-        dotStrLength += 6;
+        a[0] = '"';
+        a[1] = ' ';
+        a[2] = '-';
+        a[3] = '>';
+        a[4] = ' ';
+        a[5] = '{';
+        a += 6;
+        dotBufLength += 6;
 
         ////////////////////////////////////////////////////////////////
 
@@ -3444,89 +3448,95 @@ static int generate_dependencies_tree(const char * packageName, XCPKGPackage ** 
 
             //////////////////////////////////////
 
-            dotStr[0] = ' ';
-            dotStr[1] = '"';
-            dotStr += 2;
-            dotStrLength += 2;
+            a[0] = ' ';
+            a[1] = '"';
+            a += 2;
+            dotBufLength += 2;
 
             for (size_t j = 0U; j < i; j++) {
-                dotStr[j] = p[j];
+                a[j] = p[j];
             }
 
-            dotStr += i;
-            dotStrLength += i;
+            a += i;
+            dotBufLength += i;
 
-            dotStr[0] = '"';
-            dotStr++;
-            dotStrLength++;
+            a[0] = '"';
+            a++;
+            dotBufLength++;
 
             //////////////////////////////////////
 
-            d2Str[0] = '"';
-            d2Str++;
-            d2StrLength++;
+            b[0] = '"';
+            b++;
+            d2BufLength++;
 
             for (size_t j = 0U; ; j++) {
-                d2Str[j] = packageName[j];
+                b[j] = packageName[j];
 
-                if (d2Str[j] == '\0') {
-                    d2Str += j;
-                    d2StrLength += j;
+                if (b[j] == '\0') {
+                    b += j;
+                    d2BufLength += j;
                     break;
                 }
             }
 
-            d2Str[0] = '"';
-            d2Str[1] = ' ';
-            d2Str[2] = '-';
-            d2Str[3] = '>';
-            d2Str[4] = ' ';
-            d2Str[5] = '"';
-            d2Str += 6;
-            d2StrLength += 6;
+            b[0] = '"';
+            b[1] = ' ';
+            b[2] = '-';
+            b[3] = '>';
+            b[4] = ' ';
+            b[5] = '"';
+            b += 6;
+            d2BufLength += 6;
 
             for (size_t j = 0U; j < i; j++) {
-                d2Str[j] = p[j];
+                b[j] = p[j];
             }
 
-            d2Str += i;
-            d2StrLength += i;
+            b += i;
+            d2BufLength += i;
 
-            d2Str[0] = '"';
-            d2Str[1] = '\n';
-            d2Str += 2;
-            d2StrLength += 2;
+            b[0] = '"';
+            b[1] = '\n';
+            b += 2;
+            d2BufLength += 2;
 
             //////////////////////////////////////
 
             p += i;
         }
 
-        dotStr[0] = ' ';
-        dotStr[1] = '}';
-        dotStr[2] = '\n';
-        dotStr[3] = '\0';
-        dotStr += 3;
-        dotStrLength += 3;
+        a[0] = ' ';
+        a[1] = '}';
+        a[2] = '\n';
+        a[3] = '\0';
+        a += 3;
+        dotBufLength += 3;
     }
 
-    dotStr[0] = '}';
-    dotStr[1] = '\n';
-    dotStr[2] = '\0';
-    dotStrLength += 2;
+    a[0] = '}';
+    a[1] = '\n';
+    a[2] = '\0';
+    dotBufLength += 2;
 
     free(packageNameStack);
 
-    if (bufLengthP != NULL) {
-        *bufLengthP = bufLength;
+    *bufLengthP = bufLength;
+
+    //printf("%s:%zu:%s\n", packageName, recursiveDependentPackageNamesLength, recursiveDependentPackageNames);
+    //printf("%s:%zu:%s\n", packageName, dotStrLength, dotStr);
+    //printf("%s:%zu:%s\n", packageName, d2StrLength, d2Str);
+
+    int ret = xcpkg_write_file("dependencies.dot", dotBuf, dotBufLength);
+
+    if (ret != XCPKG_OK) {
+        return ret;
     }
 
-    if (dotStrLengthP != NULL) {
-        *dotStrLengthP = dotStrLength;
-    }
+    ret = xcpkg_write_file("dependencies.d2", d2Buf, d2BufLength);
 
-    if (d2StrLengthP != NULL) {
-        *d2StrLengthP = d2StrLength;
+    if (ret != XCPKG_OK) {
+        return ret;
     }
 
     return XCPKG_OK;
@@ -3676,6 +3686,8 @@ static int xcpkg_install_package(
         { NULL, NULL }
     };
 
+    char key[20];
+
     for (int i = 0; ; i++) {
         const char * name  = toolsForNativeBuild[i].name;
         const char * value = toolsForNativeBuild[i].value;
@@ -3689,8 +3701,6 @@ static int xcpkg_install_package(
                 perror(name);
                 return XCPKG_ERROR;
             }
-
-            char key[20];
 
             ret = snprintf(key, 20, "%s_FOR_BUILD", name);
 
@@ -3708,8 +3718,6 @@ static int xcpkg_install_package(
                 perror(name);
                 return XCPKG_ERROR;
             }
-
-            char key[20];
 
             ret = snprintf(key, 20, "%s_FOR_BUILD", name);
 
@@ -3749,8 +3757,6 @@ static int xcpkg_install_package(
                 return XCPKG_ERROR;
             }
 
-            char key[20];
-
             ret = snprintf(key, 20, "%s_FOR_BUILD", name);
 
             if (ret < 0) {
@@ -3767,8 +3773,6 @@ static int xcpkg_install_package(
                 perror(name);
                 return XCPKG_ERROR;
             }
-
-            char key[20];
 
             ret = snprintf(key, 20, "%s_FOR_BUILD", name);
 
@@ -3952,35 +3956,11 @@ static int xcpkg_install_package(
 
     //////////////////////////////////////////////////////////////////////////////
 
-    const bool isCrossBuild = !((strcmp("MacOSX", targetPlatformName) == 0) && (strcmp(sysinfo->arch, targetPlatformArch) == 0));
-
     char   recursiveDependentPackageNames[2048]; recursiveDependentPackageNames[0] = '\0';
     size_t recursiveDependentPackageNamesLength = 0U;
 
     if (formula->dep_pkg != NULL) {
-        char   dotStr[4096];
-        size_t dotStrLength = 0U;
-
-        char   d2Str[4096];
-        size_t d2StrLength = 0U;
-
-        ret = generate_dependencies_tree(packageName, packageSet, packageSetSize, recursiveDependentPackageNames, &recursiveDependentPackageNamesLength, dotStr, &dotStrLength, d2Str, &d2StrLength);
-
-        if (ret != XCPKG_OK) {
-            return ret;
-        }
-
-        //printf("%s:%zu:%s\n", packageName, recursiveDependentPackageNamesLength, recursiveDependentPackageNames);
-        //printf("%s:%zu:%s\n", packageName, dotStrLength, dotStr);
-        //printf("%s:%zu:%s\n", packageName, d2StrLength, d2Str);
-
-        ret = xcpkg_write_file("dependencies.dot", dotStr, dotStrLength);
-
-        if (ret != XCPKG_OK) {
-            return ret;
-        }
-
-        ret = xcpkg_write_file("dependencies.d2", d2Str, d2StrLength);
+        ret = generate_dependencies_graph(packageName, packageSet, packageSetSize, recursiveDependentPackageNames, &recursiveDependentPackageNamesLength);
 
         if (ret != XCPKG_OK) {
             return ret;
@@ -3997,6 +3977,8 @@ static int xcpkg_install_package(
     //////////////////////////////////////////////////////////////////////////////
 
     const char * const shellScriptFileName = "vars.sh";
+
+    const bool isCrossBuild = !((strcmp("MacOSX", targetPlatformName) == 0) && (strcmp(sysinfo->arch, targetPlatformArch) == 0));
 
     ret = generate_shell_script_file(shellScriptFileName, packageName, formula, installOptions, sysinfo, uppmPackageInstalledRootDIR, nativePackageInstalledRootDIR, xcpkgExeFilePath, ts, njobs, isCrossBuild, targetPlatformSpec, targetPlatformName, targetPlatformVers, targetPlatformArch, xcpkgHomeDIR, xcpkgCoreDIR, xcpkgDownloadsDIR, sessionDIR, packageWorkingTopDIR, packageInstalledRootDIR, packageInstalledRootDIRCapacity, packageInstalledDIR, recursiveDependentPackageNames);
 
