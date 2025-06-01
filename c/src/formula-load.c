@@ -163,6 +163,11 @@ void xcpkg_formula_dump(XCPKGFormula * formula) {
     printf("path:    %s\n", formula->path);
 
     printf("useBuildSystemCmake:    %d\n", formula->useBuildSystemCmake);
+    printf("useBuildSystemXmake:    %d\n", formula->useBuildSystemXmake);
+    printf("useBuildSystemGmake:    %d\n", formula->useBuildSystemGmake);
+    printf("useBuildSystemMeson:    %d\n", formula->useBuildSystemMeson);
+    printf("useBuildSystemNinja:    %d\n", formula->useBuildSystemNinja);
+    printf("useBuildSystemCargo:    %d\n", formula->useBuildSystemCargo);
 }
 
 void xcpkg_formula_free(XCPKGFormula * formula) {
@@ -863,7 +868,7 @@ loop:
     } else if (_str_equal(p, "meson")) {
         formula->useBuildSystemMeson = true;
         formula->useBuildSystemNinja = true;
-    } else if (_str_equal(p, "cabal") == 0) {
+    } else if (_str_equal(p, "cabal")) {
         formula->useBuildSystemCabal = true;
     } else if (_str_equal(p, "cargo")) {
         formula->useBuildSystemCargo = true;
