@@ -499,6 +499,11 @@ You are allowed to change this by setting `XCPKG_HOME` envionment variable.
     export XCPKG_DEFAULT_TARGET=MacOSX-10.15-x86_64
     ```
 
+- **XCPKG_FORMULA_SEARCH_DIRS**
+
+    colon-seperated list of directories to search formulas.
+
+
 ## environment variables unset by this software
 
 |ENV|used by|
