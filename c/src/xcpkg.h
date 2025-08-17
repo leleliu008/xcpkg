@@ -572,9 +572,9 @@ int xcpkg_http_fetch_to_file(const char * url, const char * outputFilePath, cons
 
 int xcpkg_http_fetch_to_stream(const char * url, FILE * stream, const bool verbose, const bool showProgress);
 
-int xcpkg_download(const char * url, const char * uri, const char * expectedSHA256SUM, const char * outputPath, const bool verbose);
+int xcpkg_http_fetch(const char * url, const char * uri, const char * expectedSHA256SUM, const char * outputPath, const bool verbose);
 
-int xcpkg_download_via_http_then_unpack(const char * url, const char * uri, const char * expectedSHA256SUM, const char * downloadDIR, size_t downloadDIRLength, const char * unpackDIR, size_t unpackDIRLength, const bool verbose);
+int xcpkg_http_fetch_then_unpack(const char * url, const char * uri, const char * expectedSHA256SUM, const char * downloadDIR, size_t downloadDIRLength, const char * unpackDIR, size_t unpackDIRLength, const bool verbose);
 
 int xcpkg_uncompress(const char * filePath, const char * unpackDIR, const size_t stripComponentsNumber, const bool verbose);
 

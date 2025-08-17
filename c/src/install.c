@@ -246,7 +246,7 @@ static int fetch_fixlist(const char * fixlist, const char * xcpkgDownloadsDIR, c
         }
 
         action:
-        ret = xcpkg_download_via_http_then_unpack(url, uri, sha, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, "fix", 4U, verbose);
+        ret = xcpkg_http_fetch_then_unpack(url, uri, sha, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, "fix", 4U, verbose);
 
         if (ret != XCPKG_OK) {
             if (fd != -1) {
@@ -375,7 +375,7 @@ static int fetch_reslist(const char * reslist, const char * xcpkgDownloadsDIR, c
         }
 
         action:
-        ret = xcpkg_download_via_http_then_unpack(url, uri, sha, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, "res", 4U, verbose);
+        ret = xcpkg_http_fetch_then_unpack(url, uri, sha, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, "res", 4U, verbose);
 
         if (ret != XCPKG_OK) {
             return ret;
@@ -4035,7 +4035,7 @@ static int xcpkg_install_package(
                 return ret;
             }
         } else {
-            ret = xcpkg_download_via_http_then_unpack(formula->src_url, formula->src_uri, formula->src_sha, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, "src", 4U, installOptions->verbose_net);
+            ret = xcpkg_http_fetch_then_unpack(formula->src_url, formula->src_uri, formula->src_sha, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, "src", 4U, installOptions->verbose_net);
 
             if (ret != XCPKG_OK) {
                 return ret;
@@ -4044,7 +4044,7 @@ static int xcpkg_install_package(
     }
 
     if (formula->fix_url != NULL) {
-        ret = xcpkg_download_via_http_then_unpack(formula->fix_url, formula->fix_uri, formula->fix_sha, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, "fix", 4U, installOptions->verbose_net);
+        ret = xcpkg_http_fetch_then_unpack(formula->fix_url, formula->fix_uri, formula->fix_sha, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, "fix", 4U, installOptions->verbose_net);
 
         if (ret != XCPKG_OK) {
             return ret;
@@ -4052,7 +4052,7 @@ static int xcpkg_install_package(
     }
 
     if (formula->res_url != NULL) {
-        ret = xcpkg_download_via_http_then_unpack(formula->res_url, formula->res_uri, formula->res_sha, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, "res", 4U, installOptions->verbose_net);
+        ret = xcpkg_http_fetch_then_unpack(formula->res_url, formula->res_uri, formula->res_sha, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, "res", 4U, installOptions->verbose_net);
 
         if (ret != XCPKG_OK) {
             return ret;

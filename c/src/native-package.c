@@ -213,7 +213,7 @@ int install_native_package(
         return XCPKG_ERROR;
     }
 
-    ret = xcpkg_download_via_http_then_unpack(srcUrl, srcUri, srcSha, downloadsDIR, downloadsDIRLength, packageWorkingSrcDIR, packageWorkingSrcDIRLength, installOptions->verbose_net);
+    ret = xcpkg_http_fetch_then_unpack(srcUrl, srcUri, srcSha, downloadsDIR, downloadsDIRLength, packageWorkingSrcDIR, packageWorkingSrcDIRLength, installOptions->verbose_net);
 
     if (ret != XCPKG_OK) {
         return ret;

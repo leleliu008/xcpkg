@@ -468,7 +468,7 @@ static inline __attribute__((always_inline)) int xcpkg_util_http_fetch(int argc,
         }
     }
 
-    return xcpkg_download(url, uri, expectedSHA256SUM, outputPath, verbose);
+    return xcpkg_http_fetch(url, uri, expectedSHA256SUM, outputPath, verbose);
 }
 
 static inline __attribute__((always_inline)) int xcpkg_util_git_sync(int argc, char* argv[]) {
