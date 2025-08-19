@@ -775,6 +775,8 @@ A xcpkg formula's file content only has one level mapping and shall/might have t
 |`xmake`|`xmake.lua`|
 |`cargo`|`Cargo.toml`|
 |`cabal`|`cabal.project` `cabal.project.freeze` `cabal.project.local`|
+|`zig`|`build.zig`|
+|`waf`|`waf`|
 |`go`|`go.mod`|
 |`rake`|`Rakefile`|
 |`autogen`|`autogen.sh`|

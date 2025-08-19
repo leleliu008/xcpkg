@@ -862,7 +862,7 @@ static int native_package_installed_callback(const char * packageInstalledDIR, c
     return XCPKG_OK;
 }
 
-static int install_dependent_packages_via_uppm(
+static int install_native_packages_via_uppm(
         const char * uppmPackageNames,
         const char * xcpkgHomeDIR,
         const size_t xcpkgHomeDIRLength,
@@ -1078,10 +1078,12 @@ static int install_native_packages_via_uppm_or_build(
 
     size_t uppmPackageNamesCapacity = 100U;
 
+    size_t i;
+
     if (depPackageNames == NULL) {
         depPackageNames = "";
     } else {
-        for (size_t i = 0U; ; i++) {
+        for (i = 0U; ; i++) {
             if (depPackageNames[i] == '\0') {
                 uppmPackageNamesCapacity += i;
                 break;
@@ -1119,86 +1121,87 @@ static int install_native_packages_via_uppm_or_build(
 
     const char * q = depPackageNames;
 
-loop:
-    if (q[0] == '\0') goto next;
+    while (q[0] != '\0') {
+        if (q[0] == ' ' || q[0] == '\n') {
+            q++;
+            continue;
+        }
 
-    if (q[0] == ' ') {
-        q++;
-        goto loop;
-    }
-
-    for (size_t i = 0U; ; i++) {
-        if (q[i] == ' ' || q[i] == '\0') {
-                   if (_str_equal(q, "texinfo")) {
-                needToBuildTexinfo = true;
-                needToInstallGmake = true;
-                needToInstallPerl  = true;
-            } else if (_str_equal(q, "libtool")) {
-                needToBuildLibtool = true;
-                needToInstallGmake = true;
-                needToInstallGm4   = true;
-            } else if (_str_equal(q, "autoconf")) {
-                needToBuildAutoconf = true;
-                needToInstallGmake = true;
-                needToInstallGm4   = true;
-                needToInstallPerl  = true;
-            } else if (_str_equal(q, "automake")) {
-                needToBuildAutomake = true;
-                needToInstallGmake = true;
-                needToInstallGm4   = true;
-                needToInstallPerl  = true;
-            } else if (_str_equal(q, "help2man")) {
-                needToBuildHelp2man = true;
-                needToInstallGmake  = true;
-                needToInstallPerl   = true;
-            } else if (_str_equal(q, "intltool")) {
-                needToBuildIntltool = true;
-                needToInstallGmake = true;
-                needToInstallPerl  = true;
-            } else if (_str_equal(q, "itstool")) {
-                needToBuildItstool = true;
-                needToInstallGmake = true;
-                needToInstallPython3 = true;
-            } else if (_str_equal(q, "perl-XML-Parser")) {
-                needToBuildPerlXMLParser = true;
-                needToInstallGmake = true;
-                needToInstallPerl  = true;
-            } else if (_str_equal(q, "libopenssl")) {
-                needToBuildLibOpenssl = true;
-                needToInstallGmake = true;
-                needToInstallPerl  = true;
-            } else if (_str_equal(q, "autoconf-archive")) {
-                needToBuildAutoconfArchive = true;
-                needToInstallGmake = true;
-            } else if (_str_equal(q, "netsurf_buildsystem")) {
-                needToBuildNetsurf = true;
-                needToInstallGmake = true;
-            } else {
-                p[0] = ' ';
-
-                p++;
-
-                for (size_t j = 0U; j < i; j++) {
-                    p[j] = q[j];
-                }
-
-                p += i ;
-                p[0] = '\0';
-            }
-
-            if (q[i] == '\0') {
-                goto next;
-            } else {
-                q += i + 1;
-                goto loop;
+        for (i = 0U; ; i++) {
+            if (q[i] == ' ' || q[i] == '\n' || q[i] == '\0') {
+                break;
             }
         }
+
+               if (_str_equal(q, "texinfo")) {
+            needToBuildTexinfo = true;
+            needToInstallGmake = true;
+            needToInstallPerl  = true;
+        } else if (_str_equal(q, "libtool")) {
+            needToBuildLibtool = true;
+            needToInstallGmake = true;
+            needToInstallGm4   = true;
+        } else if (_str_equal(q, "autoconf")) {
+            needToBuildAutoconf = true;
+            needToInstallGmake = true;
+            needToInstallGm4   = true;
+            needToInstallPerl  = true;
+        } else if (_str_equal(q, "automake")) {
+            needToBuildAutomake = true;
+            needToInstallGmake = true;
+            needToInstallGm4   = true;
+            needToInstallPerl  = true;
+        } else if (_str_equal(q, "help2man")) {
+            needToBuildHelp2man = true;
+            needToInstallGmake  = true;
+            needToInstallPerl   = true;
+        } else if (_str_equal(q, "intltool")) {
+            needToBuildIntltool = true;
+            needToInstallGmake = true;
+            needToInstallPerl  = true;
+        } else if (_str_equal(q, "itstool")) {
+            needToBuildItstool = true;
+            needToInstallGmake = true;
+            needToInstallPython3 = true;
+        } else if (_str_equal(q, "perl-XML-Parser")) {
+            needToBuildPerlXMLParser = true;
+            needToInstallGmake = true;
+            needToInstallPerl  = true;
+        } else if (_str_equal(q, "libopenssl")) {
+            needToBuildLibOpenssl = true;
+            needToInstallGmake = true;
+            needToInstallPerl  = true;
+        } else if (_str_equal(q, "autoconf-archive")) {
+            needToBuildAutoconfArchive = true;
+            needToInstallGmake = true;
+        } else if (_str_equal(q, "netsurf_buildsystem")) {
+            needToBuildNetsurf = true;
+            needToInstallGmake = true;
+        } else {
+            p[0] = ' ';
+
+            p++;
+
+            for (size_t j = 0U; j < i; j++) {
+                p[j] = q[j];
+            }
+
+            p += i;
+            p[0] = '\0';
+        }
+
+        q += i;
+
+        if (q[0] == '\0') {
+            break;
+        }
+
+        q++;
     }
 
-next:
     bool bs[4] = {needToInstallGmake, needToInstallGm4, needToInstallPerl, needToInstallPython3};
 
-    for (int i = 0; i < 4; i++) {
+    for (i = 0U; i < 4U; i++) {
         switch (i) {
             case 0: s = " gmake"  ; break;
             case 1: s = " gm4"    ; break;
@@ -1220,7 +1223,7 @@ next:
 
     //////////////////////////////////////////////////////////////////////////////
 
-    int ret = install_dependent_packages_via_uppm(uppmPackageNames, xcpkgHomeDIR, xcpkgHomeDIRLength, uppmPackageInstalledRootDIR, uppmPackageInstalledRootDIRCapacity, installOptions->verbose_net);
+    int ret = install_native_packages_via_uppm(uppmPackageNames, xcpkgHomeDIR, xcpkgHomeDIRLength, uppmPackageInstalledRootDIR, uppmPackageInstalledRootDIRCapacity, installOptions->verbose_net);
 
     if (ret != XCPKG_OK) {
         return ret;
@@ -1313,7 +1316,7 @@ next:
 
     char key[20];
 
-    for (size_t i = 0U; i < nativePackageIDArraySize; i++) {
+    for (i = 0U; i < nativePackageIDArraySize; i++) {
         for (int j = 0U; ; j++) {
             const char * name  = flagsForNativeBuild[j].name;
             const char * value = flagsForNativeBuild[j].value;
