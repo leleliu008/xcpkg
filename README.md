@@ -562,97 +562,113 @@ You are allowed to change this by setting `XCPKG_HOME` envionment variable.
 
 ## xcpkg formula scheme
 
-a xcpkg formula is a [YAML](https://yaml.org/spec/1.2.2/) format file which is used to config a xcpkg package's meta-information including one sentence description, package version, installation instructions, etc.
+A xcpkg formula is a [YAML](https://yaml.org/spec/1.2.2/) format file, which is used to config a xcpkg package's meta-information such as one sentence description, package version, installation instructions, etc.
 
-a xcpkg formula's filename suffix must be `.yml`
+A xcpkg formula's filename suffix must be `.yml`
 
-a xcpkg formula'a filename prefix would be treated as the package name.
+A xcpkg formula'a filename prefix would be treated as the package name.
 
-a xcpkg formula'a filename prefix must match regular expression pattern `^[A-Za-z0-9+-._@]{1,50}$`
+A xcpkg formula'a filename prefix must match the regular expression pattern `^[A-Za-z0-9+-._@]{1,50}$`
 
-a xcpkg formula's file content only has one level mapping and shall has following KEY:
+A xcpkg formula's file content only has one level mapping and shall/might have the following `KEY`s:
 
-|KEY|required?|overview|
+|KEY|TYPE|overview|
 |-|-|-|
-|`pkgtype`|optional|specify the package type. value shall be any one of `exe`, `lib`, `exe+lib`.<br>If this mapping is not present, `xcpkg` will determine the package type by package name, if a package name starts/ends with `lib`, it would be recognized as type `lib`, otherwise, it would be recognized as type `exe`|
-|`summary`|required|one sentence description of this package.|
-|`license`|optional|a space-separated list of [SPDX license short identifiers](https://spdx.github.io/spdx-spec/v2.3/SPDX-license-list/#a1-licenses-with-short-identifiers)|
-|`version`|optional|the version of this package.<br>If this mapping is not present, it will be calculated from `src-url`, if `src-url` is also not present, it will be calculated from running time as format `date +%Y.%m.%d`|
+|`pkgtype`|`ENUM`|the type of this package.<br>value shall be any one of `exe`, `lib`, `exe+lib`.<br>If this mapping is not present, `xcpkg` will determine the package type by package name, if the package name starts/ends with `lib` or ends with `-dev`, it would be recognized as type `lib`, otherwise, it would be recognized as type `exe`|
+|`summary`|`TEXT`|one sentence description of this package.|
+|`license`|`LIST`|A space-separated list of [SPDX license short identifiers](https://spdx.github.io/spdx-spec/v2.3/SPDX-license-list/#a1-licenses-with-short-identifiers)|
+|`version`|`TEXT`|the version of this package.<br>If this mapping is not present, it will be calculated from `src-url`, if `src-url` is also not present, it will be calculated from running time as format `date +%Y.%m.%d`|
 ||||
-|`web-url`|optional|the home webpage of this package.<br>If this mapping is not present, `git-url` must be present.|
+|`web-url`|`URL`|the home webpage of this package.<br>If this mapping is not present, `git-url` must be present.|
 ||||
-|`git-url`|optional|the source code git repository.<br>If `src-url` is not present, this mapping must be present.|
-|`git-ref`|optional|reference: <https://git-scm.com/book/en/v2/Git-Internals-Git-References> <br>example values: `HEAD` `refs/heads/master` `refs/heads/main` `refs/tags/v1`, default value is `HEAD`|
-|`git-sha`|optional|the full git commit id, 40-byte hexadecimal string, if `git-ref` and `git-sha` both are present, `git-sha` takes precedence over `git-ref`|
-|`git-nth`|optional|tell `xcpkg` that how many depth commits would you like to be fetched. default is `1`, this would save your time and storage. If you want to fetch all commits, set this to `0`|
+|`git-url`|`URL`|the source code git repository url.<br>If `src-url` is not present, this mapping must be present.|
+|`git-ref`|`TEXT`|reference: <https://git-scm.com/book/en/v2/Git-Internals-Git-References> <br>example values: `HEAD` `refs/heads/master` `refs/heads/main` `refs/tags/v1`, default value is `HEAD`|
+|`git-sha`|`SHA1SUM`|the full git commit id, 40-byte hexadecimal string, if `git-ref` and `git-sha` both are present, `git-sha` takes precedence over `git-ref`|
+|`git-nth`|`INT`|tell `xcpkg` that how many depth commits would you like to fetch. default is `1`, this would save your time and storage. If you have to fetch all commits, set this to `0`|
 ||||
-|`src-url`|optional|the source code download url of this package.<br>If value of this mapping ends with one of `.zip` `.tar.xz` `.tar.gz` `.tar.lz` `.tar.bz2` `.tgz` `.txz` `.tlz` `.tbz2` `.crate`, it will be uncompressed to `$PACKAGE_WORKING_DIR/src` when this package is installing, otherwise, it will be copied to `$PACKAGE_WORKING_DIR/src`<br>also support format like `dir://DIR`|
-|`src-uri`|optional|the mirror of `src-url`.|
-|`src-sha`|optional|the `sha256sum` of source code.<br>`src-sha` and `src-url` must appear together.|
+|`src-url`|`URI`|the source code download url of this package.<br>If value of this mapping ends with one of `.zip` `.tar.xz` `.tar.gz` `.tar.lz` `.tar.bz2` `.tgz` `.txz` `.tlz` `.tbz2` `.crate`, it will be uncompressed to `$PACKAGE_WORKING_DIR/src` while this package is installing, otherwise, it will be copied to `$PACKAGE_WORKING_DIR/src`<br>also support format like `dir://DIR`|
+|`src-uri`|`URL`|the mirror of `src-url`.|
+|`src-sha`|`SHA256SUM`|the `sha256sum` of source code.<br>`src-sha` and `src-url` must appear together.|
 ||||
-|`fix-url`|optional|the patch file download url of this package.<br>If value of this mapping ends with one of `.zip` `.tar.xz` `.tar.gz` `.tar.lz` `.tar.bz2` `.tgz` `.txz` `.tlz` `.tbz2` `.crate`, it will be uncompressed to `$PACKAGE_WORKING_DIR/fix` when this package is installing, otherwise, it will be copied to `$PACKAGE_WORKING_DIR/fix`.|
-|`fix-uri`|optional|the mirror of `fix-url`.|
-|`fix-sha`|optional|the `sha256sum` of patch file.<br>`fix-sha` and `fix-url` must appear together.|
-|`fix-opt`|optional|options to be passed to `patch` command. default value is `-p1`.|
+|`fix-url`|`URL`|the patch file download url of this package.<br>If value of this mapping ends with one of `.zip` `.tar.xz` `.tar.gz` `.tar.lz` `.tar.bz2` `.tgz` `.txz` `.tlz` `.tbz2` `.crate`, it will be uncompressed to `$PACKAGE_WORKING_DIR/fix` while this package is installing, otherwise, it will be copied to `$PACKAGE_WORKING_DIR/fix`.|
+|`fix-uri`|`URL`|the mirror of `fix-url`.|
+|`fix-sha`|`SHA256SUM`|the `sha256sum` of patch file.<br>`fix-sha` and `fix-url` must appear together.|
+|`fix-opt`|`LIST`|A space-separated list of arguments to be passed to `patch` command. default value is `-p1`.|
 ||||
-|`patches`|optional|multiple lines of `<fix-sha>\|<fix-url>[\|fix-uri][\|fix-opt]`.|
+|`patches`|`LIST`|A LF-delimited list of formatted TEXTs. each TEXT has format: `<fix-sha>\|<fix-url>[\|fix-uri][\|fix-opt]`|
 ||||
-|`res-url`|optional|other resource download url of this package.<br>If value of this mapping ends with one of `.zip` `.tar.xz` `.tar.gz` `.tar.lz` `.tar.bz2` `.tgz` `.txz` `.tlz` `.tbz2` `.crate`, it will be uncompressed to `$PACKAGE_WORKING_DIR/res` when this package is installing, otherwise, it will be copied to `$PACKAGE_WORKING_DIR/res`.|
-|`res-uri`|optional|the mirror of `res-url`.|
-|`res-sha`|optional|the `sha256sum` of resource file.<br>`res-sha` and `res-url` must appear together.|
+|`res-url`|`URL`|other resource download url of this package.<br>If value of this mapping ends with one of `.zip` `.tar.xz` `.tar.gz` `.tar.lz` `.tar.bz2` `.tgz` `.txz` `.tlz` `.tbz2` `.crate`, it will be uncompressed to `$PACKAGE_WORKING_DIR/res` while this package is installing, otherwise, it will be copied to `$PACKAGE_WORKING_DIR/res`.|
+|`res-uri`|`URL`|the mirror of `res-url`.|
+|`res-sha`|`SHA256SUM`|the `sha256sum` of resource file.<br>`res-sha` and `res-url` must appear together.|
 ||||
-|`reslist`|optional|multiple lines of `<res-sha>\|<res-url>[\|res-uri][\|unpack-dir][\|N]`. `unpack-dir` is relative to `$PACKAGE_WORKING_DIR/res`, default value is empty. `N` is `--strip-components=N`|
+|`reslist`|`LIST`|A LF-delimited list of formatted TEXTs. each TEXT has format: `<res-sha>\|<res-url>[\|res-uri][\|unpack-dir][\|N]`. `unpack-dir` is relative to `$PACKAGE_WORKING_DIR/res`, default value is empty. `N` is `--strip-components=N`|
 ||||
-|`dep-pkg`|optional|a space-separated list of   `xcpkg packages` that are depended by this package when installing and/or runtime, which will be installed via [xcpkg](https://github.com/leleliu008/xcpkg).|
-|`dep-lib`|optional|a space-separated list of libraries that will be linked. library name starts with `-l` will be directly passed to the linker. otherwise, it will be recognized as a `pkg-config` package name and it will be calculated via `pkg-config --libs-only-l ` then passed to the linker.|
-|`dep-upp`|optional|a space-separated list of   `uppm packages` that are depended by this package when installing and/or runtime, which will be installed via [uppm](https://github.com/leleliu008/uppm).|
-|`dep-pym`|optional|a space-separated list of `python packages` that are depended by this package when installing and/or runtime, which will be installed via [pip3](https://github.com/pypa/pip).|
-|`dep-plm`|optional|a space-separated list of    `perl modules` that are depended by this package when installing and/or runtime, which will be installed via [cpan](https://metacpan.org/dist/CPAN/view/scripts/cpan).|
+|`dep-pkg`|`LIST`|A space-separated list of   `xcpkg packages` depended by this package when installing and/or runtime, which will be installed via [xcpkg](https://github.com/leleliu008/xcpkg).|
+|`dep-pkg-musl`|`LIST`|A space-separated list of   `xcpkg packages` depended by this package when installing and/or runtime for target `musl`, which will be installed via [xcpkg](https://github.com/leleliu008/xcpkg).<br> packages that are missing in `musl-libc` e.g. `libfts` `libargp` `libobstack` `libexecinfo`|
+|`dep-res`|`LIST`|A space-separated list of   `well-known resources` needed by this package when installing.<br>The only possible value is `sys/queue.h` at the moment.|
+|`dep-lib`|`LIST`|A space-separated list of `pkg-config` packages needed by this package when installing.<br>each of them will be calculated via `pkg-config --libs-only-l ` then passed to the linker.|
+|`dep-upp`|`LIST`|A space-separated list of   `uppm packages` depended by this package when installing and/or runtime, which will be installed via [uppm](https://github.com/leleliu008/uppm).|
+|`dep-plm`|`LIST`|A space-separated list of    `perl modules` depended by this package when installing and/or runtime, which will be installed via [cpan](https://metacpan.org/dist/CPAN/view/scripts/cpan).|
+|`dep-pip`|`LIST`|A space-separated list of `python packages` depended by this package when installing and/or runtime, which will be installed via [pip](https://github.com/pypa/pip).|
+|`dep-gem`|`LIST`|A space-separated list of    `ruby modules` depended by this package when installing and/or runtime, which will be installed via [gem](https://github.com/rubygems/rubygems).|
+|`dep-npm`|`LIST`|A space-separated list of    `nodejs packages` depended by this package when installing and/or runtime, which will be installed via [npm](https://github.com/npm/cli).|
 ||||
-|`ccflags`|optional|append to `CFLAGS`|
-|`xxflags`|optional|append to `CXXFLAGS`|
-|`ppflags`|optional|append to `CPPFLAGS`|
-|`ldflags`|optional|append to `LDFLAGS`|
+|`ccflags`|`LIST`|A space-separated list of arguments to be passed to the C compiler.|
+|`xxflags`|`LIST`|A space-separated list of arguments to be passed to the C++ compiler.|
+|`oxflags`|`LIST`|A space-separated list of arguments to be passed to the Objc compiler.|
+|`ppflags`|`LIST`|A space-separated list of arguments to be passed to the PreProcessor.|
+|`ldflags`|`LIST`|A space-separated list of arguments to be passed to the linker.<br>`xcpkg` supports a custom option `-p<PKG-CONFIG-PACKAGE-NAME>`. It will be substituted by the result of `pkg-config --libs-only-l <PKG-CONFIG-PACKAGE-NAME>`|
 ||||
-|`bsystem`|optional|build system name.<br>values can be one or a combination of `autogen` `autotools` `configure` `cmake` `cmake+gmake` `cmake+ninja` `meson` `xmake` `gmake` `ninja` `cargo` `cabal` `go` `gn` `rake` `waf`|
-|`bscript`|optional|the directory where the build script is located in, relative to `PACKAGE_WORKING_DIR`. build script such as `configure`, `Makefile`, `CMakeLists.txt`, `meson.build`, `Cargo.toml`, etc.|
-|`binbstd`|optional|whether to build in the directory where the build script is located in, otherwise build in other directory.<br>value shall be `0` or `1`. default value is `0`.|
-|`movable`|optional|whether the installed files can be moved/copied to other locations.<br>value shall be `0` or `1`. default value is `1`.|
+|`bsystem`|`LIST`|A space-separated list of build system names (e.g. `autogen` `autotools` `configure` `cmake` `cmake+gmake` `cmake+ninja` `meson` `xmake` `gmake` `ninja` `cargo` `cabal` `go` `rake`)|
+|`bscript`|`PATH`|the directory where the build script is located, relative to `PACKAGE_WORKING_DIR`. build script such as `configure`, `Makefile`, `CMakeLists.txt`, `meson.build`, `Cargo.toml`, etc.|
+|`binbstd`|`BOOL`|whether to build in the directory where the build script is located, otherwise build in other directory.<br>value shall be `0` or `1`. default value is `0`.|
+|`ltoable`|`BOOL`|whether support [LTO](https://gcc.gnu.org/wiki/LinkTimeOptimization).<br>value shall be `0` or `1`. default value is `1`.|
+|`mslable`|`BOOL`|whether support creating Mostly Statically Linked executables.<br>value shall be `0` or `1`. default value is `1`.<br>This mapping is only for `exe` type of package.|
+|`movable`|`BOOL`|whether can be moved/copied to other locations.<br>value shall be `0` or `1`. default value is `1`.|
+|`parallel`|`BOOL`|whether to allow build system running jobs in parallel.<br>value shall be `0` or `1`. default value is `1`.|
 ||||
-|`ltoable`|optional|whether support [Link Time Optimization](https://llvm.org/docs/LinkTimeOptimization.html).<br>value shall be `0` or `1`. default value is `1`.|
-|`mslable`|optional|whether support creating Mostly Statically Linked executables.<br>value shall be `0` or `1`. default value is `1`.<br>This mapping is only for `exe` type of package.|
-|`parallel`|optional|whether support building in parallel.<br>value shall be `0` or `1`. default value is `1`.|
+|`dofetch`|`CODE`|POSIX shell code to be run to take over the fetching process.<br>It would be run in a separate process.<br>`PWD` is `$PACKAGE_WORKING_DIR`|
+|`do12345`|`CODE`|POSIX shell code to be run for native build.<br>It is running in a separated process.|
+|`dopatch`|`CODE`|POSIX shell code to be run to apply patches manually.<br>`PWD` is `$PACKAGE_BSCRIPT_DIR`|
+|`prepare`|`CODE`|POSIX shell code to be run to do some additional preparation before installing.<br>`PWD` is `$PACKAGE_BSCRIPT_DIR`|
+|`install`|`CODE`|POSIX shell code to be run when user run `xcpkg install <PKG>`.<br>If this mapping is not present, `xcpkg` will run default install code according to `bsystem`.<br>`PWD` is `$PACKAGE_BSCRIPT_DIR` if `binbstd` is `0`, otherwise it is `$PACKAGE_BCACHED_DIR`|
+|`dotweak`|`CODE`|POSIX shell code to be run to do some tweaks immediately after installing.<br>`PWD` is `$PACKAGE_INSTALL_DIR`|
 ||||
-|`dofetch`|optional|POSIX shell code to be run to take over the fetching process.<br>`PWD` is `$PACKAGE_WORKING_DIR`|
-|`do12345`|optional|POSIX shell code to be run for native build.<br>It would be run in a separate process.|
-|`dopatch`|optional|POSIX shell code to be run to apply patches manually.<br>`PWD` is `$PACKAGE_BSCRIPT_DIR`|
-|`prepare`|optional|POSIX shell code to be run to do some additional preparation.<br>`PWD` is `$PACKAGE_BSCRIPT_DIR`|
-|`install`|optional|POSIX shell code to be run when user run `xcpkg install <PKG>`. If this mapping is not present, `xcpkg` will run default install code according to `bsystem`.<br>`PWD` is `$PACKAGE_BSCRIPT_DIR` if `binbstd` is `0`, otherwise it is `$PACKAGE_BCACHED_DIR`|
-|`dotweak`|optional|POSIX shell code to be run to do some tweaks immediately after installing.<br>`PWD` is `$PACKAGE_INSTALL_DIR`|
+|`bindenv`|`LIST`|A LF-delimited list of formatted TEXTs. each TEXT has format: `<ENV>=<VALUE>`. `%s` in `<VALUE>` represents the install directory.<br>`xcpkg` will bind these environment variables to executables while you are running `xcpkg bundle`.|
 ||||
-|`bindenv`|optional|bind environment variables to executables. multiple lines of formatted string `<KEY>=<VALUE>`. `%s` in `<VALUE>` represents the install directory.|
+|`wrapper`|`LIST`|A LF-delimited list of formatted TEXTs. each TEXT has format:  `<SRC>\|<DST>`. e.g. `bear.c\|bin/` means that `xcpkg` will fetch `bear.c` from https://raw.githubusercontent.com/leleliu008/xcpkg-formula-repository-official-core/refs/heads/master/wrappers/bear.c then install it to `$PACKAGE_INSTALL_DIR/bin/` directory.<br>`xcpkg` will use these C source files to build the corresponding wrappers rather than a generic one while you are running `xcpkg bundle`.|
 ||||
-|`caveats`|optional|multiple lines of plain text to be displayed after installation.|
+|`caveats`|`TEXT`|plain text to be displayed after installing.|
 
-|phases of a package's installation|
-|-|
-|![phases](phases.svg)|
+**Notes:**
 
-|build system name|build script file name|
-|-|-|
-|`meson`|`meson.build`|
-|`cmake`|`CMakeLists.txt`|
-|`gmake`|`GNUMakefile` or `Makefile`|
-|`ninja`|`build.ninja`|
-|`xmake`|`xmake.lua`|
-|`cabal`|`cabal.project` `cabal.project.freeze` `cabal.project.local`|
-|`cargo`|`Cargo.toml`|
-|`go`|`go.mod`|
-|`gn`|`BUILD.gn`|
-|`rake`|`Rakefile`|
-|`autogen`|`autogen.sh`|
-|`autotools`|`configure.ac`|
-|`configure`|`configure`|
+- All mappings except `summary` are optional.
+- Mappings not listed in the table above will be ignored.
+
+**phases of a package's installation:**
+
+```
+ process-0      process-1      process-2      process-3     process-0
+┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐
+│ dosetup │ -> │ dofetch │ -> │ do12345 │ -> │ dopatch │
+└─────────┘    └─────────┘    └─────────┘    └─────────┘
+                                                  ⬇
+                                             ┌─────────┐
+                                             │ prepare │
+                                             └─────────┘
+                                                  ⬇
+                                             ┌─────────┐
+                                             │ install │
+                                             └─────────┘
+                                                  ⬇
+                                             ┌─────────┐
+                                             │ dotweak │
+                                             └─────────┘
+                                                  ⬇
+                                             ┌─────────┐    ┌─────────┐
+                                             │ docheck │ -> │ caveats │
+                                             └─────────┘    └─────────┘
+```
 
 **commands that can be used out of the box:**
 
@@ -747,6 +763,23 @@ a xcpkg formula's file content only has one level mapping and shall has followin
 |`x_INSTALL_DIR`|the installation directory of x package.|
 |`x_INCLUDE_DIR`|`$x_INSTALL_DIR/include`|
 |`x_LIBRARY_DIR`|`$x_INSTALL_DIR/lib`|
+
+## build system name and corresponding build script file name
+
+|build system name|build script file name|
+|-|-|
+|`meson`|`meson.build`|
+|`cmake`|`CMakeLists.txt`|
+|`gmake`|`GNUMakefile` or `Makefile`|
+|`ninja`|`build.ninja`|
+|`xmake`|`xmake.lua`|
+|`cargo`|`Cargo.toml`|
+|`cabal`|`cabal.project` `cabal.project.freeze` `cabal.project.local`|
+|`go`|`go.mod`|
+|`rake`|`Rakefile`|
+|`autogen`|`autogen.sh`|
+|`autotools`|`configure.ac`|
+|`configure`|`configure`|
 
 ## xcpkg formula repository
 

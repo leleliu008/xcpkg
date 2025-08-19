@@ -368,7 +368,7 @@ int xcpkg_installed_info(const char * packageName, const char * targetPlatformSp
         json_object_set_new(root, "dep-pkg", json_string(receipt->dep_pkg));
         json_object_set_new(root, "dep-lib", json_string(receipt->dep_lib));
         json_object_set_new(root, "dep-upp", json_string(receipt->dep_upp));
-        json_object_set_new(root, "dep-pym", json_string(receipt->dep_pym));
+        json_object_set_new(root, "dep-pip", json_string(receipt->dep_pip));
         json_object_set_new(root, "dep-plm", json_string(receipt->dep_plm));
 
         json_object_set_new(root, "ppflags", json_string(receipt->ppflags));
@@ -499,9 +499,9 @@ int xcpkg_installed_info(const char * packageName, const char * targetPlatformSp
         if (receipt->dep_upp != NULL) {
             printf("%s\n", receipt->dep_upp);
         }
-    } else if (strcmp(key, "dep-pym") == 0) {
-        if (receipt->dep_pym != NULL) {
-            printf("%s\n", receipt->dep_pym);
+    } else if (strcmp(key, "dep-pip") == 0) {
+        if (receipt->dep_pip != NULL) {
+            printf("%s\n", receipt->dep_pip);
         }
     } else if (strcmp(key, "dep-plm") == 0) {
         if (receipt->dep_plm != NULL) {

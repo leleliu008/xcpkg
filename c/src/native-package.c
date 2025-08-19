@@ -15,13 +15,6 @@
 
 static int getNativePackageInfoByID(const int packageID, NativePackage * package) {
     switch (packageID) {
-        case NATIVE_PACKAGE_ID_LIBEXPAT:
-            package->name = "libexpat";
-            package->srcUrl = "https://github.com/libexpat/libexpat/releases/download/R_2_6_4/expat-2.6.4.tar.xz";
-            package->srcSha = "a695629dae047055b37d50a0ff4776d1d45d0a4c842cf4ccee158441f55ff7ee";
-            package->buildConfigureArgs = "-DEXPAT_BUILD_DOCS=OFF -DEXPAT_BUILD_TESTS=OFF -DEXPAT_BUILD_FUZZERS=OFF -DEXPAT_BUILD_EXAMPLES=OFF -DEXPAT_BUILD_TOOLS=OFF";
-            package->buildSystemType = BUILD_SYSTEM_TYPE_CMAKE;
-            break;
         case NATIVE_PACKAGE_ID_LIBZ:
             package->name = "libz";
             package->srcUrl = "https://zlib.net/zlib-1.3.1.tar.gz";
@@ -33,22 +26,46 @@ static int getNativePackageInfoByID(const int packageID, NativePackage * package
             package->name = "openssl";
             package->srcUrl = "https://www.openssl.org/source/openssl-3.4.1.tar.gz";
             package->srcSha = "002a2d6b30b58bf4bea46c43bdd96365aaf8daa6c428782aa4feee06da197df3";
-            package->dep_upp = "perl";
+            package->buildSystemType = BUILD_SYSTEM_TYPE_CONFIGURE;
+            break;
+        case NATIVE_PACKAGE_ID_LIBEXPAT:
+            package->name = "libexpat";
+            package->srcUrl = "https://github.com/libexpat/libexpat/releases/download/R_2_6_4/expat-2.6.4.tar.xz";
+            package->srcSha = "a695629dae047055b37d50a0ff4776d1d45d0a4c842cf4ccee158441f55ff7ee";
+            package->buildConfigureArgs = "-DEXPAT_BUILD_DOCS=OFF -DEXPAT_BUILD_TESTS=OFF -DEXPAT_BUILD_FUZZERS=OFF -DEXPAT_BUILD_EXAMPLES=OFF -DEXPAT_BUILD_TOOLS=OFF";
+            package->buildSystemType = BUILD_SYSTEM_TYPE_CMAKE;
+            break;
+        case NATIVE_PACKAGE_ID_LIBTOOL:
+            package->name = "libtool";
+            package->srcUrl = "https://ftp.gnu.org/gnu/libtool/libtool-2.5.4.tar.xz";
+            package->srcSha = "f81f5860666b0bc7d84baddefa60d1cb9fa6fceb2398cc3baca6afaa60266675";
+            package->buildConfigureArgs = "--enable-ltdl-install";
             package->buildSystemType = BUILD_SYSTEM_TYPE_CONFIGURE;
             break;
         case NATIVE_PACKAGE_ID_TEXINFO:
             package->name = "texinfo";
             package->srcUrl = "https://ftp.gnu.org/gnu/texinfo/texinfo-7.2.tar.xz";
             package->srcSha = "0329d7788fbef113fa82cb80889ca197a344ce0df7646fe000974c5d714363a6";
-            package->dep_upp = "perl";
             package->buildConfigureArgs = "--with-included-regex --enable-threads=posix --disable-nls";
+            package->buildSystemType = BUILD_SYSTEM_TYPE_CONFIGURE;
+            break;
+        case NATIVE_PACKAGE_ID_AUTOCONF:
+            package->name = "autoconf";
+            package->srcUrl = "https://ftp.gnu.org/gnu/autoconf/autoconf-2.72.tar.gz";
+            package->srcSha = "afb181a76e1ee72832f6581c0eddf8df032b83e2e0239ef79ebedc4467d92d6e";
+            package->buildSystemType = BUILD_SYSTEM_TYPE_CONFIGURE;
+            break;
+        case NATIVE_PACKAGE_ID_AUTOMAKE:
+            package->name = "automake";
+            package->srcUrl = "https://ftp.gnu.org/gnu/automake/automake-1.17.tar.xz";
+            package->srcSha = "8920c1fc411e13b90bf704ef9db6f29d540e76d232cb3b2c9f4dc4cc599bd990";
+            package->depPackageIDArray[0] = NATIVE_PACKAGE_ID_AUTOCONF;
             package->buildSystemType = BUILD_SYSTEM_TYPE_CONFIGURE;
             break;
         case NATIVE_PACKAGE_ID_HELP2MAN:
             package->name = "help2man";
             package->srcUrl = "https://ftp.gnu.org/gnu/help2man/help2man-1.49.3.tar.xz";
             package->srcSha = "4d7e4fdef2eca6afe07a2682151cea78781e0a4e8f9622142d9f70c083a2fd4f";
-            package->dep_upp = "perl";
             package->buildSystemType = BUILD_SYSTEM_TYPE_CONFIGURE;
             break;
         case NATIVE_PACKAGE_ID_INTLTOOL:
@@ -59,34 +76,32 @@ static int getNativePackageInfoByID(const int packageID, NativePackage * package
             package->buildConfigureArgs = "";
             package->buildSystemType = BUILD_SYSTEM_TYPE_CONFIGURE;
             break;
-        case NATIVE_PACKAGE_ID_LIBTOOL:
-            package->name = "libtool";
-            package->srcUrl = "https://ftp.gnu.org/gnu/libtool/libtool-2.5.4.tar.xz";
-            package->srcSha = "f81f5860666b0bc7d84baddefa60d1cb9fa6fceb2398cc3baca6afaa60266675";
-            package->buildConfigureArgs = "--enable-ltdl-install";
-            package->buildSystemType = BUILD_SYSTEM_TYPE_CONFIGURE;
-            break;
-        case NATIVE_PACKAGE_ID_AUTOCONF:
-            package->name = "autoconf";
-            package->srcUrl = "https://ftp.gnu.org/gnu/autoconf/autoconf-2.72.tar.gz";
-            package->srcSha = "afb181a76e1ee72832f6581c0eddf8df032b83e2e0239ef79ebedc4467d92d6e";
-            package->dep_upp = "perl";
-            package->buildSystemType = BUILD_SYSTEM_TYPE_CONFIGURE;
-            break;
-        case NATIVE_PACKAGE_ID_AUTOMAKE:
-            package->name = "automake";
-            package->srcUrl = "https://ftp.gnu.org/gnu/automake/automake-1.17.tar.xz";
-            package->srcSha = "8920c1fc411e13b90bf704ef9db6f29d540e76d232cb3b2c9f4dc4cc599bd990";
-            package->depPackageIDArray[0] = NATIVE_PACKAGE_ID_AUTOCONF;
-            package->buildSystemType = BUILD_SYSTEM_TYPE_CONFIGURE;
-            break;
         case NATIVE_PACKAGE_ID_PERL_XML_PARSER:
             package->name = "perl-XML-Parser";
             package->srcUrl = "https://cpan.metacpan.org/authors/id/T/TO/TODDR/XML-Parser-2.46.tar.gz";
             package->srcSha = "d331332491c51cccfb4cb94ffc44f9cd73378e618498d4a37df9e043661c515d";
-            package->dep_upp = "perl";
             package->depPackageIDArray[0] = NATIVE_PACKAGE_ID_LIBEXPAT;
             package->buildSystemType = BUILD_SYSTEM_TYPE_CONFIGURE;
+            break;
+        case NATIVE_PACKAGE_ID_ITSTOOL:
+            package->name = "itstool";
+            package->srcUrl = "https://files.itstool.org/itstool/itstool-2.0.7.tar.bz2";
+            package->srcSha = "6b9a7cd29a12bb95598f5750e8763cee78836a1a207f85b74d8b3275b27e87ca";
+            package->depPackageIDArray[0] = NATIVE_PACKAGE_ID_LIBXML2;
+            package->buildConfigureArgs = "";
+            package->buildSystemType = BUILD_SYSTEM_TYPE_CONFIGURE;
+            break;
+        case NATIVE_PACKAGE_ID_AUTOCONF_ARCHIVE:
+            package->name = "autoconf-archive";
+            package->srcUrl = "https://ftp.gnu.org/gnu/autoconf-archive/autoconf-archive-2024.10.16.tar.xz";
+            package->srcSha = "7bcd5d001916f3a50ed7436f4f700e3d2b1bade3ed803219c592d62502a57363";
+            package->buildConfigureArgs = "";
+            package->buildSystemType = BUILD_SYSTEM_TYPE_CONFIGURE;
+            break;
+        case NATIVE_PACKAGE_ID_NETSURF_BUILDSYSTEM:
+            package->name = "netsurf_buildsystem";
+            package->srcUrl = "https://download.netsurf-browser.org/libs/releases/buildsystem-1.10.tar.gz";
+            package->srcSha = "3d3e39d569e44677c4b179129bde614c65798e2b3e6253160239d1fd6eae4d79";
             break;
         default:
             fprintf(stderr, "unknown native package id: %d\n", packageID);
@@ -517,6 +532,24 @@ int install_native_package(
 
         if (ret != XCPKG_OK) {
             return ret;
+        }
+    } else {
+        if (packageID == NATIVE_PACKAGE_ID_NETSURF_BUILDSYSTEM) {
+            size_t cmdCapacity = packageInstalledDIRCapacity + 22U;
+            char   cmd[cmdCapacity];
+
+            ret = snprintf(cmd, cmdCapacity, "gmake install PREFIX=%s", packageInstalledDIR);
+
+            if (ret < 0) {
+                perror(NULL);
+                return XCPKG_ERROR;
+            }
+
+            ret = xcpkg_fork_exec(cmd);
+
+            if (ret != XCPKG_OK) {
+                return ret;
+            }
         }
     }
 

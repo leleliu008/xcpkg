@@ -39,7 +39,7 @@ typedef enum {
 
     XCPKGReceiptKeyCode_dep_pkg,
     XCPKGReceiptKeyCode_dep_upp,
-    XCPKGReceiptKeyCode_dep_pym,
+    XCPKGReceiptKeyCode_dep_pip,
     XCPKGReceiptKeyCode_dep_plm,
 
     XCPKGReceiptKeyCode_bsystem,
@@ -111,7 +111,7 @@ void xcpkg_receipt_dump(XCPKGReceipt * receipt) {
 
     printf("dep_pkg: %s\n", receipt->dep_pkg);
     printf("dep_upp: %s\n", receipt->dep_upp);
-    printf("dep_pym: %s\n", receipt->dep_pym);
+    printf("dep_pip: %s\n", receipt->dep_pip);
     printf("dep_plm: %s\n", receipt->dep_plm);
 
     printf("bsystem: %s\n", receipt->bsystem);
@@ -253,9 +253,9 @@ void xcpkg_receipt_free(XCPKGReceipt * receipt) {
         receipt->dep_upp = NULL;
     }
 
-    if (receipt->dep_pym != NULL) {
-        free(receipt->dep_pym);
-        receipt->dep_pym = NULL;
+    if (receipt->dep_pip != NULL) {
+        free(receipt->dep_pip);
+        receipt->dep_pip = NULL;
     }
 
     if (receipt->dep_plm != NULL) {
@@ -417,8 +417,8 @@ static XCPKGReceiptKeyCode xcpkg_receipt_key_code_from_key_name(char * key) {
         return XCPKGReceiptKeyCode_dep_pkg;
     } else if (strcmp(key, "dep-upp") == 0) {
         return XCPKGReceiptKeyCode_dep_upp;
-    } else if (strcmp(key, "dep-pym") == 0) {
-        return XCPKGReceiptKeyCode_dep_pym;
+    } else if (strcmp(key, "dep-pip") == 0) {
+        return XCPKGReceiptKeyCode_dep_pip;
     } else if (strcmp(key, "dep-plm") == 0) {
         return XCPKGReceiptKeyCode_dep_plm;
     } else if (strcmp(key, "ppflags") == 0) {
@@ -522,7 +522,7 @@ static int xcpkg_receipt_set_value(XCPKGReceiptKeyCode keyCode, char * value, XC
 
         case XCPKGReceiptKeyCode_dep_pkg: if (receipt->dep_pkg != NULL) free(receipt->dep_pkg); receipt->dep_pkg = strdup(value); break;
         case XCPKGReceiptKeyCode_dep_upp: if (receipt->dep_upp != NULL) free(receipt->dep_upp); receipt->dep_upp = strdup(value); break;
-        case XCPKGReceiptKeyCode_dep_pym: if (receipt->dep_pym != NULL) free(receipt->dep_pym); receipt->dep_pym = strdup(value); break;
+        case XCPKGReceiptKeyCode_dep_pip: if (receipt->dep_pip != NULL) free(receipt->dep_pip); receipt->dep_pip = strdup(value); break;
         case XCPKGReceiptKeyCode_dep_plm: if (receipt->dep_plm != NULL) free(receipt->dep_plm); receipt->dep_plm = strdup(value); break;
 
         case XCPKGReceiptKeyCode_ppflags: if (receipt->ppflags != NULL) free(receipt->ppflags); receipt->ppflags = strdup(value); break;

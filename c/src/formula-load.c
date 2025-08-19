@@ -65,7 +65,7 @@ typedef enum {
     FORMULA_KEY_CODE_dep_pkg,
     FORMULA_KEY_CODE_dep_lib,
     FORMULA_KEY_CODE_dep_upp,
-    FORMULA_KEY_CODE_dep_pym,
+    FORMULA_KEY_CODE_dep_pip,
     FORMULA_KEY_CODE_dep_plm,
 
     FORMULA_KEY_CODE_bsystem,
@@ -135,7 +135,7 @@ void xcpkg_formula_dump(XCPKGFormula * formula) {
     printf("dep_pkg: %s\n", formula->dep_pkg);
     printf("dep_lib: %s\n", formula->dep_lib);
     printf("dep_upp: %s\n", formula->dep_upp);
-    printf("dep_pym: %s\n", formula->dep_pym);
+    printf("dep_pip: %s\n", formula->dep_pip);
     printf("dep_plm: %s\n", formula->dep_plm);
 
     printf("bsystem: %s\n", formula->bsystem);
@@ -148,14 +148,15 @@ void xcpkg_formula_dump(XCPKGFormula * formula) {
     printf("prepare: %s\n", formula->prepare);
     printf("install: %s\n", formula->install);
     printf("dotweak: %s\n", formula->dotweak);
+
     printf("bindenv: %s\n", formula->bindenv);
+    printf("caveats: %s\n", formula->caveats);
+
     printf("symlink: %d\n", formula->symlink);
     printf("ltoable: %d\n", formula->ltoable);
     printf("movable: %d\n", formula->movable);
     printf("mslable: %d\n", formula->support_create_mostly_statically_linked_executable);
     printf("parallel: %d\n", formula->support_build_in_parallel);
-
-    printf("caveats: %s\n", formula->caveats);
 
     printf("patches: %s\n", formula->patches);
     printf("reslist: %s\n", formula->reslist);
@@ -163,11 +164,19 @@ void xcpkg_formula_dump(XCPKGFormula * formula) {
     printf("path:    %s\n", formula->path);
 
     printf("useBuildSystemCmake:    %d\n", formula->useBuildSystemCmake);
-    printf("useBuildSystemXmake:    %d\n", formula->useBuildSystemXmake);
     printf("useBuildSystemGmake:    %d\n", formula->useBuildSystemGmake);
+    printf("useBuildSystemXmake:    %d\n", formula->useBuildSystemXmake);
     printf("useBuildSystemMeson:    %d\n", formula->useBuildSystemMeson);
     printf("useBuildSystemNinja:    %d\n", formula->useBuildSystemNinja);
     printf("useBuildSystemCargo:    %d\n", formula->useBuildSystemCargo);
+    printf("useBuildSystemGolang:   %d\n", formula->useBuildSystemGolang);
+    printf("useBuildSystemGN:       %d\n", formula->useBuildSystemGN);
+    printf("useBuildSystemZIG:      %d\n", formula->useBuildSystemZIG);
+    printf("useBuildSystemWAF:      %d\n", formula->useBuildSystemWAF);
+    printf("useBuildSystemNetsurf:  %d\n", formula->useBuildSystemNetsurf);
+    printf("useBuildSystemConfigure:%d\n", formula->useBuildSystemConfigure);
+    printf("useBuildSystemAutotools:%d\n", formula->useBuildSystemAutotools);
+    printf("useBuildSystemAutogen:  %d\n", formula->useBuildSystemAutogen);
 }
 
 void xcpkg_formula_free(XCPKGFormula * formula) {
@@ -290,9 +299,9 @@ void xcpkg_formula_free(XCPKGFormula * formula) {
         formula->dep_upp = NULL;
     }
 
-    if (formula->dep_pym != NULL) {
-        free(formula->dep_pym);
-        formula->dep_pym = NULL;
+    if (formula->dep_pip != NULL) {
+        free(formula->dep_pip);
+        formula->dep_pip = NULL;
     }
 
     if (formula->dep_plm != NULL) {
@@ -441,8 +450,8 @@ static inline XCPKGFormulaKeyCode xcpkg_formula_key_code_from_key_name(char * ke
         return FORMULA_KEY_CODE_dep_lib;
     } else if (strcmp(key, "dep-upp") == 0) {
         return FORMULA_KEY_CODE_dep_upp;
-    } else if (strcmp(key, "dep-pym") == 0) {
-        return FORMULA_KEY_CODE_dep_pym;
+    } else if (strcmp(key, "dep-pip") == 0) {
+        return FORMULA_KEY_CODE_dep_pip;
     } else if (strcmp(key, "dep-plm") == 0) {
         return FORMULA_KEY_CODE_dep_plm;
     } else if (strcmp(key, "ppflags") == 0) {
@@ -542,7 +551,7 @@ static inline int xcpkg_formula_set_value(XCPKGFormulaKeyCode keyCode, char * va
         case FORMULA_KEY_CODE_dep_pkg: if (formula->dep_pkg != NULL) free(formula->dep_pkg); formula->dep_pkg = strdup(value); break;
         case FORMULA_KEY_CODE_dep_lib: if (formula->dep_lib != NULL) free(formula->dep_lib); formula->dep_lib = strdup(value); break;
         case FORMULA_KEY_CODE_dep_upp: if (formula->dep_upp != NULL) free(formula->dep_upp); formula->dep_upp = strdup(value); break;
-        case FORMULA_KEY_CODE_dep_pym: if (formula->dep_pym != NULL) free(formula->dep_pym); formula->dep_pym = strdup(value); break;
+        case FORMULA_KEY_CODE_dep_pip: if (formula->dep_pip != NULL) free(formula->dep_pip); formula->dep_pip = strdup(value); break;
         case FORMULA_KEY_CODE_dep_plm: if (formula->dep_plm != NULL) free(formula->dep_plm); formula->dep_plm = strdup(value); break;
 
         case FORMULA_KEY_CODE_ppflags: if (formula->ppflags != NULL) free(formula->ppflags); formula->ppflags = strdup(value); break;
@@ -779,11 +788,11 @@ static inline const char* xcpkg_determine_default_install_commands_from_bsystem(
         return "cmakew";
     }
 
-    if (_str_equal(p, "cmake-ninja")) {
+    if (_str_equal(p, "cmake+ninja")) {
         return "cmakew";
     }
 
-    if (_str_equal(p, "cmake-gmake")) {
+    if (_str_equal(p, "cmake+gmake")) {
         return "cmakew";
     }
 
@@ -819,12 +828,20 @@ static inline const char* xcpkg_determine_default_install_commands_from_bsystem(
         return "gnw";
     }
 
+    if (_str_equal(p, "waf")) {
+        return "waf";
+    }
+
     if (_str_equal(p, "zig")) {
         return "zig";
     }
 
     if (strncmp(p, "zig@", 4U) == 0) {
         return "zig";
+    }
+
+    if (_str_equal(p, "netsurf")) {
+        return "netsurf_buildsystem";
     }
 
     return NULL;
@@ -853,10 +870,10 @@ loop:
     } else if (_str_equal(p, "cmake")) {
         formula->useBuildSystemCmake = true;
         formula->useBuildSystemNinja = true;
-    } else if (_str_equal(p, "cmake-ninja")) {
+    } else if (_str_equal(p, "cmake+ninja")) {
         formula->useBuildSystemCmake = true;
         formula->useBuildSystemNinja = true;
-    } else if (_str_equal(p, "cmake-gmake")) {
+    } else if (_str_equal(p, "cmake+gmake")) {
         formula->useBuildSystemCmake = true;
         formula->useBuildSystemGmake = true;
     } else if (_str_equal(p, "xmake")) {
@@ -876,6 +893,11 @@ loop:
         formula->useBuildSystemGolang = true;
     } else if (_str_equal(p, "gn")) {
         formula->useBuildSystemGN = true;
+    } else if (_str_equal(p, "netsurf")) {
+        formula->useBuildSystemNetsurf = true;
+        formula->useBuildSystemGmake = true;
+    } else if (_str_equal(p, "waf")) {
+        formula->useBuildSystemWAF = true;
     } else if (_str_equal(p, "zig")) {
         formula->useBuildSystemZIG = true;
         string_buffer_append(dep_upp_extra_buf, dep_upp_extra_buf_len, "zig");
@@ -1130,19 +1152,19 @@ static inline int xcpkg_formula_check(XCPKGFormula * formula, const char * formu
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    if (formula->useBuildSystemAutogen || formula->useBuildSystemAutotools) {
-        string_buffer_append(dep_upp_extra_buf, &dep_upp_extra_buf_len, "automake autoconf perl gm4");
+    if (formula->useBuildSystemNetsurf) {
+        string_buffer_append(dep_upp_extra_buf, &dep_upp_extra_buf_len, "netsurf_buildsystem");
     }
 
-    if (formula->useBuildSystemCabal) {
-        string_buffer_append(dep_upp_extra_buf, &dep_upp_extra_buf_len, "gmake");
+    if (formula->useBuildSystemAutogen || formula->useBuildSystemAutotools) {
+        string_buffer_append(dep_upp_extra_buf, &dep_upp_extra_buf_len, "automake autoconf perl gm4");
     }
 
     if (formula->useBuildSystemCmake) {
         string_buffer_append(dep_upp_extra_buf, &dep_upp_extra_buf_len, "cmake");
     }
 
-    if (formula->useBuildSystemGmake) {
+    if (formula->useBuildSystemGmake || formula->useBuildSystemCabal) {
         string_buffer_append(dep_upp_extra_buf, &dep_upp_extra_buf_len, "gmake");
     }
 
@@ -1158,7 +1180,7 @@ static inline int xcpkg_formula_check(XCPKGFormula * formula, const char * formu
         string_buffer_append(dep_upp_extra_buf, &dep_upp_extra_buf_len, "golang");
     }
 
-    if (formula->useBuildSystemMeson || (formula->dep_pym != NULL)) {
+    if (formula->useBuildSystemMeson || formula->useBuildSystemWAF || formula->dep_pip != NULL) {
         string_buffer_append(dep_upp_extra_buf, &dep_upp_extra_buf_len, "python3");
     }
 
@@ -1206,16 +1228,16 @@ static inline int xcpkg_formula_check(XCPKGFormula * formula, const char * formu
     //////////////////////////////////////////////////////////////////////////////////////////////////////
 
     if (formula->useBuildSystemMeson) {
-        if (formula->dep_pym == NULL) {
+        if (formula->dep_pip == NULL) {
             char * p = strdup("meson");
 
             if (p == NULL) {
                 return XCPKG_ERROR_MEMORY_ALLOCATE;
             }
 
-            formula->dep_pym = p;
+            formula->dep_pip = p;
         } else {
-            size_t oldLength = strlen(formula->dep_pym);
+            size_t oldLength = strlen(formula->dep_pip);
             size_t newLength = oldLength + 7U;
 
             char * p = (char*)malloc(newLength * sizeof(char));
@@ -1224,7 +1246,7 @@ static inline int xcpkg_formula_check(XCPKGFormula * formula, const char * formu
                 return XCPKG_ERROR_MEMORY_ALLOCATE;
             }
 
-            int ret = snprintf(p, newLength, "%s meson", formula->dep_pym);
+            int ret = snprintf(p, newLength, "%s meson", formula->dep_pip);
 
             if (ret < 0) {
                 perror(NULL);
@@ -1232,9 +1254,9 @@ static inline int xcpkg_formula_check(XCPKGFormula * formula, const char * formu
                 return XCPKG_ERROR;
             }
 
-            free(formula->dep_pym);
+            free(formula->dep_pip);
 
-            formula->dep_pym = p;
+            formula->dep_pip = p;
         }
     }
 
@@ -1385,15 +1407,14 @@ finalize:
                 binbstd = 0;
                 formula->binbstd_is_calculated = true;
 
-                if (formula->bsystem != NULL) {
+                if (formula->useBuildSystemGolang || formula->useBuildSystemCargo || formula->useBuildSystemCabal || formula->useBuildSystemXmake || formula->useBuildSystemZIG || formula->useBuildSystemWAF || formula->useBuildSystemNetsurf) {
+                    binbstd = 1;
+                } else {
                     const char * p = formula->bsystem;
 
-                    for (size_t i = 0U; ; i++) {
-                        if (p[i] == ' ' || p[i] == '\n' || p[i] == '\0') {
-                            if (_str_equal(p, "gmake") || _str_equal(p, "xmake") || _str_equal(p, "cabal") || _str_equal(p, "cargo") || _str_equal(p, "go") || _str_equal(p, "zig")) {
-                                binbstd = 1;
-                            }
-                            break;
+                    if (p != NULL) {
+                        if (_str_equal(p, "gmake")) {
+                            binbstd = 1;
                         }
                     }
                 }

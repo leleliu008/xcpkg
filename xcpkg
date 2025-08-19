@@ -1073,9 +1073,10 @@ filetype_from_url() {
     # space-separated   uppm packages that are depended by this package when installing, which will be installed via uppm
     unset PACKAGE_DEP_UPP
 
-    # space-separated  xcpkg packages that are depended by this package when installing and/or runtime, which will be installed via xcpkg
+    # space-separated xcpkg packages that are depended by this package when installing and/or runtime, which will be installed via xcpkg
     unset PACKAGE_DEP_PKG
 
+    # space-separated xcpkg pkg-config packages that are depended by this package while linking
     unset PACKAGE_DEP_LIB
 
     unset PACKAGE_PPFLAGS
@@ -1090,21 +1091,22 @@ filetype_from_url() {
     unset PACKAGE_DOPATCH
     unset PACKAGE_PREPARE
     unset PACKAGE_DOBUILD
-    unset PACKAGE_DOEXTRA
     unset PACKAGE_DOTWEAK
-
-    unset PACKAGE_BINDENV
-
-    unset PACKAGE_CAVEATS
 
     unset PACKAGE_PATCHES
     unset PACKAGE_RESLIST
+
+    unset PACKAGE_BINDENV
+    unset PACKAGE_WRAPPER
+    unset PACKAGE_CAVEATS
 
     unset PACKAGE_BSYSTEM
     unset PACKAGE_BSYSTEM_MASTER
 
     unset PACKAGE_USE_BSYSTEM_GO
     unset PACKAGE_USE_BSYSTEM_GN
+    unset PACKAGE_USE_BSYSTEM_WAF
+    unset PACKAGE_USE_BSYSTEM_ZIG
     unset PACKAGE_USE_BSYSTEM_RAKE
     unset PACKAGE_USE_BSYSTEM_NINJA
     unset PACKAGE_USE_BSYSTEM_GMAKE
@@ -1116,6 +1118,7 @@ filetype_from_url() {
     unset PACKAGE_USE_BSYSTEM_AUTOGENSH
     unset PACKAGE_USE_BSYSTEM_AUTOTOOLS
     unset PACKAGE_USE_BSYSTEM_CONFIGURE
+    unset PACKAGE_USE_BSYSTEM_NETSURF
 
     # directory relative to $PACKAGE_WORKING_DIR/src, which contains build script such as autogen.sh, configure, Makefile, CMakeLists.txt, meson.build, Cargo.toml, xmake.lua, etc.
     unset PACKAGE_BSCRIPT
@@ -1124,6 +1127,8 @@ filetype_from_url() {
     unset PACKAGE_BINBSTD
 
     unset PACKAGE_LTOABLE
+
+    # whether the installed files can be moved/copied to other locations
     unset PACKAGE_MOVABLE
 
     unset PACKAGE_SUPPORT_BUILD_IN_PARALLEL
@@ -1161,7 +1166,7 @@ filetype_from_url() {
     PACKAGE_DEP_PKG="$(yq '.dep-pkg | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
     PACKAGE_DEP_LIB="$(yq '.dep-lib | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
     PACKAGE_DEP_UPP="$(yq '.dep-upp | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
-    PACKAGE_DEP_PYM="$(yq '.dep-pym | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
+    PACKAGE_DEP_PYM="$(yq '.dep-pip | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
     PACKAGE_DEP_PLM="$(yq '.dep-plm | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
 
     PACKAGE_BSYSTEM="$(yq '.bsystem | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
@@ -1170,9 +1175,11 @@ filetype_from_url() {
     PACKAGE_LTOABLE="$(yq '.ltoable | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
     PACKAGE_MOVABLE="$(yq '.movable | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
 
+    PACKAGE_PPFLAGS="$(yq '.ppflags | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
     PACKAGE_CCFLAGS="$(yq '.ccflags | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
     PACKAGE_XXFLAGS="$(yq '.xxflags | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
-    PACKAGE_PPFLAGS="$(yq '.ppflags | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
+    PACKAGE_OCFLAGS="$(yq '.ocflags | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
+    PACKAGE_OXFLAGS="$(yq '.oxflags | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
     PACKAGE_LDFLAGS="$(yq '.ldflags | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
 
     PACKAGE_DOFETCH="$(yq '.dofetch | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
@@ -1181,9 +1188,9 @@ filetype_from_url() {
     PACKAGE_PREPARE="$(yq '.prepare | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
     PACKAGE_DOBUILD="$(yq '.install | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
     PACKAGE_DOTWEAK="$(yq '.dotweak | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
-    PACKAGE_DOEXTRA="$(yq '.doextra | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
 
     PACKAGE_BINDENV="$(yq '.bindenv | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
+    PACKAGE_WRAPPER="$(yq '.wrapper | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
     PACKAGE_CAVEATS="$(yq '.caveats | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
 
     PACKAGE_PATCHES="$(yq '.patches | select(. != null)' "$PACKAGE_FORMULA_FILEPATH")"
@@ -1265,7 +1272,7 @@ filetype_from_url() {
                     PACKAGE_VERSION="$(basename "$PACKAGE_SRC_URL" | tr '_@' - | sed -e 's|\.tar\.[glx]z$||' -e 's|\.tar\.bz2$||' -e 's|\.t[glx]z$||' -e 's|\.zip$||' -e 's|-stable||' -e 's|-source||' -e 's|[-.]src$||' -e 's|\.orig||' -e 's|\.crate||' | awk -F- '{print $NF}')"
                     case $PACKAGE_VERSION in
                         '') abort 1 "version mapping not found in $PACKAGE_FORMULA_FILEPATH" ;;
-                        v*) PACKAGE_VERSION=$(printf '%s\n' "$PACKAGE_VERSION" | cut -c2-)
+                        v*) PACKAGE_VERSION="${PACKAGE_VERSION#v}"
                     esac
                 fi
 
@@ -1279,6 +1286,16 @@ filetype_from_url() {
     else
         if [ -n "$PACKAGE_GIT_URL" ] ; then
             PACKAGE_SRC_FILETYPE=.git
+            PACKAGE_SRC_FILEPATH=.git
+
+            if [ -z "$PACKAGE_VERSION" ] && [ -z "$PACKAGE_GIT_SHA" ] && [ -n "$PACKAGE_GIT_REF" ] ; then
+                PACKAGE_GIT_REF_NAME="${PACKAGE_GIT_REF##*/}"
+
+                case $PACKAGE_GIT_REF_NAME in
+                    v*) PACKAGE_VERSION="${PACKAGE_GIT_REF_NAME#v}" ;;
+                    [0-9]*) PACKAGE_VERSION="$PACKAGE_GIT_REF_NAME"
+                esac
+            fi
 
             if [ -z "$PACKAGE_VERSION" ] ; then
                 PACKAGE_VERSION="$(date -u -d "@$TIMESTAMP_UNIX" '+%Y.%m.%d')"
@@ -1296,12 +1313,6 @@ filetype_from_url() {
 
     #########################################################################################
 
-    if [ -z "$PACKAGE_VERSION" ] ; then
-        PACKAGE_VERSION="$(date -u -d "@$TIMESTAMP_UNIX" '+%Y.%m.%d')"
-    fi
-
-    #########################################################################################
-
     [ -n "$PACKAGE_FIX_URL" ] && {
         [ -z "$PACKAGE_FIX_SHA" ] && abort 1 "fix-sha mapping not found in $PACKAGE_FORMULA_FILEPATH"
 
@@ -1311,7 +1322,7 @@ filetype_from_url() {
 
         PACKAGE_NEED_CURL=1
 
-        case $PACKAGE_SRC_FILETYPE in
+        case $PACKAGE_FIX_FILETYPE in
             .zip|.txz|.tgz|.tlz|.tbz2|.crate)
                 PACKAGE_NEED_BTAR=1
         esac
@@ -1328,7 +1339,7 @@ filetype_from_url() {
 
         PACKAGE_NEED_CURL=1
 
-        case $PACKAGE_SRC_FILETYPE in
+        case $PACKAGE_RES_FILETYPE in
             .zip|.txz|.tgz|.tlz|.tbz2|.crate)
                 PACKAGE_NEED_BTAR=1
         esac
@@ -1385,6 +1396,8 @@ filetype_from_url() {
                     gmakew)       PACKAGE_BSYSTEM=gmake ; break ;;
                     cargow)       PACKAGE_BSYSTEM=cargo ; break ;;
                     go|gow)       PACKAGE_BSYSTEM=go    ; break ;;
+                    waf)          PACKAGE_BSYSTEM=waf   ; break ;;
+                    zig)          PACKAGE_BSYSTEM=zig   ; break ;;
                     cabal_v2_install)
                                   PACKAGE_BSYSTEM=cabal ; break ;;
                 esac
@@ -1402,18 +1415,23 @@ filetype_from_url() {
             autogen)     PACKAGE_USE_BSYSTEM_AUTOGENSH=1 ; PACKAGE_USE_BSYSTEM_GMAKE=1 ;;
             autotools)   PACKAGE_USE_BSYSTEM_AUTOTOOLS=1 ; PACKAGE_USE_BSYSTEM_GMAKE=1 ;;
             configure)   PACKAGE_USE_BSYSTEM_CONFIGURE=1 ; PACKAGE_USE_BSYSTEM_GMAKE=1 ;;
-            cmake-gmake) PACKAGE_USE_BSYSTEM_CMAKE=1     ; PACKAGE_USE_BSYSTEM_GMAKE=1 ;;
-            cmake-ninja) PACKAGE_USE_BSYSTEM_CMAKE=1     ; PACKAGE_USE_BSYSTEM_NINJA=1 ;;
+            cmake+gmake) PACKAGE_USE_BSYSTEM_CMAKE=1     ; PACKAGE_USE_BSYSTEM_GMAKE=1 ;;
+            cmake+ninja) PACKAGE_USE_BSYSTEM_CMAKE=1     ; PACKAGE_USE_BSYSTEM_NINJA=1 ;;
             cmake)       PACKAGE_USE_BSYSTEM_CMAKE=1     ; PACKAGE_USE_BSYSTEM_NINJA=1 ;;
             xmake)       PACKAGE_USE_BSYSTEM_XMAKE=1     ;;
             meson)       PACKAGE_USE_BSYSTEM_MESON=1     ; PACKAGE_USE_BSYSTEM_NINJA=1 ;;
             ninja)       PACKAGE_USE_BSYSTEM_NINJA=1     ;;
             gmake)       PACKAGE_USE_BSYSTEM_GMAKE=1     ;;
+            netsurf)     PACKAGE_USE_BSYSTEM_GMAKE=1     ; PACKAGE_USE_BSYSTEM_NETSURF=1 ;;
             rake)        PACKAGE_USE_BSYSTEM_RAKE=1      ;;
             cargo)       PACKAGE_USE_BSYSTEM_CARGO=1     ;;
             cabal)       PACKAGE_USE_BSYSTEM_CABAL=1     ; PACKAGE_USE_BSYSTEM_GMAKE=1 ;;
             go)          PACKAGE_USE_BSYSTEM_GO=1        ;;
             gn)          PACKAGE_USE_BSYSTEM_GN=1        ; PACKAGE_USE_BSYSTEM_NINJA=1 ;;
+            waf)         PACKAGE_USE_BSYSTEM_WAF=1       ;;
+            zig)         PACKAGE_USE_BSYSTEM_ZIG=1       ;;
+            zig@[0-9].[0-9][0-9])
+                         PACKAGE_USE_BSYSTEM_ZIG=1       ;;
         esac
     done
 
@@ -1424,6 +1442,7 @@ filetype_from_url() {
             autogen)   PACKAGE_DOBUILD='configure' ;;
             autotools) PACKAGE_DOBUILD='configure' ;;
             configure) PACKAGE_DOBUILD='configure' ;;
+            netsurf)   PACKAGE_DOBUILD='netsurf_buildsystem' ;;
             cmake*)    PACKAGE_DOBUILD='cmakew' ;;
             xmake)     PACKAGE_DOBUILD='xmakew' ;;
             meson)     PACKAGE_DOBUILD='mesonw' ;;
@@ -1433,6 +1452,10 @@ filetype_from_url() {
             cabal)     PACKAGE_DOBUILD='cabal_v2_install' ;;
             go)        PACKAGE_DOBUILD='gow' ;;
             gn)        PACKAGE_DOBUILD='gnw' ;;
+            waf)       PACKAGE_DOBUILD='waf' ;;
+            zig)       PACKAGE_DOBUILD='zig' ;;
+            zig@[0-9].[0-9][0-9])
+                       PACKAGE_DOBUILD='zig' ;;
         esac
     }
 
@@ -1448,6 +1471,7 @@ filetype_from_url() {
     [ "$PACKAGE_USE_BSYSTEM_AUTOGENSH" = 1 ] && PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP automake"
     [ "$PACKAGE_USE_BSYSTEM_AUTOTOOLS" = 1 ] && PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP automake"
     [ "$PACKAGE_USE_BSYSTEM_CONFIGURE" = 1 ] && PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP gmake"
+    [ "$PACKAGE_USE_BSYSTEM_NETSURF"   = 1 ] && PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP gmake netsurf_buildsystem"
     [ "$PACKAGE_USE_BSYSTEM_MESON"     = 1 ] && PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP python3"
     [ "$PACKAGE_USE_BSYSTEM_MESON"     = 1 ] && PACKAGE_DEP_PYM="$PACKAGE_DEP_PYM meson"
     [ "$PACKAGE_USE_BSYSTEM_CMAKE"     = 1 ] && PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP cmake"
@@ -1456,16 +1480,20 @@ filetype_from_url() {
     [ "$PACKAGE_USE_BSYSTEM_NINJA"     = 1 ] && PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP ninja"
     [ "$PACKAGE_USE_BSYSTEM_RAKE"      = 1 ] && PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP ruby"
     [ "$PACKAGE_USE_BSYSTEM_GO"        = 1 ] && PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP golang"
-    [ "$PACKAGE_USE_BSYSTEM_GN"        = 1 ] && PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP gn"
+    [ "$PACKAGE_USE_BSYSTEM_WAF"       = 1 ] && PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP python3"
+    [ "$PACKAGE_USE_BSYSTEM_ZIG"       = 1 ] && PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP $PACKAGE_BSYSTEM"
 
     [ "$PACKAGE_USE_BSYSTEM_CABAL"     = 1 ] && PACKAGE_DEP_PKG="$PACKAGE_DEP_PKG libncurses libffi libz"
 
     #########################################################################################
 
+    [ "$PACKAGE_USE_BSYSTEM_WAF"   = 1 ] && PACKAGE_BINBSTD=1
+    [ "$PACKAGE_USE_BSYSTEM_ZIG"   = 1 ] && PACKAGE_BINBSTD=1
     [ "$PACKAGE_USE_BSYSTEM_GO"    = 1 ] && PACKAGE_BINBSTD=1
     [ "$PACKAGE_USE_BSYSTEM_CARGO" = 1 ] && PACKAGE_BINBSTD=1
     [ "$PACKAGE_USE_BSYSTEM_CABAL" = 1 ] && PACKAGE_BINBSTD=1
     [ "$PACKAGE_USE_BSYSTEM_XMAKE" = 1 ] && PACKAGE_BINBSTD=1
+    [ "$PACKAGE_USE_BSYSTEM_NETSURF" = 1 ] && PACKAGE_BINBSTD=1
 
     if [ -z  "$PACKAGE_BINBSTD" ] ; then
         if [ "$PACKAGE_BSYSTEM_MASTER" = gmake ] ; then
@@ -1477,33 +1505,28 @@ filetype_from_url() {
 
     #########################################################################################
 
-    if [ -z "$PACKAGE_LTOABLE" ] ; then
-        PACKAGE_LTOABLE=1
+    if [ -z "$PACKAGE_PKGTYPE" ] ; then
+        case $PACKAGE_NAME in
+            lib*)   PACKAGE_PKGTYPE=lib ;;
+            *lib)   PACKAGE_PKGTYPE=lib ;;
+            *-dev)  PACKAGE_PKGTYPE=lib ;;
+            xorg-lib*)
+                    PACKAGE_PKGTYPE=lib ;;
+               *)   PACKAGE_PKGTYPE=exe ;;
+        esac
     fi
 
-    if [ -z "$PACKAGE_SUPPORT_BUILD_IN_PARALLEL" ] ; then
-        PACKAGE_SUPPORT_BUILD_IN_PARALLEL=1
-    fi
+    #########################################################################################
 
-    if [ -z "$PACKAGE_SUPPORT_CREATE_MOSTLY_STATICALLY_LINKED_EXECUTABLE" ] ; then
-        PACKAGE_SUPPORT_CREATE_MOSTLY_STATICALLY_LINKED_EXECUTABLE=1
-    fi
+    [ -z "$PACKAGE_LTOABLE" ] && PACKAGE_LTOABLE=1
+    [ -z "$PACKAGE_MOVABLE" ] && PACKAGE_MOVABLE=1
+    [ -z "$PACKAGE_SUPPORT_BUILD_IN_PARALLEL" ] && PACKAGE_SUPPORT_BUILD_IN_PARALLEL=1
+    [ -z "$PACKAGE_SUPPORT_CREATE_MOSTLY_STATICALLY_LINKED_EXECUTABLE" ] && PACKAGE_SUPPORT_CREATE_MOSTLY_STATICALLY_LINKED_EXECUTABLE=1
 
     #########################################################################################
 
     PACKAGE_DEP_UPP="${PACKAGE_DEP_UPP#' '}"
-
-    #########################################################################################
-
-    if [ -z "$PACKAGE_PKGTYPE" ] ; then
-        case $PACKAGE_NAME in
-            lib*) PACKAGE_PKGTYPE=lib ;;
-            *lib) PACKAGE_PKGTYPE=lib ;;
-               *) PACKAGE_PKGTYPE=exe ;;
-        esac
-    fi
 }
-
 
 # }}}
 ##############################################################################
@@ -1679,7 +1702,7 @@ EOF
     RECEIPT_PACKAGE_DEP_PKG="$(yq '.dep-pkg | select(. != null)' "$PACKAGE_RECEIPT_FILEPATH")"
     RECEIPT_PACKAGE_DEP_LIB="$(yq '.dep-lib | select(. != null)' "$PACKAGE_RECEIPT_FILEPATH")"
     RECEIPT_PACKAGE_DEP_UPP="$(yq '.dep-upp | select(. != null)' "$PACKAGE_RECEIPT_FILEPATH")"
-    RECEIPT_PACKAGE_DEP_PYM="$(yq '.dep-pym | select(. != null)' "$PACKAGE_RECEIPT_FILEPATH")"
+    RECEIPT_PACKAGE_DEP_PYM="$(yq '.dep-pip | select(. != null)' "$PACKAGE_RECEIPT_FILEPATH")"
     RECEIPT_PACKAGE_DEP_PLM="$(yq '.dep-plm | select(. != null)' "$PACKAGE_RECEIPT_FILEPATH")"
 
     RECEIPT_PACKAGE_BSYSTEM="$(yq '.bsystem | select(. != null)' "$PACKAGE_RECEIPT_FILEPATH")"
@@ -2020,7 +2043,7 @@ __search_packages() {
         --arg dep_pkg "$PACKAGE_DEP_PKG" \
         --arg dep_lib "$PACKAGE_DEP_LIB" \
         --arg dep_upp "$PACKAGE_DEP_UPP" \
-        --arg dep_pym "$PACKAGE_DEP_PYM" \
+        --arg dep_pip "$PACKAGE_DEP_PYM" \
         --arg dep_plm "$PACKAGE_DEP_PLM" \
         --arg movable "$PACKAGE_MOVABLE" \
         --arg ltoable "$PACKAGE_LTOABLE" \
@@ -2065,7 +2088,7 @@ __search_packages() {
     "dep-pkg":$dep_pkg,
     "dep-lib":$dep_lib,
     "dep-upp":$dep_upp,
-    "dep-pym":$dep_pym,
+    "dep-pip":$dep_pip,
     "dep-plm":$dep_plm,
     "bsystem":$bsystem,
     "binbstd":$binbstd,
@@ -2127,7 +2150,7 @@ res-sha: $PACKAGE_RES_SHA
 dep-pkg: $PACKAGE_DEP_PKG
 dep-lib: $PACKAGE_DEP_LIB
 dep-upp: $PACKAGE_DEP_UPP
-dep-pym: $PACKAGE_DEP_PYM
+dep-pip: $PACKAGE_DEP_PYM
 dep-plm: $PACKAGE_DEP_PLM
 bsystem: $PACKAGE_BSYSTEM
 binbstd: $PACKAGE_BINBSTD
@@ -2407,7 +2430,7 @@ EOF
         --arg dep_pkg "$RECEIPT_PACKAGE_DEP_PKG" \
         --arg dep_lib "$RECEIPT_PACKAGE_DEP_LIB" \
         --arg dep_upp "$RECEIPT_PACKAGE_DEP_UPP" \
-        --arg dep_pym "$RECEIPT_PACKAGE_DEP_PYM" \
+        --arg dep_pip "$RECEIPT_PACKAGE_DEP_PYM" \
         --arg dep_plm "$RECEIPT_PACKAGE_DEP_PLM" \
         --arg movable "$RECEIPT_PACKAGE_MOVABLE" \
         --arg ltoable "$RECEIPT_PACKAGE_LTOABLE" \
@@ -2455,7 +2478,7 @@ EOF
     "dep-pkg":$dep_pkg,
     "dep-lib":$dep_lib,
     "dep-upp":$dep_upp,
-    "dep-pym":$dep_pym,
+    "dep-pip":$dep_pip,
     "dep-plm":$dep_plm,
     "bsystem":$bsystem,
     "binbstd":$binbstd,
@@ -3639,6 +3662,19 @@ run chmod +x bin/itstool
     '
 }
 
+native_package_info_autoconf_archive() {
+    PACKAGE_SRC_URL='https://ftp.gnu.org/gnu/autoconf-archive/autoconf-archive-2024.10.16.tar.xz'
+    PACKAGE_SRC_SHA='7bcd5d001916f3a50ed7436f4f700e3d2b1bade3ed803219c592d62502a57363'
+    PACKAGE_DEP_AUX='gmake'
+    PACKAGE_INSTALL='configure'
+}
+
+native_package_info_netsurf_buildsystem() {
+    PACKAGE_SRC_URL='https://download.netsurf-browser.org/libs/releases/buildsystem-1.10.tar.gz'
+    PACKAGE_SRC_SHA='3d3e39d569e44677c4b179129bde614c65798e2b3e6253160239d1fd6eae4d79'
+    PACKAGE_DEP_AUX='gmake'
+    PACKAGE_INSTALL='gmake install "PREFIX=$PACKAGE_INSTALL_DIR"'
+}
 
 # }}}
 ##############################################################################
@@ -4077,6 +4113,12 @@ $DOT_CONTENT
             itstool)
                 PACKAGE_DEP_AUX_NEED_TO_BUILD_LOCALLY="$PACKAGE_DEP_AUX_NEED_TO_BUILD_LOCALLY itstool"
                 PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP perl python3"
+                ;;
+            autoconf-archive)
+                PACKAGE_DEP_AUX_NEED_TO_BUILD_LOCALLY="$PACKAGE_DEP_AUX_NEED_TO_BUILD_LOCALLY autoconf_archive"
+                ;;
+            netsurf_buildsystem)
+                PACKAGE_DEP_AUX_NEED_TO_BUILD_LOCALLY="$PACKAGE_DEP_AUX_NEED_TO_BUILD_LOCALLY $UPPM_PACKAGE_NAME"
                 ;;
             *)  PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP $UPPM_PACKAGE_NAME"
         esac
@@ -6170,10 +6212,23 @@ EOF
 
 # }}}
 ##############################################################################
+# {{{ netsurf_buildsystem
+
+netsurf_buildsystem() {
+    gmakew install COMPONENT_TYPE=lib-static NSSHARED="$NATIVE_PACKAGE_INSTALLED_ROOT/netsurf_buildsystem/share/netsurf-buildsystem" PREFIX="$PACKAGE_INSTALL_DIR"
+    gmakew install COMPONENT_TYPE=lib-shared NSSHARED="$NATIVE_PACKAGE_INSTALLED_ROOT/netsurf_buildsystem/share/netsurf-buildsystem" PREFIX="$PACKAGE_INSTALL_DIR"
+}
+
+# }}}
+##############################################################################
 # {{{ waf
 
 waf() {
-    run python3 ./waf "$@"
+    PYTHON3=$(command -v python3) || abort 1 "command not found: python3"
+
+    run "$PYTHON3" ./waf configure --prefix=$PACKAGE_INSTALL_DIR $@
+    run "$PYTHON3" ./waf build
+    run "$PYTHON3" ./waf install
 }
 
 # }}}
@@ -8721,7 +8776,7 @@ fi
 
 ##################################################################################
 
-XCPKG_VERSION=0.29.6
+XCPKG_VERSION=0.29.7
 
 XCPKG_ARG0="$0"
 XCPKG_ARG1="$1"

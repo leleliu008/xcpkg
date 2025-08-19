@@ -194,7 +194,7 @@ typedef struct {
 
     char * dep_pkg;
     char * dep_upp;
-    char * dep_pym;
+    char * dep_pip;
     char * dep_plm;
     char * dep_lib;
 
@@ -251,6 +251,8 @@ typedef struct {
     bool useBuildSystemGolang;
     bool useBuildSystemGN;
     bool useBuildSystemZIG;
+    bool useBuildSystemWAF;
+    bool useBuildSystemNetsurf;
 
     XCPKGPkgType pkgtype;
 } XCPKGFormula;
@@ -352,7 +354,7 @@ typedef struct {
 
     char * dep_pkg;
     char * dep_upp;
-    char * dep_pym;
+    char * dep_pip;
     char * dep_plm;
     char * dep_lib;
 

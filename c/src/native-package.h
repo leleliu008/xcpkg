@@ -7,16 +7,22 @@
 
 #define NATIVE_PACKAGE_ID_LIBZ     1
 #define NATIVE_PACKAGE_ID_OPENSSL  2
+#define NATIVE_PACKAGE_ID_LIBXML2  3
+#define NATIVE_PACKAGE_ID_LIBEXPAT 4
 
-#define NATIVE_PACKAGE_ID_AUTOCONF 5
-#define NATIVE_PACKAGE_ID_AUTOMAKE 6
-#define NATIVE_PACKAGE_ID_LIBTOOL  7
-#define NATIVE_PACKAGE_ID_TEXINFO  8
+#define NATIVE_PACKAGE_ID_LIBTOOL  5
+#define NATIVE_PACKAGE_ID_TEXINFO  6
+#define NATIVE_PACKAGE_ID_AUTOCONF 7
+#define NATIVE_PACKAGE_ID_AUTOMAKE 8
 #define NATIVE_PACKAGE_ID_HELP2MAN 9
 #define NATIVE_PACKAGE_ID_INTLTOOL 10
 
-#define NATIVE_PACKAGE_ID_LIBEXPAT 18
-#define NATIVE_PACKAGE_ID_PERL_XML_PARSER 19
+#define NATIVE_PACKAGE_ID_ITSTOOL  11
+
+#define NATIVE_PACKAGE_ID_PERL_XML_PARSER 13
+
+#define NATIVE_PACKAGE_ID_AUTOCONF_ARCHIVE    14
+#define NATIVE_PACKAGE_ID_NETSURF_BUILDSYSTEM 15
 
 typedef struct {
     const char * name;
@@ -24,8 +30,6 @@ typedef struct {
     const char * srcUrl;
     const char * srcUri;
     const char * srcSha;
-
-    const char * dep_upp;
 
     const char * buildConfigureArgs;
 

@@ -1059,17 +1059,22 @@ static int install_native_packages_via_uppm_or_build(
         const KV flagsForNativeBuild[]) {
 
     // these packages are not relocatable, we need to build them from source locally.
+    bool needToBuildLibOpenssl = false;
     bool needToBuildLibtool  = false;
+    bool needToBuildTexinfo  = false;
     bool needToBuildAutomake = false;
     bool needToBuildAutoconf = false;
-    bool needToBuildTexinfo  = false;
     bool needToBuildHelp2man = false;
     bool needToBuildIntltool = false;
+    bool needToBuildItstool  = false;
     bool needToBuildPerlXMLParser = false;
-    bool needToBuildLibOpenssl = false;
+    bool needToBuildAutoconfArchive = false;
+    bool needToBuildNetsurf  = false;
 
-    bool needToInstallGmake = false;
-    bool needToInstallGm4   = false;
+    bool needToInstallGmake  = false;
+    bool needToInstallGm4    = false;
+    bool needToInstallPerl   = false;
+    bool needToInstallPython3 = false;
 
     size_t uppmPackageNamesCapacity = 100U;
 
@@ -1124,15 +1129,10 @@ loop:
 
     for (size_t i = 0U; ; i++) {
         if (q[i] == ' ' || q[i] == '\0') {
-            if (_str_equal(q, "texinfo")) {
+                   if (_str_equal(q, "texinfo")) {
                 needToBuildTexinfo = true;
                 needToInstallGmake = true;
-            } else if (_str_equal(q, "help2man")) {
-                needToBuildHelp2man = true;
-                needToInstallGmake = true;
-            } else if (_str_equal(q, "intltool")) {
-                needToBuildIntltool = true;
-                needToInstallGmake = true;
+                needToInstallPerl  = true;
             } else if (_str_equal(q, "libtool")) {
                 needToBuildLibtool = true;
                 needToInstallGmake = true;
@@ -1141,15 +1141,37 @@ loop:
                 needToBuildAutoconf = true;
                 needToInstallGmake = true;
                 needToInstallGm4   = true;
+                needToInstallPerl  = true;
             } else if (_str_equal(q, "automake")) {
                 needToBuildAutomake = true;
                 needToInstallGmake = true;
                 needToInstallGm4   = true;
+                needToInstallPerl  = true;
+            } else if (_str_equal(q, "help2man")) {
+                needToBuildHelp2man = true;
+                needToInstallGmake  = true;
+                needToInstallPerl   = true;
+            } else if (_str_equal(q, "intltool")) {
+                needToBuildIntltool = true;
+                needToInstallGmake = true;
+                needToInstallPerl  = true;
+            } else if (_str_equal(q, "itstool")) {
+                needToBuildItstool = true;
+                needToInstallGmake = true;
+                needToInstallPython3 = true;
             } else if (_str_equal(q, "perl-XML-Parser")) {
                 needToBuildPerlXMLParser = true;
                 needToInstallGmake = true;
+                needToInstallPerl  = true;
             } else if (_str_equal(q, "libopenssl")) {
                 needToBuildLibOpenssl = true;
+                needToInstallGmake = true;
+                needToInstallPerl  = true;
+            } else if (_str_equal(q, "autoconf-archive")) {
+                needToBuildAutoconfArchive = true;
+                needToInstallGmake = true;
+            } else if (_str_equal(q, "netsurf_buildsystem")) {
+                needToBuildNetsurf = true;
                 needToInstallGmake = true;
             } else {
                 p[0] = ' ';
@@ -1174,29 +1196,25 @@ loop:
     }
 
 next:
-    if (needToInstallGmake) {
-        s = " gmake";
+    bool bs[4] = {needToInstallGmake, needToInstallGm4, needToInstallPerl, needToInstallPython3};
 
-        for (;;) {
-            p[0] = s[0];
-
-            if (s[0] == '\0') break;
-
-            p++;
-            s++;
+    for (int i = 0; i < 4; i++) {
+        switch (i) {
+            case 0: s = " gmake"  ; break;
+            case 1: s = " gm4"    ; break;
+            case 2: s = " perl"   ; break;
+            case 3: s = " python3"; break;
         }
-    }
 
-    if (needToInstallGm4) {
-        s = " gm4";
+        if (bs[i]) {
+            for (;;) {
+                p[0] = s[0];
 
-        for (;;) {
-            p[0] = s[0];
+                if (s[0] == '\0') break;
 
-            if (s[0] == '\0') break;
-
-            p++;
-            s++;
+                p++;
+                s++;
+            }
         }
     }
 
@@ -1233,7 +1251,7 @@ next:
 
     //////////////////////////////////////////////////////////////////////////////
 
-    int    nativePackageIDArray[10] = {0};
+    int    nativePackageIDArray[15] = {0};
     size_t nativePackageIDArraySize = 0U;
 
     if (needToBuildLibtool) {
@@ -1266,8 +1284,23 @@ next:
         nativePackageIDArraySize++;
     }
 
+    if (needToBuildItstool) {
+        nativePackageIDArray[nativePackageIDArraySize] = NATIVE_PACKAGE_ID_ITSTOOL;
+        nativePackageIDArraySize++;
+    }
+
     if (needToBuildPerlXMLParser) {
         nativePackageIDArray[nativePackageIDArraySize] = NATIVE_PACKAGE_ID_PERL_XML_PARSER;
+        nativePackageIDArraySize++;
+    }
+
+    if (needToBuildAutoconfArchive) {
+        nativePackageIDArray[nativePackageIDArraySize] = NATIVE_PACKAGE_ID_AUTOCONF_ARCHIVE;
+        nativePackageIDArraySize++;
+    }
+
+    if (needToBuildNetsurf) {
+        nativePackageIDArray[nativePackageIDArraySize] = NATIVE_PACKAGE_ID_NETSURF_BUILDSYSTEM;
         nativePackageIDArraySize++;
     }
 
@@ -2328,7 +2361,7 @@ static int generate_shell_script_file(
         {"PACKAGE_DEP_PKG", formula->dep_pkg},
         {"PACKAGE_DEP_PKG_R", recursiveDependentPackageNames},
         {"PACKAGE_DEP_UPP", formula->dep_upp},
-        {"PACKAGE_DEP_PYM", formula->dep_pym},
+        {"PACKAGE_DEP_PYM", formula->dep_pip},
         {"PACKAGE_DEP_PLM", formula->dep_plm},
 
         {"PACKAGE_BSYSTEM", formula->bsystem},
@@ -3856,12 +3889,12 @@ static int xcpkg_install_package(
 
     //////////////////////////////////////////////////////////////////////////////
 
-    if (formula->dep_pym != NULL) {
+    if (formula->dep_pip != NULL) {
         const char * const s = "/python3/bin/python3 -m pip install --upgrade ";
 
         size_t sLength = strlen(s);
 
-        char* a[2] = { "pip", formula->dep_pym };
+        char* a[2] = { "pip", formula->dep_pip };
 
         for (int i = 0; i < 2; i++) {
             size_t pipInstallCmdCapacity = uppmPackageInstalledRootDIRCapacity + sLength + strlen(a[i]);

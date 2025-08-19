@@ -414,10 +414,23 @@ EOF
 
 # }}}
 ##############################################################################
+# {{{ netsurf_buildsystem
+
+netsurf_buildsystem() {
+    gmakew install COMPONENT_TYPE=lib-static NSSHARED="$NATIVE_PACKAGE_INSTALLED_ROOT/netsurf_buildsystem/share/netsurf-buildsystem" PREFIX="$PACKAGE_INSTALL_DIR"
+    gmakew install COMPONENT_TYPE=lib-shared NSSHARED="$NATIVE_PACKAGE_INSTALLED_ROOT/netsurf_buildsystem/share/netsurf-buildsystem" PREFIX="$PACKAGE_INSTALL_DIR"
+}
+
+# }}}
+##############################################################################
 # {{{ waf
 
 waf() {
-    run python3 ./waf "$@"
+    PYTHON3=$(command -v python3) || abort 1 "command not found: python3"
+
+    run "$PYTHON3" ./waf configure --prefix=$PACKAGE_INSTALL_DIR $@
+    run "$PYTHON3" ./waf build
+    run "$PYTHON3" ./waf install
 }
 
 # }}}

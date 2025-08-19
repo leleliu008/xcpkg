@@ -91,7 +91,7 @@ int xcpkg_available_info2(const XCPKGFormula * formula, const char * packageName
             {"dep-pkg", formula->dep_pkg},
             {"dep-lib", formula->dep_lib},
             {"dep-upp", formula->dep_upp},
-            {"dep-pym", formula->dep_pym},
+            {"dep-pip", formula->dep_pip},
             {"dep-plm", formula->dep_plm},
 
             {"ccflags", formula->ccflags},
@@ -236,7 +236,7 @@ int xcpkg_available_info2(const XCPKGFormula * formula, const char * packageName
         json_object_set_new(root, "dep-pkg", json_string(formula->dep_pkg));
         json_object_set_new(root, "dep-lib", json_string(formula->dep_lib));
         json_object_set_new(root, "dep-upp", json_string(formula->dep_upp));
-        json_object_set_new(root, "dep-pym", json_string(formula->dep_pym));
+        json_object_set_new(root, "dep-pip", json_string(formula->dep_pip));
         json_object_set_new(root, "dep-plm", json_string(formula->dep_plm));
 
         json_object_set_new(root, "ppflags", json_string(formula->ppflags));
@@ -457,9 +457,9 @@ int xcpkg_available_info2(const XCPKGFormula * formula, const char * packageName
         if (formula->dep_upp != NULL) {
             printf("%s\n", formula->dep_upp);
         }
-    } else if (strcmp(key, "dep-pym") == 0) {
-        if (formula->dep_pym != NULL) {
-            printf("%s\n", formula->dep_pym);
+    } else if (strcmp(key, "dep-pip") == 0) {
+        if (formula->dep_pip != NULL) {
+            printf("%s\n", formula->dep_pip);
         }
     } else if (strcmp(key, "dep-plm") == 0) {
         if (formula->dep_plm != NULL) {
