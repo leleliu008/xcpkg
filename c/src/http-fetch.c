@@ -227,7 +227,7 @@ static inline int startswith(const char * s1, const char * s2) {
     return 0;
 }
 
-static inline int xcpkg_http_fetch_internal(const char * url, const char * uri, const void * to, xcpkg_http_fetch_to_fn xcpkg_http_fetch_to, const bool verbose) {
+static inline int xcpkg_http_fetch_to_proxy(xcpkg_http_fetch_to_fn xcpkg_http_fetch_to, const void * to, const char * url, const char * uri, const bool verbose) {
     int ret = xcpkg_http_fetch_to(url, to, verbose, verbose);
 
     if (ret == XCPKG_OK) {
@@ -242,6 +242,8 @@ static inline int xcpkg_http_fetch_internal(const char * url, const char * uri, 
         }
     }
 
+    ///////////////////////////////////////////////////
+
     size_t slashIndex = 0U;
 
     size_t n = 0U;
@@ -255,6 +257,8 @@ static inline int xcpkg_http_fetch_internal(const char * url, const char * uri, 
     if (slashIndex == 0U) {
         return XCPKG_ERROR_INVALID_URL;
     }
+
+    ///////////////////////////////////////////////////
 
     if (startswith(url, "https://ftp.gnu.org/gnu/") == 0) {
         const char * s = "https://ftpmirror.gnu.org/gnu/";
@@ -337,11 +341,11 @@ int xcpkg_http_fetch(const char * url, const char * uri, const char * expectedSH
     //////////////////////////////////////////////////////////////////////////
 
     if (outputPath == NULL || outputPath[0] == '\0' || (outputPath[0] == '-' && outputPath[1] == '\0') || strcmp(outputPath, "/dev/stdout") == 0) {
-        return xcpkg_http_fetch_internal(url, uri, stdout, (xcpkg_http_fetch_to_fn)xcpkg_http_fetch_to_stream, verbose);
+        return xcpkg_http_fetch_to_proxy((xcpkg_http_fetch_to_fn)xcpkg_http_fetch_to_stream, stdout, url, uri, verbose);
     }
 
     if (strcmp(outputPath, "/dev/stderr") == 0) {
-        return xcpkg_http_fetch_internal(url, uri, stderr, (xcpkg_http_fetch_to_fn)xcpkg_http_fetch_to_stream, verbose);
+        return xcpkg_http_fetch_to_proxy((xcpkg_http_fetch_to_fn)xcpkg_http_fetch_to_stream, stderr, url, uri, verbose);
     }
 
     char outputFilePath[PATH_MAX];
@@ -476,7 +480,7 @@ int xcpkg_http_fetch(const char * url, const char * uri, const char * expectedSH
 
     //////////////////////////////////////////////////////////////////////////
 
-    ret = xcpkg_http_fetch_internal(url, uri, tmpFilePath, (xcpkg_http_fetch_to_fn)xcpkg_http_fetch_to_file, verbose);
+    ret = xcpkg_http_fetch_to_proxy((xcpkg_http_fetch_to_fn)xcpkg_http_fetch_to_file, tmpFilePath, url, uri, verbose);
 
     if (ret != XCPKG_OK) {
         return ret;
@@ -539,7 +543,7 @@ int xcpkg_http_fetch_then_unpack(const char * url, const char * uri, const char 
         return XCPKG_ERROR;
     }
 
-    ret = xcpkg_http_fetch_internal(url, uri, filePath, (xcpkg_http_fetch_to_fn)xcpkg_http_fetch_to_file, verbose);
+    ret = xcpkg_http_fetch(url, uri, expectedSHA256SUM, filePath, verbose);
 
     if (ret != XCPKG_OK) {
         return ret;
