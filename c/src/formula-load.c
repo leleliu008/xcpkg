@@ -13,12 +13,12 @@
 #include "xcpkg.h"
 
 static inline __attribute__((always_inline)) void string_buffer_append(char buf[], size_t * bufLengthP, const char * s) {
-    size_t bufLength = (*bufLengthP);
+    size_t n = (*bufLengthP);
 
-    char * p = buf + bufLength;
+    char * p = buf + n;
 
-    if (bufLength != 0U) {
-        bufLength++;
+    if (n != 0U) {
+        n++;
         p[0] = ' ';
         p++;
     }
@@ -27,7 +27,7 @@ static inline __attribute__((always_inline)) void string_buffer_append(char buf[
         p[i] = s[i];
 
         if (p[i] == '\0') {
-            (*bufLengthP) = bufLength + i;
+            (*bufLengthP) = n + i;
             break;
         }
     }

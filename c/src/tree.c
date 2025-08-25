@@ -43,10 +43,10 @@ int xcpkg_tree(const char * packageName, const char * targetPlatformSpec, size_t
         return XCPKG_ERROR_PACKAGE_NOT_INSTALLED;
     }
 
-    size_t receiptFilePathLength = packageInstalledDIRCapacity + sizeof(XCPKG_RECEIPT_FILEPATH_RELATIVE_TO_INSTALLED_ROOT);
-    char   receiptFilePath[receiptFilePathLength];
+    size_t receiptFilePathCapacity = packageInstalledDIRCapacity + sizeof(XCPKG_RECEIPT_FILEPATH_RELATIVE_TO_INSTALLED_ROOT);
+    char   receiptFilePath[receiptFilePathCapacity];
 
-    ret = snprintf(receiptFilePath, receiptFilePathLength, "%s%s", packageInstalledDIR, XCPKG_RECEIPT_FILEPATH_RELATIVE_TO_INSTALLED_ROOT);
+    ret = snprintf(receiptFilePath, receiptFilePathCapacity, "%s%s", packageInstalledDIR, XCPKG_RECEIPT_FILEPATH_RELATIVE_TO_INSTALLED_ROOT);
 
     if (ret < 0) {
         perror(NULL);
@@ -69,21 +69,22 @@ int xcpkg_tree(const char * packageName, const char * targetPlatformSpec, size_t
 
     //////////////////////////////////////////////////////////////////////////////
 
-    size_t n = argc + 5U;
-    char*  p[n];
+    char* args[argc + 5];
 
-    p[0] = treeCommandPath;
-    p[1] = (char*)"--dirsfirst";
-    p[2] = (char*)"-a";
+    args[0] = treeCommandPath;
+    args[1] = (char*)"--dirsfirst";
+    args[2] = (char*)"-a";
 
-    for (size_t i = 0U; i < argc; i++) {
-        p[3U + i] = argv[i];
+    int n = 3;
+
+    for (size_t i = 0; i < argc; i++) {
+        args[n++] = argv[i];
     }
 
-    p[n - 2U] = packageInstalledDIR;
-    p[n - 1U]   = NULL;
+    args[n++] = packageInstalledDIR;
+    args[n++] = NULL;
 
-    execv(treeCommandPath, p);
+    execv(treeCommandPath, args);
 
     perror(treeCommandPath);
 

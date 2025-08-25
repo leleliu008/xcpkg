@@ -151,10 +151,10 @@ int xcpkg_check_if_the_given_package_is_available(const char * packageName, cons
     for (size_t i = 0; i < formulaRepoList->size; i++) {
         char * formulaRepoPath = formulaRepoList->repos[i]->path;
 
-        size_t formulaFilePathLength = strlen(formulaRepoPath) + strlen(packageName) + 15U;
-        char   formulaFilePath[formulaFilePathLength];
+        size_t formulaFilePathCapacity = strlen(formulaRepoPath) + strlen(packageName) + 15U;
+        char   formulaFilePath[formulaFilePathCapacity];
 
-        ret = snprintf(formulaFilePath, formulaFilePathLength, "%s/formula/%s.yml", formulaRepoPath, packageName);
+        ret = snprintf(formulaFilePath, formulaFilePathCapacity, "%s/formula/%s.yml", formulaRepoPath, packageName);
 
         if (ret < 0) {
             perror(NULL);

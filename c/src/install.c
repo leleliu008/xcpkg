@@ -1373,11 +1373,11 @@ static int install_native_packages_via_uppm_or_build(
 }
 
 static int setenv_rustflags(const char * rustTarget, const size_t rustTargetLength, const char * cc, const char * ldflags, const char * libDIR, const size_t libDIRCapacity) {
-    size_t envNameLength = rustTargetLength + 25U;
-    char   envName[envNameLength];
+    size_t envNameCapacity = rustTargetLength + 25U;
+    char   envName[envNameCapacity];
 
     // https://doc.rust-lang.org/cargo/reference/environment-variables.html
-    int ret = snprintf(envName, envNameLength, "CARGO_TARGET_%s_RUSTFLAGS", rustTarget);
+    int ret = snprintf(envName, envNameCapacity, "CARGO_TARGET_%s_RUSTFLAGS", rustTarget);
 
     if (ret < 0) {
         perror(NULL);
@@ -2548,10 +2548,10 @@ static int generate_shell_script_file(
 }
 
 static int adjust_la_file(const char * filePath, const char * xcpkgHomeDIR, const size_t xcpkgHomeDIRLength) {
-    size_t eLength = xcpkgHomeDIRLength + 14U;
-    char   e[eLength];
+    size_t eCapacity = xcpkgHomeDIRLength + 14U;
+    char   e[eCapacity];
 
-    int ret = snprintf(e, eLength, "s|-L%s[^' ]*||g", xcpkgHomeDIR);
+    int ret = snprintf(e, eCapacity, "s|-L%s[^' ]*||g", xcpkgHomeDIR);
 
     if (ret < 0) {
         perror(NULL);
@@ -2646,10 +2646,10 @@ static int adjust_la_files(const char * packageInstalledDIR, const size_t packag
         char * fileNameSuffix = dir_entry->d_name + fileNameLength - 3U;
 
         if (strcmp(fileNameSuffix, ".la") == 0) {
-            size_t filePathLength = packageLibDIRLength + fileNameLength  + 2U;
-            char   filePath[filePathLength];
+            size_t filePathCapacity = packageLibDIRLength + fileNameLength  + 2U;
+            char   filePath[filePathCapacity];
 
-            ret = snprintf(filePath, filePathLength, "%s/%s", packageLibDIR, dir_entry->d_name);
+            ret = snprintf(filePath, filePathCapacity, "%s/%s", packageLibDIR, dir_entry->d_name);
 
             if (ret < 0) {
                 perror(NULL);
@@ -2726,10 +2726,10 @@ static int adjust_pc_files(const char * packageInstalledDIR, const size_t packag
         char * fileNameSuffix = dir_entry->d_name + fileNameLength - 3U;
 
         if (strcmp(fileNameSuffix, ".pc") == 0) {
-            size_t filePathLength = packagePkgconfigDIRLength + fileNameLength  + 2U;
-            char   filePath[filePathLength];
+            size_t filePathCapacity = packagePkgconfigDIRLength + fileNameLength  + 2U;
+            char   filePath[filePathCapacity];
 
-            ret = snprintf(filePath, filePathLength, "%s/%s", packagePkgconfigDIR, dir_entry->d_name);
+            ret = snprintf(filePath, filePathCapacity, "%s/%s", packagePkgconfigDIR, dir_entry->d_name);
 
             if (ret < 0) {
                 perror(NULL);
@@ -2902,10 +2902,10 @@ static int generate_manifest_r(const char * dirPath, const size_t offset, FILE *
             continue;
         }
 
-        size_t filePathLength = dirPathLength + strlen(dir_entry->d_name) + 2U;
-        char   filePath[filePathLength];
+        size_t filePathCapacity = dirPathLength + strlen(dir_entry->d_name) + 2U;
+        char   filePath[filePathCapacity];
 
-        ret = snprintf(filePath, filePathLength, "%s/%s", dirPath, dir_entry->d_name);
+        ret = snprintf(filePath, filePathCapacity, "%s/%s", dirPath, dir_entry->d_name);
 
         if (ret < 0) {
             perror(NULL);
@@ -3085,10 +3085,10 @@ static int xcpkg_build_for_native(
         const char * packageInstalledSHA,
         const char * shellScriptFileName,
         const bool verbose) {
-    size_t receiptFilePathLength = nativePackageInstalledRootDIRCapacity + packageNameLength + 14U;
-    char   receiptFilePath[receiptFilePathLength];
+    size_t receiptFilePathCapacity = nativePackageInstalledRootDIRCapacity + packageNameLength + 14U;
+    char   receiptFilePath[receiptFilePathCapacity];
 
-    int ret = snprintf(receiptFilePath, receiptFilePathLength, "%s/%s/receipt.txt", nativePackageInstalledRootDIR, packageName);
+    int ret = snprintf(receiptFilePath, receiptFilePathCapacity, "%s/%s/receipt.txt", nativePackageInstalledRootDIR, packageName);
 
     if (ret < 0) {
         perror(NULL);
@@ -3183,10 +3183,10 @@ static int xcpkg_build_for_native(
 
     //////////////////////////////////////////////////////////////////////////////
 
-    size_t receiptFilePath2Length = packageInstallDIRCapacity + 12U;
-    char   receiptFilePath2[receiptFilePath2Length];
+    size_t receiptFilePath2Capacity = packageInstallDIRCapacity + 12U;
+    char   receiptFilePath2[receiptFilePath2Capacity];
 
-    ret = snprintf(receiptFilePath2, receiptFilePath2Length, "%s/receipt.txt", packageInstallDIR);
+    ret = snprintf(receiptFilePath2, receiptFilePath2Capacity, "%s/receipt.txt", packageInstallDIR);
 
     if (ret < 0) {
         perror(NULL);
@@ -3921,10 +3921,10 @@ static int xcpkg_install_package(
     //////////////////////////////////////////////////////////////////////////////
 
     if (formula->dep_plm != NULL) {
-        size_t cpanInstallCmdLength = uppmPackageInstalledRootDIRCapacity + strlen(formula->dep_plm) + 24U;
-        char   cpanInstallCmd[cpanInstallCmdLength];
+        size_t cpanInstallCmdCapacity = uppmPackageInstalledRootDIRCapacity + strlen(formula->dep_plm) + 24U;
+        char   cpanInstallCmd[cpanInstallCmdCapacity];
 
-        ret = snprintf(cpanInstallCmd, cpanInstallCmdLength, "%s/perl/bin/cpan %s", uppmPackageInstalledRootDIR, formula->dep_plm);
+        ret = snprintf(cpanInstallCmd, cpanInstallCmdCapacity, "%s/perl/bin/cpan %s", uppmPackageInstalledRootDIR, formula->dep_plm);
 
         if (ret < 0) {
             perror(NULL);
@@ -4890,10 +4890,10 @@ static int check_and_read_formula_in_cache(const char * packageName, const char 
                 goto finalize;
             }
 
-            size_t formulaFilePath2Length = strlen(sessionDIR) + strlen(packageName) + 6U;
-            char   formulaFilePath2[formulaFilePath2Length];
+            size_t formulaFilePath2Capacity = strlen(sessionDIR) + strlen(packageName) + 6U;
+            char   formulaFilePath2[formulaFilePath2Capacity];
 
-            ret = snprintf(formulaFilePath2, formulaFilePath2Length, "%s/%s.yml", sessionDIR, packageName);
+            ret = snprintf(formulaFilePath2, formulaFilePath2Capacity, "%s/%s.yml", sessionDIR, packageName);
 
             if (ret < 0) {
                 perror(NULL);
