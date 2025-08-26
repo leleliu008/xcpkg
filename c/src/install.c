@@ -2522,7 +2522,7 @@ static int generate_shell_script_file(
 
     //////////////////////////////////////////////////////////////////////////////
 
-    if (recursiveDependentPackageNames[0] != '\0') {
+    if (recursiveDependentPackageNames != NULL && recursiveDependentPackageNames[0] != '\0') {
         ret = write_shell_script_file(fd, recursiveDependentPackageNames, packageInstalledRootDIR, packageInstalledRootDIRCapacity);
 
         if (ret != XCPKG_OK) {
@@ -3304,82 +3304,90 @@ loop:
     }
 }
 
-static int generate_dependencies_graph(const char * packageName, XCPKGPackage ** packageSet, size_t packageSetSize, char buf[], size_t * bufLengthP) {
-    char dotBuf[6144];
-    char d2Buf[8192];
+typedef struct {
+    char * ptr;
+    size_t length;
+    size_t capacity;
+} StringBuf;
 
-    char * a = dotBuf;
-    char * b = d2Buf;
+static inline __attribute__((always_inline)) int string_buffer_append(StringBuf * const stringBuf, const char * s) {
+    char * p;
 
-    size_t dotBufLength = 0U;
-    size_t d2BufLength = 0U;
-    size_t bufLength = 0U;
+    size_t m = stringBuf->length;
+    size_t n = strlen(s);
 
-    ////////////////////////////////////////////////////////////////
+    size_t oldCapacity = stringBuf->capacity;
+    size_t newCapacity = m + n + 1U;
 
-    const char * const s = "digraph G {\n";
+    if (newCapacity > oldCapacity) {
+        newCapacity += 1024U;
 
-    for (size_t i = 0U; ; i++) {
-        a[i] = s[i];
+        p = (char*)realloc(stringBuf->ptr, newCapacity * sizeof(char));
 
-        if (a[i] == '\0') {
-            a += i;
-            dotBufLength = i;
-            break;
+        if (p == NULL) {
+            return XCPKG_ERROR_MEMORY_ALLOCATE;
+        } else {
+            stringBuf->ptr = p;
+            stringBuf->capacity = newCapacity;
         }
     }
 
-    ////////////////////////////////////////////////////////////////
+    p = stringBuf->ptr + m;
 
-    size_t  packageNameStackCapacity = 8U;
-    size_t  packageNameStackSize     = 0U;
-    char ** packageNameStack = (char**)malloc(8 * sizeof(char*));
+    for (size_t i = 0U; i <= n; i++) {
+        p[i] = s[i];
+    }
+
+    stringBuf->length = m + n;
+
+    return XCPKG_OK;
+}
+
+static int generate_dependencies_graph(const char * packageName, XCPKGPackage ** packageSet, size_t packageSetSize, StringBuf * txt, StringBuf * dot, StringBuf * d2) {
+    int ret = XCPKG_OK;
+
+    char * p;
+    size_t i;
+
+    size_t  packageNameStackCapacity = 1U;
+    size_t  packageNameStackSize     = 1U;
+    char ** packageNameStack = (char**)malloc(sizeof(char*));
 
     if (packageNameStack == NULL) {
         return XCPKG_ERROR_MEMORY_ALLOCATE;
     }
 
-    packageNameStackSize = 1U;
     packageNameStack[0] = (char*)packageName;
 
-    ////////////////////////////////////////////////////////////////
-
     while (packageNameStackSize != 0U) {
-        char * packageName = packageNameStack[packageNameStackSize - 1U];
-        packageNameStack[packageNameStackSize - 1U] = NULL;
-        packageNameStackSize--;
+        char * packageName = packageNameStack[--packageNameStackSize];
+        packageNameStack[packageNameStackSize] = NULL;
 
         ////////////////////////////////////////////////////////////////
 
-        if (bufLength != 0U) {
-            if (is_a_in_b(packageName, buf)) {
+        if (txt->ptr != NULL) {
+            if (is_a_in_b(packageName, txt->ptr)) {
                 continue;
             }
-        }
 
-        ////////////////////////////////////////////////////////////////
+            ret = string_buffer_append(txt, " ");
 
-        if (bufLength != 0U) {
-            bufLength++;
-            buf[0] = ' ';
-            buf++;
-        }
-
-        for (size_t i = 0U; ; i++) {
-            buf[i] = packageName[i];
-
-            if (buf[i] == '\0') {
-                buf += i;
-                bufLength += i;
-                break;
+            if (ret != XCPKG_OK) {
+                goto finalize;
             }
         }
 
+        ret = string_buffer_append(txt, packageName);
+
+        if (ret != XCPKG_OK) {
+            goto finalize;
+        }
+
         ////////////////////////////////////////////////////////////////
 
-        char * p = NULL;
+        p = NULL;
 
-        for (size_t i = 0U; i < packageSetSize; i++) {
+        for (i = 0U; i < packageSetSize; i++) {
             if (strcmp(packageSet[i]->packageName, packageName) == 0) {
                 p = packageSet[i]->formula->dep_pkg;
                 break;
@@ -3405,36 +3413,31 @@ static int generate_dependencies_graph(const char * packageName, XCPKGPackage **
 
         ////////////////////////////////////////////////////////////////
 
-        a[0] = ' ';
-        a[1] = ' ';
-        a[2] = ' ';
-        a[3] = ' ';
-        a[4] = '"';
-        a += 5;
-        dotBufLength += 5;
+        if (dot->ptr == NULL) {
+            ret = string_buffer_append(dot, "digraph G {\n");
 
-        ////////////////////////////////////////////////////////////////
-
-        for (size_t i = 0U; ; i++) {
-            a[i] = packageName[i];
-
-            if (a[i] == '\0') {
-                a += i;
-                dotBufLength += i;
-                break;
+            if (ret != XCPKG_OK) {
+                goto finalize;
             }
         }
 
-        ////////////////////////////////////////////////////////////////
+        ret = string_buffer_append(dot, "    \"");
 
-        a[0] = '"';
-        a[1] = ' ';
-        a[2] = '-';
-        a[3] = '>';
-        a[4] = ' ';
-        a[5] = '{';
-        a += 6;
-        dotBufLength += 6;
+        if (ret != XCPKG_OK) {
+            goto finalize;
+        }
+
+        ret = string_buffer_append(dot, packageName);
+
+        if (ret != XCPKG_OK) {
+            goto finalize;
+        }
+
+        ret = string_buffer_append(dot, "\" -> {");
+
+        if (ret != XCPKG_OK) {
+            goto finalize;
+        }
 
         ////////////////////////////////////////////////////////////////
 
@@ -3443,8 +3446,6 @@ static int generate_dependencies_graph(const char * packageName, XCPKGPackage **
                 p++;
                 continue;
             }
-
-            size_t i;
 
             for (i = 0U; ; i++) {
                 if (p[i] == ' ' || p[i] == '\n' || p[i] == '\0') {
@@ -3470,8 +3471,6 @@ static int generate_dependencies_graph(const char * packageName, XCPKGPackage **
 
                 if (q == NULL) {
                     free(packageNameStack);
-                    packageNameStack = NULL;
-
                     return XCPKG_ERROR_MEMORY_ALLOCATE;
                 }
 
@@ -3484,98 +3483,79 @@ static int generate_dependencies_graph(const char * packageName, XCPKGPackage **
 
             //////////////////////////////////////
 
-            a[0] = ' ';
-            a[1] = '"';
-            a += 2;
-            dotBufLength += 2;
+            ret = string_buffer_append(dot, " \"");
 
-            for (size_t j = 0U; j < i; j++) {
-                a[j] = p[j];
+            if (ret != XCPKG_OK) {
+                goto finalize;
             }
 
-            a += i;
-            dotBufLength += i;
+            ret = string_buffer_append(dot, depPackageName);
 
-            a[0] = '"';
-            a++;
-            dotBufLength++;
+            if (ret != XCPKG_OK) {
+                goto finalize;
+            }
+
+            ret = string_buffer_append(dot, "\" ");
+
+            if (ret != XCPKG_OK) {
+                goto finalize;
+            }
 
             //////////////////////////////////////
 
-            b[0] = '"';
-            b++;
-            d2BufLength++;
+            ret = string_buffer_append(d2, "\"");
 
-            for (size_t j = 0U; ; j++) {
-                b[j] = packageName[j];
-
-                if (b[j] == '\0') {
-                    b += j;
-                    d2BufLength += j;
-                    break;
-                }
+            if (ret != XCPKG_OK) {
+                goto finalize;
             }
 
-            b[0] = '"';
-            b[1] = ' ';
-            b[2] = '-';
-            b[3] = '>';
-            b[4] = ' ';
-            b[5] = '"';
-            b += 6;
-            d2BufLength += 6;
+            ret = string_buffer_append(d2, packageName);
 
-            for (size_t j = 0U; j < i; j++) {
-                b[j] = p[j];
+            if (ret != XCPKG_OK) {
+                goto finalize;
             }
 
-            b += i;
-            d2BufLength += i;
+            ret = string_buffer_append(d2, "\" -> \"");
 
-            b[0] = '"';
-            b[1] = '\n';
-            b += 2;
-            d2BufLength += 2;
+            if (ret != XCPKG_OK) {
+                goto finalize;
+            }
+
+            ret = string_buffer_append(d2, depPackageName);
+
+            if (ret != XCPKG_OK) {
+                goto finalize;
+            }
+
+            ret = string_buffer_append(d2, "\"\n");
+
+            if (ret != XCPKG_OK) {
+                goto finalize;
+            }
 
             //////////////////////////////////////
 
             p += i;
         }
 
-        a[0] = ' ';
-        a[1] = '}';
-        a[2] = '\n';
-        a[3] = '\0';
-        a += 3;
-        dotBufLength += 3;
+        ret = string_buffer_append(dot, "}\n");
+
+        if (ret != XCPKG_OK) {
+            goto finalize;
+        }
     }
 
-    a[0] = '}';
-    a[1] = '\n';
-    a[2] = '\0';
-    dotBufLength += 2;
+    if (dot->ptr != NULL) {
+        ret = string_buffer_append(dot, "}\n");
 
+        if (ret != XCPKG_OK) {
+            goto finalize;
+        }
+    }
+
+finalize:
     free(packageNameStack);
-
-    *bufLengthP = bufLength;
-
-    //printf("%s:%zu:%s\n", packageName, recursiveDependentPackageNamesLength, recursiveDependentPackageNames);
-    //printf("%s:%zu:%s\n", packageName, dotStrLength, dotStr);
-    //printf("%s:%zu:%s\n", packageName, d2StrLength, d2Str);
-
-    int ret = xcpkg_write_file("dependencies.dot", dotBuf, dotBufLength);
-
-    if (ret != XCPKG_OK) {
-        return ret;
-    }
-
-    ret = xcpkg_write_file("dependencies.d2", d2Buf, d2BufLength);
-
-    if (ret != XCPKG_OK) {
-        return ret;
-    }
-
-    return XCPKG_OK;
+    return ret;
 }
 
 static int xcpkg_install_package(
@@ -3616,8 +3596,9 @@ static int xcpkg_install_package(
         const size_t xcpkgDownloadsDIRCapacity,
         const char * sessionDIR,
         const size_t sessionDIRLength,
-
-        XCPKGPackage ** packageSet, size_t packageSetSize) {
+        const StringBuf * txt,
+        const StringBuf * dot,
+        const StringBuf * d2) {
     fprintf(stderr, "%s=============== Installing%s %s%s/%s%s %s===============%s\n", COLOR_PURPLE, COLOR_OFF, COLOR_GREEN, targetPlatformSpec, packageName, COLOR_OFF, COLOR_PURPLE, COLOR_OFF);
 
     const time_t ts = time(NULL);
@@ -3992,19 +3973,6 @@ static int xcpkg_install_package(
 
     //////////////////////////////////////////////////////////////////////////////
 
-    char   recursiveDependentPackageNames[2048]; recursiveDependentPackageNames[0] = '\0';
-    size_t recursiveDependentPackageNamesLength = 0U;
-
-    if (formula->dep_pkg != NULL) {
-        ret = generate_dependencies_graph(packageName, packageSet, packageSetSize, recursiveDependentPackageNames, &recursiveDependentPackageNamesLength);
-
-        if (ret != XCPKG_OK) {
-            return ret;
-        }
-    }
-
-    //////////////////////////////////////////////////////////////////////////////
-
     if (chdir (packageWorkingTopDIR) != 0) {
         perror(packageWorkingTopDIR);
         return XCPKG_ERROR;
@@ -4016,7 +3984,7 @@ static int xcpkg_install_package(
 
     const bool isCrossBuild = !((strcmp("MacOSX", targetPlatformName) == 0) && (strcmp(sysinfo->arch, targetPlatformArch) == 0));
 
-    ret = generate_shell_script_file(shellScriptFileName, packageName, formula, installOptions, sysinfo, uppmPackageInstalledRootDIR, nativePackageInstalledRootDIR, xcpkgExeFilePath, ts, njobs, isCrossBuild, targetPlatformSpec, targetPlatformName, targetPlatformVers, targetPlatformArch, xcpkgHomeDIR, xcpkgCoreDIR, xcpkgDownloadsDIR, sessionDIR, packageWorkingTopDIR, packageInstalledRootDIR, packageInstalledRootDIRCapacity, packageInstalledDIR, recursiveDependentPackageNames);
+    ret = generate_shell_script_file(shellScriptFileName, packageName, formula, installOptions, sysinfo, uppmPackageInstalledRootDIR, nativePackageInstalledRootDIR, xcpkgExeFilePath, ts, njobs, isCrossBuild, targetPlatformSpec, targetPlatformName, targetPlatformVers, targetPlatformArch, xcpkgHomeDIR, xcpkgCoreDIR, xcpkgDownloadsDIR, sessionDIR, packageWorkingTopDIR, packageInstalledRootDIR, packageInstalledRootDIRCapacity, packageInstalledDIR, txt->ptr);
 
     if (ret != XCPKG_OK) {
         return ret;
@@ -4360,10 +4328,10 @@ static int xcpkg_install_package(
 
     //////////////////////////////////////////////////////////////////////////////
 
-    if (recursiveDependentPackageNames[0] != '\0') {
+    if (txt->ptr != NULL) {
         bool needToCopyStaticLibs = formula->support_create_mostly_statically_linked_executable && (!installOptions->linkSharedLibs);
 
-        ret = config_envs_for_target(recursiveDependentPackageNames, packageInstalledRootDIR, packageInstalledRootDIRCapacity, nativePackageInstalledRootDIR, nativePackageInstalledRootDIRCapacity, packageWorkingTopDIR, packageWorkingTopDIRCapacity, needToCopyStaticLibs, isCrossBuild);
+        ret = config_envs_for_target(txt->ptr, packageInstalledRootDIR, packageInstalledRootDIRCapacity, nativePackageInstalledRootDIR, nativePackageInstalledRootDIRCapacity, packageWorkingTopDIR, packageWorkingTopDIRCapacity, needToCopyStaticLibs, isCrossBuild);
 
         if (ret != XCPKG_OK) {
             return ret;
@@ -4601,8 +4569,20 @@ static int xcpkg_install_package(
 
     //////////////////////////////////////////////////////////////////////////////
 
-    if (recursiveDependentPackageNames[0] != '\0') {
-        ret = backup_formulas(sessionDIR, sessionDIRLength, recursiveDependentPackageNames);
+    if (txt->ptr != NULL) {
+        ret = backup_formulas(sessionDIR, sessionDIRLength, txt->ptr);
+
+        if (ret != XCPKG_OK) {
+            return ret;
+        }
+
+        ret = xcpkg_write_file("dependencies.dot", dot->ptr, dot->length);
+
+        if (ret != XCPKG_OK) {
+            return ret;
+        }
+
+        ret = xcpkg_write_file("dependencies.d2", d2->ptr, d2->length);
 
         if (ret != XCPKG_OK) {
             return ret;
@@ -5747,7 +5727,30 @@ int xcpkg_install(const char * packageName, const char * targetPlatformSpec, con
             xcpkg_formula_dump(package->formula);
         }
 
-        ret = xcpkg_install_package(packageName, targetPlatformSpec, package->formula, installOptions, &toolchain, &sysinfo, ccForNativeBuild, cxxForNativeBuild, cppForNativeBuild, objcForNativeBuild, ccForTargetBuild, cxxForTargetBuild, cppForTargetBuild, objcForTargetBuild, extraCCFlags, extraCCFlags, "", extraLDFlags, extraCCFlags, extraLDFlags, uppmPackageInstalledRootDIR, uppmPackageInstalledRootDIRCapacity, xcpkgExeFilePath, xcpkgHomeDIR, xcpkgHomeDIRLength, xcpkgCoreDIR, xcpkgCoreDIRCapacity, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, sessionDIR, sessionDIRLength, packageSet, packageSetSize);
+        StringBuf txt = {0};
+        StringBuf dot = {0};
+        StringBuf d2  = {0};
+
+        if (package->formula->dep_pkg != NULL) {
+            ret = generate_dependencies_graph(packageName, packageSet, packageSetSize, &txt, &dot, &d2);
+
+            if (ret != XCPKG_OK) {
+                free(txt.ptr);
+                free(dot.ptr);
+                free(d2.ptr);
+                goto finalize;
+            }
+        }
+
+        fprintf(stderr, "txt=%s\n", txt.ptr);
+        fprintf(stderr, "dot=%s\n", dot.ptr);
+        fprintf(stderr, "d2=%s\n", d2.ptr);
+
+        ret = xcpkg_install_package(packageName, targetPlatformSpec, package->formula, installOptions, &toolchain, &sysinfo, ccForNativeBuild, cxxForNativeBuild, cppForNativeBuild, objcForNativeBuild, ccForTargetBuild, cxxForTargetBuild, cppForTargetBuild, objcForTargetBuild, extraCCFlags, extraCCFlags, "", extraLDFlags, extraCCFlags, extraLDFlags, uppmPackageInstalledRootDIR, uppmPackageInstalledRootDIRCapacity, xcpkgExeFilePath, xcpkgHomeDIR, xcpkgHomeDIRLength, xcpkgCoreDIR, xcpkgCoreDIRCapacity, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, sessionDIR, sessionDIRLength, &txt, &dot, &d2);
+
+        free(txt.ptr);
+        free(dot.ptr);
+        free(d2.ptr);
 
         if (ret != XCPKG_OK) {
             goto finalize;

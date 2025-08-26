@@ -13,6 +13,40 @@
 #include "xcpkg.h"
 
 
+static inline __attribute__((always_inline)) int string_buffer_append(char ** bufP, size_t * bufCapacity, size_t * bufLength, const char * s) {
+    char * p;
+
+    size_t m = (*bufLength);
+    size_t n = strlen(s);
+
+    size_t oldCapacity = (*bufCapacity);
+    size_t newCapacity = m + n + 1U;
+
+    if (newCapacity > oldCapacity) {
+        newCapacity += 1024U;
+
+        p = (char*)realloc(*bufP, newCapacity * sizeof(char));
+
+        if (p == NULL) {
+            free(*bufP);
+            return XCPKG_ERROR_MEMORY_ALLOCATE;
+        } else {
+            (*bufP) = p;
+            (*bufCapacity) = newCapacity;
+        }
+    }
+
+    p = (*bufP) + m;
+
+    for (size_t i = 0U; i <= n; i++) {
+        p[i] = s[i];
+    }
+
+    (*bufLength) = m + n;
+
+    return XCPKG_OK;
+}
+
 static inline int get_output_file_path(char outputFilePath[PATH_MAX], const char * packageName, XCPKGDependsOutputType outputType, const char * outputPath, const char * owd) {
     const char * suffix;
 
@@ -347,35 +381,20 @@ int xcpkg_depends(const char * packageName, const char * targetPlatformName, XCP
 
     ////////////////////////////////////////////////////////////////
 
-    char   buf[4096]; buf[0] = '\0';
-    size_t bufLength = 0U;
-
-    char * p = buf;
-
-    if (needGenerateDotScript) {
-        const char * const s = "digraph G {\n";
-
-        for (size_t i = 0U; ; i++) {
-            p[i] = s[i];
-
-            if (p[i] == '\0') {
-                p += i;
-                bufLength = i;
-                break;
-            }
-        }
-    }
+    char * buf = NULL;
+    size_t cap = 0U;
+    size_t len = 0U;
 
     ////////////////////////////////////////////////////////////////
 
-    size_t  packageNameArrayCapacity = 0;
-    size_t  packageNameArraySize     = 0;
+    size_t  packageNameArrayCapacity = 0U;
+    size_t  packageNameArraySize     = 0U;
     char ** packageNameArray         = NULL;
 
     ////////////////////////////////////////////////////////////////
 
-    size_t  packageNameStackCapacity = 1;
-    size_t  packageNameStackSize     = 1;
+    size_t  packageNameStackCapacity = 1U;
+    size_t  packageNameStackSize     = 1U;
     char ** packageNameStack         = (char**)calloc(1, sizeof(char*));
 
     if (packageNameStack == NULL) {
@@ -488,36 +507,33 @@ int xcpkg_depends(const char * packageName, const char * targetPlatformName, XCP
         ////////////////////////////////////////////////////////////////
 
         if (needGenerateDotScript) {
-            p[0] = ' ';
-            p[1] = ' ';
-            p[2] = ' ';
-            p[3] = ' ';
-            p[4] = '"';
-            p += 5;
-            bufLength += 5;
+            if (buf == NULL) {
+                ret = string_buffer_append(&buf, &cap, &len, "digraph G {\n");
 
-            ///////////////////////////////
-
-            for (size_t i = 0U; ; i++) {
-                p[i] = packageName[i];
-
-                if (p[i] == '\0') {
-                    p += i;
-                    bufLength += i;
-                    break;
+                if (ret != XCPKG_OK) {
+                    goto finalize;
                 }
             }
 
-            ///////////////////////////////
+            ret = string_buffer_append(&buf, &cap, &len, "    \"");
 
-            p[0] = '"';
-            p[1] = ' ';
-            p[2] = '-';
-            p[3] = '>';
-            p[4] = ' ';
-            p[5] = '{';
-            p += 6;
-            bufLength += 6;
+            if (ret != XCPKG_OK) {
+                goto finalize;
+            }
+
+            ret = string_buffer_append(&buf, &cap, &len, packageName);
+
+            if (ret != XCPKG_OK) {
+                goto finalize;
+            }
+
+            ret = string_buffer_append(&buf, &cap, &len, "\" -> {");
+
+            if (ret != XCPKG_OK) {
+                goto finalize;
+            }
+        } else {
+
         }
 
         ////////////////////////////////////////////////////////////////
@@ -547,56 +563,53 @@ int xcpkg_depends(const char * packageName, const char * targetPlatformName, XCP
             ////////////////////////////////////////////////////////////////
 
             if (needGenerateDotScript) {
-                p[0] = ' ';
-                p[1] = '"';
-                p += 2;
-                bufLength += 2;
+                ret = string_buffer_append(&buf, &cap, &len, " \"");
 
-                for (size_t j = 0U; j < i; j++) {
-                    p[j] = q[j];
+                if (ret != XCPKG_OK) {
+                    goto finalize;
                 }
 
-                p += i;
-                bufLength += i;
+                ret = string_buffer_append(&buf, &cap, &len, q);
 
-                p[0] = '"';
-                p++;
-                bufLength++;
+                if (ret != XCPKG_OK) {
+                    goto finalize;
+                }
+
+                ret = string_buffer_append(&buf, &cap, &len, "\" ");
+
+                if (ret != XCPKG_OK) {
+                    goto finalize;
+                }
             } else {
-                p[0] = '"';
-                p++;
-                bufLength++;
+                ret = string_buffer_append(&buf, &cap, &len, "\"");
 
-                for (size_t j = 0U; ; j++) {
-                    p[j] = packageName[j];
-
-                    if (p[j] == '\0') {
-                        p += j;
-                        bufLength += j;
-                        break;
-                    }
+                if (ret != XCPKG_OK) {
+                    goto finalize;
                 }
 
-                p[0] = '"';
-                p[1] = ' ';
-                p[2] = '-';
-                p[3] = '>';
-                p[4] = ' ';
-                p[5] = '"';
-                p += 6;
-                bufLength += 6;
+                ret = string_buffer_append(&buf, &cap, &len, packageName);
 
-                for (size_t j = 0U; j < i; j++) {
-                    p[j] = q[j];
+                if (ret != XCPKG_OK) {
+                    goto finalize;
                 }
 
-                p += i;
-                bufLength += i;
+                ret = string_buffer_append(&buf, &cap, &len, "\" -> \"");
 
-                p[0] = '"';
-                p[1] = '\n';
-                p += 2;
-                bufLength += 2;
+                if (ret != XCPKG_OK) {
+                    goto finalize;
+                }
+
+                ret = string_buffer_append(&buf, &cap, &len, q);
+
+                if (ret != XCPKG_OK) {
+                    goto finalize;
+                }
+
+                ret = string_buffer_append(&buf, &cap, &len, "\"\n");
+
+                if (ret != XCPKG_OK) {
+                    goto finalize;
+                }
             }
 
             ////////////////////////////////////////////////////////////////
@@ -639,20 +652,22 @@ int xcpkg_depends(const char * packageName, const char * targetPlatformName, XCP
         }
 
         if (needGenerateDotScript) {
-            p[0] = ' ';
-            p[1] = '}';
-            p[2] = '\n';
-            p[3] = '\0';
-            p += 3;
-            bufLength += 3;
+            ret = string_buffer_append(&buf, &cap, &len, "}\n");
+
+            if (ret != XCPKG_OK) {
+                goto finalize;
+            }
         }
     }
 
     if (needGenerateDotScript) {
-        p[0] = '}';
-        p[1] = '\n';
-        p[2] = '\0';
-        bufLength += 2;
+        if (buf != NULL) {
+            ret = string_buffer_append(&buf, &cap, &len, "}\n");
+
+            if (ret != XCPKG_OK) {
+                goto finalize;
+            }
+        }
     }
 
 finalize:
@@ -676,21 +691,21 @@ finalize:
 
     //////////////////////////////////////////////////
 
-    if (bufLength == 0U) {
+    if (buf == NULL) {
         return XCPKG_OK;
     }
 
     //////////////////////////////////////////////////
 
     switch (outputType) {
-        case XCPKGDependsOutputType_D2 : return xcpkg_depends_output_d2 (packageName, outputPath, buf, bufLength);
-        case XCPKGDependsOutputType_DOT: return xcpkg_depends_output_dot(packageName, outputPath, buf, bufLength);
-        case XCPKGDependsOutputType_BOX: return xcpkg_depends_output_box(packageName, outputPath, buf, bufLength);
+        case XCPKGDependsOutputType_D2 : return xcpkg_depends_output_d2 (packageName, outputPath, buf, len);
+        case XCPKGDependsOutputType_DOT: return xcpkg_depends_output_dot(packageName, outputPath, buf, len);
+        case XCPKGDependsOutputType_BOX: return xcpkg_depends_output_box(packageName, outputPath, buf, len);
         default:
             if (engine == XCPKGDependsOutputDiagramEngine_DOT) {
-                return xcpkg_depends_output_via_dot(packageName, outputType, outputPath, buf, bufLength);
+                return xcpkg_depends_output_via_dot(packageName, outputType, outputPath, buf, len);
             } else {
-                return xcpkg_depends_output_via_d2 (packageName, outputType, outputPath, buf, bufLength);
+                return xcpkg_depends_output_via_d2 (packageName, outputType, outputPath, buf, len);
             }
     }
 }
