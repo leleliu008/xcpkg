@@ -1639,7 +1639,6 @@ EOF
 
     rm files.txt
     rm -rf .xcpkg/tmp/
-    run rmdir --ignore-fail-on-non-empty -p .xcpkg/dependencies/lib/
 }
 
 # __find_needed_shared_library <NEEDED_SHARED_LIBRARY_FILENAME>

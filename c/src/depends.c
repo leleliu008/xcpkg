@@ -575,7 +575,7 @@ int xcpkg_depends(const char * packageName, const char * targetPlatformName, XCP
                     goto finalize;
                 }
 
-                ret = string_buffer_append(&buf, &cap, &len, "\" ");
+                ret = string_buffer_append(&buf, &cap, &len, "\"");
 
                 if (ret != XCPKG_OK) {
                     goto finalize;
@@ -652,7 +652,7 @@ int xcpkg_depends(const char * packageName, const char * targetPlatformName, XCP
         }
 
         if (needGenerateDotScript) {
-            ret = string_buffer_append(&buf, &cap, &len, "}\n");
+            ret = string_buffer_append(&buf, &cap, &len, " }\n");
 
             if (ret != XCPKG_OK) {
                 goto finalize;

@@ -3495,7 +3495,7 @@ static int generate_dependencies_graph(const char * packageName, XCPKGPackage **
                 goto finalize;
             }
 
-            ret = string_buffer_append(dot, "\" ");
+            ret = string_buffer_append(dot, "\"");
 
             if (ret != XCPKG_OK) {
                 goto finalize;
@@ -3538,7 +3538,7 @@ static int generate_dependencies_graph(const char * packageName, XCPKGPackage **
             p += i;
         }
 
-        ret = string_buffer_append(dot, "}\n");
+        ret = string_buffer_append(dot, " }\n");
 
         if (ret != XCPKG_OK) {
             goto finalize;
@@ -4590,36 +4590,6 @@ static int xcpkg_install_package(
     }
 
     //////////////////////////////////////////////////////////////////////////////
-    // install dependency graph files
-
-    if (formula->dep_pkg != NULL) {
-        for (size_t i = 0U; i < 4U; i++) {
-            switch (i) {
-                case 0: s = "dependencies.dot"; break;
-                case 1: s = "dependencies.d2" ; break;
-                case 2: s = "dependencies.svg"; break;
-                case 3: s = "dependencies.png"; break;
-            }
-
-            for (size_t j = 0U; ; j++) {
-                p[j] = s[j];
-
-                if (p[j] == '\0') {
-                    break;
-                }
-            }
-
-            if (stat(pathBuf, &st) == 0 && S_ISREG(st.st_mode)) {
-                ret = xcpkg_rename_or_copy_file(pathBuf, s);
-
-                if (ret != XCPKG_OK) {
-                    return ret;
-                }
-            }
-        }
-    }
-
-    //////////////////////////////////////////////////////////////////////////////
 
     s = "src/";
 
@@ -4719,10 +4689,19 @@ static int xcpkg_install_package(
 
     s = "dependencies/lib/";
 
-    if (rmdir(s) != 0) {
+    if (rmdir(s) == -1) {
         if (errno != ENOENT && errno != ENOTEMPTY) {
             perror(s);
             return XCPKG_ERROR;
+        }
+    } else {
+        s = "dependencies/";
+
+        if (rmdir(s) == -1) {
+            if (errno != ENOENT && errno != ENOTEMPTY) {
+                perror(s);
+                return XCPKG_ERROR;
+            }
         }
     }
 
