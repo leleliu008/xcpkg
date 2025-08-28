@@ -1,4 +1,3 @@
-#include <stdatomic.h>
 #include <time.h>
 #include <errno.h>
 #include <stdio.h>

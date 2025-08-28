@@ -48,8 +48,8 @@ static int uppm_formula_repo_url_of_official_core(char buf[], const size_t bufSi
         return XCPKG_ERROR;
     }
 
-    if (osVersMajor > 14) {
-        osVersMajor = 14;
+    if (osVersMajor > 15) {
+        osVersMajor = 15;
     }
 
     int ret = snprintf(buf, bufSize, "https://github.com/leleliu008/uppm-package-repository-macos-%d.0-%s", osVersMajor, osArch);
