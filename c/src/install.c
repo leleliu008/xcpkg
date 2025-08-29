@@ -4328,9 +4328,21 @@ static int xcpkg_install_package(
 
     //////////////////////////////////////////////////////////////////////////////
 
-    if (txt->ptr != NULL) {
-        bool needToCopyStaticLibs = formula->support_create_mostly_statically_linked_executable && (!installOptions->linkSharedLibs);
+    bool needToCopyStaticLibs = formula->support_create_mostly_statically_linked_executable && (!installOptions->linkSharedLibs);
 
+    if (needToCopyStaticLibs) {
+        if (setenv("XCPKG_CREATE_MOSTLY_STATICALLY_LINKED_EXECUTABLE", "1", 1) == -1) {
+            perror("XCPKG_CREATE_MOSTLY_STATICALLY_LINKED_EXECUTABLE");
+            return XCPKG_ERROR;
+        }
+    } else {
+        if (unsetenv("XCPKG_CREATE_MOSTLY_STATICALLY_LINKED_EXECUTABLE") == -1) {
+            perror("XCPKG_CREATE_MOSTLY_STATICALLY_LINKED_EXECUTABLE");
+            return XCPKG_ERROR;
+        }
+    }
+
+    if (txt->ptr != NULL) {
         ret = config_envs_for_target(txt->ptr, packageInstalledRootDIR, packageInstalledRootDIRCapacity, nativePackageInstalledRootDIR, nativePackageInstalledRootDIRCapacity, packageWorkingTopDIR, packageWorkingTopDIRCapacity, needToCopyStaticLibs, isCrossBuild);
 
         if (ret != XCPKG_OK) {

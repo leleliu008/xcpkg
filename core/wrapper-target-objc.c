@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <stddef.h>
 #include <string.h>
 
 #include <unistd.h>
@@ -60,7 +59,7 @@ int main(int argc, char * argv[]) {
 
     /////////////////////////////////////////////////////////////////
 
-    char* argv2[argc + baseArgc + 2];
+    char* args[argc + baseArgc + 2];
 
     if (createSharedLibrary == 0) {
         const char * msle = getenv("XCPKG_CREATE_MOSTLY_STATICALLY_LINKED_EXECUTABLE");
@@ -99,22 +98,22 @@ int main(int argc, char * argv[]) {
                     }
                 }
 
-                argv2[i] = argv[i];
+                args[i] = argv[i];
             }
         } else {
             for (int i = 1; i < argc; i++) {
-                argv2[i] = argv[i];
+                args[i] = argv[i];
             }
         }
     } else {
         for (int i = 1; i < argc; i++) {
-            argv2[i] = argv[i];
+            args[i] = argv[i];
         }
     }
 
     /////////////////////////////////////////////////////////////////
 
-    argv2[0] = compiler;
+    args[0] = compiler;
 
     /////////////////////////////////////////////////////////////////
 
@@ -123,7 +122,7 @@ int main(int argc, char * argv[]) {
     for (size_t i = 0U; ; i++) {
         if (baseArgs[i] == '\0') {
             if (p[0] != '\0') {
-                argv2[argc++] = p;
+                args[argc++] = p;
             }
             break;
         }
@@ -132,7 +131,7 @@ int main(int argc, char * argv[]) {
             baseArgs[i] = '\0';
 
             if (p[0] != '\0') {
-                argv2[argc++] = p;
+                args[argc++] = p;
             }
 
             p = &baseArgs[i + 1];
@@ -142,10 +141,10 @@ int main(int argc, char * argv[]) {
     /////////////////////////////////////////////////////////////////
 
     if (createSharedLibrary == 1) {
-        argv2[argc++] = (char*)"-fPIC";
+        args[argc++] = (char*)"-fPIC";
     }
 
-    argv2[argc++] = NULL;
+    args[argc++] = NULL;
 
     /////////////////////////////////////////////////////////////////
 
@@ -153,17 +152,17 @@ int main(int argc, char * argv[]) {
 
     if (verbose != NULL && strcmp(verbose, "1") == 0) {
         for (int i = 0; ;i++) {
-            if (argv2[i] == NULL) {
+            if (args[i] == NULL) {
                 break;
             } else {
-                fprintf(stderr, "%s\n", argv2[i]);
+                fprintf(stderr, "%s\n", args[i]);
             }
         }
     }
 
     /////////////////////////////////////////////////////////////////
 
-    execv (compiler, argv2);
+    execv (compiler, args);
     perror(compiler);
     return 255;
 }
