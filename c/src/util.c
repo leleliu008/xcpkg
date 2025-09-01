@@ -446,12 +446,12 @@ static inline __attribute__((always_inline)) int xcpkg_util_http_fetch(int argc,
             expectedSHA256SUM = &argv[i][9];
 
             if (expectedSHA256SUM[0] == '\0') {
-                fprintf(stderr, "USAGE: %s %s %s <URL> [--uri=<URI>] , <URI> should be a non-empty string.\n", argv[0], argv[1], argv[2]);
+                fprintf(stderr, "USAGE: %s %s %s <URL> [--sha256=<SHA256SUM>] , <URI> should be a non-empty string.\n", argv[0], argv[1], argv[2]);
                 return XCPKG_ERROR_ARG_IS_INVALID;
             }
 
             if (strlen(expectedSHA256SUM) != 64U) {
-                fprintf(stderr, "USAGE: %s %s %s <URL> [--uri=<URI>] , <URI> should be a 64 length string.\n", argv[0], argv[1], argv[2]);
+                fprintf(stderr, "USAGE: %s %s %s <URL> [--sha256=<SHA256SUM>] , <URI> should be a 64 length string.\n", argv[0], argv[1], argv[2]);
                 return XCPKG_ERROR_ARG_IS_INVALID;
             }
         } else if (strcmp(argv[i], "-o") == 0) {

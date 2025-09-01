@@ -311,4 +311,60 @@
 
     [0;94m-K[0m
         keep the session directory even if this package is successfully bundled.
-    
+
+
+[0;32mxcpkg util zlib-deflate -L <LEVEL> < input/file/path
+[0m    compress data using zlib deflate algorithm.
+
+    LEVEL >= 1 && LEVEL <= 9
+
+    The smaller the LEVEL, the faster the speed and the lower the compression ratio.
+
+[0;32mxcpkg util zlib-inflate < input/file/path
+[0m    decompress data using zlib inflate algorithm.
+
+[0;32mxcpkg util base16-encode <STR>
+[0m    encode <STR> using base16 algorithm.
+
+[0;32mxcpkg util base16-encode < input/file/path
+[0m    encode data using base16 algorithm.
+
+[0;32mxcpkg util base16-decode <BASE16-ENCODED-STR>
+[0m    decode <BASE16-ENCODED-STR> using base16 algorithm.
+
+[0;32mxcpkg util base16-decode < input/file/path
+[0m    decode data using base16 algorithm.
+
+[0;32mxcpkg util base64-encode <STR>
+[0m    encode <STR> using base64 algorithm.
+
+[0;32mxcpkg util base64-encode < input/file/path
+[0m    encode data using base64 algorithm.
+
+[0;32mxcpkg util base64-decode <BASE64-ENCODED-STR>
+[0m    decode <BASE64-ENCODED-STR> using base64 algorithm.
+
+[0;32mxcpkg util base64-decode < input/file/path
+[0m    decode data using base64 algorithm.
+
+[0;32mxcpkg util sha256sum <input/file/path>
+[0m    calculate sha256sum of file.
+
+[0;32mxcpkg util sha256sum < input/file/path
+[0m    calculate sha256sum of file.
+
+[0;32mxcpkg util which <COMMAND-NAME> [-a]
+[0m    find <COMMAND-NAME> in PATH.
+
+[0;32mxcpkg util printenv
+[0m    print environment variables.
+
+[0;32mxcpkg util http-fetch <URL> [-v] [--uri=<URI>] [--sha256=<SHA256SUM>] [-o <OUTPUT-PATH>]
+[0m    fetch data via HTTP/HTTPS protocal.
+
+[0;32mxcpkg util git-sync <REMOTE-URL> [-v] [-C <REPOSITORY-PATH>] [--ref=<REF>] [--depth=<N>] [-B <CHECKOUT-BRANCH-NAME>]
+[0m    sync git repository from server.
+
+[0;32mxcpkg util uncompress <FILEPATH> [-v] [-C <DIR>] [--strip-components=<N>]
+[0m    uncompress the given archive file.
+

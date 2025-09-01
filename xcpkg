@@ -3197,8 +3197,9 @@ __inspect_xcode_info() {
     do
         SDKNAME="$(printf '%s\n' "$TARGET_PLATFORM_NAME" | tr A-Z a-z)"
         SDKROOT="$(xcrun --sdk "$SDKNAME" --show-sdk-path)"
-        SDK_SUPPORTED_ARCHS="$(jq -r ".SupportedTargets.$SDKNAME.Archs | join(\" \")" "$SDKROOT/SDKSettings.json")"
-        SDK_SUPPORTED_VERSIONS="$(jq -r ".SupportedTargets.$SDKNAME.ValidDeploymentTargets | reverse | join(\" \")" "$SDKROOT/SDKSettings.json")"
+        SDKSettingsFILEPATH="$SDKROOT/SDKSettings.json"
+        SDK_SUPPORTED_ARCHS="$(jq -r ".SupportedTargets.$SDKNAME.Archs | join(\" \")" "$SDKSettingsFILEPATH")"
+        SDK_SUPPORTED_VERSIONS="$(jq -r ".SupportedTargets.$SDKNAME.ValidDeploymentTargets | reverse | join(\" \")" "$SDKSettingsFILEPATH")"
 
         eval "XCODE_${TARGET_PLATFORM_NAME}_SDKROOT='$SDKROOT'"
         eval "XCODE_${TARGET_PLATFORM_NAME}_ARCHS='$SDK_SUPPORTED_ARCHS'"
@@ -8760,7 +8761,7 @@ fi
 
 ##################################################################################
 
-XCPKG_VERSION=0.29.8
+XCPKG_VERSION=0.29.9
 
 XCPKG_ARG0="$0"
 XCPKG_ARG1="$1"

@@ -37,6 +37,25 @@ _xcpkg_actions=(
     'tree:list installed files of the given installed package in a tree-like format.'
     'logs:show logs of the given installed package.'
     'bundle:bundle the given installed package into a single archive file.'
+    'util:some useful utilities.'
+)
+
+_xcpkg_util_actions=(
+    'which:find command in PATH.'
+    'printenv:print environment variables.'
+    'http-fetch:fetch data via HTTP/HTTPS protocal.'
+    'git-sync:sync local git repository with remote server.'
+    'uncompress:uncompress the given archive file.'
+    'sha256sum:calculate sha256sum of file.'
+
+    'zlib-inflate:decompress data using zlib inflate algorithm.'
+    'zlib-deflate:compress data using zlib deflate algorithm.'
+
+    'base16-encode:encode data using base16 algorithm.'
+    'base16-decode:decode data using base16 algorithm.'
+
+    'base64-encode:encode data using base64 algorithm.'
+    'base64-decode:decode data using base64 algorithm.'
 )
 
 function _xcpkg_available_packages() {
@@ -57,245 +76,322 @@ function _xcpkg_outdated_packages() {
     _describe 'outdated-packages' _outdated_packages
 }
 
+function _xcpkg_install_target() {
+    local -a platform_names=('MacOSX' 'DriverKit' 'WatchOS' 'WatchSimulator' 'iPhoneOS' 'iPhoneSimulator' 'AppleTVOS' 'AppleTVSimulator' 'XROS' 'XRSimulator')
+
+    if [ -z "$PREFIX" ] ; then
+        compadd -S '-' -a -- platform_names
+        return
+    fi
+
+    local -a parts
+    parts=("${(s:-:)PREFIX}")
+
+    case ${#parts} in
+        1)  compadd -S - -a -- platform_names
+            ;;
+        2)  local isValid=0
+
+            for item ($platform_names) {
+                if [ "$item" = "${parts[1]}" ] ; then
+                    isValid=1
+                    break
+                fi
+            }
+
+            [ "$isValid" = 0 ] && return
+
+            local -a versions
+
+            case ${parts[1]} in
+                MacOSX)
+                    versions=('15.4' '15.3' '15.2' '15.1' '15.0' '14.6' '14.5' '14.4' '14.3' '14.2' '14.1' '14.0' '13.5' '13.4' '13.3' '13.2' '13.1' '13.0' '12.4' '12.3' '12.2' '12.0' '11.5' '11.4' '11.3' '11.2' '11.1' '11.0' '10.15' '10.14' '10.13')
+                    ;;
+                *)  versions=('10.15' '11.0' '12.0' '13.0' '14.0' '15.0')
+            esac
+
+            compadd -S - -P "${PREFIX%-*}-" -a -- versions
+            ;;
+        3)  local isValid=0
+
+            for item ($platform_names) {
+                if [ "$item" = "${parts[1]}" ] ; then
+                    isValid=1
+                    break
+                fi
+            }
+
+            [ "$isValid" = 0 ] && return
+
+            local -a archs
+
+            case ${parts[1]} in
+                MacOSX|DriverKit)
+                    archs=('arm64' 'arm64e' 'x86_64')
+                    ;;
+                iPhoneOS|XROS|AppleTVOS)
+                    archs=('arm64' 'arm64e')
+                    ;;
+                WatchOS)
+                    archs=('arm64' 'arm64e' 'arm64_32')
+                    ;;
+                *)  archs=('arm64' 'x86_64')
+            esac
+
+            compadd -P "${PREFIX%-*}-" -a -- archs
+            ;;
+    esac
+}
+
 function _xcpkg() {
     local context state state_descr line
     typeset -A opt_args
 
-    _arguments \
-        '1: :{_describe xcpkg_actions _xcpkg_actions}' \
-        '*:: :->option'
+    _arguments '1: :{_describe xcpkg_actions _xcpkg_actions}' '*:: :->option'
 
-    case $state in
-        option)
+    [ "$state" = 'option' ] || return
+
+    case $words[1] in
+        formula-repo-add)
+            _arguments \
+                '1:formula-repo-name:(name)' \
+                '2:formula-repo-url:(https://)' \
+                '--branch=-[change the formula repo branch]' \
+                + '(pin)' \
+                '--pin[set pinned to 1]' \
+                '--unpin[set pinned to 0]' \
+                + '(enable)' \
+                '--enable[set enabled to 1]' \
+                '--disable[set enabled to 0]'
+            ;;
+        formula-repo-init)
+            _arguments \
+                '1:formula-repo-name:(name)' \
+                '2:formula-repo-url:(https://)' \
+                '--branch=-[change the formula repo branch]' \
+                + '(pin)' \
+                '--pin[set pinned to 1]' \
+                '--unpin[set pinned to 0]' \
+                + '(enable)' \
+                '--enable[set enabled to 1]' \
+                '--disable[set enabled to 0]'
+            ;;
+        formula-repo-conf)
+            _arguments \
+                '1:formula-repo-name:($(xcpkg formula-repo-list | sed -n "/^name: /p" | cut -c7-))' \
+                '--url=-[change the formula repo url]' \
+                '--branch=-[change the formula repo branch]' \
+                + '(pin)' \
+                '--pin[set pinned to yes]' \
+                '--unpin[set pinned to no]' \
+                + '(enable)' \
+                '--enable[set enabled to yes]' \
+                '--disable[set enabled to no]'
+            ;;
+        formula-repo-del)
+            _arguments '1:formula-repo-name:($(xcpkg formula-repo-list | sed -n "/^name: /p" | cut -c7-))'
+            ;;
+        formula-repo-sync)
+            _arguments '1:formula-repo-name:($(xcpkg formula-repo-list | sed -n "/^name: /p" | cut -c7-))'
+            ;;
+        formula-repo-info)
+            _arguments '1:formula-repo-name:($(xcpkg formula-repo-list | sed -n "/^name: /p" | cut -c7-))'
+            ;;
+        info-available)
+            _arguments \
+                '1:package-name:_xcpkg_available_packages' \
+                '2:key:(--yaml --json pkgtype summary version license web-url git-url git-sha git-ref git-nth src-url src-uri src-sha fix-url fix-uri fix-sha fix-opt res-url res-uri res-sha dep-pkg dep-upp dep-pip dep-plm ccflags xxflags ppflags ldflags bscript binbstd bsystem dofetch do12345 dopatch prepare install doextra dotweak caveats patches reslist symlink parallel developer)'
+            ;;
+        info-installed)
+            _arguments \
+                '1:package-name:_xcpkg_installed_packages' \
+                '2:key:(--yaml --json pkgtype summary version license web-url git-url git-sha git-ref git-nth src-url src-uri src-sha fix-url fix-uri fix-sha fix-opt res-url res-uri res-sha dep-pkg dep-upp dep-pip dep-plm ccflags xxflags ppflags ldflags bscript binbstd bsystem dofetch do12345 dopatch prepare install doextra dotweak caveats patches reslist symlink --prefix --files builtby builtat builtat-rfc-3339 builtat-rfc-3339-utc builtat-iso-8601 builtat-iso-8601-utc builtfor parallel developer)'
+            ;;
+        fetch)
+            _arguments \
+                '1:package-name:_xcpkg_available_packages'
+            ;;
+        depends)
+            _arguments \
+                '1:package-name:_xcpkg_available_packages' \
+                '-t[specify output format]:output-type:(d2 dot box svg png)' \
+                '-o[specify output filepath or directory]:output-path:_files'
+            ;;
+        bundle)
+            _arguments \
+                '1:package-name:_xcpkg_installed_packages' \
+                ':output-path:_files' \
+                '--exclude[specify exclude path]:exclude-path:_path_files -/' \
+                '-K[do not delete the session directory even if exported successfully]'
+            ;;
+        tree)
+            _arguments \
+                '1:package-name:_xcpkg_installed_packages' \
+                '-a[show all files, including hidden ones]' \
+                '--dirsfirst[list directories before files]' \
+                '-L[level]:level:(3)'
+            ;;
+        logs)
+            _arguments \
+                '1:package-name:_xcpkg_installed_packages'
+            ;;
+        install)
+            _arguments \
+                ':package-name:_xcpkg_available_packages' \
+                '--target=-[specify the target to be built for]:target:_xcpkg_install_target' \
+                '--profile=-[specify build profile]:profile:(debug release)' \
+                '--developer-dir=-[specify the developer dir]:developer-dir:{_files -/}' \
+                '-j[specify the number of jobs you can run in parallel]:jobs:(1 2 3 4 5 6 7 8 9)' \
+                '-I[specify the formula search directory]:search-dir:_path_files -/' \
+                '-U[upgrade if possible]' \
+                '-K[keep the session directory even if successfully installed]' \
+                '-E[export compile_commands.json]' \
+                '--disable-ccache[do not use ccache]' \
+                '-v-env[show all environment variables before starting to build]' \
+                '-v-http[show http request/response]' \
+                '-v-xcode[show xcode information]' \
+                '-v-formula[show formula content]' \
+                '-v-go[pass -v argument to go build command]' \
+                '-v-uppm[pass -v argument to uppm command]' \
+                '-v-cargo[pass -v argument to cargo command]' \
+                '-v-meson[pass -v argument to meson command]' \
+                '-v-ninja[pass -v argument to ninja command]' \
+                '-v-gmake[pass V=1 argument to gmake command]' \
+                '-v-xmake[pass -v argument to xmake command]' \
+                '-v-cmake[pass -DCMAKE_VERBOSE_MAKEFILE argument to cmake command]' \
+                '-x-sh[set -x to debug current running shell]' \
+                '-x-cc[pass -v argument to clang command]' \
+                '-x-ld[pass -Wl,-v argument to linker]' \
+                '-x-go[pass -x argument to go build command]' \
+                '-x-cargo[pass -vv argument to cargo command]' \
+                '-x-gmake[pass --debug argument to gmake command]' \
+                '-x-cmake[pass -DCMAKE_FIND_DEBUG_MODE=ON argument to cmake command]' \
+                '-x-xmake[pass -vD argument to xmake command]' \
+                '-x-pkg-config[export PKG_CONFIG_DEBUG_SPEW=1]' \
+                + '(verbose_level)' \
+                '-x[very verbose mode. equivalent to -v-* and -x-* options all are supplied]' \
+                '-v[verbose mode. equivalent to -v-* options all are supplied]' \
+                '-q[silent mode.]'
+            ;;
+        reinstall)
+            _arguments \
+                ':package-name:_xcpkg_installed_packages' \
+                '--target=-[specify the target to be built for]:target:_xcpkg_install_target' \
+                '--profile=-[specify build profile]:profile:(debug release)' \
+                '--developer-dir=-[specify the developer dir]:developer-dir:{_files -/}' \
+                '-j[specify the number of jobs you can run in parallel]:jobs:(1 2 3 4 5 6 7 8 9)' \
+                '-I[specify the formula search directory]:search-dir:_path_files -/' \
+                '-U[upgrade if possible]' \
+                '-K[keep the session directory even if successfully installed]' \
+                '-E[export compile_commands.json]' \
+                '--disable-ccache[do not use ccache]' \
+                '-v-env[show all environment variables before starting to build]' \
+                '-v-http[show http request/response]' \
+                '-v-xcode[show xcode information]' \
+                '-v-formula[show formula content]' \
+                '-v-go[pass -v argument to go build command]' \
+                '-v-uppm[pass -v argument to uppm command]' \
+                '-v-ninja[pass -v argument to ninja command]' \
+                '-v-meson[pass -v argument to meson command]' \
+                '-v-cargo[pass -v argument to cargo command]' \
+                '-v-gmake[pass V=1 argument to gmake command]' \
+                '-v-xmake[pass -v argument to xmake command]' \
+                '-v-cmake[pass -DCMAKE_VERBOSE_MAKEFILE argument to cmake command]' \
+                '-x-sh[set -x to debug current running shell]' \
+                '-x-go[pass -x argument to go build command]' \
+                '-x-cc[pass -v argument to clang command]' \
+                '-x-ld[pass -Wl,-v argument to linker]' \
+                '-x-cargo[pass -vv argument to cargo command]' \
+                '-x-gmake[pass --debug argument to gmake command]' \
+                '-x-cmake[pass -DCMAKE_FIND_DEBUG_MODE=ON argument to cmake command]' \
+                '-x-xmake[pass -vD argument to xmake command]' \
+                '-x-pkg-config[export PKG_CONFIG_DEBUG_SPEW=1]' \
+                + '(verbose_level)' \
+                '-x[very verbose mode. equivalent to -v-* and -x-* options all are supplied]' \
+                '-v[verbose mode. equivalent to -v-* options all are supplied]' \
+                '-q[silent mode.]'
+            ;;
+        upgrade)
+            _arguments \
+                ':package-name:_xcpkg_outdated_packages' \
+                '--target=-[specify the target to be built for]:target:_xcpkg_install_target' \
+                '--profile=-[specify build profile]:profile:(debug release)' \
+                '--developer-dir=-[specify the developer dir]:developer-dir:{_files -/}' \
+                '-j[specify the number of jobs you can run in parallel]:jobs:(1 2 3 4 5 6 7 8 9)' \
+                '-I[specify the formula search directory]:search-dir:_path_files -/' \
+                '-U[upgrade if possible]' \
+                '-K[keep the session directory even if successfully installed]' \
+                '-E[export compile_commands.json]' \
+                '--disable-ccache[do not use ccache]' \
+                '-v-env[show all environment variables before starting to build]' \
+                '-v-http[show http request/response]' \
+                '-v-xcode[show xcode information]' \
+                '-v-formula[show formula content]' \
+                '-v-go[pass -v argument to go build command]' \
+                '-v-uppm[pass -v argument to uppm command]' \
+                '-v-ninja[pass -v argument to ninja command]' \
+                '-v-meson[pass -v argument to meson command]' \
+                '-v-cargo[pass -v argument to cargo command]' \
+                '-v-gmake[pass V=1 argument to gmake command]' \
+                '-v-xmake[pass -v argument to xmake command]' \
+                '-v-cmake[pass -DCMAKE_VERBOSE_MAKEFILE argument to cmake command]' \
+                '-x-sh[set -x to debug current running shell]' \
+                '-x-cc[pass -v argument to clang command]' \
+                '-x-ld[pass -Wl,-v argument to linker]' \
+                '-x-go[pass -x argument to go build command]' \
+                '-x-cargo[pass -vv argument to cargo command]' \
+                '-x-gmake[pass --debug argument to gmake command]' \
+                '-x-cmake[pass -DCMAKE_FIND_DEBUG_MODE=ON argument to cmake command]' \
+                '-x-xmake[pass -vD argument to xmake command]' \
+                '-x-pkg-config[export PKG_CONFIG_DEBUG_SPEW=1]' \
+                + '(verbose_level)' \
+                '-x[very verbose mode. equivalent to -v-* and -x-* options all are supplied]' \
+                '-v[verbose mode. equivalent to -v-* options all are supplied]' \
+                '-q[silent mode.]'
+            ;;
+        uninstall)
+            _arguments '*:package-name:_xcpkg_installed_packages'
+            ;;
+
+        is-available)
+            _arguments '1:package-name:_xcpkg_available_packages'
+            ;;
+        is-installed)
+            _arguments '1:package-name:_xcpkg_installed_packages'
+            ;;
+        is-outdated)
+            _arguments '1:package-name:_xcpkg_outdated_packages'
+            ;;
+
+        ls-available)
+            _arguments '1:package-name:_xcpkg_available_packages' '-v[verbose mode]'
+            ;;
+        ls-installed)
+            _arguments '1:package-name:_xcpkg_installed_packages' '-v[verbose mode]'
+            ;;
+        ls-outdated)
+            _arguments '1:package-name:_xcpkg_outdated_packages' '-v[verbose mode]'
+            ;;
+
+        completion)
+            _arguments '1:what:(zsh)'
+            ;;
+
+        util)
+            _arguments '1: :{_describe xcpkg_util_actions _xcpkg_util_actions}' '*:: :->util'
+
+            [ "$state" = 'util' ] || return
+
             case $words[1] in
-                formula-repo-add)
-                    _arguments \
-                        '1:formula-repo-name:(name)' \
-                        '2:formula-repo-url:(https://)' \
-                        '--branch=-[change the formula repo branch]' \
-                        + '(pin)' \
-                        '--pin[set pinned to 1]' \
-                        '--unpin[set pinned to 0]' \
-                        + '(enable)' \
-                        '--enable[set enabled to 1]' \
-                        '--disable[set enabled to 0]'
+                which)
+                    _arguments '1:command-name:(which)' '-a[find all]'
                     ;;
-                formula-repo-init)
-                    _arguments \
-                        '1:formula-repo-name:(name)' \
-                        '2:formula-repo-url:(https://)' \
-                        '--branch=-[change the formula repo branch]' \
-                        + '(pin)' \
-                        '--pin[set pinned to 1]' \
-                        '--unpin[set pinned to 0]' \
-                        + '(enable)' \
-                        '--enable[set enabled to 1]' \
-                        '--disable[set enabled to 0]'
+                sha256sum)
+                    _arguments '1:input-file-path:_files'
                     ;;
-                formula-repo-conf)
-                    _arguments \
-                        '1:formula-repo-name:($(xcpkg formula-repo-list | sed -n "/^name: /p" | cut -c7-))' \
-                        '--url=-[change the formula repo url]' \
-                        '--branch=-[change the formula repo branch]' \
-                        + '(pin)' \
-                        '--pin[set pinned to yes]' \
-                        '--unpin[set pinned to no]' \
-                        + '(enable)' \
-                        '--enable[set enabled to yes]' \
-                        '--disable[set enabled to no]'
-                    ;;
-                formula-repo-del)
-                    _arguments '1:formula-repo-name:($(xcpkg formula-repo-list | sed -n "/^name: /p" | cut -c7-))'
-                    ;;
-                formula-repo-sync)
-                    _arguments '1:formula-repo-name:($(xcpkg formula-repo-list | sed -n "/^name: /p" | cut -c7-))'
-                    ;;
-                formula-repo-info)
-                    _arguments '1:formula-repo-name:($(xcpkg formula-repo-list | sed -n "/^name: /p" | cut -c7-))'
-                    ;;
-                info-available)
-                    _arguments \
-                        '1:package-name:_xcpkg_available_packages' \
-                        '2:key:(--yaml --json pkgtype summary version license web-url git-url git-sha git-ref git-nth src-url src-uri src-sha fix-url fix-uri fix-sha fix-opt res-url res-uri res-sha dep-pkg dep-upp dep-pip dep-plm ccflags xxflags ppflags ldflags bscript binbstd bsystem dofetch do12345 dopatch prepare install doextra dotweak caveats patches reslist symlink parallel developer)'
-                    ;;
-                info-installed)
-                    _arguments \
-                        '1:package-name:_xcpkg_installed_packages' \
-                        '2:key:(--yaml --json pkgtype summary version license web-url git-url git-sha git-ref git-nth src-url src-uri src-sha fix-url fix-uri fix-sha fix-opt res-url res-uri res-sha dep-pkg dep-upp dep-pip dep-plm ccflags xxflags ppflags ldflags bscript binbstd bsystem dofetch do12345 dopatch prepare install doextra dotweak caveats patches reslist symlink --prefix --files builtby builtat builtat-rfc-3339 builtat-rfc-3339-utc builtat-iso-8601 builtat-iso-8601-utc builtfor parallel developer)'
-                    ;;
-                fetch)
-                    _arguments \
-                        '1:package-name:_xcpkg_available_packages'
-                    ;;
-                depends)
-                    _arguments \
-                        '1:package-name:_xcpkg_available_packages' \
-                        '-t[specify output format]:output-type:(d2 dot box svg png)' \
-                        '-o[specify output filepath or directory]:output-path:_files'
-                    ;;
-                bundle)
-                    _arguments \
-                        '1:package-name:_xcpkg_installed_packages' \
-                        ':output-path:_files' \
-                        '--exclude[specify exclude path]:exclude-path:_path_files -/' \
-                        '-K[do not delete the session directory even if exported successfully]'
-                    ;;
-                tree)
-                    _arguments \
-                        '1:package-name:_xcpkg_installed_packages' \
-                        '-a[show all files, including hidden ones]' \
-                        '--dirsfirst[list directories before files]' \
-                        '-L[level]:level:(3)'
-                    ;;
-                logs)
-                    _arguments \
-                        '1:package-name:_xcpkg_installed_packages'
-                    ;;
-                install)
-                    _arguments \
-                        ':package-name:_xcpkg_available_packages' \
-                        '--target=-[specify the target to be built for]:target:(MacOSX-10.15-x86_64 MacOSX-13.0-arm64 iPhoneOS-12.0-arm64)' \
-                        '--profile=-[specify build profile]:profile:(debug release)' \
-                        '--developer-dir=-[specify the developer dir]:developer-dir:{_files -/}' \
-                        '-j[specify the number of jobs you can run in parallel]:jobs:(1 2 3 4 5 6 7 8 9)' \
-                        '-I[specify the formula search directory]:search-dir:_path_files -/' \
-                        '-U[upgrade if possible]' \
-                        '-K[keep the session directory even if successfully installed]' \
-                        '-E[export compile_commands.json]' \
-                        '--disable-ccache[do not use ccache]' \
-                        '-v-env[show all environment variables before starting to build]' \
-                        '-v-http[show http request/response]' \
-                        '-v-xcode[show xcode information]' \
-                        '-v-formula[show formula content]' \
-                        '-v-go[pass -v argument to go build command]' \
-                        '-v-uppm[pass -v argument to uppm command]' \
-                        '-v-cargo[pass -v argument to cargo command]' \
-                        '-v-meson[pass -v argument to meson command]' \
-                        '-v-ninja[pass -v argument to ninja command]' \
-                        '-v-gmake[pass V=1 argument to gmake command]' \
-                        '-v-xmake[pass -v argument to xmake command]' \
-                        '-v-cmake[pass -DCMAKE_VERBOSE_MAKEFILE argument to cmake command]' \
-                        '-x-sh[set -x to debug current running shell]' \
-                        '-x-cc[pass -v argument to clang command]' \
-                        '-x-ld[pass -Wl,-v argument to linker]' \
-                        '-x-go[pass -x argument to go build command]' \
-                        '-x-cargo[pass -vv argument to cargo command]' \
-                        '-x-gmake[pass --debug argument to gmake command]' \
-                        '-x-cmake[pass -DCMAKE_FIND_DEBUG_MODE=ON argument to cmake command]' \
-                        '-x-xmake[pass -vD argument to xmake command]' \
-                        '-x-pkg-config[export PKG_CONFIG_DEBUG_SPEW=1]' \
-                        + '(verbose_level)' \
-                        '-x[very verbose mode. equivalent to -v-* and -x-* options all are supplied]' \
-                        '-v[verbose mode. equivalent to -v-* options all are supplied]' \
-                        '-q[silent mode.]'
-                    ;;
-                reinstall)
-                    _arguments \
-                        ':package-name:_xcpkg_installed_packages' \
-                        '--target=-[specify the target to be built for]:target:(MacOSX-10.15-x86_64 MacOSX-13.0-arm64 iPhoneOS-12.0-arm64)' \
-                        '--profile=-[specify build profile]:profile:(debug release)' \
-                        '--developer-dir=-[specify the developer dir]:developer-dir:{_files -/}' \
-                        '-j[specify the number of jobs you can run in parallel]:jobs:(1 2 3 4 5 6 7 8 9)' \
-                        '-I[specify the formula search directory]:search-dir:_path_files -/' \
-                        '-U[upgrade if possible]' \
-                        '-K[keep the session directory even if successfully installed]' \
-                        '-E[export compile_commands.json]' \
-                        '--disable-ccache[do not use ccache]' \
-                        '-v-env[show all environment variables before starting to build]' \
-                        '-v-http[show http request/response]' \
-                        '-v-xcode[show xcode information]' \
-                        '-v-formula[show formula content]' \
-                        '-v-go[pass -v argument to go build command]' \
-                        '-v-uppm[pass -v argument to uppm command]' \
-                        '-v-ninja[pass -v argument to ninja command]' \
-                        '-v-meson[pass -v argument to meson command]' \
-                        '-v-cargo[pass -v argument to cargo command]' \
-                        '-v-gmake[pass V=1 argument to gmake command]' \
-                        '-v-xmake[pass -v argument to xmake command]' \
-                        '-v-cmake[pass -DCMAKE_VERBOSE_MAKEFILE argument to cmake command]' \
-                        '-x-sh[set -x to debug current running shell]' \
-                        '-x-go[pass -x argument to go build command]' \
-                        '-x-cc[pass -v argument to clang command]' \
-                        '-x-ld[pass -Wl,-v argument to linker]' \
-                        '-x-cargo[pass -vv argument to cargo command]' \
-                        '-x-gmake[pass --debug argument to gmake command]' \
-                        '-x-cmake[pass -DCMAKE_FIND_DEBUG_MODE=ON argument to cmake command]' \
-                        '-x-xmake[pass -vD argument to xmake command]' \
-                        '-x-pkg-config[export PKG_CONFIG_DEBUG_SPEW=1]' \
-                        + '(verbose_level)' \
-                        '-x[very verbose mode. equivalent to -v-* and -x-* options all are supplied]' \
-                        '-v[verbose mode. equivalent to -v-* options all are supplied]' \
-                        '-q[silent mode.]'
-                    ;;
-                upgrade)
-                    _arguments \
-                        ':package-name:_xcpkg_outdated_packages' \
-                        '--target=-[specify the target to be built for]:target:(MacOSX-10.15-x86_64 MacOSX-13.0-arm64 iPhoneOS-12.0-arm64)' \
-                        '--profile=-[specify build profile]:profile:(debug release)' \
-                        '--developer-dir=-[specify the developer dir]:developer-dir:{_files -/}' \
-                        '-j[specify the number of jobs you can run in parallel]:jobs:(1 2 3 4 5 6 7 8 9)' \
-                        '-I[specify the formula search directory]:search-dir:_path_files -/' \
-                        '-U[upgrade if possible]' \
-                        '-K[keep the session directory even if successfully installed]' \
-                        '-E[export compile_commands.json]' \
-                        '--disable-ccache[do not use ccache]' \
-                        '-v-env[show all environment variables before starting to build]' \
-                        '-v-http[show http request/response]' \
-                        '-v-xcode[show xcode information]' \
-                        '-v-formula[show formula content]' \
-                        '-v-go[pass -v argument to go build command]' \
-                        '-v-uppm[pass -v argument to uppm command]' \
-                        '-v-ninja[pass -v argument to ninja command]' \
-                        '-v-meson[pass -v argument to meson command]' \
-                        '-v-cargo[pass -v argument to cargo command]' \
-                        '-v-gmake[pass V=1 argument to gmake command]' \
-                        '-v-xmake[pass -v argument to xmake command]' \
-                        '-v-cmake[pass -DCMAKE_VERBOSE_MAKEFILE argument to cmake command]' \
-                        '-x-sh[set -x to debug current running shell]' \
-                        '-x-cc[pass -v argument to clang command]' \
-                        '-x-ld[pass -Wl,-v argument to linker]' \
-                        '-x-go[pass -x argument to go build command]' \
-                        '-x-cargo[pass -vv argument to cargo command]' \
-                        '-x-gmake[pass --debug argument to gmake command]' \
-                        '-x-cmake[pass -DCMAKE_FIND_DEBUG_MODE=ON argument to cmake command]' \
-                        '-x-xmake[pass -vD argument to xmake command]' \
-                        '-x-pkg-config[export PKG_CONFIG_DEBUG_SPEW=1]' \
-                        + '(verbose_level)' \
-                        '-x[very verbose mode. equivalent to -v-* and -x-* options all are supplied]' \
-                        '-v[verbose mode. equivalent to -v-* options all are supplied]' \
-                        '-q[silent mode.]'
-                    ;;
-                uninstall)
-                    _arguments '*:package-name:_xcpkg_installed_packages'
-                    ;;
-
-                is-available)
-                    _arguments '1:package-name:_xcpkg_available_packages'
-                    ;;
-                is-installed)
-                    _arguments '1:package-name:_xcpkg_installed_packages'
-                    ;;
-                is-outdated)
-                    _arguments '1:package-name:_xcpkg_outdated_packages'
-                    ;;
-
-                ls-available)
-                    _arguments '1:package-name:_xcpkg_available_packages' '-v[verbose mode]'
-                    ;;
-                ls-installed)
-                    _arguments '1:package-name:_xcpkg_installed_packages' '-v[verbose mode]'
-                    ;;
-                ls-outdated)
-                    _arguments '1:package-name:_xcpkg_outdated_packages' '-v[verbose mode]'
-                    ;;
-
-                completion)
-                    _arguments '1:what:(zsh)'
+                zlib-deflate)
+                    _arguments '-L[compress level]:level:(1 2 3 4 5 6 7 8 9)'
                     ;;
             esac
-            ;;
-        *);;
     esac
 }
-
-_xcpkg "$@"
