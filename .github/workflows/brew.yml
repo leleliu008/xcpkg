@@ -55,6 +55,8 @@ jobs:
           end
           EOF
 
+      - run: brew uninstall cmake
+
       - run: brew info    xcpkg
       - run: brew install xcpkg -v
 
@@ -198,6 +200,8 @@ jobs:
 
       - if: matrix.os == 'macos-13'
         run: brew install --overwrite python@3.12
+
+      - run: brew uninstall cmake
 
       - run: brew info    xcpkg
       - run: brew install xcpkg -v

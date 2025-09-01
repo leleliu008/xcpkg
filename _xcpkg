@@ -149,7 +149,7 @@ function _xcpkg() {
 
     _arguments '1: :{_describe xcpkg_actions _xcpkg_actions}' '*:: :->option'
 
-    [ "$state" = 'option' ] || return
+    [ "$state" = 'option' ] || return 0
 
     case $words[1] in
         formula-repo-add)
@@ -380,7 +380,7 @@ function _xcpkg() {
         util)
             _arguments '1: :{_describe xcpkg_util_actions _xcpkg_util_actions}' '*:: :->util'
 
-            [ "$state" = 'util' ] || return
+            [ "$state" = 'util' ] || return 0
 
             case $words[1] in
                 which)
