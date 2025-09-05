@@ -4985,7 +4985,10 @@ $PACKAGE_DO12345
     do
         case $item in
             -l*);;
-            *)  item="$(pkg-config --libs-only-l "$item")"
+            *)
+                A="$(pkg-config --libs-only-l "$item")"
+                B="$(pkg-config --libs-only-other "$item")"
+                item="$A $B"
         esac
 
         XCPKG_COMPILER_ARGS="$XCPKG_COMPILER_ARGS $item"
@@ -8761,7 +8764,7 @@ fi
 
 ##################################################################################
 
-XCPKG_VERSION=0.29.9
+XCPKG_VERSION=0.29.10
 
 XCPKG_ARG0="$0"
 XCPKG_ARG1="$1"

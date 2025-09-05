@@ -406,8 +406,8 @@ typedef struct {
     char * ranlib;
     char * ld;
     char * nm;
-    char * strip;
     char * size;
+    char * strip;
     char * strings;
     char * objdump;
 } XCPKGToolChain;

@@ -906,10 +906,6 @@ loop:
 
         char * q = dep_upp_extra_buf;
 
-        q[0] = ' ';
-
-        q++;
-
         for (size_t i = 0U; ; i++) {
             q[i] = p[i];
 
@@ -923,7 +919,7 @@ loop:
 
                 (*dep_upp_extra_buf_len) += i;
 
-                p++;
+                p += i + 1;
                 goto loop;
             }
         }

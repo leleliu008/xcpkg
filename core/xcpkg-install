@@ -1449,7 +1449,10 @@ __install_for_target() {
     do
         case $item in
             -l*);;
-            *)  item="$(pkg-config --libs-only-l "$item")"
+            *)
+                A="$(pkg-config --libs-only-l "$item")"
+                B="$(pkg-config --libs-only-other "$item")"
+                item="$A $B"
         esac
 
         XCPKG_COMPILER_ARGS="$XCPKG_COMPILER_ARGS $item"

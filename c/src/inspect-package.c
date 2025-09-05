@@ -62,6 +62,8 @@ int xcpkg_inspect_package(const char * package, const char * userSpecifiedTarget
             if (ret != XCPKG_OK) {
                 return ret;
             }
+
+            (*targetPlatformSpecP) = userSpecifiedTargetPlatformSpec;
         }
 
         (*packageName) = package;

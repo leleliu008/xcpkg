@@ -586,7 +586,7 @@ static inline int xcpkg_action_install(int argc, char* argv[]) {
 
         char buf[51];
 
-        int ret = xcpkg_inspect_package(package, NULL, &packageName, &platformSpec, buf);
+        int ret = xcpkg_inspect_package(package, targetPlatformSpec, &packageName, &platformSpec, buf);
 
         if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_NULL) {
             fprintf(stderr, "Usage: %s %s <PACKAGE-NAME|PACKAGE-SPEC>, <PACKAGE-NAME|PACKAGE-SPEC> is not given.\n", argv[0], argv[1]);
@@ -735,7 +735,7 @@ static inline int xcpkg_action_reinstall(int argc, char* argv[]) {
 
         char buf[51];
 
-        int ret = xcpkg_inspect_package(package, NULL, &packageName, &platformSpec, buf);
+        int ret = xcpkg_inspect_package(package, targetPlatformSpec, &packageName, &platformSpec, buf);
 
         if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_NULL) {
             fprintf(stderr, "Usage: %s info-installed <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <PACKAGE-NAME|PACKAGE-SPEC> is not given.\n", argv[0]);
@@ -875,7 +875,7 @@ static inline int xcpkg_action_upgtade(int argc, char* argv[]) {
 
         char buf[51];
 
-        int ret = xcpkg_inspect_package(package, NULL, &packageName, &platformSpec, buf);
+        int ret = xcpkg_inspect_package(package, targetPlatformSpec, &packageName, &platformSpec, buf);
 
         if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_NULL) {
             fprintf(stderr, "Usage: %s info-installed <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <PACKAGE-NAME|PACKAGE-SPEC> is not given.\n", argv[0]);
