@@ -23,7 +23,10 @@ jobs:
   build:
     needs: base
 
-    runs-on: macos-14
+    runs-on: macos-15
+
+    env:
+      HOMEBREW_NO_INSTALLED_DEPENDENTS_CHECK: 1
 
     strategy:
       fail-fast: false
@@ -34,12 +37,49 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - run: curl -LO https://raw.githubusercontent.com/leleliu008/xcpkg/master/xcpkg
-      - run: chmod a+x xcpkg
-      - run: ./xcpkg setup
-      - run: ./xcpkg update
-      - run: ./xcpkg install MacOSX-${{ matrix.target-version }}-${{ matrix.target-arch }}/uppm@0.15.4
-      - run: ./xcpkg bundle  MacOSX-${{ matrix.target-version }}-${{ matrix.target-arch }}/uppm@0.15.4 .tar.xz
+      - name: create a local tap for homebrew
+        run: |
+          MY_FORMULA_DIR="$(brew --repository)/Library/Taps/leleliu008/homebrew-tmp/Formula"
+          install -d "$MY_FORMULA_DIR"
+          cat > "$MY_FORMULA_DIR/xcpkg.rb" <<EOF
+          class Xcpkg < Formula
+            desc     "A package builder/manager for Xcode to build projects written in C, C++, Rust, Zig, Go, Haskell, etc"
+            homepage "https://github.com/leleliu008/xcpkg"
+            head     "https://github.com/leleliu008/xcpkg.git", branch: "master"
+            url      "https://github.com/leleliu008/xcpkg.git", revision: "${{ github.sha }}"
+            version  "0.1000.1"
+            license  "Apache-2.0"
+
+            depends_on "cmake" => :build
+            depends_on "ninja" => :build
+            depends_on "pkg-config" => :build
+
+            depends_on "curl"
+            depends_on "jansson"
+            depends_on "libyaml"
+            depends_on "libgit2"
+            depends_on "libarchive"
+
+            def install
+              system "cmake", "-S", "c", "-B", "build", *std_cmake_args
+              system "cmake", "--build",   "build"
+              system "cmake", "--install", "build"
+            end
+
+            test do
+              system "#{bin}/xcpkg", "--help"
+            end
+          end
+          EOF
+
+      - run: brew uninstall cmake
+
+      - run: brew info    xcpkg
+      - run: brew install xcpkg -v
+
+      - run: xcpkg update
+      - run: xcpkg install MacOSX-${{ matrix.target-version }}-${{ matrix.target-arch }}/uppm@0.15.4
+      - run: xcpkg bundle  MacOSX-${{ matrix.target-version }}-${{ matrix.target-arch }}/uppm@0.15.4 .tar.xz
 
       - run: install -d out/
 
@@ -100,13 +140,4 @@ jobs:
       - run: git -c init.defaultBranch=master init
       - run: git remote add origin ${{ github.repositoryUrl }}
 
-      - run: |
-          cat > notes.md <<EOF
-          sha256sum:
-
-          \`\`\`
-          $(sha256sum xcpkg-core-*.tar.xz)
-          \`\`\`
-          EOF
-
-      - run: gh release create xcpkg-core-${{ needs.base.outputs.release-version }} xcpkg-core-*.tar.xz --title xcpkg-core-${{ needs.base.outputs.release-version }} --notes-file notes.md
+      - run: gh release create xcpkg-core-${{ needs.base.outputs.release-version }} xcpkg-core-*.tar.xz --title xcpkg-core-${{ needs.base.outputs.release-version }} --notes "xcpkg core"

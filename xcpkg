@@ -4731,7 +4731,7 @@ $PACKAGE_DO12345
 
     TARGET_PLATFORM_NAME_LOWER_CASE="$(printf "$TARGET_PLATFORM_NAME" | tr A-Z a-z)"
 
-    export XCPKG_TARGET_FLAGS="-isysroot $SYSROOT -arch $TARGET_PLATFORM_ARCH -m${TARGET_PLATFORM_NAME_LOWER_CASE}-version-min=$TARGET_PLATFORM_VERS"
+    export XCPKG_TARGET_FLAGS="-isysroot $SYSROOT -arch $TARGET_PLATFORM_ARCH -m${TARGET_PLATFORM_NAME_LOWER_CASE}-version-min=$TARGET_PLATFORM_VERS -Qunused-arguments"
 
     ##################################################################################
 
@@ -4740,16 +4740,7 @@ $PACKAGE_DO12345
     OCFLAGS="$PACKAGE_OCFLAGS"
     OXFLAGS="$PACKAGE_OXFLAGS"
     XXFLAGS="$PACKAGE_XXFLAGS"
-    LDFLAGS="$PACKAGE_LDFLAGS"
-
-    ##############################################
-
-    PPFLAGS="-Qunused-arguments $PPFLAGS"
-    CCFLAGS="-Qunused-arguments $CCFLAGS -fPIC"
-    OCFLAGS="-Qunused-arguments $OCFLAGS -fPIC"
-    OXFLAGS="-Qunused-arguments $OXFLAGS -fPIC"
-    XXFLAGS="-Qunused-arguments $XXFLAGS -fPIC"
-    LDFLAGS="-Wl,-search_paths_first $LDFLAGS"
+    LDFLAGS="$PACKAGE_LDFLAGS -Wl,-search_paths_first"
 
     ##############################################
 

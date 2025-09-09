@@ -36,97 +36,134 @@ jobs:
 
       - run: echo ${{ github.ref_name }}
 
-      - run: ./xcpkg --help
-      - run: ./xcpkg -h
+      - name: create a local tap for homebrew
+        run: |
+          MY_FORMULA_DIR="$(brew --repository)/Library/Taps/leleliu008/homebrew-tmp/Formula"
+          install -d "$MY_FORMULA_DIR"
+          cat > "$MY_FORMULA_DIR/xcpkg.rb" <<EOF
+          class Xcpkg < Formula
+            desc     "A package builder/manager for Xcode to build projects written in C, C++, Rust, Zig, Go, Haskell, etc"
+            homepage "https://github.com/leleliu008/xcpkg"
+            head     "https://github.com/leleliu008/xcpkg.git", branch: "master"
+            url      "https://github.com/leleliu008/xcpkg.git", revision: "${{ github.sha }}"
+            version  "0.1000.1"
+            license  "Apache-2.0"
 
-      - run: ./xcpkg --version
-      - run: ./xcpkg -V
+            depends_on "cmake" => :build
+            depends_on "ninja" => :build
+            depends_on "pkg-config" => :build
 
-      - run: ./xcpkg gen-url-transform-sample
+            depends_on "curl"
+            depends_on "jansson"
+            depends_on "libyaml"
+            depends_on "libgit2"
+            depends_on "libarchive"
 
-      - run: ./xcpkg about
+            def install
+              system "cmake", "-S", "c", "-B", "build", *std_cmake_args
+              system "cmake", "--build",   "build"
+              system "cmake", "--install", "build"
+            end
 
-      - run: ./xcpkg setup
+            test do
+              system "#{bin}/xcpkg", "--help"
+            end
+          end
+          EOF
 
-      - run: ./xcpkg sysinfo
+      - run: brew uninstall cmake
+      - run: brew info    xcpkg
+      - run: brew install xcpkg -v
 
-      - run: ./xcpkg xcinfo
+      - run: xcpkg --help
+      - run: xcpkg -h
 
-      - run: ./xcpkg completion zsh
+      - run: xcpkg --version
+      - run: xcpkg -V
 
-      - run: ./xcpkg update
+      - run: xcpkg gen-url-transform-sample
 
-      - run: ./xcpkg search lib
-      - run: ./xcpkg search uctags
+      - run: xcpkg about
 
+      - run: xcpkg sysinfo
 
-      - run: ./xcpkg info-available uctags
-      - run: ./xcpkg info-available uctags --yaml
-      - run: ./xcpkg info-available uctags --json
-      - run: ./xcpkg info-available uctags version
-      - run: ./xcpkg info-available uctags license
-      - run: ./xcpkg info-available uctags summary
-      - run: ./xcpkg info-available uctags web-url
-      - run: ./xcpkg info-available uctags git-url
-      - run: ./xcpkg info-available uctags git-sha
-      - run: ./xcpkg info-available uctags git-ref
-      - run: ./xcpkg info-available uctags src-url
-      - run: ./xcpkg info-available uctags src-sha
+      - run: xcpkg xcinfo
 
+      - run: xcpkg completion zsh
 
-      - run: ./xcpkg depends uctags
-      - run: ./xcpkg depends uctags -t d2
-      - run: ./xcpkg depends uctags -t dot
-      - run: ./xcpkg depends uctags -t box
-      - run: ./xcpkg depends uctags -t dot -o a/
-      - run: ./xcpkg depends uctags -o uctags.box
+      - run: xcpkg update
 
-
-      - run: ./xcpkg install ${{ matrix.target-platform }}/uctags
-
-
-      - run: ./xcpkg info-installed ${{ matrix.target-platform }}/uctags
-      - run: ./xcpkg info-installed ${{ matrix.target-platform }}/uctags --yaml
-      - run: ./xcpkg info-installed ${{ matrix.target-platform }}/uctags --json
-      - run: ./xcpkg info-installed ${{ matrix.target-platform }}/uctags version
-      - run: ./xcpkg info-installed ${{ matrix.target-platform }}/uctags license
-      - run: ./xcpkg info-installed ${{ matrix.target-platform }}/uctags summary
-      - run: ./xcpkg info-installed ${{ matrix.target-platform }}/uctags web-url
-      - run: ./xcpkg info-installed ${{ matrix.target-platform }}/uctags git-url
-      - run: ./xcpkg info-installed ${{ matrix.target-platform }}/uctags git-sha
-      - run: ./xcpkg info-installed ${{ matrix.target-platform }}/uctags git-ref
-      - run: ./xcpkg info-installed ${{ matrix.target-platform }}/uctags src-url
-      - run: ./xcpkg info-installed ${{ matrix.target-platform }}/uctags src-sha
-      - run: ./xcpkg info-installed ${{ matrix.target-platform }}/uctags builtat
-      - run: ./xcpkg info-installed ${{ matrix.target-platform }}/uctags builtat-iso-8601
-      - run: ./xcpkg info-installed ${{ matrix.target-platform }}/uctags builtat-rfc-3339
-      - run: ./xcpkg info-installed ${{ matrix.target-platform }}/uctags builtat-iso-8601-utc
-      - run: ./xcpkg info-installed ${{ matrix.target-platform }}/uctags builtat-rfc-3339-utc
-      - run: ./xcpkg info-installed ${{ matrix.target-platform }}/uctags installed-dir
-      - run: ./xcpkg info-installed ${{ matrix.target-platform }}/uctags installed-files
+      - run: xcpkg search lib
+      - run: xcpkg search uctags
 
 
-      - run: ./xcpkg tree ${{ matrix.target-platform }}/uctags
-      - run: ./xcpkg tree ${{ matrix.target-platform }}/uctags -a
+      - run: xcpkg info-available uctags
+      - run: xcpkg info-available uctags --yaml
+      - run: xcpkg info-available uctags --json
+      - run: xcpkg info-available uctags version
+      - run: xcpkg info-available uctags license
+      - run: xcpkg info-available uctags summary
+      - run: xcpkg info-available uctags web-url
+      - run: xcpkg info-available uctags git-url
+      - run: xcpkg info-available uctags git-sha
+      - run: xcpkg info-available uctags git-ref
+      - run: xcpkg info-available uctags src-url
+      - run: xcpkg info-available uctags src-sha
 
-      - run: ./xcpkg bundle ${{ matrix.target-platform }}/uctags .tar.gz
-      - run: ./xcpkg bundle ${{ matrix.target-platform }}/uctags .tar.lz
-      - run: ./xcpkg bundle ${{ matrix.target-platform }}/uctags .tar.xz
-      - run: ./xcpkg bundle ${{ matrix.target-platform }}/uctags .zip
-      - run: ./xcpkg bundle ${{ matrix.target-platform }}/uctags xx.tar.xz
 
-      - run: ./xcpkg formula-repo-list
+      - run: xcpkg depends uctags
+      - run: xcpkg depends uctags -t d2
+      - run: xcpkg depends uctags -t dot
+      - run: xcpkg depends uctags -t box
+      - run: xcpkg depends uctags -t dot -o a/
+      - run: xcpkg depends uctags -o uctags.box
 
-      - run: ./xcpkg ls-available
-      - run: ./xcpkg ls-installed
-      - run: ./xcpkg ls-outdated
 
-      - run: ./xcpkg is-available uctags
-      - run: ./xcpkg is-installed ${{ matrix.target-platform }}/uctags
-      - run: ./xcpkg is-outdated  ${{ matrix.target-platform }}/uctags || echo 'not outdated'
+      - run: xcpkg install ${{ matrix.target-platform }}/uctags
 
-      - run: ./xcpkg uninstall ${{ matrix.target-platform }}/uctags
 
-      - run: ./xcpkg fetch curl
+      - run: xcpkg info-installed ${{ matrix.target-platform }}/uctags
+      - run: xcpkg info-installed ${{ matrix.target-platform }}/uctags --yaml
+      - run: xcpkg info-installed ${{ matrix.target-platform }}/uctags --json
+      - run: xcpkg info-installed ${{ matrix.target-platform }}/uctags version
+      - run: xcpkg info-installed ${{ matrix.target-platform }}/uctags license
+      - run: xcpkg info-installed ${{ matrix.target-platform }}/uctags summary
+      - run: xcpkg info-installed ${{ matrix.target-platform }}/uctags web-url
+      - run: xcpkg info-installed ${{ matrix.target-platform }}/uctags git-url
+      - run: xcpkg info-installed ${{ matrix.target-platform }}/uctags git-sha
+      - run: xcpkg info-installed ${{ matrix.target-platform }}/uctags git-ref
+      - run: xcpkg info-installed ${{ matrix.target-platform }}/uctags src-url
+      - run: xcpkg info-installed ${{ matrix.target-platform }}/uctags src-sha
+      - run: xcpkg info-installed ${{ matrix.target-platform }}/uctags builtat
+      - run: xcpkg info-installed ${{ matrix.target-platform }}/uctags builtat-iso-8601
+      - run: xcpkg info-installed ${{ matrix.target-platform }}/uctags builtat-rfc-3339
+      - run: xcpkg info-installed ${{ matrix.target-platform }}/uctags builtat-iso-8601-utc
+      - run: xcpkg info-installed ${{ matrix.target-platform }}/uctags builtat-rfc-3339-utc
+      - run: xcpkg info-installed ${{ matrix.target-platform }}/uctags installed-dir
+      - run: xcpkg info-installed ${{ matrix.target-platform }}/uctags installed-files
 
-      - run: ./xcpkg upgrade-self
+
+      - run: xcpkg tree ${{ matrix.target-platform }}/uctags
+      - run: xcpkg tree ${{ matrix.target-platform }}/uctags -a
+
+      - run: xcpkg bundle ${{ matrix.target-platform }}/uctags .tar.gz
+      - run: xcpkg bundle ${{ matrix.target-platform }}/uctags .tar.lz
+      - run: xcpkg bundle ${{ matrix.target-platform }}/uctags .tar.xz
+      - run: xcpkg bundle ${{ matrix.target-platform }}/uctags .zip
+      - run: xcpkg bundle ${{ matrix.target-platform }}/uctags xx.tar.xz
+
+      - run: xcpkg formula-repo-list
+
+      - run: xcpkg ls-available
+      - run: xcpkg ls-installed
+      - run: xcpkg ls-outdated
+
+      - run: xcpkg is-available uctags
+      - run: xcpkg is-installed ${{ matrix.target-platform }}/uctags
+      - run: xcpkg is-outdated  ${{ matrix.target-platform }}/uctags || echo 'not outdated'
+
+      - run: xcpkg uninstall ${{ matrix.target-platform }}/uctags
+
+      - run: xcpkg fetch curl
+
+      - run: xcpkg upgrade-self
