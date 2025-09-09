@@ -264,9 +264,9 @@ static inline int xcpkg_http_fetch_to_proxy(xcpkg_http_fetch_to_fn xcpkg_http_fe
     ///////////////////////////////////////////////////
 
     if (startswith(url, "https://ftp.gnu.org/gnu/") == 0) {
-        const char * const s = "https://ftpmirror.gnu.org/gnu/";
+        const char * const s = "https://mirrors.kernel.org/gnu/";
 
-        char URL[n + 7];
+        char URL[n + 8];
 
         int j;
 
@@ -275,7 +275,7 @@ static inline int xcpkg_http_fetch_to_proxy(xcpkg_http_fetch_to_fn xcpkg_http_fe
         }
 
         p = URL + j;
-        q = url + j - 6;
+        q = url + j - 7;
 
         for (;;) {
             p[0] = q[0];

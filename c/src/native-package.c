@@ -132,6 +132,25 @@ int install_native_package(
 
     //////////////////////////////////////////////////////////////////////////////
 
+    if (packageID == NATIVE_PACKAGE_ID_INTLTOOL) {
+        size_t perl5LibDIRCapacity = packageInstalledRootDIRCapacity + 27U;
+        char   perl5LibDIR[perl5LibDIRCapacity];
+
+        ret = snprintf(perl5LibDIR, perl5LibDIRCapacity, "%s/perl-XML-Parser/lib/perl5", packageInstalledRootDIR);
+
+        if (ret < 0) {
+            perror(NULL);
+            return XCPKG_ERROR;
+        }
+
+        if (setenv("PERL5LIB", perl5LibDIR, 1) != 0) {
+            perror("PERL5LIB");
+            return XCPKG_ERROR;
+        }
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+
     for (int i = 0; i < 10; i++) {
         if (package.depPackageIDArray[i] == 0) {
             break;
@@ -356,22 +375,7 @@ int install_native_package(
 
     //////////////////////////////////////////////////////////////////////////////
 
-    if (packageID == NATIVE_PACKAGE_ID_INTLTOOL) {
-        size_t perl5LibDIRCapacity = packageInstalledRootDIRCapacity + 27U;
-        char   perl5LibDIR[perl5LibDIRCapacity];
-
-        ret = snprintf(perl5LibDIR, perl5LibDIRCapacity, "%s/perl-XML-Parser/lib/perl5", packageInstalledRootDIR);
-
-        if (ret < 0) {
-            perror(NULL);
-            return XCPKG_ERROR;
-        }
-
-        if (setenv("PERL5LIB", perl5LibDIR, 1) != 0) {
-            perror("PERL5LIB");
-            return XCPKG_ERROR;
-        }
-    } else if (packageID == NATIVE_PACKAGE_ID_TEXINFO) {
+    if (packageID == NATIVE_PACKAGE_ID_TEXINFO) {
         if (setenv("PERL_EXT_CC", getenv("CC"), 1) != 0) {
             perror("PERL_EXT_CC");
             return XCPKG_ERROR;

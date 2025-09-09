@@ -3691,6 +3691,7 @@ static int xcpkg_install_package(
         { "OBJC",      objcForNativeBuild },
         { "CXX",       cxxForNativeBuild },
         { "CPP",       cppForNativeBuild },
+
         { "AS",        toolchain->as },
         { "AR",        toolchain->ar },
         { "RANLIB",    toolchain->ranlib },
@@ -3700,6 +3701,7 @@ static int xcpkg_install_package(
         { "STRIP",     toolchain->strip },
         { "STRINGS",   toolchain->strings },
         { "OBJDUMP",   toolchain->objdump },
+
         { NULL, NULL }
     };
 
@@ -4106,6 +4108,7 @@ static int xcpkg_install_package(
         { "OBJC",      objcForTargetBuild },
         { "CXX",       cxxForTargetBuild },
         { "CPP",       cppForTargetBuild },
+
         { "AS",        toolchain->as },
         { "AR",        toolchain->ar },
         { "RANLIB",    toolchain->ranlib },
@@ -4115,10 +4118,6 @@ static int xcpkg_install_package(
         { "STRIP",     toolchain->strip },
         { "STRINGS",   toolchain->strings },
         { "OBJDUMP",   toolchain->objdump },
-
-        { "XCPKG_COMPILER_C",    toolchain->cc },
-        { "XCPKG_COMPILER_CXX",  toolchain->cxx },
-        { "XCPKG_COMPILER_OBJC", toolchain->cc },
 
         { NULL, NULL }
     };
@@ -4185,7 +4184,7 @@ static int xcpkg_install_package(
         return XCPKG_ERROR;
     }
 
-    if (setenv("XCPKG_COMPILER_ARGS", commonflags, 1) != 0) {
+    if (setenv("XCPKG_TARGET_FLAGS", commonflags, 1) != 0) {
         perror(NULL);
         return XCPKG_ERROR;
     }
@@ -4331,13 +4330,13 @@ static int xcpkg_install_package(
     bool needToCopyStaticLibs = formula->support_create_mostly_statically_linked_executable && (!installOptions->linkSharedLibs);
 
     if (needToCopyStaticLibs) {
-        if (setenv("XCPKG_CREATE_MOSTLY_STATICALLY_LINKED_EXECUTABLE", "1", 1) == -1) {
-            perror("XCPKG_CREATE_MOSTLY_STATICALLY_LINKED_EXECUTABLE");
+        if (setenv("XCPKG_MSLE", "1", 1) == -1) {
+            perror("XCPKG_MSLE");
             return XCPKG_ERROR;
         }
     } else {
-        if (unsetenv("XCPKG_CREATE_MOSTLY_STATICALLY_LINKED_EXECUTABLE") == -1) {
-            perror("XCPKG_CREATE_MOSTLY_STATICALLY_LINKED_EXECUTABLE");
+        if (unsetenv("XCPKG_MSLE") == -1) {
+            perror("XCPKG_MSLE");
             return XCPKG_ERROR;
         }
     }
@@ -5277,6 +5276,15 @@ int xcpkg_install(const char * packageName, const char * targetPlatformSpec, con
 
     //////////////////////////////////////////////////////////////////////////////
 
+    if (installOptions->verbose_cc) {
+        if (setenv("XCPKG_VERBOSE", "1", 1) != 0) {
+            perror("XCPKG_VERBOSE");
+            return XCPKG_ERROR;
+        }
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+
     // https://perldoc.perl.org/cpan#PERL_MM_USE_DEFAULT
     // Would you like to configure as much as possible automatically?
     if (setenv("PERL_MM_USE_DEFAULT", "1", 1) != 0) {
@@ -5508,9 +5516,9 @@ int xcpkg_install(const char * packageName, const char * targetPlatformSpec, con
     }
 
     const KV proxiedTools[3] = {
-        { "XCPKG_COMPILER_C",    toolchain.cc  },
-        { "XCPKG_COMPILER_CXX",  toolchain.cxx },
-        { "XCPKG_COMPILER_OBJC", toolchain.cc  }
+        { "XCPKG_CC",   toolchain.cc  },
+        { "XCPKG_CXX",  toolchain.cxx },
+        { "XCPKG_OBJC", toolchain.cc  }
     };
 
     for (int i = 0; i < 3; i++) {
@@ -5562,8 +5570,8 @@ int xcpkg_install(const char * packageName, const char * targetPlatformSpec, con
         return XCPKG_ERROR;
     }
 
-    if (setenv("XCPKG_COMPILER_ARGS_FOR_BUILD", commonFlagsForNativeBuild, 1) != 0) {
-        perror("XCPKG_COMPILER_ARGS_FOR_BUILD");
+    if (setenv("XCPKG_NATIVE_FLAGS", commonFlagsForNativeBuild, 1) != 0) {
+        perror("XCPKG_NATIVE_FLAGS");
         xcpkg_toolchain_free(&toolchain);
         return XCPKG_ERROR;
     }

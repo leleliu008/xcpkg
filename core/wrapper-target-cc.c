@@ -1,71 +1,187 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stddef.h>
 #include <string.h>
 
 #include <unistd.h>
 #include <sys/stat.h>
 
+#define ACTION_E      1
+#define ACTION_S      2
+#define ACTION_c      3
+#define ACTION_shared 4
+
 int main(int argc, char * argv[]) {
-    char * const compiler = getenv("XCPKG_COMPILER_C");
+    char * const compiler = getenv("XCPKG_CC");
 
     if (compiler == NULL) {
-        fprintf(stderr, "XCPKG_COMPILER_C environment variable is not set.\n");
+        fprintf(stderr, "XCPKG_CC environment variable is not set.\n");
         return 1;
     }
 
     if (compiler[0] == '\0') {
-        fprintf(stderr, "XCPKG_COMPILER_C environment variable value should be a non-empty string.\n");
+        fprintf(stderr, "XCPKG_CC environment variable value should be a non-empty string.\n");
         return 2;
     }
 
     /////////////////////////////////////////////////////////////////
 
-    char * const baseArgs = getenv("XCPKG_COMPILER_ARGS");
+    char * const baseArgs = getenv("XCPKG_TARGET_FLAGS");
 
     if (baseArgs == NULL) {
-        fprintf(stderr, "XCPKG_COMPILER_ARGS environment variable is not set.\n");
+        fprintf(stderr, "XCPKG_TARGET_FLAGS environment variable is not set.\n");
         return 5;
     }
 
     if (baseArgs[0] == '\0') {
-        fprintf(stderr, "XCPKG_COMPILER_ARGS environment variable value should be a non-empty string.\n");
+        fprintf(stderr, "XCPKG_TARGET_FLAGS environment variable value should be a non-empty string.\n");
         return 6;
     }
 
     /////////////////////////////////////////////////////////////////
 
-    size_t baseArgc = 1U;
+    int action = 0;
 
-    for (size_t i = 0U; ; i++) {
-        if (baseArgs[i] == '\0') {
+    int i;
+
+    for (i = 1; i < argc; i++) {
+        if (strcmp(argv[i], "-E") == 0) {
+            action = ACTION_E;
             break;
         }
 
-        if (baseArgs[i] == ' ') {
-            baseArgc++;
+        if (strcmp(argv[i], "-S") == 0) {
+            action = ACTION_S;
+            break;
+        }
+
+        if (strcmp(argv[i], "-c") == 0) {
+            action = ACTION_c;
+            break;
+        }
+
+        if (strcmp(argv[i], "-dynamiclib") == 0) {
+            action = ACTION_shared;
+            break;
+        }
+
+        if (strcmp(argv[i], "-shared") == 0) {
+            action = ACTION_shared;
+            break;
         }
     }
 
     /////////////////////////////////////////////////////////////////
 
-    int createSharedLibrary = 0;
+    size_t n1 = 0U;
 
-    for (int i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "-dynamiclib") == 0 || strcmp(argv[i], "-shared") == 0) {
-            createSharedLibrary = 1;
-            break;
+    char * p = baseArgs;
+
+    while (p[0] != '\0') {
+        if (p[0] == ' ') {
+            p++;
+            continue;
+        }
+
+        n1++;
+
+        for (;;) {
+            p++;
+
+            if (p[0] == '\0') {
+                break;
+            }
+
+            if (p[0] == ' ') {
+                p++;
+                break;
+            }
         }
     }
 
     /////////////////////////////////////////////////////////////////
 
-    char* args[argc + baseArgc + 2];
+    size_t n2 = 0U;
 
-    if (createSharedLibrary == 0) {
-        const char * msle = getenv("XCPKG_CREATE_MOSTLY_STATICALLY_LINKED_EXECUTABLE");
+    char * ccflags = NULL;
+
+    if (action == 0 || action == ACTION_c) {
+        ccflags = getenv("XCPKG_TARGET_CCFLAGS");
+
+        if (ccflags != NULL) {
+            p = ccflags;
+
+            while (p[0] != '\0') {
+                if (p[0] == ' ') {
+                    p++;
+                    continue;
+                }
+
+                n2++;
+
+                for (;;) {
+                    p++;
+
+                    if (p[0] == '\0') {
+                        break;
+                    }
+
+                    if (p[0] == ' ') {
+                        p++;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    /////////////////////////////////////////////////////////////////
+
+    size_t n3 = 0U;
+
+    char * ldflags = NULL;
+
+    if (action == 0 || action == ACTION_shared) {
+        ldflags = getenv("XCPKG_TARGET_LDFLAGS");
+
+        //fprintf(stderr, "ldflags=%s\n", ldflags);
+
+        if (ldflags != NULL) {
+            p = ldflags;
+
+            while (p[0] != '\0') {
+                if (p[0] == ' ') {
+                    p++;
+                    continue;
+                }
+
+                n3++;
+
+                for (;;) {
+                    p++;
+
+                    if (p[0] == '\0') {
+                        break;
+                    }
+
+                    if (p[0] == ' ') {
+                        p++;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    /////////////////////////////////////////////////////////////////
+
+    char* args[argc + n1 + n2 + n3 + 5];
+
+    if (action == 0) {
+        const char * msle = getenv("XCPKG_MSLE");
 
         if (msle != NULL && strcmp(msle, "1") == 0) {
-            for (int i = 1; i < argc; i++) {
+            for (i = 1; i < argc; i++) {
                 if (argv[i][0] == '/') {
                     int len = 0;
                     int dotIndex = -1;
@@ -101,57 +217,118 @@ int main(int argc, char * argv[]) {
                 args[i] = argv[i];
             }
         } else {
-            for (int i = 1; i < argc; i++) {
+            for (i = 1; i < argc; i++) {
                 args[i] = argv[i];
             }
         }
     } else {
-        for (int i = 1; i < argc; i++) {
+        for (i = 1; i < argc; i++) {
             args[i] = argv[i];
         }
     }
 
     /////////////////////////////////////////////////////////////////
 
-    args[0] = compiler;
+    if (n1 != 0U) {
+        char * p = baseArgs;
 
-    /////////////////////////////////////////////////////////////////
-
-    char * p = baseArgs;
-
-    for (size_t i = 0U; ; i++) {
-        if (baseArgs[i] == '\0') {
-            if (p[0] != '\0') {
-                args[argc++] = p;
-            }
-            break;
-        }
-
-        if (baseArgs[i] == ' ') {
-            baseArgs[i] = '\0';
-
-            if (p[0] != '\0') {
-                args[argc++] = p;
+        while (p[0] != '\0') {
+            if (p[0] == ' ') {
+                p++;
+                continue;
             }
 
-            p = &baseArgs[i + 1];
+            args[argc++] = p;
+
+            for (;;) {
+                p++;
+
+                if (p[0] == '\0') {
+                    break;
+                }
+
+                if (p[0] == ' ') {
+                    p[0] = '\0';
+                    p++;
+                    break;
+                }
+            }
         }
     }
 
     /////////////////////////////////////////////////////////////////
 
-    if (createSharedLibrary == 1) {
+    if (n2 != 0U) {
+        char * p = ccflags;
+
+        while (p[0] != '\0') {
+            if (p[0] == ' ') {
+                p++;
+                continue;
+            }
+
+            args[argc++] = p;
+
+            for (;;) {
+                p++;
+
+                if (p[0] == '\0') {
+                    break;
+                }
+
+                if (p[0] == ' ') {
+                    p[0] = '\0';
+                    p++;
+                    break;
+                }
+            }
+        }
+    }
+
+    /////////////////////////////////////////////////////////////////
+
+    if (n3 != 0U) {
+        char * p = ldflags;
+
+        while (p[0] != '\0') {
+            if (p[0] == ' ') {
+                p++;
+                continue;
+            }
+
+            args[argc++] = p;
+
+            for (;;) {
+                p++;
+
+                if (p[0] == '\0') {
+                    break;
+                }
+
+                if (p[0] == ' ') {
+                    p[0] = '\0';
+                    p++;
+                    break;
+                }
+            }
+        }
+    }
+
+    /////////////////////////////////////////////////////////////////
+
+    if (action == ACTION_c || action == ACTION_shared) {
         args[argc++] = (char*)"-fPIC";
     }
 
     args[argc++] = NULL;
+    args[0] = compiler;
 
     /////////////////////////////////////////////////////////////////
 
     const char * verbose = getenv("XCPKG_VERBOSE");
 
     if (verbose != NULL && strcmp(verbose, "1") == 0) {
-        for (int i = 0; ;i++) {
+        for (i = 0; ; i++) {
             if (args[i] == NULL) {
                 break;
             } else {

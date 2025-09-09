@@ -4731,7 +4731,7 @@ $PACKAGE_DO12345
 
     TARGET_PLATFORM_NAME_LOWER_CASE="$(printf "$TARGET_PLATFORM_NAME" | tr A-Z a-z)"
 
-    export XCPKG_COMPILER_ARGS="-isysroot $SYSROOT -arch $TARGET_PLATFORM_ARCH -m${TARGET_PLATFORM_NAME_LOWER_CASE}-version-min=$TARGET_PLATFORM_VERS"
+    export XCPKG_TARGET_FLAGS="-isysroot $SYSROOT -arch $TARGET_PLATFORM_ARCH -m${TARGET_PLATFORM_NAME_LOWER_CASE}-version-min=$TARGET_PLATFORM_VERS"
 
     ##################################################################################
 
@@ -4991,7 +4991,7 @@ $PACKAGE_DO12345
                 item="$A $B"
         esac
 
-        XCPKG_COMPILER_ARGS="$XCPKG_COMPILER_ARGS $item"
+        XCPKG_TARGET_LDFLAGS="$XCPKG_TARGET_LDFLAGS $item"
     done
 
     #########################################################################################
@@ -6723,9 +6723,9 @@ EOF
 
 # run in a subshell
 xmakew() {
-    export CC="$XCPKG_COMPILER_C"
-    export AS="$XCPKG_COMPILER_C"
-    export LD="$XCPKG_COMPILER_C"
+    export CC="$XCPKG_CC"
+    export AS="$XCPKG_CC"
+    export LD="$XCPKG_CC"
 
     XMAKE_CONFIG_OPTIONS="$*"
 
@@ -7601,9 +7601,9 @@ inspect_install_arguments() {
     #########################################################################################
 
     # these environment variable is used by wrapper-target-*
-    export XCPKG_COMPILER_C="$XCODE_CC"
-    export XCPKG_COMPILER_CXX="$XCODE_CXX"
-    export XCPKG_COMPILER_OBJC="$XCODE_CC"
+    export XCPKG_CC="$XCODE_CC"
+    export XCPKG_CXX="$XCODE_CXX"
+    export XCPKG_OBJC="$XCODE_CC"
 
     #########################################################################################
 
@@ -7640,7 +7640,7 @@ inspect_install_arguments() {
     #########################################################################################
 
     # these environment variable is used by wrapper-native-*
-    export XCPKG_COMPILER_ARGS_FOR_BUILD="-isysroot $SYSROOT_FOR_BUILD -mmacosx-version-min=$NATIVE_PLATFORM_VERS -arch $NATIVE_PLATFORM_ARCH -Qunused-arguments"
+    export XCPKG_NATIVE_FLAGS="-isysroot $SYSROOT_FOR_BUILD -mmacosx-version-min=$NATIVE_PLATFORM_VERS -arch $NATIVE_PLATFORM_ARCH -Qunused-arguments"
 
     export    CFLAGS_FOR_BUILD=''
     export OBJCFLAGS_FOR_BUILD=''
@@ -8764,7 +8764,7 @@ fi
 
 ##################################################################################
 
-XCPKG_VERSION=0.29.10
+XCPKG_VERSION=0.29.11
 
 XCPKG_ARG0="$0"
 XCPKG_ARG1="$1"
