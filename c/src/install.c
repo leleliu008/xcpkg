@@ -4192,25 +4192,15 @@ static int xcpkg_install_package(
     //////////////////////////////////////////////////////////////////////////////
 
     if (formula->ccflags == NULL) {
-        size_t ccflagsCapacity = commonflagsCapacity + strlen(extraCCFlagsForTargetBuild) + 2U;
-        char   ccflags[ccflagsCapacity];
-
-        ret = snprintf(ccflags, ccflagsCapacity, "%s %s", commonflags, extraCCFlagsForTargetBuild);
-
-        if (ret < 0) {
-            perror(NULL);
-            return XCPKG_ERROR;
-        }
-
-        if (setenv("CFLAGS", ccflags, 1) != 0) {
+        if (setenv("CFLAGS", extraCCFlagsForTargetBuild, 1) != 0) {
             perror("CFLAGS");
             return XCPKG_ERROR;
         }
     } else {
-        size_t ccflagsCapacity = commonflagsCapacity + strlen(extraCCFlagsForTargetBuild) + strlen(formula->ccflags) + 2U;
+        size_t ccflagsCapacity = strlen(extraCCFlagsForTargetBuild) + strlen(formula->ccflags) + 2U;
         char   ccflags[ccflagsCapacity];
 
-        ret = snprintf(ccflags, ccflagsCapacity, "%s %s %s", commonflags, extraCCFlagsForTargetBuild, formula->ccflags);
+        ret = snprintf(ccflags, ccflagsCapacity, "%s %s", extraCCFlagsForTargetBuild, formula->ccflags);
 
         if (ret < 0) {
             perror(NULL);
@@ -4226,25 +4216,15 @@ static int xcpkg_install_package(
     //////////////////////////////////////////////////////////////////////////////
 
     if (formula->xxflags == NULL) {
-        size_t cxxflagsCapacity = commonflagsCapacity + strlen(extraCCFlagsForTargetBuild) + 2U;
-        char   cxxflags[cxxflagsCapacity];
-
-        ret = snprintf(cxxflags, cxxflagsCapacity, "%s %s", commonflags, extraCCFlagsForTargetBuild);
-
-        if (ret < 0) {
-            perror(NULL);
-            return XCPKG_ERROR;
-        }
-
-        if (setenv("CXXFLAGS", cxxflags, 1) != 0) {
+        if (setenv("CXXFLAGS", extraCCFlagsForTargetBuild, 1) != 0) {
             perror("CXXFLAGS");
             return XCPKG_ERROR;
         }
     } else {
-        size_t cxxflagsCapacity = commonflagsCapacity + strlen(extraCCFlagsForTargetBuild) + strlen(formula->xxflags) + 2U;
+        size_t cxxflagsCapacity = strlen(extraCCFlagsForTargetBuild) + strlen(formula->xxflags) + 2U;
         char   cxxflags[cxxflagsCapacity];
 
-        ret = snprintf(cxxflags, cxxflagsCapacity, "%s %s %s", commonflags, extraCCFlagsForTargetBuild, formula->xxflags);
+        ret = snprintf(cxxflags, cxxflagsCapacity, "%s %s", extraCCFlagsForTargetBuild, formula->xxflags);
 
         if (ret < 0) {
             perror(NULL);
@@ -4294,10 +4274,10 @@ static int xcpkg_install_package(
     //////////////////////////////////////////////////////////////////////////////
 
     if (formula->ldflags == NULL) {
-        size_t ldflagsCapacity = commonflagsCapacity + strlen(extraLDFlagsForTargetBuild) + packageWorkingTopDIRCapacity + packageInstalledRootDIRCapacity + packageNameLength + 50U;
+        size_t ldflagsCapacity = strlen(extraLDFlagsForTargetBuild) + packageWorkingTopDIRCapacity + packageInstalledRootDIRCapacity + packageNameLength + 50U;
         char   ldflags[ldflagsCapacity];
 
-        ret = snprintf(ldflags, ldflagsCapacity, "%s %s -L%s/lib -Wl,-rpath,%s/%s/lib", commonflags, extraLDFlagsForTargetBuild, packageWorkingTopDIR, packageInstalledRootDIR, packageName);
+        ret = snprintf(ldflags, ldflagsCapacity, "%s -L%s/lib -Wl,-rpath,%s/%s/lib", extraLDFlagsForTargetBuild, packageWorkingTopDIR, packageInstalledRootDIR, packageName);
 
         if (ret < 0) {
             perror(NULL);
@@ -4309,10 +4289,10 @@ static int xcpkg_install_package(
             return XCPKG_ERROR;
         }
     } else {
-        size_t ldflagsCapacity = commonflagsCapacity + strlen(extraLDFlagsForTargetBuild) + packageWorkingTopDIRCapacity + packageInstalledRootDIRCapacity + packageNameLength + strlen(formula->ldflags) + 50U;
+        size_t ldflagsCapacity = strlen(extraLDFlagsForTargetBuild) + packageWorkingTopDIRCapacity + packageInstalledRootDIRCapacity + packageNameLength + strlen(formula->ldflags) + 50U;
         char   ldflags[ldflagsCapacity];
 
-        ret = snprintf(ldflags, ldflagsCapacity, "%s %s -L%s/lib -Wl,-rpath,%s/%s/lib %s", commonflags, extraLDFlagsForTargetBuild, packageWorkingTopDIR, packageInstalledRootDIR, packageName, formula->ldflags);
+        ret = snprintf(ldflags, ldflagsCapacity, "%s -L%s/lib -Wl,-rpath,%s/%s/lib %s", extraLDFlagsForTargetBuild, packageWorkingTopDIR, packageInstalledRootDIR, packageName, formula->ldflags);
 
         if (ret < 0) {
             perror(NULL);
@@ -5294,9 +5274,59 @@ int xcpkg_install(const char * packageName, const char * targetPlatformSpec, con
 
     //////////////////////////////////////////////////////////////////////////////
 
-    const char * unsetenvs[12] = { "TARGET_ARCH", "AUTOCONF", "AUTOHEADER", "AUTOM4TE", "AUTOMAKE", "AUTOPOINT", "ACLOCAL", "GTKDOCIZE", "INTLTOOLIZE", "LIBTOOLIZE", "M4", "MAKE" };
+    const char * unsetenvs[] = {
+        // autoreconf --help
+        "AUTOCONF",
+        "AUTOHEADER",
+        "AUTOM4TE",
+        "AUTOMAKE",
+        "AUTOPOINT",
+        "ACLOCAL",
+        "GTKDOCIZE",
+        "INTLTOOLIZE",
+        "LIBTOOLIZE",
+        "M4",
+        "MAKE",
+        "autom4te_perllibdir",
+        "trailer_m4",
 
-    for (int i = 0; i < 12; i++) {
+        // https://gcc.gnu.org/onlinedocs/cpp/Environment-Variables.html
+        // https://gcc.gnu.org/onlinedocs/gcc/Environment-Variables.html
+        // https://clang.llvm.org/docs/CommandGuide/clang.html#environment
+        "CPATH",
+        "C_INCLUDE_PATH",
+        "CPLUS_INCLUDE_PATH",
+        "OBJC_INCLUDE_PATH",
+        "OBJCPLUS_INCLUDE_PATH",
+        "DEPENDENCIES_OUTPUT",
+        "SUNPRO_DEPENDENCIES",
+        "SOURCE_DATE_EPOCH",
+        "GCC_EXEC_PREFIX",
+        "COMPILER_PATH",
+        "LIBRARY_PATH",
+
+        // https://cmake.org/cmake/help/latest/envvar/MACOSX_DEPLOYMENT_TARGET.html
+        // https://clang.llvm.org/docs/CommandGuide/clang.html#environment
+        "MACOSX_DEPLOYMENT_TARGET",
+        "IPHONEOS_DEPLOYMENT_TARGET",
+        "WATCHOS_DEPLOYMENT_TARGET",
+
+        // https://cmake.org/cmake/help/latest/envvar/DESTDIR.html
+        // https://www.gnu.org/prep/standards/html_node/DESTDIR.html
+        // https://mensinda.github.io/meson/Installing.html#destdir-support
+        "DESTDIR",
+
+        "TARGET_ARCH",
+
+        "XCPKG_TARGET_LDFLAGS",
+        "XCPKG_TARGET_CCFLAGS",
+        "XCPKG_TARGET_CXXFLAGS",
+        "XCPKG_TARGET_OBJCFLAGS",
+
+        NULL
+    };
+
+    for (int i = 0; unsetenvs[i] != NULL; i++) {
         if (unsetenv(unsetenvs[i]) != 0) {
             perror(unsetenvs[i]);
             return XCPKG_ERROR;
