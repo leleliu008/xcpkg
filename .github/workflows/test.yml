@@ -144,11 +144,11 @@ jobs:
       - run: xcpkg tree ${{ matrix.target-platform }}/uctags
       - run: xcpkg tree ${{ matrix.target-platform }}/uctags -a
 
-      - run: xcpkg bundle ${{ matrix.target-platform }}/uctags .tar.gz
-      - run: xcpkg bundle ${{ matrix.target-platform }}/uctags .tar.lz
-      - run: xcpkg bundle ${{ matrix.target-platform }}/uctags .tar.xz
-      - run: xcpkg bundle ${{ matrix.target-platform }}/uctags .zip
-      - run: xcpkg bundle ${{ matrix.target-platform }}/uctags xx.tar.xz
+      - run: xcpkg bundle ${{ matrix.target-platform }}/uctags tar.gz
+      - run: xcpkg bundle ${{ matrix.target-platform }}/uctags tar.lz
+      - run: xcpkg bundle ${{ matrix.target-platform }}/uctags tar.xz
+      - run: xcpkg bundle ${{ matrix.target-platform }}/uctags zip
+      - run: xcpkg bundle ${{ matrix.target-platform }}/uctags tar.xz -o xx.tar.xz
 
       - run: xcpkg formula-repo-list
 
