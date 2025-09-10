@@ -137,8 +137,8 @@ jobs:
       - run: xcpkg info-installed ${{ matrix.target-platform }}/uctags builtat-rfc-3339
       - run: xcpkg info-installed ${{ matrix.target-platform }}/uctags builtat-iso-8601-utc
       - run: xcpkg info-installed ${{ matrix.target-platform }}/uctags builtat-rfc-3339-utc
-      - run: xcpkg info-installed ${{ matrix.target-platform }}/uctags installed-dir
-      - run: xcpkg info-installed ${{ matrix.target-platform }}/uctags installed-files
+      - run: xcpkg info-installed ${{ matrix.target-platform }}/uctags --prefix
+      - run: xcpkg info-installed ${{ matrix.target-platform }}/uctags --files
 
 
       - run: xcpkg tree ${{ matrix.target-platform }}/uctags
