@@ -52,52 +52,66 @@ int xcpkg_upgrade_self(const bool verbose) {
     int latestVersionMinor = 0;
     int latestVersionPatch = 0;
 
-    int roundN = 1;
-
     char * p = latestVersionStr;
 
-    do {
-        for (int i = 0; ; i++) {
-            if (p[i] == '\0') {
-                if (roundN == 3) {
-                    latestVersionPatch = atoi(p);
-                    p = NULL;
-                    break;
-                } else {
-                    fprintf(stderr, "invalid version format: %s\n", latestVersionStr);
-                    return XCPKG_ERROR;
-                }
-            }
+    ////////////////////////////////////////////////
 
-            if (p[i] == '.') {
-                p[i] = '\0';
+    for (int i = 0; ; i++) {
+        if (p[i] == '.') {
+            p[i] = '\0';
 
-                switch (roundN++) {
-                    case 1: latestVersionMajor = atoi(p); break;
-                    case 2: latestVersionMinor = atoi(p); break;
-                    default:
-                        p[i] = '.';
-                        fprintf(stderr, "invalid version format: %s\n", latestVersionStr);
-                        return XCPKG_ERROR;
-                }
+            latestVersionMajor = atoi(p);
 
-                p[i] = '.';
+            p[i] = '.';
 
-                p += i + 1;
+            p += i + 1;
 
-                break;
-            }
-
-            if (p[i] < '0' || p[i] > '9') {
-                fprintf(stderr, "invalid version format: %s\n", latestVersionStr);
-                return XCPKG_ERROR;
-            }
+            break;
         }
-    } while (p != NULL);
 
-    //////////////////////////////////////////////////////////////////////////////////
+        if (p[i] < '0' || p[i] > '9') {
+            fprintf(stderr, "1invalid version format: %s\n", latestVersionStr);
+            return XCPKG_ERROR;
+        }
+    }
 
-    printf("latestVersionStr=%s\n", latestVersionStr);
+    ////////////////////////////////////////////////
+
+    for (int i = 0; ; i++) {
+        if (p[i] == '.') {
+            p[i] = '\0';
+
+            latestVersionMinor = atoi(p);
+
+            p[i] = '.';
+
+            p += i + 1;
+
+            break;
+        }
+
+        if (p[i] < '0' || p[i] > '9') {
+            fprintf(stderr, "2invalid version format: %s\n", latestVersionStr);
+            return XCPKG_ERROR;
+        }
+    }
+
+    ////////////////////////////////////////////////
+
+    for (int i = 0; ; i++) {
+        if (p[i] == '\0') {
+            latestVersionPatch = atoi(p);
+            break;
+        }
+
+        if (p[i] < '0' || p[i] > '9') {
+            fprintf(stderr, "p=%s, p[%d]=%d\n", p, i, p[i]);
+            fprintf(stderr, "3invalid version format: %s\n", latestVersionStr);
+            return XCPKG_ERROR;
+        }
+    }
+
+    printf("latestVersionStr=%s\n",   latestVersionStr);
     printf("latestVersionMajor=%d\n", latestVersionMajor);
     printf("latestVersionMinor=%d\n", latestVersionMinor);
     printf("latestVersionPatch=%d\n", latestVersionPatch);
@@ -107,11 +121,15 @@ int xcpkg_upgrade_self(const bool verbose) {
     if (latestVersionMajor < XCPKG_VERSION_MAJOR) {
         LOG_SUCCESS1("this software is already the latest version.");
         return XCPKG_OK;
-    } else if (latestVersionMajor == XCPKG_VERSION_MAJOR) {
+    }
+
+    if (latestVersionMajor == XCPKG_VERSION_MAJOR) {
         if (latestVersionMinor < XCPKG_VERSION_MINOR) {
             LOG_SUCCESS1("this software is already the latest version.");
             return XCPKG_OK;
-        } else if (latestVersionMinor == XCPKG_VERSION_MINOR) {
+        }
+
+        if (latestVersionMinor == XCPKG_VERSION_MINOR) {
             if (latestVersionPatch <= XCPKG_VERSION_PATCH) {
                 LOG_SUCCESS1("this software is already the latest version.");
                 return XCPKG_OK;
