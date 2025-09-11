@@ -459,7 +459,7 @@ static int setup_rust_toolchain(const XCPKGInstallOptions * installOptions, cons
             return ret;
         }
 
-        ret = xcpkg_fork_exec2(3, "bash", rustupInitScriptFilePath, "-y");
+        ret = xcpkg_posix_spawn2(3, "bash", rustupInitScriptFilePath, "-y");
 
         if (ret != XCPKG_OK) {
             return ret;
@@ -3169,7 +3169,7 @@ static int xcpkg_build_for_native(
 
     //////////////////////////////////////////////////////////////////////////////
 
-    ret = xcpkg_fork_exec2(3, "/bin/sh", shellScriptFileName, "native");
+    ret = xcpkg_posix_spawn2(3, "/bin/sh", shellScriptFileName, "native");
 
     if (ret != XCPKG_OK) {
         return ret;
@@ -3893,7 +3893,7 @@ static int xcpkg_install_package(
                 return XCPKG_ERROR;
             }
 
-            ret = xcpkg_fork_exec(pipInstallCmd);
+            ret = xcpkg_posix_spawn(pipInstallCmd);
 
             if (ret != XCPKG_OK) {
                 return ret;
@@ -3914,7 +3914,7 @@ static int xcpkg_install_package(
             return XCPKG_ERROR;
         }
 
-        ret = xcpkg_fork_exec(cpanInstallCmd);
+        ret = xcpkg_posix_spawn(cpanInstallCmd);
 
         if (ret != XCPKG_OK) {
             return ret;
@@ -3995,7 +3995,7 @@ static int xcpkg_install_package(
     //////////////////////////////////////////////////////////////////////////////
 
     if (formula->dofetch != NULL) {
-        ret = xcpkg_fork_exec2(3, "/bin/sh", shellScriptFileName, "dofetch");
+        ret = xcpkg_posix_spawn2(3, "/bin/sh", shellScriptFileName, "dofetch");
 
         if (ret != XCPKG_OK) {
             return ret;
@@ -4035,7 +4035,7 @@ static int xcpkg_install_package(
                 return XCPKG_ERROR;
             }
 
-            ret = xcpkg_fork_exec(cmd);
+            ret = xcpkg_posix_spawn(cmd);
 
             if (ret != XCPKG_OK) {
                 return ret;
@@ -4509,7 +4509,7 @@ static int xcpkg_install_package(
 
     //////////////////////////////////////////////////////////////////////////////
 
-    ret = xcpkg_fork_exec2(3, "/bin/sh", shellScriptFileName, "target");
+    ret = xcpkg_posix_spawn2(3, "/bin/sh", shellScriptFileName, "target");
 
     if (ret != XCPKG_OK) {
         return ret;
@@ -4724,7 +4724,7 @@ static int xcpkg_install_package(
         return XCPKG_ERROR;
     }
 
-    ret = xcpkg_fork_exec(treeCmd);
+    ret = xcpkg_posix_spawn(treeCmd);
 
     if (ret != XCPKG_OK) {
         return ret;
@@ -5042,7 +5042,7 @@ static int check_if_compiler_support_Wno_error_unused_command_line_argument(cons
         return XCPKG_ERROR;
     }
 
-    return xcpkg_fork_exec(cmd);
+    return xcpkg_posix_spawn(cmd);
 }
 
 static int setup_core_tools(const char * sessionDIR, const size_t sessionDIRLength, const char * xcpkgCoreDIR, const size_t xcpkgCoreDIRCapacity, bool verbose) {
@@ -5158,7 +5158,7 @@ static int setup_core_tools(const char * sessionDIR, const size_t sessionDIRLeng
             return ret;
         }
 
-        ret = xcpkg_fork_exec2(8, "/usr/bin/cc", "-std=c99", "-Os", "-Wl,-S", "-flto", "-o", o, s);
+        ret = xcpkg_posix_spawn2(8, "/usr/bin/cc", "-std=c99", "-Os", "-Wl,-S", "-flto", "-o", o, s);
 
         if (ret != XCPKG_OK) {
             return ret;

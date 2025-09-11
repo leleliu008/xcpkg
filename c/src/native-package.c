@@ -461,19 +461,19 @@ int install_native_package(
             return XCPKG_ERROR;
         }
 
-        ret = xcpkg_fork_exec(configurePhaseCmd);
+        ret = xcpkg_posix_spawn(configurePhaseCmd);
 
         if (ret != XCPKG_OK) {
             return ret;
         }
 
-        ret = xcpkg_fork_exec2(3, "cmake", "--build", "build.d");
+        ret = xcpkg_posix_spawn2(3, "cmake", "--build", "build.d");
 
         if (ret != XCPKG_OK) {
             return ret;
         }
 
-        ret = xcpkg_fork_exec2(3, "cmake", "--install", "build.d");
+        ret = xcpkg_posix_spawn2(3, "cmake", "--install", "build.d");
 
         if (ret != XCPKG_OK) {
             return ret;
@@ -490,7 +490,7 @@ int install_native_package(
                 return XCPKG_ERROR;
             }
 
-            ret = xcpkg_fork_exec(configurePhaseCmd);
+            ret = xcpkg_posix_spawn(configurePhaseCmd);
 
             if (ret != XCPKG_OK) {
                 return ret;
@@ -506,7 +506,7 @@ int install_native_package(
                 return XCPKG_ERROR;
             }
 
-            ret = xcpkg_fork_exec(configurePhaseCmd);
+            ret = xcpkg_posix_spawn(configurePhaseCmd);
 
             if (ret != XCPKG_OK) {
                 return ret;
@@ -524,7 +524,7 @@ int install_native_package(
             return XCPKG_ERROR;
         }
 
-        ret = xcpkg_fork_exec(buildPhaseCmd);
+        ret = xcpkg_posix_spawn(buildPhaseCmd);
 
         if (ret != XCPKG_OK) {
             return ret;
@@ -532,7 +532,7 @@ int install_native_package(
 
         //////////////////////////////////////////////////////////////////////////////
 
-        ret = xcpkg_fork_exec2(2, "gmake", "install");
+        ret = xcpkg_posix_spawn2(2, "gmake", "install");
 
         if (ret != XCPKG_OK) {
             return ret;
@@ -549,7 +549,7 @@ int install_native_package(
                 return XCPKG_ERROR;
             }
 
-            ret = xcpkg_fork_exec(cmd);
+            ret = xcpkg_posix_spawn(cmd);
 
             if (ret != XCPKG_OK) {
                 return ret;

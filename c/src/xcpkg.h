@@ -596,6 +596,10 @@ int xcpkg_fork_exec(char * cmd);
 
 int xcpkg_fork_exec2(const size_t n, ...);
 
+int xcpkg_posix_spawn(const char * cmd);
+
+int xcpkg_posix_spawn2(const size_t n, ...);
+
 int xcpkg_setenv_SSL_CERT_FILE();
 
 int xcpkg_get_platform_id_by_name(const char * const platformName, XCPKGPlatformID * const platformID);

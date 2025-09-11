@@ -11,10 +11,8 @@
 #include <libgen.h>
 #include <dirent.h>
 #include <sys/stat.h>
-#include <sys/wait.h>
 
 #include "core/sysinfo.h"
-#include "core/log.h"
 #include "core/tar.h"
 
 #include "sha256sum.h"
@@ -583,37 +581,10 @@ static int uppm_install_internal(const char * uppmHomeDIR, const size_t uppmHome
             return ret;
         }
 
-        pid_t pid = fork();
+        ret = xcpkg_posix_spawn2(2, "/bin/sh", shellScriptFilePath);
 
-        if (pid == -1) {
-            perror(NULL);
-            return XCPKG_ERROR;
-        }
-
-        if (pid == 0) {
-            fprintf(stderr, "%s==>%s %s/bin/sh %s %s\n", COLOR_PURPLE, COLOR_OFF, COLOR_GREEN, shellScriptFilePath, COLOR_OFF);
-            execl ("/bin/sh", "/bin/sh", shellScriptFilePath, NULL);
-            perror("/bin/sh");
-            exit(255);
-        } else {
-            int childProcessExitStatusCode;
-
-            if (waitpid(pid, &childProcessExitStatusCode, 0) < 0) {
-                perror(NULL);
-                return XCPKG_ERROR;
-            }
-
-            if (childProcessExitStatusCode != 0) {
-                if (WIFEXITED(childProcessExitStatusCode)) {
-                    fprintf(stderr, "running shell code exit with status code: %d\n", WEXITSTATUS(childProcessExitStatusCode));
-                } else if (WIFSIGNALED(childProcessExitStatusCode)) {
-                    fprintf(stderr, "running shell code killed by signal: %d\n", WTERMSIG(childProcessExitStatusCode));
-                } else if (WIFSTOPPED(childProcessExitStatusCode)) {
-                    fprintf(stderr, "running shell code stopped by signal: %d\n", WSTOPSIG(childProcessExitStatusCode));
-                }
-
-                return XCPKG_ERROR;
-            }
+        if (ret != XCPKG_OK) {
+            return ret;
         }
     }
 
