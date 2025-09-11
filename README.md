@@ -604,8 +604,6 @@ A xcpkg formula's file content only has one level mapping and shall/might have t
 |`reslist`|`LIST`|A LF-delimited list of formatted TEXTs. each TEXT has format: `<res-sha>\|<res-url>[\|res-uri][\|unpack-dir][\|N]`. `unpack-dir` is relative to `$PACKAGE_WORKING_DIR/res`, default value is empty. `N` is `--strip-components=N`|
 ||||
 |`dep-pkg`|`LIST`|A space-separated list of   `xcpkg packages` depended by this package when installing and/or runtime, which will be installed via [xcpkg](https://github.com/leleliu008/xcpkg).|
-|`dep-pkg-musl`|`LIST`|A space-separated list of   `xcpkg packages` depended by this package when installing and/or runtime for target `musl`, which will be installed via [xcpkg](https://github.com/leleliu008/xcpkg).<br> packages that are missing in `musl-libc` e.g. `libfts` `libargp` `libobstack` `libexecinfo`|
-|`dep-res`|`LIST`|A space-separated list of   `well-known resources` needed by this package when installing.<br>The only possible value is `sys/queue.h` at the moment.|
 |`dep-lib`|`LIST`|A space-separated list of `pkg-config` packages needed by this package when installing.<br>each of them will be calculated via `pkg-config --libs-only-l ` then passed to the linker.|
 |`dep-upp`|`LIST`|A space-separated list of   `uppm packages` depended by this package when installing and/or runtime, which will be installed via [uppm](https://github.com/leleliu008/uppm).|
 |`dep-plm`|`LIST`|A space-separated list of    `perl modules` depended by this package when installing and/or runtime, which will be installed via [cpan](https://metacpan.org/dist/CPAN/view/scripts/cpan).|
@@ -619,7 +617,7 @@ A xcpkg formula's file content only has one level mapping and shall/might have t
 |`ppflags`|`LIST`|A space-separated list of arguments to be passed to the PreProcessor.|
 |`ldflags`|`LIST`|A space-separated list of arguments to be passed to the linker.<br>`xcpkg` supports a custom option `-p<PKG-CONFIG-PACKAGE-NAME>`. It will be substituted by the result of `pkg-config --libs-only-l <PKG-CONFIG-PACKAGE-NAME>`|
 ||||
-|`bsystem`|`LIST`|A space-separated list of build system names (e.g. `autogen` `autotools` `configure` `cmake` `cmake+gmake` `cmake+ninja` `meson` `xmake` `gmake` `ninja` `cargo` `cabal` `go` `rake`)|
+|`bsystem`|`LIST`|A space-separated list of build system names (e.g. `autogen` `autotools` `configure` `cmake` `cmake+gmake` `cmake+ninja` `meson` `xmake` `gmake` `ninja` `cargo` `cabal` `zig` `go` `gn` `waf` `rake` `netsurf`)|
 |`bscript`|`PATH`|the directory where the build script is located, relative to `PACKAGE_WORKING_DIR`. build script such as `configure`, `Makefile`, `CMakeLists.txt`, `meson.build`, `Cargo.toml`, etc.|
 |`binbstd`|`BOOL`|whether to build in the directory where the build script is located, otherwise build in other directory.<br>value shall be `0` or `1`. default value is `0`.|
 |`ltoable`|`BOOL`|whether support [LTO](https://gcc.gnu.org/wiki/LinkTimeOptimization).<br>value shall be `0` or `1`. default value is `1`.|

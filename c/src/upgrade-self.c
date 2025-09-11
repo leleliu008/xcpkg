@@ -105,7 +105,6 @@ int xcpkg_upgrade_self(const bool verbose) {
         }
 
         if (p[i] < '0' || p[i] > '9') {
-            fprintf(stderr, "p=%s, p[%d]=%d\n", p, i, p[i]);
             fprintf(stderr, "3invalid version format: %s\n", latestVersionStr);
             return XCPKG_ERROR;
         }
