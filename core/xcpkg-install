@@ -1455,8 +1455,10 @@ __install_for_target() {
                 item="$A $B"
         esac
 
-        XCPKG_COMPILER_ARGS="$XCPKG_COMPILER_ARGS $item"
+        XCPKG_TARGET_LDFLAGS="$XCPKG_TARGET_LDFLAGS $item"
     done
+
+    [ -n "$XCPKG_TARGET_LDFLAGS" ] && export XCPKG_TARGET_LDFLAGS
 
     #########################################################################################
 
