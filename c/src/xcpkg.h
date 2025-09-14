@@ -400,7 +400,7 @@ void xcpkg_receipt_dump(XCPKGReceipt * receipt);
 typedef struct {
     char * cc;
     char * cxx;
-    char * swift;
+    char * swiftc;
     char * as;
     char * ar;
     char * ranlib;

@@ -6,230 +6,129 @@
 #include <unistd.h>
 #include <limits.h>
 #include <fcntl.h>
+#include <spawn.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
 #include <sys/wait.h>
 
+#include <crt_externs.h>
+
 #include "xcpkg.h"
 
-static int read_from_fd(int inputFD, char buf[PATH_MAX]) {
-    ssize_t readSize = read(inputFD, buf, PATH_MAX);
+int xcpkg_run_and_get_output(char buf[PATH_MAX], char* argv[]) {
+    int pipeFDs[2];
 
-    if (readSize < 0) {
-        return -1;
+    if (pipe(pipeFDs) != 0) {
+        perror(NULL);
+        return XCPKG_ERROR;
     }
 
-    if (readSize == 0) {
-        return 0;
+    //////////////////////////////////
+
+    posix_spawn_file_actions_t act;
+    posix_spawn_file_actions_init(&act);
+    posix_spawn_file_actions_addclose(&act, pipeFDs[0]);
+    posix_spawn_file_actions_adddup2( &act, pipeFDs[1], STDOUT_FILENO);
+    posix_spawn_file_actions_addclose(&act, pipeFDs[1]);
+
+    //////////////////////////////////
+
+    pid_t pid;
+
+    int ret = posix_spawnp(&pid, argv[0], &act, NULL, argv, *_NSGetEnviron());
+
+    posix_spawn_file_actions_destroy(&act);
+
+    close(pipeFDs[1]);
+
+    if (ret != 0) {
+        perror(NULL);
+        return XCPKG_ERROR;
     }
 
-    if (buf[readSize - 1] == '\n') {
-        readSize--;
+    //////////////////////////////////
+
+    ssize_t size = read(pipeFDs[0], buf, PATH_MAX);
+
+    if (size == -1) {
+        perror(NULL);
+        return XCPKG_ERROR;
     }
 
-    if (readSize > 0) {
-        buf[readSize] = '\0';
+    if (size > 0) {
+        if (buf[size - 1] == '\n') {
+            size--;
+        }
+
+        if (size > 0) {
+            buf[size] = '\0';
+        }
     }
 
-    return 0;
+    //////////////////////////////////
+
+    int status;
+
+    if (waitpid(pid, &status, 0) == -1) {
+        perror(NULL);
+        return XCPKG_ERROR;
+    }
+
+    if (status == 0) {
+        if (ret == 0) {
+            return XCPKG_OK;
+        } else {
+            perror(NULL);
+            return XCPKG_ERROR;
+        }
+    }
+
+    //////////////////////////////////
+
+    char cmd[1024];
+    char * p = cmd;
+
+    for (size_t i = 0U; argv[i] != NULL; i++) {
+        if (i != 0U) {
+            p[0] = ' ';
+            p++;
+        }
+
+        for (size_t j = 0U; ; j++) {
+            p[j] = argv[i][j];
+
+            if (p[j] == '\0') {
+                p += j;
+                break;
+            }
+        }
+    }
+
+    //////////////////////////////////
+
+    if (WIFEXITED(status)) {
+        fprintf(stderr, "running command '%s' exit with status code: %d\n", cmd, WEXITSTATUS(status));
+    } else if (WIFSIGNALED(status)) {
+        fprintf(stderr, "running command '%s' killed by signal: %d\n", cmd, WTERMSIG(status));
+    } else if (WIFSTOPPED(status)) {
+        fprintf(stderr, "running command '%s' stopped by signal: %d\n", cmd, WSTOPSIG(status));
+    }
+
+    return XCPKG_ERROR;
 }
 
 // https://keith.github.io/xcode-man-pages/xcrun.1.html
 int xcpkg_sdk_path(const char * sdk, char buf[PATH_MAX]) {
-    int pipeFDs[2];
-
-    if (pipe(pipeFDs) != 0) {
-        perror(NULL);
-        return XCPKG_ERROR;
-    }
-
-    ////////////////////////////////////////////////////////////////////
-
-    pid_t pid = fork();
-
-    if (pid < 0) {
-        perror(NULL);
-        return XCPKG_ERROR;
-    }
-
-    if (pid == 0) {
-        close(pipeFDs[0]);
-
-        if (dup2(pipeFDs[1], STDOUT_FILENO) < 0) {
-            perror(NULL);
-            exit(254);
-        }
-
-        execl("/usr/bin/xcrun", "/usr/bin/xcrun", "--sdk", sdk, "--show-sdk-path", NULL);
-
-        perror("/usr/bin/xcrun");
-
-        exit(255);
-    } else {
-        close(pipeFDs[1]);
-
-        int ret = read_from_fd(pipeFDs[0], buf);
-
-        int status;
-
-        if (waitpid(pid, &status, 0) < 0) {
-            perror(NULL);
-            return XCPKG_ERROR;
-        }
-
-        if (status == 0) {
-            if (ret == 0) {
-                return XCPKG_OK;
-            } else {
-                perror(NULL);
-                return XCPKG_ERROR;
-            }
-        }
-
-        if (WIFEXITED(status)) {
-            fprintf(stderr, "running command '/usr/bin/xcrun --sdk %s --show-sdk-path' exit with status code: %d\n", sdk, WEXITSTATUS(status));
-        } else if (WIFSIGNALED(status)) {
-            fprintf(stderr, "running command '/usr/bin/xcrun --sdk %s --show-sdk-path' killed by signal: %d\n", sdk, WTERMSIG(status));
-        } else if (WIFSTOPPED(status)) {
-            fprintf(stderr, "running command '/usr/bin/xcrun --sdk %s --show-sdk-path' stopped by signal: %d\n", sdk, WSTOPSIG(status));
-        }
-
-        return XCPKG_ERROR;
-    }
-}
-
-// https://keith.github.io/xcode-man-pages/xcrun.1.html
-static int xcrun_find(const char * what, char buf[PATH_MAX]) {
-    int pipeFDs[2];
-
-    if (pipe(pipeFDs) != 0) {
-        perror(NULL);
-        return XCPKG_ERROR;
-    }
-
-    ////////////////////////////////////////////////////////////////////
-
-    pid_t pid = fork();
-
-    if (pid < 0) {
-        perror(NULL);
-        return XCPKG_ERROR;
-    }
-
-    if (pid == 0) {
-        close(pipeFDs[0]);
-
-        if (dup2(pipeFDs[1], STDOUT_FILENO) < 0) {
-            perror(NULL);
-            exit(254);
-        }
-
-        execl("/usr/bin/xcrun", "/usr/bin/xcrun", "--sdk", "macosx", "--find", what, NULL);
-
-        perror("/usr/bin/xcrun");
-
-        exit(255);
-    } else {
-        close(pipeFDs[1]);
-
-        int ret = read_from_fd(pipeFDs[0], buf);
-
-        int status;
-
-        if (waitpid(pid, &status, 0) < 0) {
-            perror(NULL);
-            return XCPKG_ERROR;
-        }
-
-        if (status == 0) {
-            if (ret == 0) {
-                return XCPKG_OK;
-            } else {
-                perror(NULL);
-                return XCPKG_ERROR;
-            }
-        }
-
-        if (WIFEXITED(status)) {
-            fprintf(stderr, "running command '/usr/bin/xcrun --sdk macosx --find %s' exit with status code: %d\n", what, WEXITSTATUS(status));
-        } else if (WIFSIGNALED(status)) {
-            fprintf(stderr, "running command '/usr/bin/xcrun --sdk macosx --find %s' killed by signal: %d\n", what, WTERMSIG(status));
-        } else if (WIFSTOPPED(status)) {
-            fprintf(stderr, "running command '/usr/bin/xcrun --sdk macosx --find %s' stopped by signal: %d\n", what, WSTOPSIG(status));
-        }
-
-        return XCPKG_ERROR;
-    }
-}
-
-static int xcode_select_p(char buf[PATH_MAX]) {
-    int pipeFDs[2];
-
-    if (pipe(pipeFDs) != 0) {
-        perror(NULL);
-        return XCPKG_ERROR;
-    }
-
-    ////////////////////////////////////////////////////////////////////
-
-    pid_t pid = fork();
-
-    if (pid < 0) {
-        perror(NULL);
-        return XCPKG_ERROR;
-    }
-
-    if (pid == 0) {
-        close(pipeFDs[0]);
-
-        if (dup2(pipeFDs[1], STDOUT_FILENO) < 0) {
-            perror(NULL);
-            exit(254);
-        }
-
-        execl("/usr/bin/xcode-select", "/usr/bin/xcode-select", "-p", NULL);
-
-        perror("/usr/bin/xcode-select");
-
-        exit(255);
-    } else {
-        close(pipeFDs[1]);
-
-        int ret = read_from_fd(pipeFDs[0], buf);
-
-        int status;
-
-        if (waitpid(pid, &status, 0) < 0) {
-            perror(NULL);
-            return XCPKG_ERROR;
-        }
-
-        if (status == 0) {
-            if (ret == 0) {
-                return XCPKG_OK;
-            } else {
-                perror(NULL);
-                return XCPKG_ERROR;
-            }
-        }
-
-        if (WIFEXITED(status)) {
-            fprintf(stderr, "running command '/usr/bin/xcode-select -p' exit with status code: %d\n", WEXITSTATUS(status));
-        } else if (WIFSIGNALED(status)) {
-            fprintf(stderr, "running command '/usr/bin/xcode-select -p' killed by signal: %d\n", WTERMSIG(status));
-        } else if (WIFSTOPPED(status)) {
-            fprintf(stderr, "running command '/usr/bin/xcode-select -p' stopped by signal: %d\n", WSTOPSIG(status));
-        }
-
-        return XCPKG_ERROR;
-    }
+    const char * argv[] = {"/usr/bin/xcrun", "--sdk", sdk, "--show-sdk-path", NULL};
+    return xcpkg_run_and_get_output(buf, (char**)argv);
 }
 
 static int xcpkg_developer_dir(char buf[PATH_MAX]) {
     const char * developerDIR = getenv("DEVELOPER_DIR");
 
     if (developerDIR == NULL || developerDIR[0] == '\0') {
-        return xcode_select_p(buf);
+        const char * argv[] = {"/usr/bin/xcode-select", "-p", NULL};
+        return xcpkg_run_and_get_output(buf, (char**)argv);
     } else {
         for (int i = 0; ; i++) {
             buf[i] = developerDIR[i];
@@ -248,7 +147,9 @@ static int xcpkg_xcode_version(const char * developerDIR, char ** outP) {
     char fp[PATH_MAX];
 
     if (developerDIR == NULL || developerDIR[0] == '\0') {
-        int ret = xcode_select_p(fp);
+        const char * argv[] = {"/usr/bin/xcode-select", "-p", NULL};
+
+        int ret = xcpkg_run_and_get_output(fp, (char**)argv);
 
         if (ret != XCPKG_OK) {
             return ret;
@@ -440,10 +341,15 @@ int xcpkg_toolchain_find(XCPKGToolChain * toolchain) {
 
     int ret;
 
+    // https://keith.github.io/xcode-man-pages/xcrun.1.html
+    const char * argv[] = {"/usr/bin/xcrun", "--sdk", "macosx", "--find", NULL, NULL};
+
     for (int i = 0; i < 11; i++) {
         buf[0] = '\0';
 
-        ret = xcrun_find(a[i], buf);
+        argv[4] = a[i];
+
+        ret = xcpkg_run_and_get_output(buf, (char**)argv);
 
         if (ret == XCPKG_OK) {
             if (buf[0] == '\0') {
@@ -488,7 +394,7 @@ void xcpkg_toolchain_dump(XCPKGToolChain * toolchain) {
 
     printf("cc:        %s\n", toolchain->cc);
     printf("cxx:       %s\n", toolchain->cxx);
-    printf("swift:     %s\n", toolchain->swift);
+    printf("swiftc:    %s\n", toolchain->swiftc);
     printf("as:        %s\n", toolchain->as);
     printf("ar:        %s\n", toolchain->ar);
     printf("ranlib:    %s\n", toolchain->ranlib);
@@ -515,9 +421,9 @@ void xcpkg_toolchain_free(XCPKGToolChain * toolchain) {
         toolchain->cxx = NULL;
     }
 
-    if (toolchain->swift != NULL) {
-        free(toolchain->swift);
-        toolchain->swift = NULL;
+    if (toolchain->swiftc != NULL) {
+        free(toolchain->swiftc);
+        toolchain->swiftc = NULL;
     }
 
     if (toolchain->as != NULL) {

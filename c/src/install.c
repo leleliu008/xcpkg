@@ -33,6 +33,27 @@ typedef struct {
     bool         value;
 } KB;
 
+static inline __attribute__((always_inline)) void str_buf_append(char buf[], size_t * bufLengthP, const char * s) {
+    size_t n = (*bufLengthP);
+
+    char * p = buf + n;
+
+    if (n != 0U) {
+        n++;
+        p[0] = ' ';
+        p++;
+    }
+
+    for (size_t i = 0U; ; i++) {
+        p[i] = s[i];
+
+        if (p[i] == '\0') {
+            (*bufLengthP) = n + i;
+            break;
+        }
+    }
+}
+
 // https://www.gnu.org/software/gettext/manual/html_node/config_002eguess.html
 // https://git.savannah.gnu.org/cgit/config.git/tree/
 static int fetch_gnu_config(const char * sessionDIR, const size_t sessionDIRCapacity, bool verbose) {
@@ -1091,32 +1112,13 @@ static int install_native_packages_via_uppm_or_build(
         }
     }
 
-    char uppmPackageNames[uppmPackageNamesCapacity];
+    char   uppmPackageNames[uppmPackageNamesCapacity];
+    size_t uppmPackageNamesLength = 0U;
 
-    const char * s = "bash coreutils findutils gsed gawk grep tree pkg-config";
-
-    char * p = uppmPackageNames;
-
-    for (;;) {
-        p[0] = s[0];
-
-        if (s[0] == '\0') break;
-
-        p++;
-        s++;
-    }
+    str_buf_append(uppmPackageNames, &uppmPackageNamesLength, "bash coreutils findutils gsed gawk grep tree pkg-config");
 
     if (installOptions->enableCcache) {
-        s = " ccache";
-
-        for (;;) {
-            p[0] = s[0];
-
-            if (s[0] == '\0') break;
-
-            p++;
-            s++;
-        }
+        str_buf_append(uppmPackageNames, &uppmPackageNamesLength, "ccache");
     }
 
     const char * q = depPackageNames;
@@ -1178,6 +1180,8 @@ static int install_native_packages_via_uppm_or_build(
             needToBuildNetsurf = true;
             needToInstallGmake = true;
         } else {
+            char * p = uppmPackageNames + uppmPackageNamesLength;
+
             p[0] = ' ';
 
             p++;
@@ -1201,6 +1205,8 @@ static int install_native_packages_via_uppm_or_build(
 
     bool bs[4] = {needToInstallGmake, needToInstallGm4, needToInstallPerl, needToInstallPython3};
 
+    const char * s;
+
     for (i = 0U; i < 4U; i++) {
         switch (i) {
             case 0: s = " gmake"  ; break;
@@ -1210,14 +1216,7 @@ static int install_native_packages_via_uppm_or_build(
         }
 
         if (bs[i]) {
-            for (;;) {
-                p[0] = s[0];
-
-                if (s[0] == '\0') break;
-
-                p++;
-                s++;
-            }
+            str_buf_append(uppmPackageNames, &uppmPackageNamesLength, s);
         }
     }
 
@@ -2558,39 +2557,7 @@ static int adjust_la_file(const char * filePath, const char * xcpkgHomeDIR, cons
         return XCPKG_ERROR;
     }
 
-    pid_t pid = fork();
-
-    if (pid < 0) {
-        perror(NULL);
-        return XCPKG_ERROR;
-    }
-
-    if (pid == 0) {
-        execlp("sed", "sed", "-i", "-e", "s/-Wl,--strip-debug//g", "-e", "s|-R[^' ]*||g", "-e", e, filePath, NULL);
-        perror("sed");
-        exit(255);
-    } else {
-        int childProcessExitStatusCode;
-
-        if (waitpid(pid, &childProcessExitStatusCode, 0) < 0) {
-            perror(NULL);
-            return XCPKG_ERROR;
-        }
-
-        if (childProcessExitStatusCode == 0) {
-            return XCPKG_OK;
-        } else {
-            if (WIFEXITED(childProcessExitStatusCode)) {
-                fprintf(stderr, "running command 'sed -i -e s/-Wl,--strip-debug//g -e s|-R[^' ]*||g -e %s %s' exit with status code: %d\n", e, filePath, WEXITSTATUS(childProcessExitStatusCode));
-            } else if (WIFSIGNALED(childProcessExitStatusCode)) {
-                fprintf(stderr, "running command 'sed -i -e s/-Wl,--strip-debug//g -e s|-R[^' ]*||g -e %s %s' killed by signal: %d\n", e, filePath, WTERMSIG(childProcessExitStatusCode));
-            } else if (WIFSTOPPED(childProcessExitStatusCode)) {
-                fprintf(stderr, "running command 'sed -i -e s/-Wl,--strip-debug//g -e s|-R[^' ]*||g -e %s %s' stopped by signal: %d\n", e, filePath, WSTOPSIG(childProcessExitStatusCode));
-            }
-
-            return XCPKG_ERROR;
-        }
-    }
+    return xcpkg_posix_spawn2(9, "sed", "-i", "-e", "s/-Wl,--strip-debug//g", "-e", "s|-R[^' ]*||g", "-e", e, filePath);
 }
 
 static int adjust_la_files(const char * packageInstalledDIR, const size_t packageInstalledDIRCapacity, const char * xcpkgHomeDIR, const size_t xcpkgHomeDIRLength) {
@@ -3583,7 +3550,10 @@ static int xcpkg_install_package(
         const char *  ldFlagsForNativeBuild,
 
         const char * extraCCFlagsForTargetBuild,
+        const size_t extraCCFlagsForTargetBuildLength,
+
         const char * extraLDFlagsForTargetBuild,
+        const size_t extraLDFlagsForTargetBuildLength,
 
         const char * uppmPackageInstalledRootDIR,
         const size_t uppmPackageInstalledRootDIRCapacity,
@@ -4197,7 +4167,7 @@ static int xcpkg_install_package(
             return XCPKG_ERROR;
         }
     } else {
-        size_t ccflagsCapacity = strlen(extraCCFlagsForTargetBuild) + strlen(formula->ccflags) + 2U;
+        size_t ccflagsCapacity = extraCCFlagsForTargetBuildLength + strlen(formula->ccflags) + 2U;
         char   ccflags[ccflagsCapacity];
 
         ret = snprintf(ccflags, ccflagsCapacity, "%s %s", extraCCFlagsForTargetBuild, formula->ccflags);
@@ -4221,7 +4191,7 @@ static int xcpkg_install_package(
             return XCPKG_ERROR;
         }
     } else {
-        size_t cxxflagsCapacity = strlen(extraCCFlagsForTargetBuild) + strlen(formula->xxflags) + 2U;
+        size_t cxxflagsCapacity = extraCCFlagsForTargetBuildLength + strlen(formula->xxflags) + 2U;
         char   cxxflags[cxxflagsCapacity];
 
         ret = snprintf(cxxflags, cxxflagsCapacity, "%s %s", extraCCFlagsForTargetBuild, formula->xxflags);
@@ -4274,10 +4244,10 @@ static int xcpkg_install_package(
     //////////////////////////////////////////////////////////////////////////////
 
     if (formula->ldflags == NULL) {
-        size_t ldflagsCapacity = strlen(extraLDFlagsForTargetBuild) + packageWorkingTopDIRCapacity + packageInstalledRootDIRCapacity + packageNameLength + 50U;
+        size_t ldflagsCapacity = extraLDFlagsForTargetBuildLength + packageWorkingTopDIRCapacity + packageInstalledRootDIRCapacity + packageNameLength + 50U;
         char   ldflags[ldflagsCapacity];
 
-        ret = snprintf(ldflags, ldflagsCapacity, "%s -L%s/lib -Wl,-rpath,%s/%s/lib", extraLDFlagsForTargetBuild, packageWorkingTopDIR, packageInstalledRootDIR, packageName);
+        ret = snprintf(ldflags, ldflagsCapacity, "%s %s -L%s/lib -Wl,-rpath,%s/%s/lib", extraLDFlagsForTargetBuild, (installOptions->buildType == XCPKGBuildProfile_release) ? "-flto" : "", packageWorkingTopDIR, packageInstalledRootDIR, packageName);
 
         if (ret < 0) {
             perror(NULL);
@@ -4289,10 +4259,10 @@ static int xcpkg_install_package(
             return XCPKG_ERROR;
         }
     } else {
-        size_t ldflagsCapacity = strlen(extraLDFlagsForTargetBuild) + packageWorkingTopDIRCapacity + packageInstalledRootDIRCapacity + packageNameLength + strlen(formula->ldflags) + 50U;
+        size_t ldflagsCapacity = extraLDFlagsForTargetBuildLength + packageWorkingTopDIRCapacity + packageInstalledRootDIRCapacity + packageNameLength + strlen(formula->ldflags) + 50U;
         char   ldflags[ldflagsCapacity];
 
-        ret = snprintf(ldflags, ldflagsCapacity, "%s -L%s/lib -Wl,-rpath,%s/%s/lib %s", extraLDFlagsForTargetBuild, packageWorkingTopDIR, packageInstalledRootDIR, packageName, formula->ldflags);
+        ret = snprintf(ldflags, ldflagsCapacity, "%s %s -L%s/lib -Wl,-rpath,%s/%s/lib %s", extraLDFlagsForTargetBuild, (installOptions->buildType == XCPKGBuildProfile_release) ? "-flto" : "", packageWorkingTopDIR, packageInstalledRootDIR, packageName, formula->ldflags);
 
         if (ret < 0) {
             perror(NULL);
@@ -5608,92 +5578,34 @@ int xcpkg_install(const char * packageName, const char * targetPlatformSpec, con
 
     //////////////////////////////////////////////////////////////////////////////
 
-    size_t extraCCFlagsCapacity = 50U;
-    char   extraCCFlags[extraCCFlagsCapacity];
+    size_t extraCCFlagsLength = 0U;
+    char   extraCCFlags[50];
 
-    const char * s = "-fPIC -fno-common";
-
-    char * p = extraCCFlags;
-
-    for (int i = 0; ; i++) {
-        p[i] = s[i];
-
-        if (s[i] == '\0') {
-            p = &p[i];
-            break;
-        }
-    }
+    str_buf_append(extraCCFlags, &extraCCFlagsLength, "-fPIC -fno-common");
 
     if (installOptions->buildType == XCPKGBuildProfile_release) {
-        s = " -Os";
+        str_buf_append(extraCCFlags, &extraCCFlagsLength, "-Os");
     } else {
-        s = " -g -O0";
-    }
-
-    for (int i = 0; ; i++) {
-        p[i] = s[i];
-
-        if (s[i] == '\0') {
-            p = &p[i];
-            break;
-        }
+        str_buf_append(extraCCFlags, &extraCCFlagsLength, "-O0 -g");
     }
 
     if (installOptions->verbose_cc) {
-        s = " -v";
-
-        for (int i = 0; ; i++) {
-            p[i] = s[i];
-
-            if (s[i] == '\0') {
-                p = &p[i];
-                break;
-            }
-        }
+        str_buf_append(extraCCFlags, &extraCCFlagsLength, "-v");
     }
 
     //////////////////////////////////////////////////////////////////////////////
 
-    size_t extraLDFlagsCapacity = 50U;
-    char   extraLDFlags[extraLDFlagsCapacity];
+    size_t extraLDFlagsLength = 0U;
+    char   extraLDFlags[50];
 
-    s = "-Wl,-search_paths_first";
-
-    p = extraLDFlags;
-
-    for (int i = 0; ; i++) {
-        p[i] = s[i];
-
-        if (s[i] == '\0') {
-            p = &p[i];
-            break;
-        }
-    }
+    str_buf_append(extraLDFlags, &extraLDFlagsLength, "-Wl,-search_paths_first");
 
     if (installOptions->buildType == XCPKGBuildProfile_release) {
-        s = " -Wl,-S";
-
-        for (int i = 0; ; i++) {
-            p[i] = s[i];
-
-            if (s[i] == '\0') {
-                p = &p[i];
-                break;
-            }
-        }
+        str_buf_append(extraLDFlags, &extraLDFlagsLength, "-Wl,-S");
     }
 
     if (installOptions->verbose_ld) {
-        s = " -Wl,-v";
-
-        for (int i = 0; ; i++) {
-            p[i] = s[i];
-
-            if (s[i] == '\0') {
-                p = &p[i];
-                break;
-            }
-        }
+        str_buf_append(extraLDFlags, &extraLDFlagsLength, "-Wl,-v");
     }
 
     //////////////////////////////////////////////////////////////////////////////
@@ -5775,7 +5687,7 @@ int xcpkg_install(const char * packageName, const char * targetPlatformSpec, con
         fprintf(stderr, "dot=%s\n", dot.ptr);
         fprintf(stderr, "d2=%s\n", d2.ptr);
 
-        ret = xcpkg_install_package(packageName, targetPlatformSpec, package->formula, installOptions, &toolchain, &sysinfo, ccForNativeBuild, cxxForNativeBuild, cppForNativeBuild, objcForNativeBuild, ccForTargetBuild, cxxForTargetBuild, cppForTargetBuild, objcForTargetBuild, extraCCFlags, extraCCFlags, "", extraLDFlags, extraCCFlags, extraLDFlags, uppmPackageInstalledRootDIR, uppmPackageInstalledRootDIRCapacity, xcpkgExeFilePath, xcpkgHomeDIR, xcpkgHomeDIRLength, xcpkgCoreDIR, xcpkgCoreDIRCapacity, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, sessionDIR, sessionDIRLength, &txt, &dot, &d2);
+        ret = xcpkg_install_package(packageName, targetPlatformSpec, package->formula, installOptions, &toolchain, &sysinfo, ccForNativeBuild, cxxForNativeBuild, cppForNativeBuild, objcForNativeBuild, ccForTargetBuild, cxxForTargetBuild, cppForTargetBuild, objcForTargetBuild, extraCCFlags, extraCCFlags, "", extraLDFlags, extraCCFlags, extraCCFlagsLength, extraLDFlags, extraLDFlagsLength, uppmPackageInstalledRootDIR, uppmPackageInstalledRootDIRCapacity, xcpkgExeFilePath, xcpkgHomeDIR, xcpkgHomeDIRLength, xcpkgCoreDIR, xcpkgCoreDIRCapacity, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, sessionDIR, sessionDIRLength, &txt, &dot, &d2);
 
         free(txt.ptr);
         free(dot.ptr);

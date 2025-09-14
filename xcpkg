@@ -4972,6 +4972,11 @@ $PACKAGE_DO12345
 
     #########################################################################################
 
+    unset XCPKG_TARGET_LDFLAGS
+    unset XCPKG_TARGET_CCFLAGS
+    unset XCPKG_TARGET_CXXFLAGS
+    unset XCPKG_TARGET_OBJCFLAGS
+
     for item in $PACKAGE_DEP_LIB
     do
         case $item in
@@ -4984,6 +4989,8 @@ $PACKAGE_DO12345
 
         XCPKG_TARGET_LDFLAGS="$XCPKG_TARGET_LDFLAGS $item"
     done
+
+    [ -n "$XCPKG_TARGET_LDFLAGS" ] && export XCPKG_TARGET_LDFLAGS
 
     #########################################################################################
 
