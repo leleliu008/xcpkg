@@ -1190,6 +1190,8 @@ static int install_native_packages_via_uppm_or_build(
                 p[j] = q[j];
             }
 
+            uppmPackageNamesLength += i + 1;
+
             p += i;
             p[0] = '\0';
         }
