@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-15, macos-14, macos-13]
+        os: [macos-15, macos-14, macos-26]
 
     runs-on: ${{ matrix.os }}
 
@@ -152,7 +152,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-15, macos-14, macos-13]
+        os: [macos-15, macos-14, macos-26]
 
     runs-on: ${{ matrix.os }}
 
@@ -198,7 +198,7 @@ jobs:
           end
           EOF
 
-      - if: matrix.os == 'macos-13'
+      - if: matrix.os == 'macos-26'
         run: brew install --overwrite python@3.12
 
       - run: brew uninstall cmake
