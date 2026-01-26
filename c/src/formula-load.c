@@ -1430,14 +1430,14 @@ finalize:
                     size_t len = strlen(packageName);
 
                     if (len > 3) {
-                        if (strncmp(packageName + len - 4, "lib", 3) == 0) {
+                        if (strncmp(packageName + len - 3, "lib", 3) == 0) {
                             pkgtype = XCPKGPkgType_lib;
                         }
                     }
 
                     if (pkgtype == -1) {
                         if (len > 4) {
-                            if (strncmp(packageName + len - 5, "-dev", 4) == 0) {
+                            if (strncmp(packageName + len - 4, "-dev", 4) == 0) {
                                 pkgtype = XCPKGPkgType_lib;
                             }
                         }
