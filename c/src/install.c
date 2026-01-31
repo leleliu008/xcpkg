@@ -1088,10 +1088,12 @@ static int install_native_packages_via_uppm_or_build(
     bool needToBuildHelp2man = false;
     bool needToBuildIntltool = false;
     bool needToBuildItstool  = false;
+    bool needToBuildGTKDoc   = false;
     bool needToBuildPerlXMLParser = false;
     bool needToBuildAutoconfArchive = false;
     bool needToBuildNetsurf  = false;
 
+    bool needToInstallNinja  = false;
     bool needToInstallGmake  = false;
     bool needToInstallGm4    = false;
     bool needToInstallPerl   = false;
@@ -1159,11 +1161,15 @@ static int install_native_packages_via_uppm_or_build(
             needToInstallPerl   = true;
         } else if (_str_equal(q, "intltool")) {
             needToBuildIntltool = true;
-            needToInstallGmake = true;
-            needToInstallPerl  = true;
+            needToInstallGmake  = true;
+            needToInstallPerl   = true;
         } else if (_str_equal(q, "itstool")) {
-            needToBuildItstool = true;
-            needToInstallGmake = true;
+            needToBuildItstool   = true;
+            needToInstallGmake   = true;
+            needToInstallPython3 = true;
+        } else if (_str_equal(q, "gtk-doc")) {
+            needToBuildGTKDoc    = true;
+            needToInstallNinja   = true;
             needToInstallPython3 = true;
         } else if (_str_equal(q, "perl-XML-Parser")) {
             needToBuildPerlXMLParser = true;
@@ -1205,16 +1211,17 @@ static int install_native_packages_via_uppm_or_build(
         q++;
     }
 
-    bool bs[4] = {needToInstallGmake, needToInstallGm4, needToInstallPerl, needToInstallPython3};
+    bool bs[5] = {needToInstallNinja, needToInstallGmake, needToInstallGm4, needToInstallPerl, needToInstallPython3};
 
     const char * s;
 
     for (i = 0U; i < 4U; i++) {
         switch (i) {
-            case 0: s = " gmake"  ; break;
-            case 1: s = " gm4"    ; break;
-            case 2: s = " perl"   ; break;
-            case 3: s = " python3"; break;
+            case 0: s = "ninja"  ; break;
+            case 1: s = "gmake"  ; break;
+            case 2: s = "gm4"    ; break;
+            case 3: s = "perl"   ; break;
+            case 4: s = "python3"; break;
         }
 
         if (bs[i]) {
@@ -1310,6 +1317,11 @@ static int install_native_packages_via_uppm_or_build(
 
     if (needToBuildLibOpenssl) {
         nativePackageIDArray[nativePackageIDArraySize] = NATIVE_PACKAGE_ID_OPENSSL;
+        nativePackageIDArraySize++;
+    }
+
+    if (needToBuildGTKDoc) {
+        nativePackageIDArray[nativePackageIDArraySize] = NATIVE_PACKAGE_ID_GTK_DOC;
         nativePackageIDArraySize++;
     }
 
@@ -2968,6 +2980,16 @@ static int generate_receipt(const char * packageName, const XCPKGFormula * formu
 
     if (formula->version_is_calculated) {
         fprintf(receiptFile, "version: %s\n", formula->version);
+    } else {
+        if (formula->version == NULL) {
+            struct tm * tms = gmtime(&ts);
+
+            char p[11];
+
+            strftime(p, 11, "%Y.%m.%d", tms);
+
+            fprintf(receiptFile, "version: %s\n", p);
+        }
     }
 
     if (formula->bsystem_is_calculated) {
@@ -4164,15 +4186,51 @@ static int xcpkg_install_package(
     //////////////////////////////////////////////////////////////////////////////
 
     if (formula->ccflags == NULL) {
-        if (setenv("CFLAGS", extraCCFlagsForTargetBuild, 1) != 0) {
+        size_t ccflagsCapacity = extraCCFlagsForTargetBuildLength + 6U;
+        char   ccflags[ccflagsCapacity];
+
+        ret = snprintf(ccflags, ccflagsCapacity, "%s -O%s", extraCCFlagsForTargetBuild, (installOptions->buildType == XCPKGBuildProfile_release) ? "s" : "0");
+
+        if (ret < 0) {
+            perror(NULL);
+            return XCPKG_ERROR;
+        }
+
+        if (setenv("CFLAGS", ccflags, 1) != 0) {
             perror("CFLAGS");
             return XCPKG_ERROR;
         }
     } else {
-        size_t ccflagsCapacity = extraCCFlagsForTargetBuildLength + strlen(formula->ccflags) + 2U;
+        bool hasOFLag = false;
+
+        const char * p = formula->ccflags;
+
+        while (p[0] != '\0') {
+            if (p[0] == ' ') {
+                p++;
+                continue;
+            }
+
+            if (p[0] == '-' && p[1] == 'O' && (p[3] == ' ' || p[3] == '\0')) {
+                hasOFLag = true;
+                break;
+            }
+
+            loop:
+                if (p[0] == '\0') break;
+                if (p[0] == ' ')  break;
+                p++;
+                goto loop;
+        }
+
+        const char * defaultOFlag = (installOptions->buildType == XCPKGBuildProfile_release) ? "-Os" : "-O0";
+
+        const char * oFlag = hasOFLag ? "" : defaultOFlag;
+
+        size_t ccflagsCapacity = extraCCFlagsForTargetBuildLength + strlen(formula->ccflags) + 6U;
         char   ccflags[ccflagsCapacity];
 
-        ret = snprintf(ccflags, ccflagsCapacity, "%s %s", extraCCFlagsForTargetBuild, formula->ccflags);
+        ret = snprintf(ccflags, ccflagsCapacity, "%s %s %s", extraCCFlagsForTargetBuild, oFlag, formula->ccflags);
 
         if (ret < 0) {
             perror(NULL);
@@ -5581,14 +5639,12 @@ int xcpkg_install(const char * packageName, const char * targetPlatformSpec, con
     //////////////////////////////////////////////////////////////////////////////
 
     size_t extraCCFlagsLength = 0U;
-    char   extraCCFlags[50];
+    char   extraCCFlags[30];
 
     str_buf_append(extraCCFlags, &extraCCFlagsLength, "-fPIC -fno-common");
 
-    if (installOptions->buildType == XCPKGBuildProfile_release) {
-        str_buf_append(extraCCFlags, &extraCCFlagsLength, "-Os");
-    } else {
-        str_buf_append(extraCCFlags, &extraCCFlagsLength, "-O0 -g");
+    if (installOptions->buildType == XCPKGBuildProfile_debug) {
+        str_buf_append(extraCCFlags, &extraCCFlagsLength, "-g");
     }
 
     if (installOptions->verbose_cc) {

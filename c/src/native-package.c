@@ -10,8 +10,9 @@
 
 #include "native-package.h"
 
-#define BUILD_SYSTEM_TYPE_CMAKE     1
-#define BUILD_SYSTEM_TYPE_CONFIGURE 2
+#define BUILD_SYSTEM_TYPE_CONFIGURE 1
+#define BUILD_SYSTEM_TYPE_CMAKE     2
+#define BUILD_SYSTEM_TYPE_MESON     3
 
 static int getNativePackageInfoByID(const int packageID, NativePackage * package) {
     switch (packageID) {
@@ -90,6 +91,13 @@ static int getNativePackageInfoByID(const int packageID, NativePackage * package
             package->depPackageIDArray[0] = NATIVE_PACKAGE_ID_LIBXML2;
             package->buildConfigureArgs = "";
             package->buildSystemType = BUILD_SYSTEM_TYPE_CONFIGURE;
+            break;
+        case NATIVE_PACKAGE_ID_GTK_DOC:
+            package->name = "gtk-doc";
+            package->srcUrl = "https://download.gnome.org/sources/gtk-doc/1.35/gtk-doc-1.35.1.tar.xz";
+            package->srcSha = "611c9f24edd6d88a8ae9a79d73ab0dc63c89b81e90ecc31d6b9005c5f05b25e2";
+            package->buildConfigureArgs = "-Dtests=false -Dyelp_manual=false";
+            package->buildSystemType = BUILD_SYSTEM_TYPE_MESON;
             break;
         case NATIVE_PACKAGE_ID_AUTOCONF_ARCHIVE:
             package->name = "autoconf-archive";
@@ -474,6 +482,42 @@ int install_native_package(
         }
 
         ret = xcpkg_posix_spawn2(3, "cmake", "--install", "build.d");
+
+        if (ret != XCPKG_OK) {
+            return ret;
+        }
+    } else if (buildSystemType == BUILD_SYSTEM_TYPE_MESON) {
+        if (packageID == NATIVE_PACKAGE_ID_GTK_DOC) {
+            ret = xcpkg_posix_spawn2(9, "python3", "-m", "pip", "install", "--upgrade", "pip", "meson", "pygments", "lxml");
+
+            if (ret != XCPKG_OK) {
+                return ret;
+            }
+        }
+
+        size_t configurePhaseCmdLength = packageInstalledDIRCapacity + strlen(buildConfigureArgs) + 110U;
+        char   configurePhaseCmd[configurePhaseCmdLength];
+
+        ret = snprintf(configurePhaseCmd, configurePhaseCmdLength, "meson setup --buildtype=release --backend=ninja -Ddefault_library=both -Dlibdir=lib --prefix=%s %s %s build.d .", packageInstalledDIR, (installOptions->logLevel >= XCPKGLogLevel_verbose) ? "-v" : "", buildConfigureArgs);
+
+        if (ret < 0) {
+            perror(NULL);
+            return XCPKG_ERROR;
+        }
+
+        ret = xcpkg_posix_spawn(configurePhaseCmd);
+
+        if (ret != XCPKG_OK) {
+            return ret;
+        }
+
+        ret = xcpkg_posix_spawn2(4, "meson", "compile", "-C", "build.d");
+
+        if (ret != XCPKG_OK) {
+            return ret;
+        }
+
+        ret = xcpkg_posix_spawn2(4, "meson", "install", "-C", "build.d");
 
         if (ret != XCPKG_OK) {
             return ret;

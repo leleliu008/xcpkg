@@ -1,4 +1,3 @@
-#include <time.h>
 #include <errno.h>
 #include <stdio.h>
 #include <string.h>
@@ -1078,20 +1077,9 @@ static inline int xcpkg_formula_check(XCPKGFormula * formula, const char * formu
             }
         }
 
-        if (formula->version == NULL) {
-            time_t tt = time(NULL);
-            struct tm * tms = gmtime(&tt);
-
-            formula->version = (char*)calloc(11, sizeof(char));
-
-            if (formula->version == NULL) {
-                return XCPKG_ERROR_MEMORY_ALLOCATE;
-            }
-
-            strftime(formula->version, 11, "%Y.%m.%d", tms);
+        if (formula->version != NULL) {
+            formula->version_is_calculated = true;
         }
-
-        formula->version_is_calculated = true;
     }
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////
