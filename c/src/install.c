@@ -1215,7 +1215,7 @@ static int install_native_packages_via_uppm_or_build(
 
     const char * s;
 
-    for (i = 0U; i < 4U; i++) {
+    for (i = 0U; i < 5U; i++) {
         switch (i) {
             case 0: s = "ninja"  ; break;
             case 1: s = "gmake"  ; break;

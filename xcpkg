@@ -3457,6 +3457,9 @@ EOF
         cmake)
             PACKAGE_INSTALL="run $PACKAGE_INSTALL -DCMAKE_INSTALL_PREFIX=$PACKAGE_INSTALL_DIR -DENABLE_TESTING=OFF -DCMAKE_VERBOSE_MAKEFILE=ON -DCMAKE_BUILD_TYPE=Release -G Ninja -S . -B build.d && run cmake --build build.d -- -j$BUILD_NJOBS && run cmake --install build.d"
             ;;
+        meson)
+            PACKAGE_INSTALL="run $PACKAGE_INSTALL --buildtype=release --backend=ninja -Ddefault_library=both -Dlibdir=lib --prefix=$PACKAGE_INSTALL_DIR build.d && run meson compile -C build.d && run meson install -C build.d"
+            ;;
     esac
 
     eval "$PACKAGE_INSTALL"
@@ -3675,6 +3678,14 @@ native_package_info_netsurf_buildsystem() {
     PACKAGE_SRC_SHA='3d3e39d569e44677c4b179129bde614c65798e2b3e6253160239d1fd6eae4d79'
     PACKAGE_DEP_AUX='gmake'
     PACKAGE_INSTALL='gmake install "PREFIX=$PACKAGE_INSTALL_DIR"'
+}
+
+native_package_info_gtk_doc() {
+    PACKAGE_SRC_URL='https://download.gnome.org/sources/gtk-doc/1.35/gtk-doc-1.35.1.tar.xz'
+    PACKAGE_SRC_SHA='611c9f24edd6d88a8ae9a79d73ab0dc63c89b81e90ecc31d6b9005c5f05b25e2'
+    PACKAGE_DEP_AUX='ninja'
+    PACKAGE_DOPATCH='python3 -m pip install --upgrade pip meson pygments lxml'
+    PACKAGE_INSTALL='meson setup -Dtests=false -Dyelp_manual=false'
 }
 
 # }}}
@@ -4114,6 +4125,10 @@ $DOT_CONTENT
             itstool)
                 PACKAGE_DEP_AUX_NEED_TO_BUILD_LOCALLY="$PACKAGE_DEP_AUX_NEED_TO_BUILD_LOCALLY itstool"
                 PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP perl python3"
+                ;;
+            gtk-doc)
+                PACKAGE_DEP_AUX_NEED_TO_BUILD_LOCALLY="$PACKAGE_DEP_AUX_NEED_TO_BUILD_LOCALLY gtk_doc"
+                PACKAGE_DEP_UPP="$PACKAGE_DEP_UPP python3 ninja"
                 ;;
             autoconf-archive)
                 PACKAGE_DEP_AUX_NEED_TO_BUILD_LOCALLY="$PACKAGE_DEP_AUX_NEED_TO_BUILD_LOCALLY autoconf_archive"
@@ -8762,7 +8777,7 @@ fi
 
 ##################################################################################
 
-XCPKG_VERSION=0.29.11
+XCPKG_VERSION=0.29.12
 
 XCPKG_ARG0="$0"
 XCPKG_ARG1="$1"
