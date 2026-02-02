@@ -106,11 +106,11 @@ jobs:
       - run: ./output/bin/xcpkg info-installed libzip builtat-rfc-3339
       - run: ./output/bin/xcpkg info-available libzip version
 
-      - run: ./output/bin/xcpkg bundle libzip tar.gz
-      - run: ./output/bin/xcpkg bundle libzip tar.lz
-      - run: ./output/bin/xcpkg bundle libzip tar.xz
-      - run: ./output/bin/xcpkg bundle libzip tar.bz2
-      - run: ./output/bin/xcpkg bundle libzip zip
+      - run: ./output/bin/xcpkg bundle libzip .tar.gz
+      - run: ./output/bin/xcpkg bundle libzip .tar.lz
+      - run: ./output/bin/xcpkg bundle libzip .tar.xz
+      - run: ./output/bin/xcpkg bundle libzip .tar.bz2
+      - run: ./output/bin/xcpkg bundle libzip .zip
 
       - run: |
           printf '%s\n' 'version: 1000' >> ~/.xcpkg/repos.d/official-core/formula/libzip.yml
@@ -237,11 +237,11 @@ jobs:
       - run: ./output/bin/xcpkg info-installed libzip builtat-rfc-3339
       - run: ./output/bin/xcpkg info-available libzip version
 
-      - run: ./output/bin/xcpkg bundle libzip tar.gz
-      - run: ./output/bin/xcpkg bundle libzip tar.lz
-      - run: ./output/bin/xcpkg bundle libzip tar.xz
-      - run: ./output/bin/xcpkg bundle libzip tar.bz2
-      - run: ./output/bin/xcpkg bundle libzip zip
+      - run: ./output/bin/xcpkg bundle libzip .tar.gz
+      - run: ./output/bin/xcpkg bundle libzip .tar.lz
+      - run: ./output/bin/xcpkg bundle libzip .tar.xz
+      - run: ./output/bin/xcpkg bundle libzip .tar.bz2
+      - run: ./output/bin/xcpkg bundle libzip .zip
 
       - run: |
           printf '%s\n' 'version: 1000' >> ~/.xcpkg/repos.d/official-core/formula/libzip.yml

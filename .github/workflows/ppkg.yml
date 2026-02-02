@@ -96,11 +96,11 @@ jobs:
       - run: bin/xcpkg info-installed libzip builtat-rfc-3339
       - run: bin/xcpkg info-available libzip version
 
-      - run: bin/xcpkg bundle libzip tar.gz
-      - run: bin/xcpkg bundle libzip tar.lz
-      - run: bin/xcpkg bundle libzip tar.xz
-      - run: bin/xcpkg bundle libzip tar.bz2
-      - run: bin/xcpkg bundle libzip zip
+      - run: bin/xcpkg bundle libzip .tar.gz
+      - run: bin/xcpkg bundle libzip .tar.lz
+      - run: bin/xcpkg bundle libzip .tar.xz
+      - run: bin/xcpkg bundle libzip .tar.bz2
+      - run: bin/xcpkg bundle libzip .zip
 
       - run: |
           printf '%s\n' 'version: 1000' >> ~/.xcpkg/repos.d/official-core/formula/libzip.yml

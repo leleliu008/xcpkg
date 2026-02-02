@@ -122,11 +122,11 @@ jobs:
       - run: xcpkg info-installed libzip builtat-rfc-3339
       - run: xcpkg info-installed libzip version
 
-      - run: xcpkg bundle libzip tar.gz
-      - run: xcpkg bundle libzip tar.lz
-      - run: xcpkg bundle libzip tar.xz
-      - run: xcpkg bundle libzip tar.bz2
-      - run: xcpkg bundle libzip zip
+      - run: xcpkg bundle libzip .tar.gz
+      - run: xcpkg bundle libzip .tar.lz
+      - run: xcpkg bundle libzip .tar.xz
+      - run: xcpkg bundle libzip .tar.bz2
+      - run: xcpkg bundle libzip .zip
 
       - run: |
           printf '%s\n' 'version: 1000' >> ~/.xcpkg/repos.d/official-core/formula/libzip.yml
@@ -281,11 +281,11 @@ jobs:
       - run: xcpkg info-installed libzip builtat-rfc-3339
       - run: xcpkg info-installed libzip version
 
-      - run: xcpkg bundle libzip tar.gz
-      - run: xcpkg bundle libzip tar.lz
-      - run: xcpkg bundle libzip tar.xz
-      - run: xcpkg bundle libzip tar.bz2
-      - run: xcpkg bundle libzip zip
+      - run: xcpkg bundle libzip .tar.gz
+      - run: xcpkg bundle libzip .tar.lz
+      - run: xcpkg bundle libzip .tar.xz
+      - run: xcpkg bundle libzip .tar.bz2
+      - run: xcpkg bundle libzip .zip
 
       - run: |
           printf '%s\n' 'version: 1000' >> ~/.xcpkg/repos.d/official-core/formula/libzip.yml
