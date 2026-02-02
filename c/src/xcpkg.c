@@ -1537,16 +1537,21 @@ static inline int xcpkg_action_bundle(int argc, char* argv[]) {
 
     ArchiveType outputType = ArchiveType_tar_xz;
 
-    if (strcmp(argv[3], "zip") == 0) {
-        outputType = ArchiveType_zip;
-    } else if (strcmp(argv[3], "tar.gz") == 0) {
-        outputType = ArchiveType_tar_gz;
-    } else if (strcmp(argv[3], "tar.lz") == 0) {
-        outputType = ArchiveType_tar_lz;
-    } else if (strcmp(argv[3], "tar.xz") == 0) {
-        outputType = ArchiveType_tar_xz;
-    } else if (strcmp(argv[3], "tar.bz2") == 0) {
-        outputType = ArchiveType_tar_bz2;
+    if (argv[3][0] == '.') {
+        if (strcmp(argv[3] + 1, "zip") == 0) {
+            outputType = ArchiveType_zip;
+        } else if (strcmp(argv[3] + 1, "tar.gz") == 0) {
+            outputType = ArchiveType_tar_gz;
+        } else if (strcmp(argv[3] + 1, "tar.lz") == 0) {
+            outputType = ArchiveType_tar_lz;
+        } else if (strcmp(argv[3] + 1, "tar.xz") == 0) {
+            outputType = ArchiveType_tar_xz;
+        } else if (strcmp(argv[3] + 1, "tar.bz2") == 0) {
+            outputType = ArchiveType_tar_bz2;
+        } else {
+            LOG_ERROR2("unsupported bundle type: ", argv[3]);
+            return XCPKG_ERROR_PACKAGE_NAME_IS_INVALID;
+        }
     } else {
         LOG_ERROR2("unsupported bundle type: ", argv[3]);
         return XCPKG_ERROR_PACKAGE_NAME_IS_INVALID;
