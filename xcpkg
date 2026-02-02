@@ -5501,14 +5501,14 @@ $PACKAGE_DOTWEAK
 
     step "docheck"
 
-    unset FILES_NEED_TO_BE_SET_RPATH
+    unset EXECUTABLES_NEED_TO_BE_SET_RPATH
 
     __check_mach_o_files
 
-    [ -n "$FILES_NEED_TO_BE_SET_RPATH" ] && {
+    if [ -n "$EXECUTABLES_NEED_TO_BE_SET_RPATH" ] ; then
         step "set rpath for executables"
 
-        KVs="$(printf '%s\n' "$FILES_NEED_TO_BE_SET_RPATH" | sort | uniq)"
+        KVs="$(printf '%s\n' "$EXECUTABLES_NEED_TO_BE_SET_RPATH" | sort | uniq)"
 
         for KV in $KVs
         do
@@ -5521,7 +5521,7 @@ $PACKAGE_DOTWEAK
 
             run install_name_tool -add_rpath "@executable_path/$RELATIVE_PATH" "$K" || true
         done
-    }
+    fi
 
     #########################################################################################
 
@@ -5653,46 +5653,48 @@ EOF
 }
 
 __check_mach_o_files() {
-    while read -r LINE
+    install -d .xcpkg/dependencies/lib/ .xcpkg/tmp/
+
+    find -type f -not -name files.txt -printf '%P\n' > files.txt
+
+    while read -r FILEPATH
     do
-        FILETYPE="${LINE%%|*}"
-        FILEPATH="${LINE##*|}"
+        [ -f "$FILEPATH" ] || continue
 
-        [ "$FILETYPE" = f ] || continue
-        [ -f "$FILEPATH" ]  || continue
+        FILEHEAD="$(hexdump -n 16 -v -e '1/1 "%02X" ""' "$FILEPATH")"
 
-        FILE_HEADER_ACTUAL="$(hexdump -n 16 -v -e '1/1 "%02X" ""' "$FILEPATH")"
-
-        unset LIBRARY
-        unset EXECUTABLE
+        # 0 unknown
+        # 1 executable
+        # 2 library
+        FILETYPE=0
 
         # https://github.com/aidansteele/osx-abi-macho-file-format-reference
-        case $FILE_HEADER_ACTUAL in
+        case $FILEHEAD in
             CFFAEDFE0C0000010000000002000000)
                 # arm64 executable
-                EXECUTABLE=1
+                FILETYPE=1
                 ;;
             CFFAEDFE0C0000010000000006000000)
                 # arm64 shared library
-                LIBRARY=1
+                FILETYPE=2
                 ;;
             CFFAEDFE0C0000010000000008000000)
                 # arm64 bundle library
-                LIBRARY=1
+                FILETYPE=2
                 ;;
             CFFAEDFE070000010300000002000000)
                 # x86_64 executable
-                EXECUTABLE=1
+                FILETYPE=1
                 ;;
             CFFAEDFE070000010300000006000000)
                 # x86_64 shared library
-                LIBRARY=1
+                FILETYPE=2
                 ;;
             CFFAEDFE070000010300000008000000)
                 # x86_64 bundle library
-                LIBRARY=1
+                FILETYPE=2
                 ;;
-            *)  #echo "$FILE_HEADER_ACTUAL:$FILEPATH"
+            *)  #echo "$FILEHEAD:$FILEPATH"
                 continue
         esac
 
@@ -5750,14 +5752,17 @@ EOF
 
         #######################################################################
 
-        if [ "$LIBRARY" = 1 ] ; then
+        if [ "$FILETYPE" = 2 ] ; then
             run install_name_tool -add_rpath '@loader_path' "$FILEPATH" || true
+
+            __check_needed_dylibs "$FILEPATH"
+        else
+            __check_needed_dylibs "$FILEPATH" "$FILEPATH"
         fi
+    done < files.txt
 
-        #######################################################################
-
-        __check_needed_dylibs "$FILEPATH" "$EXECUTABLE"
-    done < .xcpkg/MANIFEST.txt
+    rm files.txt
+    rm -rf .xcpkg/tmp/
 }
 
 # __find_needed_shared_library <NEEDED_SHARED_LIBRARY_FILENAME>
@@ -5777,9 +5782,9 @@ EOF
         return 0
     fi
 
-    for DEPENDENT_PACKAGE_NAME in $RECURSIVE_DEPENDENT_PACKAGE_NAMES
+    for DEPENDENT_PACKAGE_NAME in $PACKAGE_DEP_PKG_R
     do
-        NEEDED_SHARED_LIBRARY_ROOT_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$TARGET_PLATFORM_SPEC/$DEPENDENT_PACKAGE_NAME/lib"
+        NEEDED_SHARED_LIBRARY_ROOT_DIR="$XCPKG_PACKAGE_INSTALLED_ROOT/$DEPENDENT_PACKAGE_NAME/lib"
 
         [ -d "$NEEDED_SHARED_LIBRARY_ROOT_DIR" ] || continue
 
@@ -5795,10 +5800,10 @@ EOF
     return 0
 }
 
-# __check_needed_dylibs <MACH-O-FILE-PATH> <IS-EXECUTABLE>
+# __check_needed_dylibs <MACH-O-FILE-PATH> <NEEDED-BY-EXECUTABLE>
   __check_needed_dylibs() {
     X="$(printf '%s\n' "$1" | tr / _)"
-    Y="$PACKAGE_WORKING_DIR/map/$X"
+    Y=".xcpkg/tmp/$X"
 
     if [ -f "$Y" ] ; then
         return 0
@@ -5806,6 +5811,7 @@ EOF
         touch "$Y"
     fi
 
+    echo "__check_needed_dylibs $1 $2"
     NEEDEDs=$(otool -l "$1" | grep LC_LOAD_DYLIB -A2 | grep name | sed 's|^[[:space:]]*||' | cut -d ' ' -f2)
 
     if [ -z "$NEEDEDs" ] ; then
@@ -5837,11 +5843,13 @@ EOF
 
                 NEEDED_SHARED_LIBRARY_DIR="${NEEDED%/*}"
 
-                if [ "$2" = 1 ] ; then
+                if [ -n "$2" ] ; then
                     RELATIVE_PATH="${NEEDED_SHARED_LIBRARY_DIR#$PACKAGE_INSTALL_DIR/}"
-                    FILES_NEED_TO_BE_SET_RPATH="$FILES_NEED_TO_BE_SET_RPATH
-$1|$RELATIVE_PATH"
+                    EXECUTABLES_NEED_TO_BE_SET_RPATH="$EXECUTABLES_NEED_TO_BE_SET_RPATH
+$2|$RELATIVE_PATH"
                 fi
+
+                __check_needed_dylibs "${NEEDED#$PACKAGE_INSTALL_DIR/}" "$2"
                 ;;
             /*)
                 NEEDED_SHARED_LIBRARY_FILENAME="${NEEDED##*/}"
@@ -5854,9 +5862,9 @@ $1|$RELATIVE_PATH"
                     run cp -L "$NEEDED" "$F"
                 fi
 
-                if [ "$2" = 1 ] ; then
-                    FILES_NEED_TO_BE_SET_RPATH="$FILES_NEED_TO_BE_SET_RPATH
-$1|1"
+                if [ -n "$2" ] ; then
+                    EXECUTABLES_NEED_TO_BE_SET_RPATH="$EXECUTABLES_NEED_TO_BE_SET_RPATH
+$2|1"
                 fi
                 ;;
             lib*.dylib)
@@ -5876,19 +5884,19 @@ $1|1"
                             run cp -L "$NEEDED_SHARED_LIBRARY_FILEPATH" "$F"
                         fi
 
-                        if [ "$2" = 1 ] ; then
-                            FILES_NEED_TO_BE_SET_RPATH="$FILES_NEED_TO_BE_SET_RPATH
-$1|1"
+                        if [ -n "$2" ] ; then
+                            EXECUTABLES_NEED_TO_BE_SET_RPATH="$EXECUTABLES_NEED_TO_BE_SET_RPATH
+$2|1"
                         fi
                         ;;
                     *)
-                        if [ "$2" = 1 ] ; then
-                            FILES_NEED_TO_BE_SET_RPATH="$FILES_NEED_TO_BE_SET_RPATH
-$1|${NEEDED_SHARED_LIBRARY_FILEPATH%/*}"
+                        if [ -n "$2" ] ; then
+                            EXECUTABLES_NEED_TO_BE_SET_RPATH="$EXECUTABLES_NEED_TO_BE_SET_RPATH
+$2|${NEEDED_SHARED_LIBRARY_FILEPATH%/*}"
                         fi
                 esac
 
-                __check_needed_dylibs "$NEEDED_SHARED_LIBRARY_FILEPATH" 0
+                __check_needed_dylibs "$NEEDED_SHARED_LIBRARY_FILEPATH" "$2"
                 ;;
             @rpath/libclang_rt*)
                 ;;
@@ -5909,19 +5917,19 @@ $1|${NEEDED_SHARED_LIBRARY_FILEPATH%/*}"
                             run cp -L "$NEEDED_SHARED_LIBRARY_FILEPATH" "$F"
                         fi
 
-                        if [ "$2" = 1 ] ; then
-                            FILES_NEED_TO_BE_SET_RPATH="$FILES_NEED_TO_BE_SET_RPATH
-$1|1"
+                        if [ -n "$2" ] ; then
+                            EXECUTABLES_NEED_TO_BE_SET_RPATH="$EXECUTABLES_NEED_TO_BE_SET_RPATH
+$2|1"
                         fi
                         ;;
                     *)
-                        if [ "$2" = 1 ] ; then
-                            FILES_NEED_TO_BE_SET_RPATH="$FILES_NEED_TO_BE_SET_RPATH
-$1|${NEEDED_SHARED_LIBRARY_FILEPATH%/*}"
+                        if [ -n "$2" ] ; then
+                            EXECUTABLES_NEED_TO_BE_SET_RPATH="$EXECUTABLES_NEED_TO_BE_SET_RPATH
+$2|${NEEDED_SHARED_LIBRARY_FILEPATH%/*}"
                         fi
                 esac
 
-                __check_needed_dylibs "$NEEDED_SHARED_LIBRARY_FILEPATH" 0
+                __check_needed_dylibs "$NEEDED_SHARED_LIBRARY_FILEPATH" "$2"
                 ;;
             @loader_path/*)
                 ;;
