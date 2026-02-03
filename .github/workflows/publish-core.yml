@@ -81,7 +81,7 @@ jobs:
       - run: xcpkg install MacOSX-${{ matrix.target-version }}-${{ matrix.target-arch }}/uppm@0.15.4
       - run: xcpkg bundle  MacOSX-${{ matrix.target-version }}-${{ matrix.target-arch }}/uppm@0.15.4 .tar.xz
 
-      - run: install -d out/
+      - run: tar vxf uppm*.tar.xz -C core --strip-components=1
 
       - run: |
           set -ex
@@ -92,24 +92,18 @@ jobs:
 
           cd core/
 
+          install -d bin/
+
           for f in *.c
           do
-            o="../out/${f%.c}"
+            o="bin/${f%.c}"
             $CC $CFLAGS -std=c99 -Os -flto -o "$o" "$f"
             strip "$o"
           done
 
-      - run: curl -LO https://raw.githubusercontent.com/adobe-fonts/source-code-pro/release/OTF/SourceCodePro-Light.otf
-
-      - run: tar vxf uppm*.tar.xz -C out --strip-components=1
-
-      - run: mv out/bin/uppm *.otf fonts.conf out/
-
-      - run: rm -rf out/bin/ out/share/ out/.xcpkg/
-
       - run: |
           DIRNAME="xcpkg-core-${{ needs.base.outputs.release-version }}-macos-${{ matrix.target-version }}-${{ matrix.target-arch }}"
-          mv out "$DIRNAME"
+          mv core/bin "$DIRNAME"
           tar cJvf "$DIRNAME.tar.xz" "$DIRNAME"
 
       - uses: actions/upload-artifact@v4
