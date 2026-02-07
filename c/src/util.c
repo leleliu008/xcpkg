@@ -11,6 +11,7 @@
 #include "core/printenv.h"
 #include "core/base16.h"
 #include "core/exe.h"
+#include "core/log.h"
 
 #include "sha256sum.h"
 #include "xcpkg.h"
@@ -355,7 +356,7 @@ static inline __attribute__((always_inline)) int xcpkg_util_zlib_deflate(int arg
 
             i++;
         } else {
-            fprintf(stderr, "unrecognized option: %s", argv[i]);
+            LOG_ERROR2("unknown argument: ", argv[i]);
             fprintf(stderr, "Usage: %s %s %s [-L N] (N>=1 && N <=9) , The smaller the N, the faster the speed and the lower the compression ratio.\n", argv[0], argv[1], argv[2]);
             return XCPKG_ERROR;
         }
@@ -385,7 +386,7 @@ static inline __attribute__((always_inline)) int xcpkg_util_which(int argc, char
         if (strcmp(argv[i], "-a") == 0) {
             findAll = true;
         } else {
-            fprintf(stderr, "unrecognized argument: %s\n", argv[i]);
+            LOG_ERROR2("unknown argument: ", argv[i]);
             fprintf(stderr, "USAGE: %s %s %s <COMMAND-NAME> [-a]\n", argv[0], argv[1], argv[2]);
             return 1;
         }
@@ -462,7 +463,7 @@ static inline __attribute__((always_inline)) int xcpkg_util_http_fetch(int argc,
                 return XCPKG_ERROR_ARG_IS_INVALID;
             }
         } else {
-            fprintf(stderr, "unrecognized argument: %s\n", argv[i]);
+            LOG_ERROR2("unknown argument: ", argv[i]);
             fprintf(stderr, "USAGE: %s %s %s <URL> [-v]\n", argv[0], argv[1], argv[2]);
             return 1;
         }
@@ -535,7 +536,7 @@ static inline __attribute__((always_inline)) int xcpkg_util_git_sync(int argc, c
                 return XCPKG_ERROR_ARG_IS_EMPTY;
             }
         } else {
-            fprintf(stderr, "unrecognized argument: %s\n", argv[i]);
+            LOG_ERROR2("unknown argument: ", argv[i]);
             fprintf(stderr, "USAGE: %s %s %s <URL> [-v]\n", argv[0], argv[1], argv[2]);
             return XCPKG_ERROR_ARG_IS_UNKNOWN;
         }
@@ -590,7 +591,7 @@ static inline __attribute__((always_inline)) int xcpkg_util_uncompress(int argc,
 
             stripComponentNumber = atoi(argv[i]);
         } else {
-            fprintf(stderr, "unrecognized argument: %s\n", argv[i]);
+            LOG_ERROR2("unknown argument: ", argv[i]);
             fprintf(stderr, "USAGE: %s %s %s <URL> [-v]\n", argv[0], argv[1], argv[2]);
             return 1;
         }
@@ -661,7 +662,7 @@ int xcpkg_util(int argc, char* argv[]) {
         return xcpkg_util_uncompress(argc, argv);
     }
 
-    fprintf(stderr, "Usage: %s %s <COMMAND> , unrecognized <COMMAND>: %s\n", argv[0], argv[1], argv[2]);
+    fprintf(stderr, "Usage: %s %s <COMMAND> , unknown <COMMAND>: %s\n", argv[0], argv[1], argv[2]);
 
     return XCPKG_ERROR_ARG_IS_UNKNOWN;
 }

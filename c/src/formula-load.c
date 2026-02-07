@@ -1042,7 +1042,7 @@ static inline int xcpkg_formula_check(XCPKGFormula * formula, const char * formu
             if (!formula->src_is_dir) {
                 char version[20]; version[0] = '\0';
 
-                int ret = xcpkg_extract_version_from_src_url(formula->src_url, version, 20);
+                int ret = xcpkg_extract_version(formula->src_url, version, 20);
 
                 if (ret != XCPKG_OK) {
                     return ret;
@@ -1062,7 +1062,7 @@ static inline int xcpkg_formula_check(XCPKGFormula * formula, const char * formu
         } else if (formula->git_url != NULL && formula->git_ref != NULL) {
             char version[20]; version[0] = '\0';
 
-            int ret = xcpkg_extract_version_from_git_ref(formula->git_ref, version, 20);
+            int ret = xcpkg_extract_version(formula->git_ref, version, 20);
 
             if (ret != XCPKG_OK) {
                 return ret;

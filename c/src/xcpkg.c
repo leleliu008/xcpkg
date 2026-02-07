@@ -24,11 +24,11 @@ static inline int xcpkg_action_about(int argc, char* argv[]) {
     int ret = xcpkg_about(verbose);
 
     if (ret == XCPKG_ERROR_ENV_HOME_NOT_SET) {
-        fprintf(stderr, "%s\n", "HOME environment variable is not set.\n");
+        LOG_ERROR1("HOME environment variable is not set.");
     } else if (ret == XCPKG_ERROR_ENV_PATH_NOT_SET) {
-        fprintf(stderr, "%s\n", "PATH environment variable is not set.\n");
+        LOG_ERROR1("PATH environment variable is not set.");
     } else if (ret == XCPKG_ERROR) {
-        fprintf(stderr, "occurs error.\n");
+        LOG_ERROR1("occurs error.");
     }
 
     return ret;
@@ -37,7 +37,7 @@ static inline int xcpkg_action_about(int argc, char* argv[]) {
 static inline int xcpkg_action_completion(int argc, char* argv[]) {
     if (argv[2] == NULL) {
         fprintf(stderr, "Usage: %s completion <zsh|bash|fish>\n", argv[0]);
-        return XCPKG_ERROR_PACKAGE_NAME_IS_NULL;
+        return XCPKG_ERROR_ARG_IS_UNSPECIFIED;
     } else if (strcmp(argv[2], "zsh") == 0) {
         return xcpkg_completion_zsh();
     } else if (strcmp(argv[2], "bash") == 0) {
@@ -45,8 +45,8 @@ static inline int xcpkg_action_completion(int argc, char* argv[]) {
     } else if (strcmp(argv[2], "fish") == 0) {
         return xcpkg_completion_fish();
     } else {
-        LOG_ERROR2("unrecognized argument: ", argv[2]);
-        return XCPKG_ERROR_PACKAGE_NAME_IS_INVALID;
+        LOG_ERROR2("unknown argument: ", argv[2]);
+        return XCPKG_ERROR_ARG_IS_UNKNOWN;
     }
 }
 
@@ -54,11 +54,11 @@ static inline int xcpkg_action_update(int argc, char* argv[]) {
     int ret = xcpkg_formula_repo_list_update();
 
     if (ret == XCPKG_ERROR_ENV_HOME_NOT_SET) {
-        fprintf(stderr, "%s\n", "HOME environment variable is not set.\n");
+        LOG_ERROR1("HOME environment variable is not set.");
     } else if (ret == XCPKG_ERROR_ENV_PATH_NOT_SET) {
-        fprintf(stderr, "%s\n", "PATH environment variable is not set.\n");
+        LOG_ERROR1("PATH environment variable is not set.");
     } else if (ret == XCPKG_ERROR) {
-        fprintf(stderr, "occurs error.\n");
+        LOG_ERROR1("occurs error.");
     }
 
     return ret;
@@ -102,13 +102,13 @@ static inline int xcpkg_action_search(int argc, char* argv[]) {
             targetPlatformName = argv[++i];
 
             if (targetPlatformName == NULL) {
-                fprintf(stderr, "-p <TARGET-PLATFORM-NAME>, <TARGET-PLATFORM-NAME> should be a non-empty string.\n");
-                return XCPKG_ERROR_PACKAGE_NAME_IS_INVALID;
+                LOG_ERROR1("-p <TARGET-PLATFORM-NAME>, <TARGET-PLATFORM-NAME> is unspecified.");
+                return XCPKG_ERROR_ARG_IS_UNSPECIFIED;
             }
 
             if (targetPlatformName[0] == '\0') {
-                fprintf(stderr, "-p <TARGET-PLATFORM-NAME>, <TARGET-PLATFORM-NAME> should be a non-empty string.\n");
-                return XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY;
+                LOG_ERROR1("-p <TARGET-PLATFORM-NAME>, <TARGET-PLATFORM-NAME> should be a non-empty string.");
+                return XCPKG_ERROR_ARG_IS_EMPTY;
             }
 
             bool isSupported = false;
@@ -121,32 +121,31 @@ static inline int xcpkg_action_search(int argc, char* argv[]) {
             }
 
             if (!isSupported) {
-                LOG_ERROR2("unsupported target platform name: ", targetPlatformName);
-                return XCPKG_ERROR_PACKAGE_NAME_IS_INVALID;
+                LOG_ERROR2("unknown target platform name: ", targetPlatformName);
+                return XCPKG_ERROR_ARG_IS_UNKNOWN;
             }
         } else {
-            LOG_ERROR2("unrecognized argument: ", argv[i]);
-            return XCPKG_ERROR_PACKAGE_NAME_IS_INVALID;
+            LOG_ERROR2("unknown argument: ", argv[i]);
+            return XCPKG_ERROR_ARG_IS_UNKNOWN;
         }
     }
 
     int ret = xcpkg_search(argv[2], targetPlatformName, verbose);
 
-    if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_NULL) {
+    if (ret == XCPKG_ERROR_ARG_IS_NULL) {
         fprintf(stderr, "Usage: %s search <KEYWORD>, <KEYWORD> is not given.\n", argv[0]);
-    } else if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY) {
+    } else if (ret == XCPKG_ERROR_ARG_IS_EMPTY) {
         fprintf(stderr, "Usage: %s search <KEYWORD>, <KEYWORD> is empty string.\n", argv[0]);
     } else if (ret == XCPKG_ERROR_ENV_HOME_NOT_SET) {
-        fprintf(stderr, "%s\n", "HOME environment variable is not set.\n");
+        LOG_ERROR1("HOME environment variable is not set.");
     } else if (ret == XCPKG_ERROR_ENV_PATH_NOT_SET) {
-        fprintf(stderr, "%s\n", "PATH environment variable is not set.\n");
+        LOG_ERROR1("PATH environment variable is not set.");
     } else if (ret == XCPKG_ERROR) {
-        fprintf(stderr, "occurs error.\n");
+        LOG_ERROR1("occurs error.");
     }
 
     return ret;
 }
-
 
 static inline int xcpkg_action_info_available(int argc, char* argv[]) {
     const char * targetPlatformName = NULL;
@@ -156,13 +155,13 @@ static inline int xcpkg_action_info_available(int argc, char* argv[]) {
             targetPlatformName = argv[++i];
 
             if (targetPlatformName == NULL) {
-                fprintf(stderr, "-p <TARGET-PLATFORM-NAME>, <TARGET-PLATFORM-NAME> should be a non-empty string.\n");
-                return XCPKG_ERROR_PACKAGE_NAME_IS_INVALID;
+                fprintf(stderr, "-p <TARGET-PLATFORM-NAME>, <TARGET-PLATFORM-NAME> is unspecified.\n");
+                return XCPKG_ERROR_ARG_IS_UNSPECIFIED;
             }
 
             if (targetPlatformName[0] == '\0') {
                 fprintf(stderr, "-p <TARGET-PLATFORM-NAME>, <TARGET-PLATFORM-NAME> should be a non-empty string.\n");
-                return XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY;
+                return XCPKG_ERROR_ARG_IS_EMPTY;
             }
 
             bool isSupported = false;
@@ -175,22 +174,22 @@ static inline int xcpkg_action_info_available(int argc, char* argv[]) {
             }
 
             if (!isSupported) {
-                LOG_ERROR2("unsupported target platform name: ", targetPlatformName);
-                return XCPKG_ERROR_PACKAGE_NAME_IS_INVALID;
+                LOG_ERROR2("unknown target platform name: ", targetPlatformName);
+                return XCPKG_ERROR_ARG_IS_UNKNOWN;
             }
         }
     }
 
     int ret = xcpkg_available_info(argv[2], targetPlatformName, argv[3]);
 
-    if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_NULL) {
-        fprintf(stderr, "Usage: %s info <PACKAGE-NAME> [KEY], <PACKAGE-NAME> is not given.\n", argv[0]);
-    } else if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY) {
-        fprintf(stderr, "Usage: %s info <PACKAGE-NAME> [KEY], <PACKAGE-NAME> is empty string.\n", argv[0]);
+    if (ret == XCPKG_ERROR_ARG_IS_NULL) {
+        fprintf(stderr, "Usage: %s info-available <PACKAGE-NAME> [KEY], <PACKAGE-NAME> is not given.\n", argv[0]);
+    } else if (ret == XCPKG_ERROR_ARG_IS_EMPTY) {
+        fprintf(stderr, "Usage: %s info-available <PACKAGE-NAME> [KEY], <PACKAGE-NAME> is empty string.\n", argv[0]);
     } else if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_INVALID) {
-        fprintf(stderr, "Usage: %s info <PACKAGE-NAME> [KEY], <PACKAGE-NAME> is not match pattern %s\n", argv[0], XCPKG_PACKAGE_NAME_PATTERN);
+        fprintf(stderr, "Usage: %s info-available <PACKAGE-NAME> [KEY], <PACKAGE-NAME> does not match pattern %s\n", argv[0], XCPKG_PACKAGE_NAME_PATTERN);
     } else if (ret == XCPKG_ERROR_ARG_IS_UNKNOWN) {
-        fprintf(stderr, "Usage: %s info <PACKAGE-NAME> [KEY], unrecognized KEY: %s\n", argv[0], argv[3]);
+        fprintf(stderr, "Usage: %s info-available <PACKAGE-NAME> [KEY], unknown KEY: %s\n", argv[0], argv[3]);
     } else if (ret == XCPKG_ERROR_PACKAGE_NOT_AVAILABLE) {
         fprintf(stderr, "package '%s' is not available for target '%s'\n", argv[2], targetPlatformName);
     } else if (ret == XCPKG_ERROR_PACKAGE_NOT_INSTALLED) {
@@ -215,14 +214,14 @@ static inline int xcpkg_action_info_installed(int argc, char* argv[]) {
 
     int ret = xcpkg_inspect_package(argv[2], NULL, &packageName, &platformSpec, buf);
 
-    if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_NULL) {
+    if (ret == XCPKG_ERROR_ARG_IS_NULL) {
         fprintf(stderr, "Usage: %s info-installed <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <PACKAGE-NAME|PACKAGE-SPEC> is not given.\n", argv[0]);
-    } else if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY) {
+    } else if (ret == XCPKG_ERROR_ARG_IS_EMPTY) {
         fprintf(stderr, "Usage: %s info-installed <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <PACKAGE-NAME|PACKAGE-SPEC> is empty string.\n", argv[0]);
     } else if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_INVALID) {
-        fprintf(stderr, "Usage: %s info-installed <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <PACKAGE-NAME|PACKAGE-SPEC> is not match pattern %s\n", argv[0], XCPKG_PACKAGE_NAME_PATTERN);
+        fprintf(stderr, "Usage: %s info-installed <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <PACKAGE-NAME|PACKAGE-SPEC> does not match pattern %s\n", argv[0], XCPKG_PACKAGE_NAME_PATTERN);
     } else if (ret == XCPKG_ERROR_PLATFORM_SPEC_IS_INVALID) {
-        fprintf(stderr, "Usage: %s info-installed <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <PACKAGE-NAME|PACKAGE-SPEC> is not match pattern %s\n", argv[0], XCPKG_PACKAGE_NAME_PATTERN);
+        fprintf(stderr, "Usage: %s info-installed <PACKAGE-SPEC> [KEY], <TARGET-SPEC> does not match pattern A-B-C\n", argv[0]);
     }
 
     if (platformSpec == NULL) {
@@ -236,7 +235,7 @@ static inline int xcpkg_action_info_installed(int argc, char* argv[]) {
     } else if (ret == XCPKG_ERROR_PACKAGE_NOT_INSTALLED) {
         fprintf(stderr, "package '%s' is not installed.\n", argv[2]);
     } else if (ret == XCPKG_ERROR_ARG_IS_UNKNOWN) {
-        fprintf(stderr, "Usage: %s info-installed <PACKAGE-NAME> [KEY], unrecognized KEY: %s\n", argv[0], argv[3]);
+        fprintf(stderr, "Usage: %s info-installed <PACKAGE-NAME> [KEY], unknown KEY: %s\n", argv[0], argv[3]);
     } else if (ret == XCPKG_ERROR_ENV_HOME_NOT_SET) {
         fprintf(stderr, "%s\n", "HOME environment variable is not set.\n");
     } else if (ret == XCPKG_ERROR_ENV_PATH_NOT_SET) {
@@ -251,12 +250,12 @@ static inline int xcpkg_action_info_installed(int argc, char* argv[]) {
 static inline int xcpkg_action_depends(int argc, char* argv[]) {
     if (argv[2] == NULL) {
         fprintf(stderr, "Usage: %s depends <PACKAGE-NAME>, <PACKAGE-NAME> is unspecified.\n", argv[0]);
-        return XCPKG_ERROR_PACKAGE_NAME_IS_NULL;
+        return XCPKG_ERROR_ARG_IS_UNSPECIFIED;
     }
 
     if (argv[2][0] == '\0') {
         fprintf(stderr, "Usage: %s depends <PACKAGE-NAME>, <PACKAGE-NAME> should be a non-empty string.\n", argv[0]);
-        return XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY;
+        return XCPKG_ERROR_ARG_IS_EMPTY;
     }
 
     XCPKGDependsOutputType outputType = XCPKGDependsOutputType_BOX;
@@ -275,13 +274,13 @@ static inline int xcpkg_action_depends(int argc, char* argv[]) {
             targetPlatformName = argv[++i];
 
             if (targetPlatformName == NULL) {
-                fprintf(stderr, "-p <TARGET-PLATFORM-NAME>, <TARGET-PLATFORM-NAME> should be a non-empty string.\n");
-                return XCPKG_ERROR_PACKAGE_NAME_IS_INVALID;
+                fprintf(stderr, "-p <TARGET-PLATFORM-NAME>, <TARGET-PLATFORM-NAME> is unspecified.\n");
+                return XCPKG_ERROR_ARG_IS_UNSPECIFIED;
             }
 
             if (targetPlatformName[0] == '\0') {
                 fprintf(stderr, "-p <TARGET-PLATFORM-NAME>, <TARGET-PLATFORM-NAME> should be a non-empty string.\n");
-                return XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY;
+                return XCPKG_ERROR_ARG_IS_EMPTY;
             }
 
             bool isSupported = false;
@@ -294,81 +293,72 @@ static inline int xcpkg_action_depends(int argc, char* argv[]) {
             }
 
             if (!isSupported) {
-                LOG_ERROR2("unsupported target platform name: ", targetPlatformName);
-                return XCPKG_ERROR_PACKAGE_NAME_IS_INVALID;
+                LOG_ERROR2("unknown target platform name: ", targetPlatformName);
+                return XCPKG_ERROR_ARG_IS_UNKNOWN;
             }
         } else if (strcmp(argv[i], "-t") == 0) {
-            const char * type = argv[i + 1];
+            const char * p = argv[++i];
 
-            if (type == NULL) {
-                fprintf(stderr, "-t <OUTPUT-TYPE>, <OUTPUT-TYPE> should be a non-empty string.\n");
-                return XCPKG_ERROR_PACKAGE_NAME_IS_INVALID;
+            if (p == NULL) {
+                fprintf(stderr, "-t <OUTPUT-TYPE>, <OUTPUT-TYPE> is unspecified.\n");
+                return XCPKG_ERROR_ARG_IS_UNSPECIFIED;
             }
 
-            if (type[0] == '\0') {
+            if (p[0] == '\0') {
                 fprintf(stderr, "-t <OUTPUT-TYPE>, <OUTPUT-TYPE> should be a non-empty string.\n");
-                return XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY;
+                return XCPKG_ERROR_ARG_IS_EMPTY;
             }
 
-            if (strcmp(type, "d2") == 0) {
+            if (strcmp(p, "d2") == 0) {
                 outputType = XCPKGDependsOutputType_D2;
-                i++;
-            } else if (strcmp(type, "dot") == 0) {
+            } else if (strcmp(p, "dot") == 0) {
                 outputType = XCPKGDependsOutputType_DOT;
-                i++;
-            } else if (strcmp(type, "box") == 0) {
+            } else if (strcmp(p, "box") == 0) {
                 outputType = XCPKGDependsOutputType_BOX;
-                i++;
-            } else if (strcmp(type, "svg") == 0) {
+            } else if (strcmp(p, "svg") == 0) {
                 outputType = XCPKGDependsOutputType_SVG;
-                i++;
-            } else if (strcmp(type, "png") == 0) {
+            } else if (strcmp(p, "png") == 0) {
                 outputType = XCPKGDependsOutputType_PNG;
-                i++;
             } else {
-                LOG_ERROR2("unsupported type: ", type);
-                return XCPKG_ERROR_PACKAGE_NAME_IS_INVALID;
+                LOG_ERROR2("unknown output type: ", p);
+                return XCPKG_ERROR;
             }
         } else if (strcmp(argv[i], "-e") == 0) {
-            const char * engineName = argv[i + 1];
+            const char * p = argv[++i];
 
-            if (engineName == NULL) {
-                fprintf(stderr, "-e <ENGINE>, <ENGINE> should be a non-empty string.\n");
-                return XCPKG_ERROR_ARG_IS_INVALID;
+            if (p == NULL) {
+                fprintf(stderr, "-e <ENGINE>, <ENGINE> is unspecified.\n");
+                return XCPKG_ERROR_ARG_IS_UNSPECIFIED;
             }
 
-            if (engineName[0] == '\0') {
+            if (p[0] == '\0') {
                 fprintf(stderr, "-e <ENGINE>, <ENGINE> should be a non-empty string.\n");
                 return XCPKG_ERROR_ARG_IS_EMPTY;
             }
 
-            if (strcmp(engineName, "d2") == 0) {
+            if (strcmp(p, "d2") == 0) {
                 engine = XCPKGDependsOutputDiagramEngine_D2;
-                i++;
-            } else if (strcmp(engineName, "dot") == 0) {
+            } else if (strcmp(p, "dot") == 0) {
                 engine = XCPKGDependsOutputDiagramEngine_DOT;
-                i++;
             } else {
-                LOG_ERROR2("unsupported engine: ", engineName);
-                return XCPKG_ERROR_ARG_IS_INVALID;
+                LOG_ERROR2("unknown engine: ", p);
+                return XCPKG_ERROR_ARG_IS_UNKNOWN;
             }
          } else if (strcmp(argv[i], "-o") == 0) {
-            outputPath = argv[i + 1];
+            outputPath = argv[++i];
 
             if (outputPath == NULL) {
-                fprintf(stderr, "-o <OUTPUT-PATH>, <OUTPUT-PATH> should be a non-empty string.\n");
-                return XCPKG_ERROR_ARG_IS_NULL;
+                fprintf(stderr, "-o <OUTPUT-PATH>, <OUTPUT-PATH> is unspecified.\n");
+                return XCPKG_ERROR_ARG_IS_UNSPECIFIED;
             }
 
             if (outputPath[0] == '\0') {
                 fprintf(stderr, "-o <OUTPUT-PATH>, <OUTPUT-PATH> should be a non-empty string.\n");
                 return XCPKG_ERROR_ARG_IS_EMPTY;
             }
-
-            i++;
         } else {
-            LOG_ERROR2("unrecognized argument: ", argv[i]);
-            return XCPKG_ERROR_PACKAGE_NAME_IS_INVALID;
+            LOG_ERROR2("unknown argument: ", argv[i]);
+            return XCPKG_ERROR_ARG_IS_UNKNOWN;
         }
     }
 
@@ -401,13 +391,13 @@ static inline int xcpkg_action_fetch(int argc, char* argv[]) {
             targetPlatformName = argv[++i];
 
             if (targetPlatformName == NULL) {
-                fprintf(stderr, "-p <TARGET-PLATFORM-NAME>, <TARGET-PLATFORM-NAME> should be a non-empty string.\n");
-                return XCPKG_ERROR_PACKAGE_NAME_IS_INVALID;
+                fprintf(stderr, "-p <TARGET-PLATFORM-NAME>, <TARGET-PLATFORM-NAME> is unspecified.\n");
+                return XCPKG_ERROR_ARG_IS_UNSPECIFIED;
             }
 
             if (targetPlatformName[0] == '\0') {
                 fprintf(stderr, "-p <TARGET-PLATFORM-NAME>, <TARGET-PLATFORM-NAME> should be a non-empty string.\n");
-                return XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY;
+                return XCPKG_ERROR_ARG_IS_EMPTY;
             }
 
             bool isSupported = false;
@@ -420,23 +410,23 @@ static inline int xcpkg_action_fetch(int argc, char* argv[]) {
             }
 
             if (!isSupported) {
-                LOG_ERROR2("unsupported target platform name: ", targetPlatformName);
-                return XCPKG_ERROR_PACKAGE_NAME_IS_INVALID;
+                LOG_ERROR2("unknown target platform name: ", targetPlatformName);
+                return XCPKG_ERROR_ARG_IS_INVALID;
             }
         } else {
-            LOG_ERROR2("unrecognized argument: ", argv[i]);
-            return XCPKG_ERROR_PACKAGE_NAME_IS_INVALID;
+            LOG_ERROR2("unknown argument: ", argv[i]);
+            return XCPKG_ERROR_ARG_IS_UNKNOWN;
         }
     }
 
     int ret = xcpkg_fetch(argv[2], targetPlatformName, verbose);
 
-    if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_NULL) {
-        fprintf(stderr, "Usage: %s %s <PACKAGE-NAME>, <PACKAGE-NAME> is not given.\n", argv[0], argv[1]);
-    } else if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY) {
+    if (ret == XCPKG_ERROR_ARG_IS_NULL) {
+        fprintf(stderr, "Usage: %s %s <PACKAGE-NAME>, <PACKAGE-NAME> is unspecified.\n", argv[0], argv[1]);
+    } else if (ret == XCPKG_ERROR_ARG_IS_EMPTY) {
         fprintf(stderr, "Usage: %s %s <PACKAGE-NAME>, <PACKAGE-NAME> is empty string.\n", argv[0], argv[1]);
     } else if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_INVALID) {
-        fprintf(stderr, "Usage: %s %s <PACKAGE-NAME>, <PACKAGE-NAME> is not match pattern %s\n", argv[0], argv[1], XCPKG_PACKAGE_NAME_PATTERN);
+        fprintf(stderr, "Usage: %s %s <PACKAGE-NAME>, <PACKAGE-NAME> does not match pattern %s\n", argv[0], argv[1], XCPKG_PACKAGE_NAME_PATTERN);
     } else if (ret == XCPKG_ERROR_PACKAGE_NOT_AVAILABLE) {
         fprintf(stderr, "package '%s' is not available for target '%s'\n", argv[2], targetPlatformName);
     } else if (ret == XCPKG_ERROR_ENV_HOME_NOT_SET) {
@@ -499,73 +489,84 @@ static inline int xcpkg_action_install(int argc, char* argv[]) {
             installOptions.dryrun = true;
         } else if (strcmp(argv[i], "-K") == 0) {
             installOptions.keepSessionDIR = true;
-        } else if (strcmp(argv[i], "--export-compile-commands-json") == 0) {
+        } else if (strcmp(argv[i], "-E") == 0) {
             installOptions.exportCompileCommandsJson = true;
         } else if (strcmp(argv[i], "--enable-ccache") == 0) {
             installOptions.enableCcache = true;
         } else if (strcmp(argv[i], "--enable-bear") == 0) {
             installOptions.enableBear = true;
-        } else if (strcmp(argv[i], "--profile=debug") == 0) {
-            installOptions.buildType = XCPKGBuildProfile_debug;
-        } else if (strcmp(argv[i], "--profile=release") == 0) {
-            installOptions.buildType = XCPKGBuildProfile_release;
         } else if (strcmp(argv[i], "--prefer-shared") == 0) {
             installOptions.linkSharedLibs = true;
-        } else if (strncmp(argv[i], "--jobs=", 7) == 0) {
-            char * jobsStr = &argv[i][7];
+        } else if (strcmp(argv[i], "-j") == 0) {
+            const char * p = argv[++i];
 
-            if (jobsStr[0] == '\0') {
-                LOG_ERROR1("--jobs=<N> , <N> should be a non-empty string");
+            if (p == NULL) {
+                LOG_ERROR1("-j <N> , <N> is unspecified.");
+                return XCPKG_ERROR_ARG_IS_UNSPECIFIED;
+            }
+
+            if (p[0] == '\0') {
+                LOG_ERROR1("-j <N> , <N> should be a non-empty string.");
                 return XCPKG_ERROR;
-            } else {
-                int j = 0;
+            }
 
-                for (;;) {
-                    char c = jobsStr[j];
+            for (int j = 0; ; j++) {
+                if (p[j] == '\0') {
+                    break;
+                }
 
-                    if (c == '\0') {
-                        break;
-                    }
-
-                    if ((c >= '0') && (c <= '9')) {
-                        j++;
-                    } else {
-                        LOG_ERROR1("--jobs=<N> , <N> should be a integer.");
-                        return XCPKG_ERROR;
-                    }
+                if ((p[j] < '0') || (p[j] > '9')) {
+                    LOG_ERROR1("-j <N> , <N> should be an integer.");
+                    return XCPKG_ERROR;
                 }
             }
 
-            installOptions.parallelJobsCount = atoi(jobsStr);
+            installOptions.parallelJobsCount = atoi(p);
         } else if (strncmp(argv[i], "--target=", 9) == 0) {
             targetPlatformSpec = &argv[i][9];
 
             if (targetPlatformSpec[0] == '\0') {
                 fprintf(stderr, "--target=<TARGET-PLATFORM-SPEC>, <TARGET-PLATFORM-SPEC> should be a non-empty string.\n");
-                return XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY;
+                return XCPKG_ERROR;
+            }
+        } else if (strncmp(argv[i], "--profile=", 10) == 0) {
+            const char * p = &argv[i][10];
+
+            if (p[0] == '\0') {
+                fprintf(stderr, "--profile=<PROFILE>, <PROFILE> should be a non-empty string.\n");
+                return XCPKG_ERROR;
+            }
+
+            if (strcmp(p, "debug") == 0) {
+                installOptions.profile = XCPKGBuildProfile_debug;
+            } else if (strcmp(p, "release") == 0) {
+                installOptions.profile = XCPKGBuildProfile_release;
+            } else {
+                fprintf(stderr, "--profile=<PROFILE>, <PROFILE> should be either debug or release.\n");
+                return XCPKG_ERROR;
             }
         } else if (strncmp(argv[i], "--developer-dir=", 15) == 0) {
-            const char * developerDIR = &argv[i][15];
+            const char * p = &argv[i][15];
 
-            if (developerDIR[0] == '\0') {
+            if (p[0] == '\0') {
                 fprintf(stderr, "--developer-dir=<DEVELOPER-DIR>, <DEVELOPER-DIR> should be a non-empty string.\n");
-                return XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY;
+                return XCPKG_ERROR;
             }
 
             struct stat st;
 
-            if (stat(developerDIR, &st) == 0 && S_ISDIR(st.st_mode)) {
-                if (setenv("DEVELOPER_DIR", developerDIR, 1) != 0) {
+            if (stat(p, &st) == 0 && S_ISDIR(st.st_mode)) {
+                if (setenv("DEVELOPER_DIR", p, 1) != 0) {
                     perror("DEVELOPER_DIR");
                     return XCPKG_ERROR;
                 }
             } else {
-                fprintf(stderr, "--developer-dir=<DEVELOPER-DIR>, <DEVELOPER-DIR> '%s' directory does not exist.\n", developerDIR);
-                return XCPKG_ERROR_ARG_IS_INVALID;
+                fprintf(stderr, "--developer-dir=<DEVELOPER-DIR>, <DEVELOPER-DIR> '%s' directory does not exist.\n", p);
+                return XCPKG_ERROR;
             }
         } else if (argv[i][0] == '-') {
-            LOG_ERROR2("unrecognized argument: ", argv[i]);
-            return XCPKG_ERROR_PACKAGE_NAME_IS_INVALID;
+            LOG_ERROR2("unknown argument: ", argv[i]);
+            return XCPKG_ERROR;
         } else {
             packageIndexArray[packageIndexArraySize] = i;
             packageIndexArraySize++;
@@ -573,8 +574,8 @@ static inline int xcpkg_action_install(int argc, char* argv[]) {
     }
 
     if (packageIndexArraySize == 0) {
-        fprintf(stderr, "Usage: %s %s <PACKAGE-NAME>..., <PACKAGE-NAME> is not given.\n", argv[0], argv[1]);
-        return XCPKG_ERROR_PACKAGE_NAME_IS_NULL;
+        fprintf(stderr, "Usage: %s %s <PACKAGE-NAME>..., <PACKAGE-NAME> is unspecified.\n", argv[0], argv[1]);
+        return XCPKG_ERROR_ARG_IS_UNSPECIFIED;
     }
 
     for (int i = 0; i < packageIndexArraySize; i++) {
@@ -588,14 +589,14 @@ static inline int xcpkg_action_install(int argc, char* argv[]) {
 
         int ret = xcpkg_inspect_package(package, targetPlatformSpec, &packageName, &platformSpec, buf);
 
-        if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_NULL) {
+        if (ret == XCPKG_ERROR_ARG_IS_NULL) {
             fprintf(stderr, "Usage: %s %s <PACKAGE-NAME|PACKAGE-SPEC>, <PACKAGE-NAME|PACKAGE-SPEC> is not given.\n", argv[0], argv[1]);
-        } else if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY) {
+        } else if (ret == XCPKG_ERROR_ARG_IS_EMPTY) {
             fprintf(stderr, "Usage: %s %s <PACKAGE-NAME|PACKAGE-SPEC>, <PACKAGE-NAME|PACKAGE-SPEC> is empty string.\n", argv[0], argv[1]);
         } else if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_INVALID) {
-            fprintf(stderr, "Usage: %s %s <PACKAGE-NAME|PACKAGE-SPEC>, <PACKAGE-NAME|PACKAGE-SPEC> is not match pattern %s\n", argv[0], argv[1], XCPKG_PACKAGE_NAME_PATTERN);
+            fprintf(stderr, "Usage: %s %s <PACKAGE-NAME|PACKAGE-SPEC>, <PACKAGE-NAME|PACKAGE-SPEC> does not match pattern %s\n", argv[0], argv[1], XCPKG_PACKAGE_NAME_PATTERN);
         } else if (ret == XCPKG_ERROR_PLATFORM_SPEC_IS_INVALID) {
-            fprintf(stderr, "Usage: %s %s <PACKAGE-NAME|PACKAGE-SPEC>, <PACKAGE-NAME|PACKAGE-SPEC> is not match pattern %s\n", argv[0], argv[1], XCPKG_PACKAGE_NAME_PATTERN);
+            fprintf(stderr, "Usage: %s %s <PACKAGE-NAME|PACKAGE-SPEC>, <TARGET-SPEC> does not match pattern A-B-C\n", argv[0], argv[1]);
         }
 
         if (ret != XCPKG_OK) {
@@ -609,7 +610,7 @@ static inline int xcpkg_action_install(int argc, char* argv[]) {
         ret = xcpkg_install(packageName, platformSpec, &installOptions);
 
         if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_INVALID) {
-            fprintf(stderr, "Usage: %s %s <PACKAGE-NAME>, <PACKAGE-NAME> is not match pattern %s\n", argv[0], argv[1], XCPKG_PACKAGE_NAME_PATTERN);
+            fprintf(stderr, "Usage: %s %s <PACKAGE-NAME>, <PACKAGE-NAME> does not match pattern %s\n", argv[0], argv[1], XCPKG_PACKAGE_NAME_PATTERN);
         } else if (ret == XCPKG_ERROR_PACKAGE_NOT_AVAILABLE) {
             fprintf(stderr, "package '%s' is not available.\n", packageName);
         } else if (ret == XCPKG_ERROR_PACKAGE_NOT_INSTALLED) {
@@ -667,54 +668,65 @@ static inline int xcpkg_action_reinstall(int argc, char* argv[]) {
             installOptions.dryrun = true;
         } else if (strcmp(argv[i], "-K") == 0) {
             installOptions.keepSessionDIR = true;
-        } else if (strcmp(argv[i], "--export-compile-commands-json") == 0) {
+        } else if (strcmp(argv[i], "-E") == 0) {
             installOptions.exportCompileCommandsJson = true;
         } else if (strcmp(argv[i], "--enable-ccache") == 0) {
             installOptions.enableCcache = true;
         } else if (strcmp(argv[i], "--enable-bear") == 0) {
             installOptions.enableBear = true;
-        } else if (strcmp(argv[i], "--profile=debug") == 0) {
-            installOptions.buildType = XCPKGBuildProfile_debug;
-        } else if (strcmp(argv[i], "--profile=release") == 0) {
-            installOptions.buildType = XCPKGBuildProfile_release;
         } else if (strcmp(argv[i], "--prefer-shared") == 0) {
             installOptions.linkSharedLibs = true;
-        } else if (strncmp(argv[i], "--jobs=", 7) == 0) {
-            char * jobsStr = &argv[i][7];
+        } else if (strcmp(argv[i], "-j") == 0) {
+            const char * p = argv[++i];
 
-            if (jobsStr[0] == '\0') {
-                LOG_ERROR1("--jobs=<N> , <N> should be a non-empty string");
+            if (p == NULL) {
+                LOG_ERROR1("-j <N> , <N> is unspecified.");
+                return XCPKG_ERROR_ARG_IS_UNSPECIFIED;
+            }
+
+            if (p[0] == '\0') {
+                LOG_ERROR1("-j <N> , <N> should be a non-empty string.");
                 return XCPKG_ERROR;
-            } else {
-                int j = 0;
+            }
 
-                for (;;) {
-                    char c = jobsStr[j];
+            for (int j = 0; ; j++) {
+                if (p[j] == '\0') {
+                    break;
+                }
 
-                    if (c == '\0') {
-                        break;
-                    }
-
-                    if ((c >= '0') && (c <= '9')) {
-                        j++;
-                    } else {
-                        LOG_ERROR1("--jobs=<N> , <N> should be a integer.");
-                        return XCPKG_ERROR;
-                    }
+                if ((p[j] < '0') || (p[j] > '9')) {
+                    LOG_ERROR1("-j <N> , <N> should be an integer.");
+                    return XCPKG_ERROR;
                 }
             }
 
-            installOptions.parallelJobsCount = atoi(jobsStr);
+            installOptions.parallelJobsCount = atoi(p);
         } else if (strncmp(argv[i], "--target=", 9) == 0) {
             targetPlatformSpec = &argv[i][9];
 
             if (targetPlatformSpec[0] == '\0') {
                 fprintf(stderr, "--target=<TARGET-PLATFORM-SPEC>, <TARGET-PLATFORM-SPEC> should be a non-empty string.\n");
-                return XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY;
+                return XCPKG_ERROR;
+            }
+        } else if (strncmp(argv[i], "--profile=", 10) == 0) {
+            const char * p = &argv[i][10];
+
+            if (p[0] == '\0') {
+                fprintf(stderr, "--profile=<PROFILE>, <PROFILE> should be a non-empty string.\n");
+                return XCPKG_ERROR;
+            }
+
+            if (strcmp(p, "debug") == 0) {
+                installOptions.profile = XCPKGBuildProfile_debug;
+            } else if (strcmp(p, "release") == 0) {
+                installOptions.profile = XCPKGBuildProfile_release;
+            } else {
+                fprintf(stderr, "--profile=<PROFILE>, <PROFILE> should be either debug or release.\n");
+                return XCPKG_ERROR;
             }
         } else if (argv[i][0] == '-') {
-            LOG_ERROR2("unrecognized argument: ", argv[i]);
-            return XCPKG_ERROR_PACKAGE_NAME_IS_INVALID;
+            LOG_ERROR2("unknown argument: ", argv[i]);
+            return XCPKG_ERROR_ARG_IS_UNKNOWN;
         } else {
             packageIndexArray[packageIndexArraySize] = i;
             packageIndexArraySize++;
@@ -722,8 +734,8 @@ static inline int xcpkg_action_reinstall(int argc, char* argv[]) {
     }
 
     if (packageIndexArraySize == 0) {
-        fprintf(stderr, "Usage: %s %s <PACKAGE-NAME>..., <PACKAGE-NAME> is not given.\n", argv[0], argv[1]);
-        return XCPKG_ERROR_PACKAGE_NAME_IS_NULL;
+        fprintf(stderr, "Usage: %s %s <PACKAGE-NAME>..., <PACKAGE-NAME> is unspecified.\n", argv[0], argv[1]);
+        return XCPKG_ERROR_ARG_IS_UNSPECIFIED;
     }
 
     for (int i = 0; i < packageIndexArraySize; i++) {
@@ -737,14 +749,14 @@ static inline int xcpkg_action_reinstall(int argc, char* argv[]) {
 
         int ret = xcpkg_inspect_package(package, targetPlatformSpec, &packageName, &platformSpec, buf);
 
-        if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_NULL) {
-            fprintf(stderr, "Usage: %s info-installed <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <PACKAGE-NAME|PACKAGE-SPEC> is not given.\n", argv[0]);
-        } else if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY) {
-            fprintf(stderr, "Usage: %s info-installed <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <PACKAGE-NAME|PACKAGE-SPEC> is empty string.\n", argv[0]);
+        if (ret == XCPKG_ERROR_ARG_IS_NULL) {
+            fprintf(stderr, "Usage: %s reinstall <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <PACKAGE-NAME|PACKAGE-SPEC> is not given.\n", argv[0]);
+        } else if (ret == XCPKG_ERROR_ARG_IS_EMPTY) {
+            fprintf(stderr, "Usage: %s reinstall <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <PACKAGE-NAME|PACKAGE-SPEC> is empty string.\n", argv[0]);
         } else if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_INVALID) {
-            fprintf(stderr, "Usage: %s info-installed <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <PACKAGE-NAME|PACKAGE-SPEC> is not match pattern %s\n", argv[0], XCPKG_PACKAGE_NAME_PATTERN);
+            fprintf(stderr, "Usage: %s reinstall <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <PACKAGE-NAME|PACKAGE-SPEC> does not match pattern %s\n", argv[0], XCPKG_PACKAGE_NAME_PATTERN);
         } else if (ret == XCPKG_ERROR_PLATFORM_SPEC_IS_INVALID) {
-            fprintf(stderr, "Usage: %s info-installed <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <PACKAGE-NAME|PACKAGE-SPEC> is not match pattern %s\n", argv[0], XCPKG_PACKAGE_NAME_PATTERN);
+            fprintf(stderr, "Usage: %s reinstall <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <TARGET-SPEC> does not match pattern A-B-C\n", argv[0]);
         }
 
         if (platformSpec == NULL) {
@@ -754,7 +766,7 @@ static inline int xcpkg_action_reinstall(int argc, char* argv[]) {
         ret = xcpkg_reinstall(packageName, platformSpec, &installOptions);
 
         if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_INVALID) {
-            fprintf(stderr, "Usage: %s %s <PACKAGE-NAME>, <PACKAGE-NAME> is not match pattern %s\n", argv[0], argv[1], XCPKG_PACKAGE_NAME_PATTERN);
+            fprintf(stderr, "Usage: %s %s <PACKAGE-NAME>, <PACKAGE-NAME> does not match pattern %s\n", argv[0], argv[1], XCPKG_PACKAGE_NAME_PATTERN);
         } else if (ret == XCPKG_ERROR_PACKAGE_NOT_AVAILABLE) {
             fprintf(stderr, "package '%s' is not available.\n", packageName);
         } else if (ret == XCPKG_ERROR_PACKAGE_NOT_INSTALLED) {
@@ -775,7 +787,7 @@ static inline int xcpkg_action_reinstall(int argc, char* argv[]) {
     return XCPKG_OK;
 }
 
-static inline int xcpkg_action_upgtade(int argc, char* argv[]) {
+static inline int xcpkg_action_upgrade(int argc, char* argv[]) {
     XCPKGInstallOptions installOptions = {0};
 
     installOptions.logLevel = XCPKGLogLevel_normal;
@@ -812,54 +824,65 @@ static inline int xcpkg_action_upgtade(int argc, char* argv[]) {
             installOptions.dryrun = true;
         } else if (strcmp(argv[i], "-K") == 0) {
             installOptions.keepSessionDIR = true;
-        } else if (strcmp(argv[i], "--export-compile-commands-json") == 0) {
+        } else if (strcmp(argv[i], "-E") == 0) {
             installOptions.exportCompileCommandsJson = true;
         } else if (strcmp(argv[i], "--enable-ccache") == 0) {
             installOptions.enableCcache = true;
         } else if (strcmp(argv[i], "--enable-bear") == 0) {
             installOptions.enableBear = true;
-        } else if (strcmp(argv[i], "--profile=debug") == 0) {
-            installOptions.buildType = XCPKGBuildProfile_debug;
-        } else if (strcmp(argv[i], "--profile=release") == 0) {
-            installOptions.buildType = XCPKGBuildProfile_release;
         } else if (strcmp(argv[i], "--prefer-shared") == 0) {
             installOptions.linkSharedLibs = true;
-        } else if (strncmp(argv[i], "--jobs=", 7) == 0) {
-            char * jobsStr = &argv[i][7];
+        } else if (strcmp(argv[i], "-j") == 0) {
+            const char * p = argv[++i];
 
-            if (jobsStr[0] == '\0') {
-                LOG_ERROR1("--jobs=<N> , <N> should be a non-empty string");
+            if (p == NULL) {
+                LOG_ERROR1("-j <N> , <N> is unspecified.");
+                return XCPKG_ERROR_ARG_IS_UNSPECIFIED;
+            }
+
+            if (p[0] == '\0') {
+                LOG_ERROR1("-j <N> , <N> should be a non-empty string.");
                 return XCPKG_ERROR;
-            } else {
-                int j = 0;
+            }
 
-                for (;;) {
-                    char c = jobsStr[j];
+            for (int j = 0; ; j++) {
+                if (p[j] == '\0') {
+                    break;
+                }
 
-                    if (c == '\0') {
-                        break;
-                    }
-
-                    if ((c >= '0') && (c <= '9')) {
-                        j++;
-                    } else {
-                        LOG_ERROR1("--jobs=<N> , <N> should be a integer.");
-                        return XCPKG_ERROR;
-                    }
+                if ((p[j] < '0') || (p[j] > '9')) {
+                    LOG_ERROR1("-j <N> , <N> should be an integer.");
+                    return XCPKG_ERROR;
                 }
             }
 
-            installOptions.parallelJobsCount = atoi(jobsStr);
+            installOptions.parallelJobsCount = atoi(p);
         } else if (strncmp(argv[i], "--target=", 9) == 0) {
             targetPlatformSpec = &argv[i][9];
 
             if (targetPlatformSpec[0] == '\0') {
                 fprintf(stderr, "--target=<TARGET-PLATFORM-SPEC>, <TARGET-PLATFORM-SPEC> should be a non-empty string.\n");
-                return XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY;
+                return XCPKG_ERROR;
+            }
+        } else if (strncmp(argv[i], "--profile=", 10) == 0) {
+            const char * p = &argv[i][10];
+
+            if (p[0] == '\0') {
+                fprintf(stderr, "--profile=<PROFILE>, <PROFILE> should be a non-empty string.\n");
+                return XCPKG_ERROR;
+            }
+
+            if (strcmp(p, "debug") == 0) {
+                installOptions.profile = XCPKGBuildProfile_debug;
+            } else if (strcmp(p, "release") == 0) {
+                installOptions.profile = XCPKGBuildProfile_release;
+            } else {
+                fprintf(stderr, "--profile=<PROFILE>, <PROFILE> should be either debug or release.\n");
+                return XCPKG_ERROR;
             }
         } else if (argv[i][0] == '-') {
-            LOG_ERROR2("unrecognized argument: ", argv[i]);
-            return XCPKG_ERROR_PACKAGE_NAME_IS_INVALID;
+            LOG_ERROR2("unknown argument: ", argv[i]);
+            return XCPKG_ERROR_ARG_IS_UNKNOWN;
         } else {
             packageIndexArray[packageIndexArraySize] = i;
             packageIndexArraySize++;
@@ -877,14 +900,14 @@ static inline int xcpkg_action_upgtade(int argc, char* argv[]) {
 
         int ret = xcpkg_inspect_package(package, targetPlatformSpec, &packageName, &platformSpec, buf);
 
-        if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_NULL) {
-            fprintf(stderr, "Usage: %s info-installed <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <PACKAGE-NAME|PACKAGE-SPEC> is not given.\n", argv[0]);
-        } else if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY) {
-            fprintf(stderr, "Usage: %s info-installed <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <PACKAGE-NAME|PACKAGE-SPEC> is empty string.\n", argv[0]);
+        if (ret == XCPKG_ERROR_ARG_IS_NULL) {
+            fprintf(stderr, "Usage: %s upgrade <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <PACKAGE-NAME|PACKAGE-SPEC> is not given.\n", argv[0]);
+        } else if (ret == XCPKG_ERROR_ARG_IS_EMPTY) {
+            fprintf(stderr, "Usage: %s upgrade <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <PACKAGE-NAME|PACKAGE-SPEC> is empty string.\n", argv[0]);
         } else if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_INVALID) {
-            fprintf(stderr, "Usage: %s info-installed <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <PACKAGE-NAME|PACKAGE-SPEC> is not match pattern %s\n", argv[0], XCPKG_PACKAGE_NAME_PATTERN);
+            fprintf(stderr, "Usage: %s upgrade <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <PACKAGE-NAME|PACKAGE-SPEC> does not match pattern %s\n", argv[0], XCPKG_PACKAGE_NAME_PATTERN);
         } else if (ret == XCPKG_ERROR_PLATFORM_SPEC_IS_INVALID) {
-            fprintf(stderr, "Usage: %s info-installed <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <PACKAGE-NAME|PACKAGE-SPEC> is not match pattern %s\n", argv[0], XCPKG_PACKAGE_NAME_PATTERN);
+            fprintf(stderr, "Usage: %s upgrade <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <TARGET-SPEC> does not match pattern A-B-C\n", argv[0]);
         }
 
         if (platformSpec == NULL) {
@@ -894,7 +917,7 @@ static inline int xcpkg_action_upgtade(int argc, char* argv[]) {
         ret = xcpkg_upgrade(packageName, platformSpec, &installOptions);
 
         if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_INVALID) {
-            fprintf(stderr, "Usage: %s %s <PACKAGE-NAME>, <PACKAGE-NAME> is not match pattern %s\n", argv[0], argv[1], XCPKG_PACKAGE_NAME_PATTERN);
+            fprintf(stderr, "Usage: %s %s <PACKAGE-NAME>, <PACKAGE-NAME> does not match pattern %s\n", argv[0], argv[1], XCPKG_PACKAGE_NAME_PATTERN);
         } else if (ret == XCPKG_ERROR_PACKAGE_NOT_AVAILABLE) {
             fprintf(stderr, "package '%s' is not available.\n", packageName);
         } else if (ret == XCPKG_ERROR_PACKAGE_NOT_INSTALLED) {
@@ -933,7 +956,7 @@ static inline int xcpkg_action_uninstall(int argc, char* argv[]) {
 
             if (targetPlatformSpec[0] == '\0') {
                 fprintf(stderr, "--target=<TARGET-PLATFORM-SPEC>, <TARGET-PLATFORM-SPEC> should be a non-empty string.\n");
-                return XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY;
+                return XCPKG_ERROR;
             }
         } else {
             packageIndexArray[packageIndexArraySize] = i;
@@ -942,8 +965,8 @@ static inline int xcpkg_action_uninstall(int argc, char* argv[]) {
     }
 
     if (packageIndexArraySize == 0) {
-        fprintf(stderr, "Usage: %s %s <PACKAGE-NAME>..., <PACKAGE-NAME> is not given.\n", argv[0], argv[1]);
-        return XCPKG_ERROR_PACKAGE_NAME_IS_NULL;
+        fprintf(stderr, "Usage: %s %s <PACKAGE-NAME>..., <PACKAGE-NAME> is unspecified.\n", argv[0], argv[1]);
+        return XCPKG_ERROR_ARG_IS_UNSPECIFIED;
     }
 
     for (int i = 0; i < packageIndexArraySize; i++) {
@@ -957,14 +980,14 @@ static inline int xcpkg_action_uninstall(int argc, char* argv[]) {
 
         int ret = xcpkg_inspect_package(package, NULL, &packageName, &platformSpec, buf);
 
-        if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_NULL) {
-            fprintf(stderr, "Usage: %s info-installed <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <PACKAGE-NAME|PACKAGE-SPEC> is not given.\n", argv[0]);
-        } else if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY) {
-            fprintf(stderr, "Usage: %s info-installed <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <PACKAGE-NAME|PACKAGE-SPEC> is empty string.\n", argv[0]);
+        if (ret == XCPKG_ERROR_ARG_IS_NULL) {
+            fprintf(stderr, "Usage: %s uninstall <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <PACKAGE-NAME|PACKAGE-SPEC> is not given.\n", argv[0]);
+        } else if (ret == XCPKG_ERROR_ARG_IS_EMPTY) {
+            fprintf(stderr, "Usage: %s uninstall <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <PACKAGE-NAME|PACKAGE-SPEC> is empty string.\n", argv[0]);
         } else if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_INVALID) {
-            fprintf(stderr, "Usage: %s info-installed <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <PACKAGE-NAME|PACKAGE-SPEC> is not match pattern %s\n", argv[0], XCPKG_PACKAGE_NAME_PATTERN);
+            fprintf(stderr, "Usage: %s uninstall <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <PACKAGE-NAME|PACKAGE-SPEC> does not match pattern %s\n", argv[0], XCPKG_PACKAGE_NAME_PATTERN);
         } else if (ret == XCPKG_ERROR_PLATFORM_SPEC_IS_INVALID) {
-            fprintf(stderr, "Usage: %s info-installed <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <PACKAGE-NAME|PACKAGE-SPEC> is not match pattern %s\n", argv[0], XCPKG_PACKAGE_NAME_PATTERN);
+            fprintf(stderr, "Usage: %s uninstall <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <TARGET-SPEC> does not match pattern A-B-C\n", argv[0]);
         }
 
         if (platformSpec == NULL) {
@@ -974,7 +997,7 @@ static inline int xcpkg_action_uninstall(int argc, char* argv[]) {
         ret = xcpkg_uninstall(packageName, platformSpec, verbose);
 
         if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_INVALID) {
-            fprintf(stderr, "Usage: %s %s <PACKAGE-NAME>, <PACKAGE-NAME> is not match pattern %s\n", argv[0], argv[1], XCPKG_PACKAGE_NAME_PATTERN);
+            fprintf(stderr, "Usage: %s %s <PACKAGE-NAME>, <PACKAGE-NAME> does not match pattern %s\n", argv[0], argv[1], XCPKG_PACKAGE_NAME_PATTERN);
         } else if (ret == XCPKG_ERROR_PACKAGE_NOT_INSTALLED) {
             fprintf(stderr, "package '%s' is not installed.\n", packageName);
         } else if (ret == XCPKG_ERROR_ENV_HOME_NOT_SET) {
@@ -1005,13 +1028,13 @@ static inline int xcpkg_action_ls_available(int argc, char* argv[]) {
             targetPlatformName = argv[++i];
 
             if (targetPlatformName == NULL) {
-                fprintf(stderr, "-p <TARGET-PLATFORM-NAME>, <TARGET-PLATFORM-NAME> should be a non-empty string.\n");
-                return XCPKG_ERROR_PACKAGE_NAME_IS_INVALID;
+                fprintf(stderr, "-p <TARGET-PLATFORM-NAME>, <TARGET-PLATFORM-NAME> is unspecified.\n");
+                return XCPKG_ERROR_ARG_IS_UNSPECIFIED;
             }
 
             if (targetPlatformName[0] == '\0') {
                 fprintf(stderr, "-p <TARGET-PLATFORM-NAME>, <TARGET-PLATFORM-NAME> should be a non-empty string.\n");
-                return XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY;
+                return XCPKG_ERROR_ARG_IS_EMPTY;
             }
 
             bool isSupported = false;
@@ -1024,12 +1047,12 @@ static inline int xcpkg_action_ls_available(int argc, char* argv[]) {
             }
 
             if (!isSupported) {
-                LOG_ERROR2("unsupported target platform name: ", targetPlatformName);
-                return XCPKG_ERROR_PACKAGE_NAME_IS_INVALID;
+                LOG_ERROR2("unknown target platform name: ", targetPlatformName);
+                return XCPKG_ERROR_ARG_IS_UNKNOWN;
             }
         } else {
-            LOG_ERROR2("unrecognized argument: ", argv[i]);
-            return XCPKG_ERROR_PACKAGE_NAME_IS_INVALID;
+            LOG_ERROR2("unknown argument: ", argv[i]);
+            return XCPKG_ERROR_ARG_IS_UNKNOWN;
         }
     }
 
@@ -1053,8 +1076,8 @@ static inline int xcpkg_action_ls_installed(int argc, char* argv[]) {
         if (strcmp(argv[i], "-v") == 0) {
             verbose = true;
         } else {
-            LOG_ERROR2("unrecognized argument: ", argv[i]);
-            return XCPKG_ERROR_PACKAGE_NAME_IS_INVALID;
+            LOG_ERROR2("unknown argument: ", argv[i]);
+            return XCPKG_ERROR_ARG_IS_UNKNOWN;
         }
     }
 
@@ -1078,8 +1101,8 @@ static inline int xcpkg_action_ls_outdated(int argc, char* argv[]) {
         if (strcmp(argv[i], "-v") == 0) {
             verbose = true;
         } else {
-            LOG_ERROR2("unrecognized argument: ", argv[i]);
-            return XCPKG_ERROR_PACKAGE_NAME_IS_INVALID;
+            LOG_ERROR2("unknown argument: ", argv[i]);
+            return XCPKG_ERROR_ARG_IS_UNKNOWN;
         }
     }
 
@@ -1104,13 +1127,13 @@ static inline int xcpkg_action_is_available(int argc, char* argv[]) {
             targetPlatformName = argv[++i];
 
             if (targetPlatformName == NULL) {
-                fprintf(stderr, "-p <TARGET-PLATFORM-NAME>, <TARGET-PLATFORM-NAME> should be a non-empty string.\n");
-                return XCPKG_ERROR_PACKAGE_NAME_IS_INVALID;
+                fprintf(stderr, "-p <TARGET-PLATFORM-NAME>, <TARGET-PLATFORM-NAME> is unspecified.\n");
+                return XCPKG_ERROR_ARG_IS_UNSPECIFIED;
             }
 
             if (targetPlatformName[0] == '\0') {
                 fprintf(stderr, "-p <TARGET-PLATFORM-NAME>, <TARGET-PLATFORM-NAME> should be a non-empty string.\n");
-                return XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY;
+                return XCPKG_ERROR_ARG_IS_EMPTY;
             }
 
             bool isSupported = false;
@@ -1123,23 +1146,23 @@ static inline int xcpkg_action_is_available(int argc, char* argv[]) {
             }
 
             if (!isSupported) {
-                LOG_ERROR2("unsupported target platform name: ", targetPlatformName);
-                return XCPKG_ERROR_PACKAGE_NAME_IS_INVALID;
+                LOG_ERROR2("unknown target platform name: ", targetPlatformName);
+                return XCPKG_ERROR_ARG_IS_UNKNOWN;
             }
         } else {
-            LOG_ERROR2("unrecognized argument: ", argv[i]);
-            return XCPKG_ERROR_PACKAGE_NAME_IS_INVALID;
+            LOG_ERROR2("unknown argument: ", argv[i]);
+            return XCPKG_ERROR_ARG_IS_UNKNOWN;
         }
     }
 
     int ret = xcpkg_check_if_the_given_package_is_available(argv[2], targetPlatformName);
 
-    if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_NULL) {
+    if (ret == XCPKG_ERROR_ARG_IS_NULL) {
         fprintf(stderr, "Usage: %s %s <PACKAGE-NAME>, <PACKAGE-NAME> is not given.\n", argv[0], argv[1]);
-    } else if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY) {
+    } else if (ret == XCPKG_ERROR_ARG_IS_EMPTY) {
         fprintf(stderr, "Usage: %s %s <PACKAGE-NAME>, <PACKAGE-NAME> is empty string.\n", argv[0], argv[1]);
     } else if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_INVALID) {
-        fprintf(stderr, "Usage: %s %s <PACKAGE-NAME>, <PACKAGE-NAME> is not match pattern %s\n", argv[0], argv[1], XCPKG_PACKAGE_NAME_PATTERN);
+        fprintf(stderr, "Usage: %s %s <PACKAGE-NAME>, <PACKAGE-NAME> does not match pattern %s\n", argv[0], argv[1], XCPKG_PACKAGE_NAME_PATTERN);
     } else if (ret == XCPKG_ERROR_PACKAGE_NOT_AVAILABLE) {
         fprintf(stderr, "package '%s' is not available for target '%s'\n", argv[2], targetPlatformName);
     } else if (ret == XCPKG_ERROR_ENV_HOME_NOT_SET) {
@@ -1156,10 +1179,10 @@ static inline int xcpkg_action_is_available(int argc, char* argv[]) {
 static inline int xcpkg_action_is_installed(int argc, char* argv[]) {
     if (argv[2] == NULL) {
         fprintf(stderr, "Usage: %s is-installed <PACKAGE-SPEC>, <PACKAGE-SPEC> is unspecified.\n", argv[0]);
-        return XCPKG_ERROR_PACKAGE_NAME_IS_NULL;
+        return XCPKG_ERROR_ARG_IS_UNSPECIFIED;
     } else if (argv[2][0] == '\0') {
         fprintf(stderr, "Usage: %s is-installed <PACKAGE-SPEC>, <PACKAGE-SPEC> must be a non-empty string.\n", argv[0]);
-        return XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY;
+        return XCPKG_ERROR_ARG_IS_EMPTY;
     }
 
     const char * packageName = NULL;
@@ -1170,14 +1193,14 @@ static inline int xcpkg_action_is_installed(int argc, char* argv[]) {
 
     int ret = xcpkg_inspect_package(argv[2], NULL, &packageName, &platformSpec, buf);
 
-    if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_NULL) {
-        fprintf(stderr, "Usage: %s info-installed <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <PACKAGE-NAME|PACKAGE-SPEC> is not given.\n", argv[0]);
-    } else if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY) {
-        fprintf(stderr, "Usage: %s info-installed <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <PACKAGE-NAME|PACKAGE-SPEC> is empty string.\n", argv[0]);
+    if (ret == XCPKG_ERROR_ARG_IS_NULL) {
+        fprintf(stderr, "Usage: %s is-installed <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <PACKAGE-NAME|PACKAGE-SPEC> is not given.\n", argv[0]);
+    } else if (ret == XCPKG_ERROR_ARG_IS_EMPTY) {
+        fprintf(stderr, "Usage: %s is-installed <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <PACKAGE-NAME|PACKAGE-SPEC> is empty string.\n", argv[0]);
     } else if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_INVALID) {
-        fprintf(stderr, "Usage: %s info-installed <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <PACKAGE-NAME|PACKAGE-SPEC> is not match pattern %s\n", argv[0], XCPKG_PACKAGE_NAME_PATTERN);
+        fprintf(stderr, "Usage: %s is-installed <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <PACKAGE-NAME|PACKAGE-SPEC> does not match pattern %s\n", argv[0], XCPKG_PACKAGE_NAME_PATTERN);
     } else if (ret == XCPKG_ERROR_PLATFORM_SPEC_IS_INVALID) {
-        fprintf(stderr, "Usage: %s info-installed <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <PACKAGE-NAME|PACKAGE-SPEC> is not match pattern %s\n", argv[0], XCPKG_PACKAGE_NAME_PATTERN);
+        fprintf(stderr, "Usage: %s is-installed <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <TARGET-SPEC> does not match pattern A-B-C\n", argv[0]);
     }
 
     if (platformSpec == NULL) {
@@ -1187,7 +1210,7 @@ static inline int xcpkg_action_is_installed(int argc, char* argv[]) {
     ret = xcpkg_check_if_the_given_package_is_installed(packageName, platformSpec);
 
     if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_INVALID) {
-        fprintf(stderr, "Usage: %s %s <PACKAGE-NAME>, <PACKAGE-NAME> is not match pattern %s\n", argv[0], argv[1], XCPKG_PACKAGE_NAME_PATTERN);
+        fprintf(stderr, "Usage: %s %s <PACKAGE-NAME>, <PACKAGE-NAME> does not match pattern %s\n", argv[0], argv[1], XCPKG_PACKAGE_NAME_PATTERN);
     } else if (ret == XCPKG_ERROR_PACKAGE_NOT_INSTALLED) {
         fprintf(stderr, "package '%s' is not installed.\n", argv[2]);
     } else if (ret == XCPKG_ERROR_ENV_HOME_NOT_SET) {
@@ -1204,10 +1227,10 @@ static inline int xcpkg_action_is_installed(int argc, char* argv[]) {
 static inline int xcpkg_action_is_outdated(int argc, char* argv[]) {
     if (argv[2] == NULL) {
         fprintf(stderr, "Usage: %s is-installed <PACKAGE-SPEC>, <PACKAGE-SPEC> is unspecified.\n", argv[0]);
-        return XCPKG_ERROR_PACKAGE_NAME_IS_NULL;
+        return XCPKG_ERROR_ARG_IS_UNSPECIFIED;
     } else if (argv[2][0] == '\0') {
         fprintf(stderr, "Usage: %s is-installed <PACKAGE-SPEC>, <PACKAGE-SPEC> must be a non-empty string.\n", argv[0]);
-        return XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY;
+        return XCPKG_ERROR_ARG_IS_EMPTY;
     }
 
     const char * packageName = NULL;
@@ -1218,14 +1241,14 @@ static inline int xcpkg_action_is_outdated(int argc, char* argv[]) {
 
     int ret = xcpkg_inspect_package(argv[2], NULL, &packageName, &platformSpec, buf);
 
-    if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_NULL) {
-        fprintf(stderr, "Usage: %s info-installed <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <PACKAGE-NAME|PACKAGE-SPEC> is not given.\n", argv[0]);
-    } else if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY) {
-        fprintf(stderr, "Usage: %s info-installed <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <PACKAGE-NAME|PACKAGE-SPEC> is empty string.\n", argv[0]);
+    if (ret == XCPKG_ERROR_ARG_IS_NULL) {
+        fprintf(stderr, "Usage: %s is-outdated <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <PACKAGE-NAME|PACKAGE-SPEC> is not given.\n", argv[0]);
+    } else if (ret == XCPKG_ERROR_ARG_IS_EMPTY) {
+        fprintf(stderr, "Usage: %s is-outdated <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <PACKAGE-NAME|PACKAGE-SPEC> is empty string.\n", argv[0]);
     } else if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_INVALID) {
-        fprintf(stderr, "Usage: %s info-installed <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <PACKAGE-NAME|PACKAGE-SPEC> is not match pattern %s\n", argv[0], XCPKG_PACKAGE_NAME_PATTERN);
+        fprintf(stderr, "Usage: %s is-outdated <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <PACKAGE-NAME|PACKAGE-SPEC> does not match pattern %s\n", argv[0], XCPKG_PACKAGE_NAME_PATTERN);
     } else if (ret == XCPKG_ERROR_PLATFORM_SPEC_IS_INVALID) {
-        fprintf(stderr, "Usage: %s info-installed <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <PACKAGE-NAME|PACKAGE-SPEC> is not match pattern %s\n", argv[0], XCPKG_PACKAGE_NAME_PATTERN);
+        fprintf(stderr, "Usage: %s is-outdated <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <TARGET-SPEC> does not match pattern A-B-C\n", argv[0]);
     }
 
     if (platformSpec == NULL) {
@@ -1235,7 +1258,7 @@ static inline int xcpkg_action_is_outdated(int argc, char* argv[]) {
     ret = xcpkg_check_if_the_given_package_is_outdated(packageName, platformSpec);
 
     if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_INVALID) {
-        fprintf(stderr, "Usage: %s %s <PACKAGE-NAME>, <PACKAGE-NAME> is not match pattern %s\n", argv[0], argv[1], XCPKG_PACKAGE_NAME_PATTERN);
+        fprintf(stderr, "Usage: %s %s <PACKAGE-NAME>, <PACKAGE-NAME> does not match pattern %s\n", argv[0], argv[1], XCPKG_PACKAGE_NAME_PATTERN);
     } else if (ret == XCPKG_ERROR_PACKAGE_NOT_AVAILABLE) {
         fprintf(stderr, "package [%s] is not available.\n", argv[2]);
     } else if (ret == XCPKG_ERROR_PACKAGE_NOT_INSTALLED) {
@@ -1255,12 +1278,12 @@ static inline int xcpkg_action_is_outdated(int argc, char* argv[]) {
 static inline int xcpkg_action_formula_repo_add(int argc, char* argv[]) {
     if (argv[2] == NULL) {
         fprintf(stderr, "Usage: %s %s <FORMULA-REPO-NAME> <FORMULA-REPO-URL> [--branch=VALUE --pin/--unpin --enable/--disable]\n", argv[0], argv[1]);
-        return XCPKG_ERROR_PACKAGE_NAME_IS_NULL;
+        return XCPKG_ERROR_ARG_IS_UNSPECIFIED;
     }
 
     if (argv[3] == NULL) {
         fprintf(stderr, "Usage: %s %s <FORMULA-REPO-NAME> <FORMULA-REPO-URL> [--branch=VALUE --pin/--unpin --enable/--disable]\n", argv[0], argv[1]);
-        return XCPKG_ERROR_PACKAGE_NAME_IS_NULL;
+        return XCPKG_ERROR_ARG_IS_UNSPECIFIED;
     }
 
     int pinned  = 0;
@@ -1280,12 +1303,12 @@ static inline int xcpkg_action_formula_repo_add(int argc, char* argv[]) {
         } else if (strncmp(argv[i], "--branch=", 9) == 0) {
             if (argv[i][9] == '\0') {
                 fprintf(stderr, "--branch=<VALUE>, <VALUE> should be a non-empty string.\n");
-                return XCPKG_ERROR_PACKAGE_NAME_IS_INVALID;
+                return XCPKG_ERROR_ARG_IS_EMPTY;
             } else {
                 branch = &argv[i][9];
             }
         } else {
-            fprintf(stderr, "unrecognized option: %s\n", argv[i]);
+            LOG_ERROR2("unknown argument: ", argv[i]);
             return XCPKG_ERROR_ARG_IS_UNKNOWN;
         }
     }
@@ -1296,18 +1319,18 @@ static inline int xcpkg_action_formula_repo_add(int argc, char* argv[]) {
 static inline int xcpkg_action_formula_repo_init(int argc, char* argv[]) {
     if (argv[2] == NULL) {
         fprintf(stderr, "Usage: %s %s <FORMULA-REPO-NAME> <FORMULA-REPO-URL> [--branch=VALUE --pin/--unpin --enable/--disable]\n", argv[0], argv[1]);
-        return XCPKG_ERROR_PACKAGE_NAME_IS_NULL;
+        return XCPKG_ERROR_ARG_IS_UNSPECIFIED;
     }
 
     if (argv[3] == NULL) {
         fprintf(stderr, "Usage: %s %s <FORMULA-REPO-NAME> <FORMULA-REPO-URL> [--branch=VALUE --pin/--unpin --enable/--disable]\n", argv[0], argv[1]);
-        return XCPKG_ERROR_PACKAGE_NAME_IS_NULL;
+        return XCPKG_ERROR_ARG_IS_UNSPECIFIED;
     }
 
     int pinned  = 1;
     int enabled = 1;
 
-    char * branch = NULL;
+    const char * branch = NULL;
 
     for (int i = 4; i < argc; i++) {
         if (strcmp(argv[i], "--pin") == 0) {
@@ -1319,14 +1342,14 @@ static inline int xcpkg_action_formula_repo_init(int argc, char* argv[]) {
         } else if (strcmp(argv[i], "--disable") == 0) {
             enabled = 0;
         } else if (strncmp(argv[i], "--branch=", 9) == 0) {
-            if (argv[i][9] == '\0') {
+            branch = &argv[i][9];
+
+            if (branch[0] == '\0') {
                 fprintf(stderr, "--branch=<VALUE>, <VALUE> should be a non-empty string.\n");
-                return XCPKG_ERROR_PACKAGE_NAME_IS_INVALID;
-            } else {
-                branch = &argv[i][9];
+                return XCPKG_ERROR_ARG_IS_EMPTY;
             }
         } else {
-            fprintf(stderr, "unrecognized option: %s\n", argv[i]);
+            LOG_ERROR2("unknown argument: ", argv[i]);
             return XCPKG_ERROR_ARG_IS_UNKNOWN;
         }
     }
@@ -1337,12 +1360,12 @@ static inline int xcpkg_action_formula_repo_init(int argc, char* argv[]) {
 static inline int xcpkg_action_formula_repo_conf(int argc, char* argv[]) {
     if (argv[2] == NULL) {
         fprintf(stderr, "Usage: %s %s <FORMULA-REPO-NAME> [--url=VALUE --branch=VALUE --pin/--unpin --enable/--disable]\n", argv[0], argv[1]);
-        return XCPKG_ERROR_PACKAGE_NAME_IS_NULL;
+        return XCPKG_ERROR_ARG_IS_UNSPECIFIED;
     }
 
     if (argv[3] == NULL) {
         fprintf(stderr, "Usage: %s %s <FORMULA-REPO-NAME> [--url=VALUE --branch=VALUE --pin/--unpin --enable/--disable]\n", argv[0], argv[1]);
-        return XCPKG_ERROR_PACKAGE_NAME_IS_NULL;
+        return XCPKG_ERROR_ARG_IS_UNSPECIFIED;
     }
 
     int pinned  = -1;
@@ -1363,19 +1386,19 @@ static inline int xcpkg_action_formula_repo_conf(int argc, char* argv[]) {
         } else if (strncmp(argv[i], "--url=", 6) == 0) {
             if (argv[i][6] == '\0') {
                 fprintf(stderr, "--url=<VALUE>, <VALUE> should be a non-empty string.\n");
-                return XCPKG_ERROR_PACKAGE_NAME_IS_INVALID;
+                return XCPKG_ERROR_ARG_IS_EMPTY;
             } else {
                 url = &argv[i][6];
             }
         } else if (strncmp(argv[i], "--branch=", 9) == 0) {
             if (argv[i][9] == '\0') {
                 fprintf(stderr, "--branch=<VALUE>, <VALUE> should be a non-empty string.\n");
-                return XCPKG_ERROR_PACKAGE_NAME_IS_INVALID;
+                return XCPKG_ERROR_ARG_IS_EMPTY;
             } else {
                 branch = &argv[i][9];
             }
         } else {
-            fprintf(stderr, "unrecognized option: %s\n", argv[i]);
+            LOG_ERROR2("unknown argument: ", argv[i]);
             return XCPKG_ERROR_ARG_IS_UNKNOWN;
         }
     }
@@ -1386,7 +1409,7 @@ static inline int xcpkg_action_formula_repo_conf(int argc, char* argv[]) {
 static inline int xcpkg_action_formula_repo_del(int argc, char* argv[]) {
     if (argv[2] == NULL) {
         fprintf(stderr, "Usage: %s %s <FORMULA-REPO-NAME>\n", argv[0], argv[1]);
-        return XCPKG_ERROR_PACKAGE_NAME_IS_NULL;
+        return XCPKG_ERROR_ARG_IS_UNSPECIFIED;
     }
 
     return xcpkg_formula_repo_remove(argv[2]);
@@ -1395,7 +1418,7 @@ static inline int xcpkg_action_formula_repo_del(int argc, char* argv[]) {
 static inline int xcpkg_action_formula_repo_sync(int argc, char* argv[]) {
     if (argv[2] == NULL) {
         fprintf(stderr, "Usage: %s %s <FORMULA-REPO-NAME>\n", argv[0], argv[1]);
-        return XCPKG_ERROR_PACKAGE_NAME_IS_NULL;
+        return XCPKG_ERROR_ARG_IS_UNSPECIFIED;
     }
 
     return xcpkg_formula_repo_sync_(argv[2]);
@@ -1404,7 +1427,7 @@ static inline int xcpkg_action_formula_repo_sync(int argc, char* argv[]) {
 static inline int xcpkg_action_formula_repo_info(int argc, char* argv[]) {
     if (argv[2] == NULL) {
         fprintf(stderr, "Usage: %s %s <FORMULA-REPO-NAME>\n", argv[0], argv[1]);
-        return XCPKG_ERROR_PACKAGE_NAME_IS_NULL;
+        return XCPKG_ERROR_ARG_IS_UNSPECIFIED;
     }
 
     return xcpkg_formula_repo_info_(argv[2]);
@@ -1413,10 +1436,10 @@ static inline int xcpkg_action_formula_repo_info(int argc, char* argv[]) {
 static inline int xcpkg_action_tree(int argc, char* argv[]) {
     if (argv[2] == NULL) {
         fprintf(stderr, "Usage: %s tree <PACKAGE-SPEC> [KEY], <PACKAGE-SPEC> is unspecified.\n", argv[0]);
-        return XCPKG_ERROR_PACKAGE_NAME_IS_NULL;
+        return XCPKG_ERROR_ARG_IS_UNSPECIFIED;
     } else if (argv[2][0] == '\0') {
         fprintf(stderr, "Usage: %s tree <PACKAGE-SPEC> [KEY], <PACKAGE-SPEC> must be a non-empty string.\n", argv[0]);
-        return XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY;
+        return XCPKG_ERROR_ARG_IS_EMPTY;
     }
 
     const char * packageName = NULL;
@@ -1427,14 +1450,14 @@ static inline int xcpkg_action_tree(int argc, char* argv[]) {
 
     int ret = xcpkg_inspect_package(argv[2], NULL, &packageName, &platformSpec, buf);
 
-    if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_NULL) {
+    if (ret == XCPKG_ERROR_ARG_IS_NULL) {
         fprintf(stderr, "Usage: %s %s <PACKAGE-NAME|PACKAGE-SPEC>, <PACKAGE-NAME|PACKAGE-SPEC> is not given.\n", argv[0], argv[1]);
-    } else if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY) {
+    } else if (ret == XCPKG_ERROR_ARG_IS_EMPTY) {
         fprintf(stderr, "Usage: %s %s <PACKAGE-NAME|PACKAGE-SPEC>, <PACKAGE-NAME|PACKAGE-SPEC> is empty string.\n", argv[0], argv[1]);
     } else if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_INVALID) {
-        fprintf(stderr, "Usage: %s %s <PACKAGE-NAME|PACKAGE-SPEC>, <PACKAGE-NAME|PACKAGE-SPEC> is not match pattern %s\n", argv[0], argv[1], XCPKG_PACKAGE_NAME_PATTERN);
+        fprintf(stderr, "Usage: %s %s <PACKAGE-NAME|PACKAGE-SPEC>, <PACKAGE-NAME|PACKAGE-SPEC> does not match pattern %s\n", argv[0], argv[1], XCPKG_PACKAGE_NAME_PATTERN);
     } else if (ret == XCPKG_ERROR_PLATFORM_SPEC_IS_INVALID) {
-        fprintf(stderr, "Usage: %s %s <PACKAGE-NAME|PACKAGE-SPEC>, <PACKAGE-NAME|PACKAGE-SPEC> is not match pattern %s\n", argv[0], argv[1], XCPKG_PACKAGE_NAME_PATTERN);
+        fprintf(stderr, "Usage: %s %s <PACKAGE-NAME|PACKAGE-SPEC>, <TARGET-SPEC> does not match pattern A-B-C\n", argv[0], argv[1]);
     }
 
     if (ret != XCPKG_OK) {
@@ -1448,7 +1471,7 @@ static inline int xcpkg_action_tree(int argc, char* argv[]) {
     ret = xcpkg_tree(packageName, platformSpec, argc - 3, &argv[3]);
 
     if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_INVALID) {
-        fprintf(stderr, "Usage: %s tree <PACKAGE-NAME> [KEY], <PACKAGE-NAME> is not match pattern %s\n", argv[0], XCPKG_PACKAGE_NAME_PATTERN);
+        fprintf(stderr, "Usage: %s tree <PACKAGE-NAME> [KEY], <PACKAGE-NAME> does not match pattern %s\n", argv[0], XCPKG_PACKAGE_NAME_PATTERN);
     } else if (ret == XCPKG_ERROR_PACKAGE_NOT_INSTALLED) {
         fprintf(stderr, "package '%s' is not installed.\n", packageName);
     } else if (ret == XCPKG_ERROR_ENV_HOME_NOT_SET) {
@@ -1465,10 +1488,10 @@ static inline int xcpkg_action_tree(int argc, char* argv[]) {
 static inline int xcpkg_action_logs(int argc, char* argv[]) {
     if (argv[2] == NULL) {
         fprintf(stderr, "Usage: %s logs <PACKAGE-SPEC>, <PACKAGE-SPEC> is unspecified.\n", argv[0]);
-        return XCPKG_ERROR_PACKAGE_NAME_IS_NULL;
+        return XCPKG_ERROR_ARG_IS_UNSPECIFIED;
     } else if (argv[2][0] == '\0') {
         fprintf(stderr, "Usage: %s logs <PACKAGE-SPEC>, <PACKAGE-SPEC> must be a non-empty string.\n", argv[0]);
-        return XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY;
+        return XCPKG_ERROR_ARG_IS_EMPTY;
     }
 
     const char * packageName = NULL;
@@ -1479,14 +1502,14 @@ static inline int xcpkg_action_logs(int argc, char* argv[]) {
 
     int ret = xcpkg_inspect_package(argv[2], NULL, &packageName, &platformSpec, buf);
 
-    if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_NULL) {
+    if (ret == XCPKG_ERROR_ARG_IS_NULL) {
         fprintf(stderr, "Usage: %s %s <PACKAGE-NAME|PACKAGE-SPEC>, <PACKAGE-NAME|PACKAGE-SPEC> is not given.\n", argv[0], argv[1]);
-    } else if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY) {
+    } else if (ret == XCPKG_ERROR_ARG_IS_EMPTY) {
         fprintf(stderr, "Usage: %s %s <PACKAGE-NAME|PACKAGE-SPEC>, <PACKAGE-NAME|PACKAGE-SPEC> is empty string.\n", argv[0], argv[1]);
     } else if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_INVALID) {
-        fprintf(stderr, "Usage: %s %s <PACKAGE-NAME|PACKAGE-SPEC>, <PACKAGE-NAME|PACKAGE-SPEC> is not match pattern %s\n", argv[0], argv[1], XCPKG_PACKAGE_NAME_PATTERN);
+        fprintf(stderr, "Usage: %s %s <PACKAGE-NAME|PACKAGE-SPEC>, <PACKAGE-NAME|PACKAGE-SPEC> does not match pattern %s\n", argv[0], argv[1], XCPKG_PACKAGE_NAME_PATTERN);
     } else if (ret == XCPKG_ERROR_PLATFORM_SPEC_IS_INVALID) {
-        fprintf(stderr, "Usage: %s %s <PACKAGE-NAME|PACKAGE-SPEC>, <PACKAGE-NAME|PACKAGE-SPEC> is not match pattern %s\n", argv[0], argv[1], XCPKG_PACKAGE_NAME_PATTERN);
+        fprintf(stderr, "Usage: %s %s <PACKAGE-NAME|PACKAGE-SPEC>, <TARGET-SPEC> does not match pattern A-B-C\n", argv[0], argv[1]);
     }
 
     if (ret != XCPKG_OK) {
@@ -1500,7 +1523,7 @@ static inline int xcpkg_action_logs(int argc, char* argv[]) {
     ret = xcpkg_logs(packageName, platformSpec);
 
     if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_INVALID) {
-        fprintf(stderr, "Usage: %s %s <PACKAGE-NAME>, <PACKAGE-NAME> is not match pattern %s\n", argv[0], argv[1], XCPKG_PACKAGE_NAME_PATTERN);
+        fprintf(stderr, "Usage: %s %s <PACKAGE-NAME>, <PACKAGE-NAME> does not match pattern %s\n", argv[0], argv[1], XCPKG_PACKAGE_NAME_PATTERN);
     } else if (ret == XCPKG_ERROR_PACKAGE_NOT_INSTALLED) {
         fprintf(stderr, "package '%s' is not installed.\n", argv[2]);
     } else if (ret == XCPKG_ERROR_ENV_HOME_NOT_SET) {
@@ -1517,44 +1540,44 @@ static inline int xcpkg_action_logs(int argc, char* argv[]) {
 static inline int xcpkg_action_bundle(int argc, char* argv[]) {
     if (argv[2] == NULL) {
         fprintf(stderr, "Usage: %s bundle <PACKAGE-SPEC> <BUNDLE-TYPE>, <PACKAGE-SPEC> is unspecified.\n", argv[0]);
-        return XCPKG_ERROR_PACKAGE_NAME_IS_NULL;
+        return XCPKG_ERROR_ARG_IS_UNSPECIFIED;
     }
 
     if (argv[2][0] == '\0') {
         fprintf(stderr, "Usage: %s bundle <PACKAGE-SPEC> <BUNDLE-TYPE>, <PACKAGE-SPEC> must be a non-empty string.\n", argv[0]);
-        return XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY;
+        return XCPKG_ERROR_ARG_IS_EMPTY;
     }
 
     if (argv[3] == NULL) {
         fprintf(stderr, "Usage: %s bundle <PACKAGE-SPEC> <BUNDLE-TYPE>, <BUNDLE-TYPE> is unspecified.\n", argv[0]);
-        return XCPKG_ERROR_PACKAGE_NAME_IS_NULL;
+        return XCPKG_ERROR_ARG_IS_NULL;
     }
 
     if (argv[3][0] == '\0') {
         fprintf(stderr, "Usage: %s bundle <PACKAGE-SPEC> <BUNDLE-TYPE>, <BUNDLE-TYPE> must be a non-empty string.\n", argv[0]);
-        return XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY;
+        return XCPKG_ERROR_ARG_IS_EMPTY;
     }
 
     ArchiveType outputType = ArchiveType_tar_xz;
 
     if (argv[3][0] == '.') {
-        if (strcmp(argv[3] + 1, "zip") == 0) {
+        if (strcmp(&argv[3][1], "zip") == 0) {
             outputType = ArchiveType_zip;
-        } else if (strcmp(argv[3] + 1, "tar.gz") == 0) {
+        } else if (strcmp(&argv[3][1], "tar.gz") == 0) {
             outputType = ArchiveType_tar_gz;
-        } else if (strcmp(argv[3] + 1, "tar.lz") == 0) {
+        } else if (strcmp(&argv[3][1], "tar.lz") == 0) {
             outputType = ArchiveType_tar_lz;
-        } else if (strcmp(argv[3] + 1, "tar.xz") == 0) {
+        } else if (strcmp(&argv[3][1], "tar.xz") == 0) {
             outputType = ArchiveType_tar_xz;
-        } else if (strcmp(argv[3] + 1, "tar.bz2") == 0) {
+        } else if (strcmp(&argv[3][1], "tar.bz2") == 0) {
             outputType = ArchiveType_tar_bz2;
         } else {
-            LOG_ERROR2("unsupported bundle type: ", argv[3]);
-            return XCPKG_ERROR_PACKAGE_NAME_IS_INVALID;
+            LOG_ERROR2("unknown bundle type: ", argv[3]);
+            return XCPKG_ERROR_ARG_IS_UNKNOWN;
         }
     } else {
-        LOG_ERROR2("unsupported bundle type: ", argv[3]);
-        return XCPKG_ERROR_PACKAGE_NAME_IS_INVALID;
+        LOG_ERROR2("unknown bundle type: ", argv[3]);
+        return XCPKG_ERROR_ARG_IS_UNKNOWN;
     }
 
     char * outputPath = NULL;
@@ -1565,22 +1588,20 @@ static inline int xcpkg_action_bundle(int argc, char* argv[]) {
         if (strcmp(argv[i], "-v") == 0) {
             verbose = true;
         } else if (strcmp(argv[i], "-o") == 0) {
-            outputPath = argv[i + 1];
+            outputPath = argv[++i];
 
             if (outputPath == NULL) {
-                fprintf(stderr, "-o <OUTPUT-PATH>, <OUTPUT-PATH> should be a non-empty string.\n");
-                return XCPKG_ERROR_PACKAGE_NAME_IS_INVALID;
+                fprintf(stderr, "-o <OUTPUT-PATH>, <OUTPUT-PATH> is unspecified.\n");
+                return XCPKG_ERROR_ARG_IS_UNSPECIFIED;
             }
 
             if (outputPath[0] == '\0') {
                 fprintf(stderr, "-o <OUTPUT-PATH>, <OUTPUT-PATH> should be a non-empty string.\n");
-                return XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY;
+                return XCPKG_ERROR_ARG_IS_EMPTY;
             }
-
-            i++;
         } else {
-            LOG_ERROR2("unrecognized argument: ", argv[i]);
-            return XCPKG_ERROR_PACKAGE_NAME_IS_INVALID;
+            LOG_ERROR2("unknown argument: ", argv[i]);
+            return XCPKG_ERROR_ARG_IS_UNKNOWN;
         }
     }
 
@@ -1592,14 +1613,14 @@ static inline int xcpkg_action_bundle(int argc, char* argv[]) {
 
     int ret = xcpkg_inspect_package(argv[2], NULL, &packageName, &platformSpec, buf);
 
-    if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_NULL) {
+    if (ret == XCPKG_ERROR_ARG_IS_NULL) {
         fprintf(stderr, "Usage: %s %s <PACKAGE-NAME|PACKAGE-SPEC>, <PACKAGE-NAME|PACKAGE-SPEC> is not given.\n", argv[0], argv[1]);
-    } else if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY) {
+    } else if (ret == XCPKG_ERROR_ARG_IS_EMPTY) {
         fprintf(stderr, "Usage: %s %s <PACKAGE-NAME|PACKAGE-SPEC>, <PACKAGE-NAME|PACKAGE-SPEC> is empty string.\n", argv[0], argv[1]);
     } else if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_INVALID) {
-        fprintf(stderr, "Usage: %s %s <PACKAGE-NAME|PACKAGE-SPEC>, <PACKAGE-NAME|PACKAGE-SPEC> is not match pattern %s\n", argv[0], argv[1], XCPKG_PACKAGE_NAME_PATTERN);
+        fprintf(stderr, "Usage: %s %s <PACKAGE-NAME|PACKAGE-SPEC>, <PACKAGE-NAME|PACKAGE-SPEC> does not match pattern %s\n", argv[0], argv[1], XCPKG_PACKAGE_NAME_PATTERN);
     } else if (ret == XCPKG_ERROR_PLATFORM_SPEC_IS_INVALID) {
-        fprintf(stderr, "Usage: %s %s <PACKAGE-NAME|PACKAGE-SPEC>, <PACKAGE-NAME|PACKAGE-SPEC> is not match pattern %s\n", argv[0], argv[1], XCPKG_PACKAGE_NAME_PATTERN);
+        fprintf(stderr, "Usage: %s %s <PACKAGE-NAME|PACKAGE-SPEC>, <TARGET-SPEC> does not match pattern A-B-C\n", argv[0], argv[1]);
     }
 
     if (ret != XCPKG_OK) {
@@ -1612,12 +1633,12 @@ static inline int xcpkg_action_bundle(int argc, char* argv[]) {
 
     ret = xcpkg_bundle(packageName, platformSpec, outputType, outputPath, verbose);
 
-    if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_NULL) {
+    if (ret == XCPKG_ERROR_ARG_IS_NULL) {
         fprintf(stderr, "Usage: %s %s <PACKAGE-NAME> [-t tar.gz|tar.xz|tar.bz2|zip], <PACKAGE-NAME> is not given.\n", argv[0], argv[1]);
-    } else if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY) {
+    } else if (ret == XCPKG_ERROR_ARG_IS_EMPTY) {
         fprintf(stderr, "Usage: %s %s <PACKAGE-NAME> [-t tar.gz|tar.xz|tar.bz2|zip], <PACKAGE-NAME> is empty string.\n", argv[0], argv[1]);
     } else if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_INVALID) {
-        fprintf(stderr, "Usage: %s %s <PACKAGE-NAME> [-t tar.gz|tar.xz|tar.bz2|zip], <PACKAGE-NAME> is not match pattern %s\n", argv[0], argv[1], XCPKG_PACKAGE_NAME_PATTERN);
+        fprintf(stderr, "Usage: %s %s <PACKAGE-NAME> [-t tar.gz|tar.xz|tar.bz2|zip], <PACKAGE-NAME> does not match pattern %s\n", argv[0], argv[1], XCPKG_PACKAGE_NAME_PATTERN);
     } else if (ret == XCPKG_ERROR_PACKAGE_NOT_INSTALLED) {
         fprintf(stderr, "package '%s' is not installed.\n", argv[2]);
     } else if (ret == XCPKG_ERROR_ENV_HOME_NOT_SET) {
@@ -1638,7 +1659,7 @@ static inline int xcpkg_action_xcinfo(int argc, char* argv[]) {
 
             if (developerDIR[0] == '\0') {
                 fprintf(stderr, "--developer-dir=<DEVELOPER-DIR>, <DEVELOPER-DIR> should be a non-empty string.\n");
-                return XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY;
+                return XCPKG_ERROR_ARG_IS_EMPTY;
             }
 
             struct stat st;
@@ -1650,11 +1671,11 @@ static inline int xcpkg_action_xcinfo(int argc, char* argv[]) {
                 }
             } else {
                 fprintf(stderr, "--developer-dir=<DEVELOPER-DIR>, <DEVELOPER-DIR> '%s' directory does not exist.\n", developerDIR);
-                return XCPKG_ERROR_ARG_IS_INVALID;
+                return XCPKG_ERROR;
             }
         } else {
-            LOG_ERROR2("unrecognized argument: ", argv[i]);
-            return XCPKG_ERROR_PACKAGE_NAME_IS_INVALID;
+            LOG_ERROR2("unknown argument: ", argv[i]);
+            return XCPKG_ERROR_ARG_IS_UNKNOWN;
         }
     }
 
@@ -1675,12 +1696,12 @@ static inline int xcpkg_action_xcinfo(int argc, char* argv[]) {
 static inline int xcpkg_action_formula_parse(int argc, char* argv[]) {
     if (argv[2] == NULL) {
         fprintf(stderr, "Usage: %s %s <FORMULA-FILEPATH>\n", argv[0], argv[1]);
-        return XCPKG_ERROR_PACKAGE_NAME_IS_NULL;
+        return XCPKG_ERROR_ARG_IS_NULL;
     }
 
     if (argv[2][0] == '\0') {
         fprintf(stderr, "Usage: %s %s <FORMULA-FILEPATH>\n", argv[0], argv[1]);
-        return XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY;
+        return XCPKG_ERROR_ARG_IS_EMPTY;
     }
 
     int slashIndex = -1;
@@ -1703,12 +1724,12 @@ static inline int xcpkg_action_formula_parse(int argc, char* argv[]) {
 
     if (dotIndex == -1) {
         fprintf(stderr, "Usage: %s %s <FORMULA-FILEPATH>, <FORMULA-FILEPATH> must ends with .yml\n", argv[0], argv[1]);
-        return XCPKG_ERROR_PACKAGE_NAME_IS_INVALID;
+        return XCPKG_ERROR_ARG_IS_INVALID;
     }
 
     if (strcmp(p + dotIndex + 1, "yml") != 0) {
         fprintf(stderr, "Usage: %s %s <FORMULA-FILEPATH>, <FORMULA-FILEPATH> must ends with .yml\n", argv[0], argv[1]);
-        return XCPKG_ERROR_PACKAGE_NAME_IS_INVALID;
+        return XCPKG_ERROR_ARG_IS_INVALID;
     }
 
     char packageName[dotIndex];
@@ -1730,12 +1751,12 @@ static inline int xcpkg_action_formula_parse(int argc, char* argv[]) {
 static inline int xcpkg_action_formula_cat(int argc, char* argv[]) {
     int ret = xcpkg_formula_cat(argv[2], NULL);
 
-    if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_NULL) {
+    if (ret == XCPKG_ERROR_ARG_IS_NULL) {
         fprintf(stderr, "Usage: %s %s <PACKAGE-NAME>, <PACKAGE-NAME> is not given.\n", argv[0], argv[1]);
-    } else if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY) {
+    } else if (ret == XCPKG_ERROR_ARG_IS_EMPTY) {
         fprintf(stderr, "Usage: %s %s <PACKAGE-NAME>, <PACKAGE-NAME> is empty string.\n", argv[0], argv[1]);
     } else if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_INVALID) {
-        fprintf(stderr, "Usage: %s %s <PACKAGE-NAME>, <PACKAGE-NAME> is not match pattern %s\n", argv[0], argv[1], XCPKG_PACKAGE_NAME_PATTERN);
+        fprintf(stderr, "Usage: %s %s <PACKAGE-NAME>, <PACKAGE-NAME> does not match pattern %s\n", argv[0], argv[1], XCPKG_PACKAGE_NAME_PATTERN);
     } else if (ret == XCPKG_ERROR_PACKAGE_NOT_AVAILABLE) {
         fprintf(stderr, "package '%s' is not available.\n", argv[2]);
     } else if (ret == XCPKG_ERROR_ENV_HOME_NOT_SET) {
@@ -1752,12 +1773,12 @@ static inline int xcpkg_action_formula_cat(int argc, char* argv[]) {
 static inline int xcpkg_action_formula_bat(int argc, char* argv[]) {
     int ret = xcpkg_formula_bat(argv[2], NULL, argc - 3, &argv[3]);
 
-    if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_NULL) {
+    if (ret == XCPKG_ERROR_ARG_IS_NULL) {
         fprintf(stderr, "Usage: %s %s <PACKAGE-NAME>, <PACKAGE-NAME> is not given.\n", argv[0], argv[1]);
-    } else if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY) {
+    } else if (ret == XCPKG_ERROR_ARG_IS_EMPTY) {
         fprintf(stderr, "Usage: %s %s <PACKAGE-NAME>, <PACKAGE-NAME> is empty string.\n", argv[0], argv[1]);
     } else if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_INVALID) {
-        fprintf(stderr, "Usage: %s %s <PACKAGE-NAME>, <PACKAGE-NAME> is not match pattern %s\n", argv[0], argv[1], XCPKG_PACKAGE_NAME_PATTERN);
+        fprintf(stderr, "Usage: %s %s <PACKAGE-NAME>, <PACKAGE-NAME> does not match pattern %s\n", argv[0], argv[1], XCPKG_PACKAGE_NAME_PATTERN);
     } else if (ret == XCPKG_ERROR_PACKAGE_NOT_AVAILABLE) {
         fprintf(stderr, "package '%s' is not available.\n", argv[2]);
     } else if (ret == XCPKG_ERROR_ENV_HOME_NOT_SET) {
@@ -1778,19 +1799,19 @@ static inline int xcpkg_action_formula_edit(int argc, char* argv[]) {
         if (strncmp(argv[i], "--editor=", 9) == 0) {
             editor = &argv[i][9];
         } else {
-            LOG_ERROR2("unrecognized argument: ", argv[i]);
-            return XCPKG_ERROR_PACKAGE_NAME_IS_INVALID;
+            LOG_ERROR2("unknown argument: ", argv[i]);
+            return XCPKG_ERROR_ARG_IS_UNKNOWN;
         }
     }
 
     int ret = xcpkg_formula_edit(argv[2], NULL, editor);
 
-    if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_NULL) {
+    if (ret == XCPKG_ERROR_ARG_IS_NULL) {
         fprintf(stderr, "Usage: %s %s <PACKAGE-NAME>, <PACKAGE-NAME> is not given.\n", argv[0], argv[1]);
-    } else if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY) {
+    } else if (ret == XCPKG_ERROR_ARG_IS_EMPTY) {
         fprintf(stderr, "Usage: %s %s <PACKAGE-NAME>, <PACKAGE-NAME> is empty string.\n", argv[0], argv[1]);
     } else if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_INVALID) {
-        fprintf(stderr, "Usage: %s %s <PACKAGE-NAME>, <PACKAGE-NAME> is not match pattern %s\n", argv[0], argv[1], XCPKG_PACKAGE_NAME_PATTERN);
+        fprintf(stderr, "Usage: %s %s <PACKAGE-NAME>, <PACKAGE-NAME> does not match pattern %s\n", argv[0], argv[1], XCPKG_PACKAGE_NAME_PATTERN);
     } else if (ret == XCPKG_ERROR_PACKAGE_NOT_AVAILABLE) {
         fprintf(stderr, "package '%s' is not available.\n", argv[2]);
     } else if (ret == XCPKG_ERROR_ENV_HOME_NOT_SET) {
@@ -1898,7 +1919,7 @@ int xcpkg_main(int argc, char* argv[]) {
     }
 
     if (strcmp(argv[1], "upgrade") == 0) {
-        return xcpkg_action_upgtade(argc, argv);
+        return xcpkg_action_upgrade(argc, argv);
     }
 
     if (strcmp(argv[1], "uninstall") == 0) {
@@ -1993,7 +2014,7 @@ int xcpkg_main(int argc, char* argv[]) {
         return xcpkg_util(argc, argv);
     }
 
-    LOG_ERROR2("unrecognized action: ", argv[1]);
+    LOG_ERROR2("unknown argument: ", argv[1]);
     return XCPKG_ERROR_ARG_IS_UNKNOWN;
 }
 

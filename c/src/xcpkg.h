@@ -54,32 +54,32 @@ extern size_t XCPKG_ZSH_COMPLETION_SCRIPT_STRING_LENGTH;
 #define XCPKG_ERROR_ARG_IS_EMPTY     3
 #define XCPKG_ERROR_ARG_IS_INVALID   4
 #define XCPKG_ERROR_ARG_IS_UNKNOWN   5
+#define XCPKG_ERROR_ARG_IS_UNSPECIFIED 6
+#define XCPKG_ERROR_ARG_VALUE_IS_EMPTY 7
 
-#define XCPKG_ERROR_MEMORY_ALLOCATE  6
+#define XCPKG_ERROR_MEMORY_ALLOCATE  10
 
-#define XCPKG_ERROR_SHA256_MISMATCH  7
+#define XCPKG_ERROR_SHA256_MISMATCH  11
 
-#define XCPKG_ERROR_ENV_HOME_NOT_SET 8
-#define XCPKG_ERROR_ENV_PATH_NOT_SET 9
+#define XCPKG_ERROR_ENV_HOME_NOT_SET 12
+#define XCPKG_ERROR_ENV_PATH_NOT_SET 13
 
-#define XCPKG_ERROR_NOT_FOUND    10
-#define XCPKG_ERROR_NOT_MATCH    11
+#define XCPKG_ERROR_NOT_FOUND    14
+#define XCPKG_ERROR_NOT_MATCH    15
 
-#define XCPKG_ERROR_INVALID_URL  12
+#define XCPKG_ERROR_INVALID_URL  16
 
-#define XCPKG_ERROR_PLATFORM_SPEC_IS_INVALID 13
+#define XCPKG_ERROR_PLATFORM_SPEC_IS_INVALID 17
 
-#define XCPKG_ERROR_PACKAGE_SPEC_IS_INVALID 14
+#define XCPKG_ERROR_PACKAGE_SPEC_IS_INVALID 18
 
-#define XCPKG_ERROR_PACKAGE_NAME_IS_NULL    15
-#define XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY   16
-#define XCPKG_ERROR_PACKAGE_NAME_IS_TOOLONG 17
-#define XCPKG_ERROR_PACKAGE_NAME_IS_INVALID 18
+#define XCPKG_ERROR_PACKAGE_NAME_IS_INVALID 19
+#define XCPKG_ERROR_PACKAGE_NAME_IS_TOOLONG 20
 
-#define XCPKG_ERROR_PACKAGE_NOT_AVAILABLE 20
-#define XCPKG_ERROR_PACKAGE_NOT_INSTALLED 21
-#define XCPKG_ERROR_PACKAGE_NOT_OUTDATED  22
-#define XCPKG_ERROR_PACKAGE_IS_BROKEN     23
+#define XCPKG_ERROR_PACKAGE_NOT_AVAILABLE 21
+#define XCPKG_ERROR_PACKAGE_NOT_INSTALLED 22
+#define XCPKG_ERROR_PACKAGE_NOT_OUTDATED  23
+#define XCPKG_ERROR_PACKAGE_IS_BROKEN     24
 
 #define XCPKG_ERROR_FORMULA_REPO_NOT_FOUND 25
 #define XCPKG_ERROR_FORMULA_REPO_HAS_EXIST 26
@@ -522,7 +522,7 @@ typedef struct {
     size_t parallelJobsCount;
 
     XCPKGLogLevel logLevel;
-    XCPKGBuildProfile buildType;
+    XCPKGBuildProfile profile;
 } XCPKGInstallOptions;
 
 int xcpkg_install  (const char * packageName, const char * targetPlatformSpec, const XCPKGInstallOptions * options);
@@ -566,9 +566,7 @@ int xcpkg_extract_filetype_from_url(const char * url, char buf[], const size_t b
 
 int xcpkg_extract_filename_from_url(const char * url, char buf[], const size_t bufSize);
 
-int xcpkg_extract_version_from_src_url(const char * url, char versionBuf[], size_t versionBufCapacity);
-
-int xcpkg_extract_version_from_git_ref(const char * ref, char versionBuf[], size_t versionBufCapacity);
+int xcpkg_extract_version(const char * url, char versionBuf[], size_t versionBufCapacity);
 
 int xcpkg_http_fetch_to_file(const char * url, const char * outputFilePath, const bool verbose, const bool showProgress);
 

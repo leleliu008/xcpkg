@@ -301,7 +301,7 @@ version_match() {
             fi
             [ "$1" = "$(printf '%s\n' "$1" "$3" | sort -V | tail -n 1)" ]
             ;;
-        *)  abort 1 "version_match: unsupported operator: $2"
+        *)  abort 1 "version_match: unknown operator: $2"
     esac
 }
 
@@ -374,7 +374,7 @@ wfetch() {
             --no-buffer)
                 NOT_BUFFER=1
                 ;;
-            *)  abort 1 "wfetch <URL> [--uri=<URL-MIRROR>] [--sha256=<SHA256>] [-o <PATH>] [-q] , unrecognized option: $1"
+            *)  abort 1 "wfetch <URL> [--uri=<URL-MIRROR>] [--sha256=<SHA256>] [-o <PATH>] [-q] , unknown argument: $1"
         esac
         shift
     done
@@ -619,7 +619,7 @@ wfetch() {
             --disable)
                 FORMULA_REPO_ENABLED=0
                 ;;
-            *)  abort 1 "unrecognized argument: $1"
+            *)  abort 1 "unknown argument: $1"
         esac
         shift
     done
@@ -700,7 +700,7 @@ EOF
             --disable)
                 FORMULA_REPO_ENABLED=0
                 ;;
-            *)  abort 1 "unrecognized argument: $1"
+            *)  abort 1 "unknown argument: $1"
         esac
         shift
     done
@@ -836,7 +836,7 @@ EOF
             --disable)
                 FORMULA_REPO_ENABLED=0
                 ;;
-            *)  abort 1 "unrecognized argument: $1"
+            *)  abort 1 "unknown argument: $1"
         esac
         shift
     done
@@ -1878,7 +1878,7 @@ __list_available_packages() {
             -v)     OUTPUT_MODE=full ;;
             --json) OUTPUT_TYPE=json ;;
             --yaml) OUTPUT_TYPE=yaml ;;
-            *) abort 1 "unrecognized argument: $arg"
+            *) abort 1 "unknown argument: $arg"
         esac
     done
 
@@ -2531,7 +2531,7 @@ __show_packages_depended_by_the_given_package() {
                     d2|dot|box|svg|png)
                         OUTPUT_TYPE="$1" ;;
                     '') abort 1 "$XCPKG_ARG0 depends <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>], -t option is given but <OUTPUT-TYPE> is unspecified." ;;
-                    *)  abort 1 "$XCPKG_ARG0 depends <PACKAGE-NAME> [-t <OUTPUT-TYPE>], unsupported <OUTPUT-TYPE>: $1, <OUTPUT-TYPE> should be one of d2|dot|box|svg|png"
+                    *)  abort 1 "$XCPKG_ARG0 depends <PACKAGE-NAME> [-t <OUTPUT-TYPE>], unknown <OUTPUT-TYPE>: $1, <OUTPUT-TYPE> should be one of d2|dot|box|svg|png"
                 esac
                 ;;
             -e) shift
@@ -2539,7 +2539,7 @@ __show_packages_depended_by_the_given_package() {
                     d2|dot)
                         ENGINE="$1" ;;
                     '') abort 1 "$XCPKG_ARG0 depends <PACKAGE-NAME> [-e <ENGINE>], -e option is given but <ENGINE> is unspecified." ;;
-                    *)  abort 1 "$XCPKG_ARG0 depends <PACKAGE-NAME> [-e <ENGINE>], unsupported <ENGINE>: $1, <ENGINE> should be one of d2|dot"
+                    *)  abort 1 "$XCPKG_ARG0 depends <PACKAGE-NAME> [-e <ENGINE>], unknown <ENGINE>: $1, <ENGINE> should be one of d2|dot"
                 esac
                 ;;
             -o) shift
@@ -2549,7 +2549,7 @@ __show_packages_depended_by_the_given_package() {
                     OUTPUT_PATH="$1"
                 fi
                 ;;
-            *)  abort 1 "$XCPKG_ARG0 depends <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>], unrecognized option: $1"
+            *)  abort 1 "$XCPKG_ARG0 depends <PACKAGE-NAME> [-t <OUTPUT-TYPE>] [-o <OUTPUT-PATH>], unknown argument: $1"
         esac
         shift
     done
@@ -3057,7 +3057,7 @@ __fetch_resources_of_the_given_package() {
                     EXCLUDES="$EXCLUDES $1"
                 fi
                 ;;
-            *)  abort 1 "$XCPKG_ARG0 bundle <PACKAGE-SPEC> [<OUTPUT-DIR>][<OUTPUT-FILENAME-PREFIX>]<BUNDLE-TYPE>] [--portable], unrecognized option: $1"
+            *)  abort 1 "$XCPKG_ARG0 bundle <PACKAGE-SPEC> [<OUTPUT-DIR>][<OUTPUT-FILENAME-PREFIX>]<BUNDLE-TYPE>] [--portable], unknown argument: $1"
         esac
         shift
     done
@@ -6073,7 +6073,7 @@ install_mans() {
             install -v -d          "$PACKAGE_INSTALL_DIR/share/zsh/site-functions" &&
             install -v -m 644 "$3" "$PACKAGE_INSTALL_DIR/share/zsh/site-functions/_$2"
             ;;
-        *)  abort 1 "install_completion unsupported shell: $1"
+        *)  abort 1 "install_completion unknown shell: $1"
     esac
 }
 
@@ -7186,7 +7186,7 @@ gow() {
             done
 
             if [ "$TARGET_PLATFORM_NAME_IS_SUPPORTED" = 0 ] ; then
-                abort 1 "invalid package-spec: $1\nunsupported-platform: $TARGET_PLATFORM_NAME"
+                abort 1 "invalid package-spec: $1\nunknown-platform: $TARGET_PLATFORM_NAME"
             fi
 
             if [ -z "$TARGET_PLATFORM_VERS" ] ; then
@@ -7234,7 +7234,7 @@ gow() {
                         done
 
                         if [ "$TARGET_PLATFORM_NAME_IS_SUPPORTED" = 0 ] ; then
-                            abort 1 "you have specified --target=$2 , but it is an invalid target. unrecognized platform-name: $TARGET_PLATFORM_NAME"
+                            abort 1 "you have specified --target=$2 , but it is an invalid target. unknown platform-name: $TARGET_PLATFORM_NAME"
                         fi
 
                         if [ -z "$TARGET_PLATFORM_VERS" ] ; then
@@ -7296,7 +7296,7 @@ gow() {
                         done
 
                         if [ "$TARGET_PLATFORM_NAME_IS_SUPPORTED" = 0 ] ; then
-                            abort 1 "you have set XCPKG_DEFAULT_TARGET=$XCPKG_DEFAULT_TARGET , but it is an invalid target. unrecognized platform-name: $TARGET_PLATFORM_NAME"
+                            abort 1 "you have set XCPKG_DEFAULT_TARGET=$XCPKG_DEFAULT_TARGET , but it is an invalid target. unknown platform-name: $TARGET_PLATFORM_NAME"
                         fi
 
                         if [ -z "$TARGET_PLATFORM_VERS" ] ; then
@@ -7530,7 +7530,7 @@ inspect_install_arguments() {
             -U) UPGRADE_IF_POSSIBLE=1 ;;
             -E) EXPORT_COMPILE_COMMANDS_JSON=1 ;;
 
-            -*) abort 1 "unrecognized option: $1"
+            -*) abort 1 "unknown argument: $1"
                 ;;
             *)  SPECIFIED_PACKAGE_LIST="$SPECIFIED_PACKAGE_LIST $1"
         esac
@@ -8243,7 +8243,7 @@ __uninstall_the_given_packages() {
                     \~/*)   OUTPUT_DIR="$HOME/$(printf '%s\n' "$OUTPUT_DIR" | cut -c3-)" ;;
                 esac
                 ;;
-            *)  abort 1 "__zsh_completions <URL> [--output-dir=<DIR>] , unrecognized argument: $arg"
+            *)  abort 1 "__zsh_completions <URL> [--output-dir=<DIR>] , unknown argument: $arg"
         esac
     done
 
@@ -9129,7 +9129,7 @@ case $1 in
         "$@"
         ;;
 
-    *)  abort 1 "unrecognized argument: $1"
+    *)  abort 1 "unknown argument: $1"
 esac
 
 # }}}

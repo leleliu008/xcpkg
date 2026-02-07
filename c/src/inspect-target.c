@@ -47,7 +47,7 @@ int xcpkg_inspect_target_platform_spec(const char * targetPlatformSpec, int * hy
 
                 buf[i] = '\0';
 
-                fprintf(stderr, "invalid target: %s, unsupported target platform name: %s\n", targetPlatformSpec, buf);
+                fprintf(stderr, "invalid target: %s, unknown target platform name: %s\n", targetPlatformSpec, buf);
                 return XCPKG_ERROR;
             } else {
                 p += i + 1;

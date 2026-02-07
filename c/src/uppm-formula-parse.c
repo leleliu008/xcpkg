@@ -282,7 +282,7 @@ static int uppm_formula_check(UPPMFormula * formula, const char * formulaFilePat
     if (formula->version == NULL) {
         char version[20]; version[0] = '\0';
 
-        int ret = xcpkg_extract_version_from_src_url(formula->bin_url, version, 20);
+        int ret = xcpkg_extract_version(formula->bin_url, version, 20);
 
         if (ret != XCPKG_OK) {
             return ret;

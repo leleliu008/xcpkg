@@ -292,7 +292,7 @@ install_mans() {
             install -v -d          "$PACKAGE_INSTALL_DIR/share/zsh/site-functions" &&
             install -v -m 644 "$3" "$PACKAGE_INSTALL_DIR/share/zsh/site-functions/_$2"
             ;;
-        *)  abort 1 "install_completion unsupported shell: $1"
+        *)  abort 1 "install_completion unknown shell: $1"
     esac
 }
 
@@ -1892,5 +1892,5 @@ case $1 in
 
         __install_for_target
         ;;
-    *)  abort 1 "unrecognized argument: $1"
+    *)  abort 1 "unknown argument: $1"
 esac

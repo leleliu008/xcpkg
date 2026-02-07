@@ -10,11 +10,11 @@
 
 int xcpkg_check_if_the_given_argument_matches_package_name_pattern(const char * arg) {
     if (arg == NULL) {
-        return XCPKG_ERROR_PACKAGE_NAME_IS_NULL;
+        return XCPKG_ERROR_ARG_IS_NULL;
     }
 
     if (arg[0] == '\0') {
-        return XCPKG_ERROR_PACKAGE_NAME_IS_EMPTY;
+        return XCPKG_ERROR_ARG_IS_EMPTY;
     }
 
     for (int i = 0; ; i++) {

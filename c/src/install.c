@@ -2229,7 +2229,7 @@ static int generate_shell_script_file(
         return XCPKG_ERROR;
     }
 
-    ret = dprintf(fd, "PROFILE=%s\n\n", installOptions->buildType == XCPKGBuildProfile_release ? "release" : "debug");
+    ret = dprintf(fd, "PROFILE=%s\n\n", installOptions->profile == XCPKGBuildProfile_release ? "release" : "debug");
 
     if (ret < 0) {
         close(fd);
@@ -4189,7 +4189,7 @@ static int xcpkg_install_package(
         size_t ccflagsCapacity = extraCCFlagsForTargetBuildLength + 6U;
         char   ccflags[ccflagsCapacity];
 
-        ret = snprintf(ccflags, ccflagsCapacity, "%s -O%s", extraCCFlagsForTargetBuild, (installOptions->buildType == XCPKGBuildProfile_release) ? "s" : "0");
+        ret = snprintf(ccflags, ccflagsCapacity, "%s -O%s", extraCCFlagsForTargetBuild, (installOptions->profile == XCPKGBuildProfile_release) ? "s" : "0");
 
         if (ret < 0) {
             perror(NULL);
@@ -4223,7 +4223,7 @@ static int xcpkg_install_package(
                 goto loop;
         }
 
-        const char * defaultOFlag = (installOptions->buildType == XCPKGBuildProfile_release) ? "-Os" : "-O0";
+        const char * defaultOFlag = (installOptions->profile == XCPKGBuildProfile_release) ? "-Os" : "-O0";
 
         const char * oFlag = hasOFLag ? "" : defaultOFlag;
 
@@ -4307,7 +4307,7 @@ static int xcpkg_install_package(
         size_t ldflagsCapacity = extraLDFlagsForTargetBuildLength + packageWorkingTopDIRCapacity + packageInstalledRootDIRCapacity + packageNameLength + 50U;
         char   ldflags[ldflagsCapacity];
 
-        ret = snprintf(ldflags, ldflagsCapacity, "%s %s -L%s/lib -Wl,-rpath,%s/%s/lib", extraLDFlagsForTargetBuild, (installOptions->buildType == XCPKGBuildProfile_release) ? "-flto" : "", packageWorkingTopDIR, packageInstalledRootDIR, packageName);
+        ret = snprintf(ldflags, ldflagsCapacity, "%s %s -L%s/lib -Wl,-rpath,%s/%s/lib", extraLDFlagsForTargetBuild, (installOptions->profile == XCPKGBuildProfile_release) ? "-flto" : "", packageWorkingTopDIR, packageInstalledRootDIR, packageName);
 
         if (ret < 0) {
             perror(NULL);
@@ -4322,7 +4322,7 @@ static int xcpkg_install_package(
         size_t ldflagsCapacity = extraLDFlagsForTargetBuildLength + packageWorkingTopDIRCapacity + packageInstalledRootDIRCapacity + packageNameLength + strlen(formula->ldflags) + 50U;
         char   ldflags[ldflagsCapacity];
 
-        ret = snprintf(ldflags, ldflagsCapacity, "%s %s -L%s/lib -Wl,-rpath,%s/%s/lib %s", extraLDFlagsForTargetBuild, (installOptions->buildType == XCPKGBuildProfile_release) ? "-flto" : "", packageWorkingTopDIR, packageInstalledRootDIR, packageName, formula->ldflags);
+        ret = snprintf(ldflags, ldflagsCapacity, "%s %s -L%s/lib -Wl,-rpath,%s/%s/lib %s", extraLDFlagsForTargetBuild, (installOptions->profile == XCPKGBuildProfile_release) ? "-flto" : "", packageWorkingTopDIR, packageInstalledRootDIR, packageName, formula->ldflags);
 
         if (ret < 0) {
             perror(NULL);
@@ -4369,7 +4369,7 @@ static int xcpkg_install_package(
         }
 
         // https://cmake.org/cmake/help/latest/envvar/CMAKE_BUILD_TYPE.html
-        if (setenv("CMAKE_BUILD_TYPE", installOptions->buildType == XCPKGBuildProfile_release ? "Release" : "Debug", 1) != 0) {
+        if (setenv("CMAKE_BUILD_TYPE", installOptions->profile == XCPKGBuildProfile_release ? "Release" : "Debug", 1) != 0) {
             perror("CMAKE_BUILD_TYPE");
             return XCPKG_ERROR;
         }
@@ -5643,7 +5643,7 @@ int xcpkg_install(const char * packageName, const char * targetPlatformSpec, con
 
     str_buf_append(extraCCFlags, &extraCCFlagsLength, "-fPIC -fno-common");
 
-    if (installOptions->buildType == XCPKGBuildProfile_debug) {
+    if (installOptions->profile == XCPKGBuildProfile_debug) {
         str_buf_append(extraCCFlags, &extraCCFlagsLength, "-g");
     }
 
@@ -5658,7 +5658,7 @@ int xcpkg_install(const char * packageName, const char * targetPlatformSpec, con
 
     str_buf_append(extraLDFlags, &extraLDFlagsLength, "-Wl,-search_paths_first");
 
-    if (installOptions->buildType == XCPKGBuildProfile_release) {
+    if (installOptions->profile == XCPKGBuildProfile_release) {
         str_buf_append(extraLDFlags, &extraLDFlagsLength, "-Wl,-S");
     }
 
