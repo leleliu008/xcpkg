@@ -37,6 +37,7 @@
  *
  * quickjs-2025-09-13-2.tar.xz
  *
+ * TO BE CONSIDERED:
  * mksh-R59c.tgz
  * jpegsrc.v9f.tar.gz
  * tmux-3.6a.tar.gz
@@ -129,6 +130,18 @@ loop:
     }
 
 finally:
+    for (;;) {
+        if (s[0] == '\0') {
+            break;
+        }
+
+        if (s[0] < '0' || s[0] > '9') {
+            s++;
+        } else {
+            break;
+        }
+    }
+
     len = q - s;
 
     if (len > versionBufCapacity) {
