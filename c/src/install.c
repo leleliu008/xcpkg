@@ -4650,9 +4650,9 @@ static int xcpkg_install_package(
                 }
             }
 
-            fprintf(stderr, "%s => %s\n", pathBuf, p);
-
             if (stat(pathBuf, &st) == 0 && S_ISREG(st.st_mode)) {
+                fprintf(stderr, "%s => %s\n", pathBuf, p);
+
                 ret = xcpkg_rename_or_copy_file(pathBuf, p);
 
                 if (ret != XCPKG_OK) {
