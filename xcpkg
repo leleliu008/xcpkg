@@ -3549,8 +3549,8 @@ native_package_info_libopenssl() {
 }
 
 native_package_info_libtool() {
-    PACKAGE_SRC_URL='https://ftp.gnu.org/gnu/libtool/libtool-2.4.7.tar.xz'
-    PACKAGE_SRC_SHA='4f7f217f057ce655ff22559ad221a0fd8ef84ad1fc5fcb6990cecc333aa1635d'
+    PACKAGE_SRC_URL='https://ftp.gnu.org/gnu/libtool/libtool-2.5.4.tar.xz'
+    PACKAGE_SRC_SHA='f81f5860666b0bc7d84baddefa60d1cb9fa6fceb2398cc3baca6afaa60266675'
     PACKAGE_INSTALL='configure --enable-ltdl-install'
     PACKAGE_DEP_AUX='gm4 gmake'
     PACKAGE_DOTWEAK='
@@ -3560,16 +3560,16 @@ run ln -s libtoolize bin/glibtoolize
 }
 
 native_package_info_autoconf() {
-    PACKAGE_SRC_URL='https://ftp.gnu.org/gnu/autoconf/autoconf-2.71.tar.gz'
-    PACKAGE_SRC_SHA='431075ad0bf529ef13cb41e9042c542381103e80015686222b8a9d4abef42a1c'
+    PACKAGE_SRC_URL='https://ftp.gnu.org/gnu/autoconf/autoconf-2.72.tar.gz'
+    PACKAGE_SRC_SHA='afb181a76e1ee72832f6581c0eddf8df032b83e2e0239ef79ebedc4467d92d6e'
     PACKAGE_DEP_AUX='perl gm4 gmake'
     PACKAGE_DEP_RUN='perl gm4'
     PACKAGE_INSTALL='configure'
 }
 
 native_package_info_automake() {
-    PACKAGE_SRC_URL='https://ftp.gnu.org/gnu/automake/automake-1.16.5.tar.xz'
-    PACKAGE_SRC_SHA='f01d58cd6d9d77fbdca9eb4bbd5ead1988228fdb73d6f7a201f5f8d6b118b469'
+    PACKAGE_SRC_URL='https://ftp.gnu.org/gnu/automake/automake-1.18.1.tar.xz'
+    PACKAGE_SRC_SHA='168aa363278351b89af56684448f525a5bce5079d0b6842bd910fdd3f1646887'
     PACKAGE_DEP_AUX='perl gmake'
     PACKAGE_DEP_RUN='perl'
     PACKAGE_DEP_PKG='autoconf'
@@ -3594,8 +3594,8 @@ native_package_info_help2man() {
 }
 
 native_package_info_libexpat() {
-    PACKAGE_SRC_URL='https://github.com/libexpat/libexpat/releases/download/R_2_6_4/expat-2.6.4.tar.xz'
-    PACKAGE_SRC_SHA='a695629dae047055b37d50a0ff4776d1d45d0a4c842cf4ccee158441f55ff7ee'
+    PACKAGE_SRC_URL='https://github.com/libexpat/libexpat/releases/download/R_2_7_3/expat-2.7.3.tar.lz'
+    PACKAGE_SRC_SHA='4cb8ec847a42d97fe4e9ee4fb516aca79cd41667e13a3982124e11c204bf2b9d'
     PACKAGE_DEP_AUX='gmake'
     PACKAGE_INSTALL='configure --disable-dependency-tracking --enable-static --enable-shared --without-xmlwf --without-tests --without-examples --without-docbook'
 }
@@ -3636,11 +3636,11 @@ native_package_info_libiconv() {
 }
 
 native_package_info_libxml2() {
-    PACKAGE_SRC_URL='https://download.gnome.org/sources/libxml2/2.12/libxml2-2.12.6.tar.xz'
-    PACKAGE_SRC_SHA='889c593a881a3db5fdd96cc9318c87df34eb648edfc458272ad46fd607353fbb'
+    PACKAGE_SRC_URL='https://download.gnome.org/sources/libxml2/2.15/libxml2-2.15.1.tar.xz'
+    PACKAGE_SRC_SHA='c008bac08fd5c7b4a87f7b8a71f283fa581d80d80ff8d2efd3b26224c39bc54c'
     PACKAGE_DEP_PKG='libz libiconv'
     PACKAGE_DEP_AUX='gmake'
-    PACKAGE_INSTALL='configure --with-zlib --with-python --with-iconv="$NATIVE_PACKAGE_INSTALLED_ROOT/libiconv" --without-lzma --without-readline --without-coverage --without-debug --enable-ipv6 --enable-static --enable-shared LIBS=-liconv'
+    PACKAGE_INSTALL='configure --with-legacy --with-http --with-zlib --with-python --with-iconv="$NATIVE_PACKAGE_INSTALLED_ROOT/libiconv" --without-lzma --without-readline --without-coverage --without-debug --enable-ipv6 --enable-static --enable-shared LIBS=-liconv'
 }
 
 native_package_info_itstool() {
@@ -8785,7 +8785,7 @@ fi
 
 ##################################################################################
 
-XCPKG_VERSION=0.29.14
+XCPKG_VERSION=0.29.15
 
 XCPKG_ARG0="$0"
 XCPKG_ARG1="$1"
