@@ -350,6 +350,13 @@ wfetch() {
         FETCH_URL="$("$XCPKG_URL_TRANSFORM" "$1")" || return 1
     fi
 
+    if [ "$GITHUB_ACTIONS" = true ] ; then
+        case $FETCH_URL in
+            https://ftp.gnu.org/gnu/*)
+                FETCH_URL="$(printf '%s\n' "$FETCH_URL" | sed 's|ftp\.gnu\.org|mirrors.kernel.org|')"
+        esac
+    fi
+
     shift
 
     while [ -n "$1" ]
@@ -8785,7 +8792,7 @@ fi
 
 ##################################################################################
 
-XCPKG_VERSION=0.29.15
+XCPKG_VERSION=0.29.16
 
 XCPKG_ARG0="$0"
 XCPKG_ARG1="$1"
