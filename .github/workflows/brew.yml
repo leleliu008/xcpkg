@@ -46,7 +46,7 @@ jobs:
             depends_on "libarchive"
 
             def install
-              system "cmake", "-S", "c", "-B", "build", *std_cmake_args
+              system "cmake", "-S", ".", "-B", "build", *std_cmake_args
               system "cmake", "--build",   "build"
               system "cmake", "--install", "build"
             end
@@ -191,7 +191,7 @@ jobs:
             def install
               cc = Formula["llvm"].opt_bin/"clang"
 
-              system "cmake", "-S", "c", "-B", "build", *std_cmake_args, "-DCMAKE_C_COMPILER=#{cc}", "-DCMAKE_BUILD_TYPE=Debug", "-DCMAKE_C_FLAGS='-fsanitize=undefined -fsanitize=address -fsanitize=leak'"
+              system "cmake", "-S", ".", "-B", "build", *std_cmake_args, "-DCMAKE_C_COMPILER=#{cc}", "-DCMAKE_BUILD_TYPE=Debug", "-DCMAKE_C_FLAGS='-fsanitize=undefined -fsanitize=address -fsanitize=leak'"
               system "cmake", "--build",   "build"
               system "cmake", "--install", "build"
             end

@@ -112,7 +112,7 @@ class Xcpkg < Formula
     depends_on "libarchive"
 
     def install
-      system "cmake", "-S", "c", "-B", "build", *std_cmake_args
+      system "cmake", "-S", ".", "-B", "build", *std_cmake_args
       system "cmake", "--build",   "build"
       system "cmake", "--install", "build"
     end

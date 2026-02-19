@@ -10,7 +10,9 @@ class Xcpkg < Formula
   depends_on "ninja" => :build
   depends_on "pkg-config" => :build
 
+  depends_on "zlib"
   depends_on "curl"
+  depends_on "openssl@3"
   depends_on "jansson"
   depends_on "libyaml"
   depends_on "libgit2"
