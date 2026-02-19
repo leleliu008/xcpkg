@@ -19,15 +19,15 @@ cat > "$1" <<EOF
 EOF
 
 {
-./file2c wrapper-native-cc.c   XCPKG_WRAPPER_NATIVE_CC_C_SOURCE_STRING
-./file2c wrapper-native-c++.c  XCPKG_WRAPPER_NATIVE_CXX_C_SOURCE_STRING
-./file2c wrapper-native-objc.c XCPKG_WRAPPER_NATIVE_OBJC_C_SOURCE_STRING
+./file2c ../core/wrapper-native-cc.c   XCPKG_WRAPPER_NATIVE_CC_C_SOURCE_STRING
+./file2c ../core/wrapper-native-c++.c  XCPKG_WRAPPER_NATIVE_CXX_C_SOURCE_STRING
+./file2c ../core/wrapper-native-objc.c XCPKG_WRAPPER_NATIVE_OBJC_C_SOURCE_STRING
 
-./file2c wrapper-target-cc.c   XCPKG_WRAPPER_TARGET_CC_C_SOURCE_STRING
-./file2c wrapper-target-c++.c  XCPKG_WRAPPER_TARGET_CXX_C_SOURCE_STRING
-./file2c wrapper-target-objc.c XCPKG_WRAPPER_TARGET_OBJC_C_SOURCE_STRING
+./file2c ../core/wrapper-target-cc.c   XCPKG_WRAPPER_TARGET_CC_C_SOURCE_STRING
+./file2c ../core/wrapper-target-c++.c  XCPKG_WRAPPER_TARGET_CXX_C_SOURCE_STRING
+./file2c ../core/wrapper-target-objc.c XCPKG_WRAPPER_TARGET_OBJC_C_SOURCE_STRING
 
-./file2c xcpkg-install         XCPKG_INSTALL_SHELL_SCRIPT_STRING
-./file2c ../help.txt           XCPKG_HELP_STRING
-./file2c ../_xcpkg             XCPKG_ZSH_COMPLETION_SCRIPT_STRING
+./file2c ../core/xcpkg-install         XCPKG_INSTALL_SHELL_SCRIPT_STRING
+./file2c ../help.txt                   XCPKG_HELP_STRING
+./file2c ../_xcpkg                     XCPKG_ZSH_COMPLETION_SCRIPT_STRING
 } >> "$1"
