@@ -63,10 +63,10 @@ int xcpkg_installed_info(const char * packageName, const char * targetPlatformSp
             return XCPKG_ERROR_PACKAGE_NOT_INSTALLED;
         }
 
-        size_t receiptFilePathCapacity = packageInstalledDIRLength + sizeof(XCPKG_RECEIPT_FILEPATH_RELATIVE_TO_INSTALLED_ROOT);
+        size_t receiptFilePathCapacity = packageInstalledDIRLength + sizeof(XCPKG_RECEIPT_FILEPATH_RELATIVE_TO_INSTALLED_ROOT) + 1U;
         char   receiptFilePath[receiptFilePathCapacity];
 
-        ret = snprintf(receiptFilePath, receiptFilePathCapacity, "%s%s", packageInstalledDIR, XCPKG_RECEIPT_FILEPATH_RELATIVE_TO_INSTALLED_ROOT);
+        ret = snprintf(receiptFilePath, receiptFilePathCapacity, "%s/%s", packageInstalledDIR, XCPKG_RECEIPT_FILEPATH_RELATIVE_TO_INSTALLED_ROOT);
 
         if (ret < 0) {
             perror(NULL);
@@ -117,10 +117,10 @@ int xcpkg_installed_info(const char * packageName, const char * targetPlatformSp
             return XCPKG_ERROR_PACKAGE_NOT_INSTALLED;
         }
 
-        size_t receiptFilePathLength = packageInstalledDIRLength + sizeof(XCPKG_RECEIPT_FILEPATH_RELATIVE_TO_INSTALLED_ROOT);
+        size_t receiptFilePathLength = packageInstalledDIRLength + sizeof(XCPKG_RECEIPT_FILEPATH_RELATIVE_TO_INSTALLED_ROOT) + 1U;
         char   receiptFilePath[receiptFilePathLength];
 
-        ret = snprintf(receiptFilePath, receiptFilePathLength, "%s%s", packageInstalledDIR, XCPKG_RECEIPT_FILEPATH_RELATIVE_TO_INSTALLED_ROOT);
+        ret = snprintf(receiptFilePath, receiptFilePathLength, "%s/%s", packageInstalledDIR, XCPKG_RECEIPT_FILEPATH_RELATIVE_TO_INSTALLED_ROOT);
 
         if (ret < 0) {
             perror(NULL);
@@ -131,10 +131,10 @@ int xcpkg_installed_info(const char * packageName, const char * targetPlatformSp
             return XCPKG_ERROR_PACKAGE_IS_BROKEN;
         }
 
-        size_t manifestFilePathLength = packageInstalledDIRLength + sizeof(XCPKG_MANIFEST_FILEPATH_RELATIVE_TO_INSTALLED_ROOT);
+        size_t manifestFilePathLength = packageInstalledDIRLength + sizeof(XCPKG_MANIFEST_FILEPATH_RELATIVE_TO_INSTALLED_ROOT) + 1U;
         char   manifestFilePath[manifestFilePathLength];
 
-        ret = snprintf(manifestFilePath, manifestFilePathLength, "%s%s", packageInstalledDIR, XCPKG_MANIFEST_FILEPATH_RELATIVE_TO_INSTALLED_ROOT);
+        ret = snprintf(manifestFilePath, manifestFilePathLength, "%s/%s", packageInstalledDIR, XCPKG_MANIFEST_FILEPATH_RELATIVE_TO_INSTALLED_ROOT);
 
         if (ret < 0) {
             perror(NULL);
@@ -216,10 +216,10 @@ int xcpkg_installed_info(const char * packageName, const char * targetPlatformSp
             return XCPKG_ERROR_PACKAGE_NOT_INSTALLED;
         }
 
-        size_t receiptFilePathLength = packageInstalledDIRLength + sizeof(XCPKG_RECEIPT_FILEPATH_RELATIVE_TO_INSTALLED_ROOT);
+        size_t receiptFilePathLength = packageInstalledDIRLength + sizeof(XCPKG_RECEIPT_FILEPATH_RELATIVE_TO_INSTALLED_ROOT) + 1U;
         char   receiptFilePath[receiptFilePathLength];
 
-        ret = snprintf(receiptFilePath, receiptFilePathLength, "%s%s", packageInstalledDIR, XCPKG_RECEIPT_FILEPATH_RELATIVE_TO_INSTALLED_ROOT);
+        ret = snprintf(receiptFilePath, receiptFilePathLength, "%s/%s", packageInstalledDIR, XCPKG_RECEIPT_FILEPATH_RELATIVE_TO_INSTALLED_ROOT);
 
         if (ret < 0) {
             perror(NULL);
@@ -266,10 +266,10 @@ int xcpkg_installed_info(const char * packageName, const char * targetPlatformSp
             return XCPKG_ERROR_PACKAGE_NOT_INSTALLED;
         }
 
-        size_t receiptFilePathLength = packageInstalledDIRLength + sizeof(XCPKG_RECEIPT_FILEPATH_RELATIVE_TO_INSTALLED_ROOT);
+        size_t receiptFilePathLength = packageInstalledDIRLength + sizeof(XCPKG_RECEIPT_FILEPATH_RELATIVE_TO_INSTALLED_ROOT) + 1U;
         char   receiptFilePath[receiptFilePathLength];
 
-        ret = snprintf(receiptFilePath, receiptFilePathLength, "%s%s", packageInstalledDIR, XCPKG_RECEIPT_FILEPATH_RELATIVE_TO_INSTALLED_ROOT);
+        ret = snprintf(receiptFilePath, receiptFilePathLength, "%s/%s", packageInstalledDIR, XCPKG_RECEIPT_FILEPATH_RELATIVE_TO_INSTALLED_ROOT);
 
         if (ret < 0) {
             perror(NULL);

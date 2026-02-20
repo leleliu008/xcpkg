@@ -38,15 +38,16 @@ extern size_t XCPKG_ZSH_COMPLETION_SCRIPT_STRING_LENGTH;
 
 #define XCPKG_PACKAGE_NAME_PATTERN "^[A-Za-z0-9+-._@]{1,50}$"
 
-#define XCPKG_METADATA_DIR_PATH_RELATIVE_TO_INSTALLED_ROOT "/.xcpkg"
-#define XCPKG_MANIFEST_FILEPATH_RELATIVE_TO_INSTALLED_ROOT "/.xcpkg/MANIFEST.txt"
-#define XCPKG_RECEIPT_FILEPATH_RELATIVE_TO_INSTALLED_ROOT "/.xcpkg/RECEIPT.yml"
-#define XCPKG_RECEIPT_FILEPATH_RELATIVE_TO_METADATA_DIR "/RECEIPT.yml"
+#define XCPKG_METADATA_DIRNAME ".xcpkg"
+#define XCPKG_MANIFEST_FILENAME "MANIFEST.txt"
+#define XCPKG_RECEIPT_FILENAME  "RECEIPT.yml"
+#define XCPKG_MANIFEST_FILEPATH_RELATIVE_TO_INSTALLED_ROOT ".xcpkg/MANIFEST.txt"
+#define XCPKG_RECEIPT_FILEPATH_RELATIVE_TO_INSTALLED_ROOT  ".xcpkg/RECEIPT.yml"
 
-#define XCPKG_FORMULA_REPO_CONFIG_FILPATH_RELATIVE_TO_REPO_ROOT "/.xcpkg-formula-repo.yml"
+#define XCPKG_FORMULA_REPO_CONFIG_FILENAME ".xcpkg-formula-repo.yml"
 
 #define XCPKG_FILE_EXTENSION_MAX_CAPACITY 11
- 
+
 #define XCPKG_OK                     0
 #define XCPKG_ERROR                  1
 
@@ -278,12 +279,12 @@ typedef struct {
     char * updatedAt;
     bool   pinned;
     bool   enabled;
-} XCPKGFormulaRepo ;
+} XCPKGFormulaRepo;
 
 typedef struct {
     XCPKGFormulaRepo * * repos;
     size_t size;
-} XCPKGFormulaRepoList ;
+} XCPKGFormulaRepoList;
 
 int  xcpkg_formula_repo_create(const char * formulaRepoName, const char * formulaRepoUrl, const char * branchName, int pinned, int enabled);
 int  xcpkg_formula_repo_add   (const char * formulaRepoName, const char * formulaRepoUrl, const char * branchName, int pinned, int enabled);

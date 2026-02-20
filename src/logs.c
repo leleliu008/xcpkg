@@ -29,10 +29,10 @@ int xcpkg_logs(const char * packageName, const char * targetPlatformSpec) {
         return ret;
     }
 
-    size_t metaInfoDIRCapacity = xcpkgHomeDIRLength + strlen(targetPlatformSpec) + strlen(packageName) + sizeof(XCPKG_METADATA_DIR_PATH_RELATIVE_TO_INSTALLED_ROOT) + 15U;
+    size_t metaInfoDIRCapacity = xcpkgHomeDIRLength + strlen(targetPlatformSpec) + strlen(packageName) + strlen(XCPKG_METADATA_DIRNAME) + 15U;
     char   metaInfoDIR[metaInfoDIRCapacity];
 
-    ret = snprintf(metaInfoDIR, metaInfoDIRCapacity, "%s/installed/%s/%s%s", xcpkgHomeDIR, targetPlatformSpec, packageName, XCPKG_METADATA_DIR_PATH_RELATIVE_TO_INSTALLED_ROOT);
+    ret = snprintf(metaInfoDIR, metaInfoDIRCapacity, "%s/installed/%s/%s/%s", xcpkgHomeDIR, targetPlatformSpec, packageName, XCPKG_METADATA_DIRNAME);
 
     if (ret < 0) {
         perror(NULL);
@@ -50,7 +50,7 @@ int xcpkg_logs(const char * packageName, const char * targetPlatformSpec) {
 
     struct stat st;
 
-    if (stat("RECEIPT.yml", &st) != 0 || !S_ISREG(st.st_mode)) {
+    if (stat(XCPKG_RECEIPT_FILENAME, &st) != 0 || !S_ISREG(st.st_mode)) {
         return XCPKG_ERROR_PACKAGE_NOT_INSTALLED;
     }
 

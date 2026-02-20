@@ -37,10 +37,10 @@ int xcpkg_formula_repo_config_write(const char * formulaRepoDIRPath, const char 
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    size_t formulaRepoConfigFilePathCapacity = strlen(formulaRepoDIRPath) + sizeof(XCPKG_FORMULA_REPO_CONFIG_FILPATH_RELATIVE_TO_REPO_ROOT);
+    size_t formulaRepoConfigFilePathCapacity = strlen(formulaRepoDIRPath) + strlen(XCPKG_FORMULA_REPO_CONFIG_FILENAME) + 2U;
     char   formulaRepoConfigFilePath[formulaRepoConfigFilePathCapacity];
 
-    ret = snprintf(formulaRepoConfigFilePath, formulaRepoConfigFilePathCapacity, "%s%s", formulaRepoDIRPath, XCPKG_FORMULA_REPO_CONFIG_FILPATH_RELATIVE_TO_REPO_ROOT);
+    ret = snprintf(formulaRepoConfigFilePath, formulaRepoConfigFilePathCapacity, "%s/%s", formulaRepoDIRPath, XCPKG_FORMULA_REPO_CONFIG_FILENAME);
 
     if (ret < 0) {
         perror(NULL);

@@ -3,8 +3,8 @@
 #include <string.h>
 
 #include <limits.h>
-
 #include <unistd.h>
+
 #include <yaml.h>
 
 #include "xcpkg.h"
@@ -733,14 +733,14 @@ int xcpkg_receipt_parse(const char * packageName, const char * targetPlatformSpe
         return ret;
     }
 
-    size_t receiptFilePathLength = xcpkgHomeDIRLength + strlen(targetPlatformSpec) + strlen(packageName) + sizeof(XCPKG_RECEIPT_FILEPATH_RELATIVE_TO_INSTALLED_ROOT) + 14U;
+    size_t receiptFilePathLength = xcpkgHomeDIRLength + strlen(targetPlatformSpec) + strlen(packageName) + sizeof(XCPKG_RECEIPT_FILEPATH_RELATIVE_TO_INSTALLED_ROOT) + 15U;
     char * receiptFilePath = (char*)calloc(receiptFilePathLength, sizeof(char));
 
     if (receiptFilePath == NULL) {
         return XCPKG_ERROR_MEMORY_ALLOCATE;
     }
 
-    if (snprintf(receiptFilePath, receiptFilePathLength, "%s/installed/%s/%s%s", xcpkgHomeDIR, targetPlatformSpec, packageName, XCPKG_RECEIPT_FILEPATH_RELATIVE_TO_INSTALLED_ROOT) < 0) {
+    if (snprintf(receiptFilePath, receiptFilePathLength, "%s/installed/%s/%s/%s", xcpkgHomeDIR, targetPlatformSpec, packageName, XCPKG_RECEIPT_FILEPATH_RELATIVE_TO_INSTALLED_ROOT) < 0) {
         perror(NULL);
         return XCPKG_ERROR;
     }

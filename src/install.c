@@ -2930,10 +2930,10 @@ static int generate_manifest_r(const char * dirPath, const size_t offset, FILE *
 int generate_manifest(const char * installedDIRPath) {
     size_t installedDIRLength = strlen(installedDIRPath);
 
-    size_t installedManifestFilePathLength = installedDIRLength + sizeof(XCPKG_MANIFEST_FILEPATH_RELATIVE_TO_INSTALLED_ROOT);
+    size_t installedManifestFilePathLength = installedDIRLength + sizeof(XCPKG_MANIFEST_FILEPATH_RELATIVE_TO_INSTALLED_ROOT) + 1U;
     char   installedManifestFilePath[installedManifestFilePathLength];
 
-    int ret = snprintf(installedManifestFilePath, installedManifestFilePathLength, "%s%s", installedDIRPath, XCPKG_MANIFEST_FILEPATH_RELATIVE_TO_INSTALLED_ROOT);
+    int ret = snprintf(installedManifestFilePath, installedManifestFilePathLength, "%s/%s", installedDIRPath, XCPKG_MANIFEST_FILEPATH_RELATIVE_TO_INSTALLED_ROOT);
 
     if (ret < 0) {
         perror(NULL);

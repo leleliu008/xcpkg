@@ -43,10 +43,10 @@ int xcpkg_tree(const char * packageName, const char * targetPlatformSpec, size_t
         return XCPKG_ERROR_PACKAGE_NOT_INSTALLED;
     }
 
-    size_t receiptFilePathCapacity = packageInstalledDIRCapacity + sizeof(XCPKG_RECEIPT_FILEPATH_RELATIVE_TO_INSTALLED_ROOT);
+    size_t receiptFilePathCapacity = packageInstalledDIRCapacity + sizeof(XCPKG_RECEIPT_FILEPATH_RELATIVE_TO_INSTALLED_ROOT) + 1U;
     char   receiptFilePath[receiptFilePathCapacity];
 
-    ret = snprintf(receiptFilePath, receiptFilePathCapacity, "%s%s", packageInstalledDIR, XCPKG_RECEIPT_FILEPATH_RELATIVE_TO_INSTALLED_ROOT);
+    ret = snprintf(receiptFilePath, receiptFilePathCapacity, "%s/%s", packageInstalledDIR, XCPKG_RECEIPT_FILEPATH_RELATIVE_TO_INSTALLED_ROOT);
 
     if (ret < 0) {
         perror(NULL);

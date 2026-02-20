@@ -63,15 +63,14 @@ int xcpkg_bundle(const char * packageName, const char * targetPlatformSpec, Arch
 
     /////////////////////////////////////////////////////////////////////////////////
 
-    char buf[PATH_MAX];
+    char cwd[PATH_MAX];
 
-    char * cwd = getcwd(buf, PATH_MAX);
-
-    if (cwd == NULL) {
+    if (getcwd(cwd, PATH_MAX) == NULL) {
         perror(NULL);
         return XCPKG_ERROR;
     }
 
+    fprintf(stderr, "cwd=%s\n", cwd);
     /////////////////////////////////////////////////////////////////////////////////
 
     char outputFilePath[PATH_MAX];
@@ -102,6 +101,7 @@ int xcpkg_bundle(const char * packageName, const char * targetPlatformSpec, Arch
         return XCPKG_ERROR;
     }
 
+    fprintf(stderr, "outputFilePath=%s\n", outputFilePath);
     ///////////////////////////////////////////////////////////////////////////////////
 
     char   xcpkgHomeDIR[PATH_MAX];

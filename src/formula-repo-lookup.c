@@ -39,10 +39,10 @@ int xcpkg_formula_repo_lookup(const char * formulaRepoName, XCPKGFormulaRepo * *
         return XCPKG_ERROR_FORMULA_REPO_NOT_FOUND;
     }
 
-    size_t formulaRepoConfigFilePathCapacity = formulaRepoDIRPathCapacity + sizeof(XCPKG_FORMULA_REPO_CONFIG_FILPATH_RELATIVE_TO_REPO_ROOT);
+    size_t formulaRepoConfigFilePathCapacity = formulaRepoDIRPathCapacity + strlen(XCPKG_FORMULA_REPO_CONFIG_FILENAME) + 1U;
     char   formulaRepoConfigFilePath[formulaRepoConfigFilePathCapacity];
 
-    ret = snprintf(formulaRepoConfigFilePath, formulaRepoConfigFilePathCapacity, "%s%s", formulaRepoDIRPath, XCPKG_FORMULA_REPO_CONFIG_FILPATH_RELATIVE_TO_REPO_ROOT);
+    ret = snprintf(formulaRepoConfigFilePath, formulaRepoConfigFilePathCapacity, "%s/%s", formulaRepoDIRPath, XCPKG_FORMULA_REPO_CONFIG_FILENAME);
 
     if (ret < 0) {
         perror(NULL);
