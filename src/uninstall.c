@@ -47,10 +47,10 @@ int xcpkg_uninstall(const char * packageName, const char * targetPlatformSpec, c
 
     if (lstat(packageInstalledLinkDIR, &st) == 0) {
         if (S_ISLNK(st.st_mode)) {
-            size_t receiptFilePathCapacity = packageInstalledLinkDIRCapacity + sizeof(XCPKG_RECEIPT_FILEPATH_RELATIVE_TO_INSTALLED_ROOT);
+            size_t receiptFilePathCapacity = packageInstalledLinkDIRCapacity + sizeof(XCPKG_RECEIPT_FILEPATH_RELATIVE_TO_INSTALLED_ROOT) + 2U;
             char   receiptFilePath[receiptFilePathCapacity];
 
-            ret = snprintf(receiptFilePath, receiptFilePathCapacity, "%s%s", packageInstalledLinkDIR, XCPKG_RECEIPT_FILEPATH_RELATIVE_TO_INSTALLED_ROOT);
+            ret = snprintf(receiptFilePath, receiptFilePathCapacity, "%s/%s", packageInstalledLinkDIR, XCPKG_RECEIPT_FILEPATH_RELATIVE_TO_INSTALLED_ROOT);
 
             if (ret < 0) {
                 perror(NULL);
