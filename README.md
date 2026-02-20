@@ -82,7 +82,7 @@ vcpkg install 'curl[http2,brotli,zstd,openssl]' libgit2 libarchive libyaml janss
 git clone --depth=1 https://github.com/leleliu008/xcpkg
 cd xcpkg
 
-cmake -S c -B   build.d -G Ninja -DCMAKE_INSTALL_PREFIX=/usr/local -DCMAKE_TOOLCHAIN_FILE=$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake
+cmake -S . -B   build.d -G Ninja -DCMAKE_INSTALL_PREFIX=/usr/local -DCMAKE_TOOLCHAIN_FILE=$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake
 cmake --build   build.d
 cmake --install build.d
 ```
@@ -95,7 +95,7 @@ class Xcpkg < Formula
     desc     "A package builder/manager for Xcode to build projects written in C, C++, Rust, Zig, Go, Haskell, etc"
     homepage "https://github.com/leleliu008/xcpkg"
     head     "https://github.com/leleliu008/xcpkg.git", branch: "master"
-    url      "https://github.com/leleliu008/xcpkg.git", revision: "d2757613f9f45b882df1a44d403d281f06d63462"
+    url      "https://github.com/leleliu008/xcpkg.git", revision: "302840bc853df7c64daef575781beae4378db5c9"
     version  "0.30.1"
     license  "Apache-2.0"
 
@@ -123,7 +123,7 @@ class Xcpkg < Formula
 end
 EOF
 
-MY_FORMULA_DIR="$(brew --repository)/Library/Taps/leleliu008/homebrew-tmp/Formula"
+MY_FORMULA_DIR="$(brew --repository)/Library/Taps/leleliu008/homebrew-xcpkg/Formula"
 install -d  "$MY_FORMULA_DIR/"
 mv xcpkg.rb "$MY_FORMULA_DIR/"
 

@@ -22,7 +22,7 @@ jobs:
     steps:
       - name: create a local tap for homebrew
         run: |
-          MY_FORMULA_DIR="$(brew --repository)/Library/Taps/leleliu008/homebrew-tmp/Formula"
+          MY_FORMULA_DIR="$(brew --repository)/Library/Taps/leleliu008/homebrew-xcpkg/Formula"
           install -d "$MY_FORMULA_DIR"
           cat > "$MY_FORMULA_DIR/xcpkg.rb" <<EOF
           class Xcpkg < Formula
@@ -164,7 +164,7 @@ jobs:
     steps:
       - name: create a local tap for homebrew
         run: |
-          MY_FORMULA_DIR="$(brew --repository)/Library/Taps/leleliu008/homebrew-tmp/Formula"
+          MY_FORMULA_DIR="$(brew --repository)/Library/Taps/leleliu008/homebrew-xcpkg/Formula"
           install -d "$MY_FORMULA_DIR"
           cat > "$MY_FORMULA_DIR/xcpkg.rb" <<EOF
           class Xcpkg < Formula

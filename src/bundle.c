@@ -20,10 +20,27 @@ int xcpkg_bundle(const char * packageName, const char * targetPlatformSpec, Arch
 
     ///////////////////////////////////////////////////////////////////////////////////
 
-    size_t packingDIRNameCapacity = strlen(packageName) + strlen(receipt->version) + strlen(receipt->builtFor) + 3U;
+    size_t len = 0U;
+
+    for (size_t i = 0U; ; i++) {
+        if (packageName[i] == '\0') {
+            len = (len == 0U) ? i : len;
+            break;
+        }
+
+        if (packageName[i] == '@') {
+            len = i;
+        }
+    }
+
+    size_t packingDIRNameCapacity = len + strlen(receipt->version) + strlen(receipt->builtFor) + 3U;
     char   packingDIRName[packingDIRNameCapacity];
 
-    ret = snprintf(packingDIRName, packingDIRNameCapacity, "%s-%s-%s", packageName, receipt->version, receipt->builtFor);
+    for (size_t i = 0U; i < len; i++) {
+        packingDIRName[i] = packageName[i];
+    }
+
+    ret = snprintf(&packingDIRName[len], packingDIRNameCapacity - len, "-%s-%s", receipt->version, receipt->builtFor);
 
     if (ret < 0) {
         perror(NULL);
