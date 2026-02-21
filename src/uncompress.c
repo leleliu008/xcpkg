@@ -11,8 +11,6 @@
 
 #include "core/tar.h"
 
-#include "sha256sum.h"
-
 #include "xcpkg.h"
 
 int xcpkg_uncompress(const char * filePath, const char * unpackDIR, const size_t stripComponentsNumber, const bool verbose) {

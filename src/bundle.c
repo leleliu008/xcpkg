@@ -161,7 +161,7 @@ int xcpkg_bundle(const char * packageName, const char * targetPlatformSpec, Arch
     ret = tar_create(packingDIRName, tmpFilePath, outputType, verbose);
 
     if (ret != 0) {
-        return ret;
+        return abs(ret) + XCPKG_ERROR_ARCHIVE_BASE;
     }
 
     ret = xcpkg_rename_or_copy_file(tmpFilePath, outputFilePath);

@@ -57,7 +57,7 @@ jobs:
       - run: ./output/bin/xcpkg util which curl -a
       - run: install -d xcpkg-src
       - run: ./output/bin/xcpkg util git-sync https://github.com/leleliu008/xcpkg -C xcpkg-src
-      - run: ./output/bin/xcpkg util http-fetch https://github.com/leleliu008/test/releases/download/2023.10.08/xcpkg-0.30.0-macos-15.0-arm64.release.tar.xz
+      - run: ./output/bin/xcpkg util http-fetch https://github.com/leleliu008/test/releases/download/2023.10.08/xcpkg-0.30.0-macos-15.0-arm64.release.tar.xz -o xcpkg-0.30.0-macos-15.0-arm64.release.tar.xz
       - run: ./output/bin/xcpkg util uncompress xcpkg-0.30.0-macos-15.0-arm64.release.tar.xz
       - run: ./output/bin/xcpkg util sha256sum  xcpkg-0.30.0-macos-15.0-arm64.release.tar.xz
       - run: ./output/bin/xcpkg util base64-encode xcpkg-0.30.0-macos-15.0-arm64.release.tar.xz

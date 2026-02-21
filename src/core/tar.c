@@ -344,7 +344,7 @@ int tar_create(const char * inputDir, const char * outputFilePath, const Archive
         return 1;
     }
 
-    if ((outputFilePath != NULL) && (strcmp(outputFilePath, "-") == 0)) {
+    if (outputFilePath != NULL && outputFilePath[0] == '-' && outputFilePath[1] == '\0') {
 		outputFilePath = NULL;
     }
 
@@ -447,7 +447,7 @@ int tar_create(const char * inputDir, const char * outputFilePath, const Archive
 
 finalize:
     if (ret != ARCHIVE_OK) {
-        fprintf(stdout, "%s\n", archive_error_string(ar));
+        fprintf(stderr, "%s\n", archive_error_string(ar));
         archive_read_close(ar);
         archive_read_free(ar);
     }
