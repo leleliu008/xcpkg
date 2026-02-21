@@ -19,15 +19,15 @@ int xcpkg_uncompress(const char * filePath, const char * unpackDIR, const size_t
     }
 
     if (filePath[0] == '\0') {
-        return XCPKG_ERROR_ARG_IS_NULL;
+        return XCPKG_ERROR_ARG_IS_EMPTY;
     }
 
     if (unpackDIR == NULL) {
-        return XCPKG_ERROR_ARG_IS_NULL;
-    }
-
-    if (unpackDIR[0] == '\0') {
-        return XCPKG_ERROR_ARG_IS_NULL;
+        unpackDIR = ".";
+    } else {
+        if (unpackDIR[0] == '\0') {
+            return XCPKG_ERROR_ARG_IS_EMPTY;
+        }
     }
 
     int ret = tar_extract(unpackDIR, filePath, ARCHIVE_EXTRACT_TIME, verbose, stripComponentsNumber);

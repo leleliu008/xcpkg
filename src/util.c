@@ -548,12 +548,12 @@ static inline __attribute__((always_inline)) int xcpkg_util_git_sync(int argc, c
 static inline __attribute__((always_inline)) int xcpkg_util_uncompress(int argc, char* argv[]) {
     if (argv[3] == NULL) {
         fprintf(stderr, "USAGE: %s %s %s <FILEPATH> , <FILEPATH> is unspecified.\n", argv[0], argv[1], argv[2]);
-        return 1;
+        return XCPKG_ERROR_ARG_IS_UNSPECIFIED;
     }
 
     if (argv[3][0] == '\0') {
         fprintf(stderr, "USAGE: %s %s %s <FILEPATH> , <FILEPATH> should be a non-empty string.\n", argv[0], argv[1], argv[2]);
-        return 1;
+        return XCPKG_ERROR_ARG_IS_EMPTY;
     }
 
     const char * unpackDIR = NULL;
