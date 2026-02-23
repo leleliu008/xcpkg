@@ -25,8 +25,8 @@ static int getNativePackageInfoByID(const int packageID, NativePackage * package
             break;
         case NATIVE_PACKAGE_ID_OPENSSL:
             package->name = "openssl";
-            package->srcUrl = "https://www.openssl.org/source/openssl-3.4.1.tar.gz";
-            package->srcSha = "002a2d6b30b58bf4bea46c43bdd96365aaf8daa6c428782aa4feee06da197df3";
+            package->srcUrl = "https://www.openssl.org/source/openssl-3.6.1.tar.gz";
+            package->srcSha = "b1bfedcd5b289ff22aee87c9d600f515767ebf45f77168cb6d64f231f518a82e";
             package->buildSystemType = BUILD_SYSTEM_TYPE_CONFIGURE;
             break;
         case NATIVE_PACKAGE_ID_LIBEXPAT:
@@ -58,8 +58,8 @@ static int getNativePackageInfoByID(const int packageID, NativePackage * package
             break;
         case NATIVE_PACKAGE_ID_AUTOMAKE:
             package->name = "automake";
-            package->srcUrl = "https://ftp.gnu.org/gnu/automake/automake-1.17.tar.xz";
-            package->srcSha = "8920c1fc411e13b90bf704ef9db6f29d540e76d232cb3b2c9f4dc4cc599bd990";
+            package->srcUrl = "https://ftp.gnu.org/gnu/automake/automake-1.18.1.tar.xz";
+            package->srcSha = "168aa363278351b89af56684448f525a5bce5079d0b6842bd910fdd3f1646887";
             package->depPackageIDArray[0] = NATIVE_PACKAGE_ID_AUTOCONF;
             package->buildSystemType = BUILD_SYSTEM_TYPE_CONFIGURE;
             break;

@@ -5541,7 +5541,7 @@ int xcpkg_install(const char * packageName, const char * targetPlatformSpec, con
                 case 5: toolchainForTargetBuild.objc = p; break;
             }
 
-            p += slotSize + 1;
+            p += slotSize;
         }
     }
 
@@ -5564,7 +5564,7 @@ int xcpkg_install(const char * packageName, const char * targetPlatformSpec, con
             case 1: toolchainForTargetBuild.cpp = p; break;
         }
 
-        p += slotSize + 1;
+        p += slotSize;
     }
 
     if (installOptions->verbose_xcode) {
