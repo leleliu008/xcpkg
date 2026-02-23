@@ -3556,28 +3556,9 @@ static int xcpkg_install_package(
         const XCPKGFormula * formula,
         const XCPKGInstallOptions * installOptions,
         const XCPKGToolChain * toolchain,
+        const XCPKGToolChain * toolchainForNativeBuild,
+        const XCPKGToolChain * toolchainForTargetBuild,
         const SysInfo * sysinfo,
-
-        const char * ccForNativeBuild,
-        const char * cxxForNativeBuild,
-        const char * cppForNativeBuild,
-        const char * objcForNativeBuild,
-
-        const char * ccForTargetBuild,
-        const char * cxxForTargetBuild,
-        const char * cppForTargetBuild,
-        const char * objcForTargetBuild,
-
-        const char *  ccFlagsForNativeBuild,
-        const char * cxxFlagsForNativeBuild,
-        const char * cppFlagsForNativeBuild,
-        const char *  ldFlagsForNativeBuild,
-
-        const char * extraCCFlagsForTargetBuild,
-        const size_t extraCCFlagsForTargetBuildLength,
-
-        const char * extraLDFlagsForTargetBuild,
-        const size_t extraLDFlagsForTargetBuildLength,
 
         const char * uppmPackageInstalledRootDIR,
         const size_t uppmPackageInstalledRootDIRCapacity,
@@ -3681,10 +3662,10 @@ static int xcpkg_install_package(
     //////////////////////////////////////////////////////////////////////
 
     const KV toolsForNativeBuild[] = {
-        { "CC",        ccForNativeBuild },
-        { "OBJC",      objcForNativeBuild },
-        { "CXX",       cxxForNativeBuild },
-        { "CPP",       cppForNativeBuild },
+        { "CC",        toolchainForNativeBuild->cc },
+        { "OBJC",      toolchainForNativeBuild->objc },
+        { "CXX",       toolchainForNativeBuild->cxx },
+        { "CPP",       toolchainForNativeBuild->cpp },
 
         { "AS",        toolchain->as },
         { "AR",        toolchain->ar },
@@ -3748,10 +3729,13 @@ static int xcpkg_install_package(
 
     //////////////////////////////////////////////////////////////////////
 
+    const char * ccFlagsForNativeBuild = "-fPIC -fno-common -Os";
+    const char * ldFlagsForNativeBuild = "-flto -Wl,-S -Wl,-search_paths_first";
+
     const KV flagsForNativeBuild[] = {
         { "CFLAGS",    ccFlagsForNativeBuild },
-        { "CXXFLAGS", cxxFlagsForNativeBuild },
-        { "CPPFLAGS", cppFlagsForNativeBuild },
+        { "CXXFLAGS",  ccFlagsForNativeBuild },
+        { "CPPFLAGS",  "" },
         { "LDFLAGS",   ldFlagsForNativeBuild },
         { NULL, NULL }
     };
@@ -4098,10 +4082,10 @@ static int xcpkg_install_package(
     //////////////////////////////////////////////////////////////////////////////
 
     const KV toolsForTargetBuild[] = {
-        { "CC",        ccForTargetBuild },
-        { "OBJC",      objcForTargetBuild },
-        { "CXX",       cxxForTargetBuild },
-        { "CPP",       cppForTargetBuild },
+        { "CC",        toolchainForTargetBuild->cc },
+        { "OBJC",      toolchainForTargetBuild->objc },
+        { "CXX",       toolchainForTargetBuild->cxx },
+        { "CPP",       toolchainForTargetBuild->cpp },
 
         { "AS",        toolchain->as },
         { "AR",        toolchain->ar },
@@ -4185,18 +4169,40 @@ static int xcpkg_install_package(
 
     //////////////////////////////////////////////////////////////////////////////
 
+    size_t extraCCFlagsLength = 0U;
+    char   extraCCFlags[30];
+
+    if (installOptions->profile == XCPKGBuildProfile_debug) {
+        str_buf_append(extraCCFlags, &extraCCFlagsLength, "-O0 -g");
+    } else {
+        str_buf_append(extraCCFlags, &extraCCFlagsLength, "-Os");
+    }
+
+    if (installOptions->verbose_cc) {
+        str_buf_append(extraCCFlags, &extraCCFlagsLength, "-v");
+    }
+
+    str_buf_append(extraCCFlags, &extraCCFlagsLength, "-fPIC -fno-common");
+
+    //////////////////////////////////////////////////////////////////////////////
+
+    size_t extraLDFlagsLength = 0U;
+    char   extraLDFlags[50];
+
+    str_buf_append(extraLDFlags, &extraLDFlagsLength, "-Wl,-search_paths_first");
+
+    if (installOptions->verbose_ld) {
+        str_buf_append(extraLDFlags, &extraLDFlagsLength, "-Wl,-v");
+    }
+
+    if (installOptions->profile == XCPKGBuildProfile_release) {
+        str_buf_append(extraLDFlags, &extraLDFlagsLength, "-Wl,-S -flto");
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+
     if (formula->ccflags == NULL) {
-        size_t ccflagsCapacity = extraCCFlagsForTargetBuildLength + 6U;
-        char   ccflags[ccflagsCapacity];
-
-        ret = snprintf(ccflags, ccflagsCapacity, "%s -O%s", extraCCFlagsForTargetBuild, (installOptions->profile == XCPKGBuildProfile_release) ? "s" : "0");
-
-        if (ret < 0) {
-            perror(NULL);
-            return XCPKG_ERROR;
-        }
-
-        if (setenv("CFLAGS", ccflags, 1) != 0) {
+        if (setenv("CFLAGS", extraCCFlags, 1) != 0) {
             perror("CFLAGS");
             return XCPKG_ERROR;
         }
@@ -4216,21 +4222,15 @@ static int xcpkg_install_package(
                 break;
             }
 
-            loop:
-                if (p[0] == '\0') break;
-                if (p[0] == ' ')  break;
+            while (p[0] != '\0' && p[0] == ' ') {
                 p++;
-                goto loop;
+            }
         }
 
-        const char * defaultOFlag = (installOptions->profile == XCPKGBuildProfile_release) ? "-Os" : "-O0";
-
-        const char * oFlag = hasOFLag ? "" : defaultOFlag;
-
-        size_t ccflagsCapacity = extraCCFlagsForTargetBuildLength + strlen(formula->ccflags) + 6U;
+        size_t ccflagsCapacity = strlen(formula->ccflags) + 30U;
         char   ccflags[ccflagsCapacity];
 
-        ret = snprintf(ccflags, ccflagsCapacity, "%s %s %s", extraCCFlagsForTargetBuild, oFlag, formula->ccflags);
+        ret = snprintf(ccflags, ccflagsCapacity, "%s %s", hasOFLag ? extraCCFlags + 4 : extraCCFlags, formula->ccflags);
 
         if (ret < 0) {
             perror(NULL);
@@ -4246,15 +4246,35 @@ static int xcpkg_install_package(
     //////////////////////////////////////////////////////////////////////////////
 
     if (formula->xxflags == NULL) {
-        if (setenv("CXXFLAGS", extraCCFlagsForTargetBuild, 1) != 0) {
+        if (setenv("CXXFLAGS", extraCCFlags, 1) != 0) {
             perror("CXXFLAGS");
             return XCPKG_ERROR;
         }
     } else {
-        size_t cxxflagsCapacity = extraCCFlagsForTargetBuildLength + strlen(formula->xxflags) + 2U;
+        bool hasOFLag = false;
+
+        const char * p = formula->xxflags;
+
+        while (p[0] != '\0') {
+            if (p[0] == ' ') {
+                p++;
+                continue;
+            }
+
+            if (p[0] == '-' && p[1] == 'O' && (p[3] == ' ' || p[3] == '\0')) {
+                hasOFLag = true;
+                break;
+            }
+
+            while (p[0] != '\0' && p[0] == ' ') {
+                p++;
+            }
+        }
+
+        size_t cxxflagsCapacity = strlen(formula->xxflags) + 30U;
         char   cxxflags[cxxflagsCapacity];
 
-        ret = snprintf(cxxflags, cxxflagsCapacity, "%s %s", extraCCFlagsForTargetBuild, formula->xxflags);
+        ret = snprintf(cxxflags, cxxflagsCapacity, "%s %s", hasOFLag ? extraCCFlags + 4 : extraCCFlags, formula->xxflags);
 
         if (ret < 0) {
             perror(NULL);
@@ -4304,10 +4324,10 @@ static int xcpkg_install_package(
     //////////////////////////////////////////////////////////////////////////////
 
     if (formula->ldflags == NULL) {
-        size_t ldflagsCapacity = extraLDFlagsForTargetBuildLength + packageWorkingTopDIRCapacity + packageInstalledRootDIRCapacity + packageNameLength + 50U;
+        size_t ldflagsCapacity = packageWorkingTopDIRCapacity + packageInstalledRootDIRCapacity + packageNameLength + 100U;
         char   ldflags[ldflagsCapacity];
 
-        ret = snprintf(ldflags, ldflagsCapacity, "%s %s -L%s/lib -Wl,-rpath,%s/%s/lib", extraLDFlagsForTargetBuild, (installOptions->profile == XCPKGBuildProfile_release) ? "-flto" : "", packageWorkingTopDIR, packageInstalledRootDIR, packageName);
+        ret = snprintf(ldflags, ldflagsCapacity, "-L%s/lib -Wl,-rpath,%s/%s/lib %s", packageWorkingTopDIR, packageInstalledRootDIR, packageName, extraLDFlags);
 
         if (ret < 0) {
             perror(NULL);
@@ -4319,10 +4339,10 @@ static int xcpkg_install_package(
             return XCPKG_ERROR;
         }
     } else {
-        size_t ldflagsCapacity = extraLDFlagsForTargetBuildLength + packageWorkingTopDIRCapacity + packageInstalledRootDIRCapacity + packageNameLength + strlen(formula->ldflags) + 50U;
+        size_t ldflagsCapacity = packageWorkingTopDIRCapacity + packageInstalledRootDIRCapacity + packageNameLength + strlen(formula->ldflags) + 100U;
         char   ldflags[ldflagsCapacity];
 
-        ret = snprintf(ldflags, ldflagsCapacity, "%s %s -L%s/lib -Wl,-rpath,%s/%s/lib %s", extraLDFlagsForTargetBuild, (installOptions->profile == XCPKGBuildProfile_release) ? "-flto" : "", packageWorkingTopDIR, packageInstalledRootDIR, packageName, formula->ldflags);
+        ret = snprintf(ldflags, ldflagsCapacity, "-L%s/lib -Wl,-rpath,%s/%s/lib %s %s", packageWorkingTopDIR, packageInstalledRootDIR, packageName, extraLDFlags, formula->ldflags);
 
         if (ret < 0) {
             perror(NULL);
@@ -5523,6 +5543,13 @@ int xcpkg_install(const char * packageName, const char * targetPlatformSpec, con
         return XCPKG_ERROR;
     }
 
+    XCPKGToolChain toolchainForNativeBuild = {
+        .cc   = ccForNativeBuild,
+        .cxx  = cxxForNativeBuild,
+        .cpp  = cppForNativeBuild,
+        .objc = objcForNativeBuild,
+    };
+
     //////////////////////////////////////////////////////////////////////
 
     char ccForTargetBuild[capacity];
@@ -5560,6 +5587,13 @@ int xcpkg_install(const char * packageName, const char * targetPlatformSpec, con
         perror(NULL);
         return XCPKG_ERROR;
     }
+
+    XCPKGToolChain toolchainForTargetBuild = {
+        .cc   = ccForTargetBuild,
+        .cxx  = cxxForTargetBuild,
+        .cpp  = cppForTargetBuild,
+        .objc = objcForTargetBuild,
+    };
 
     //////////////////////////////////////////////////////////////////////////////
 
@@ -5634,36 +5668,6 @@ int xcpkg_install(const char * packageName, const char * targetPlatformSpec, con
         perror("XCPKG_NATIVE_FLAGS");
         xcpkg_toolchain_free(&toolchain);
         return XCPKG_ERROR;
-    }
-
-    //////////////////////////////////////////////////////////////////////////////
-
-    size_t extraCCFlagsLength = 0U;
-    char   extraCCFlags[30];
-
-    str_buf_append(extraCCFlags, &extraCCFlagsLength, "-fPIC -fno-common");
-
-    if (installOptions->profile == XCPKGBuildProfile_debug) {
-        str_buf_append(extraCCFlags, &extraCCFlagsLength, "-g");
-    }
-
-    if (installOptions->verbose_cc) {
-        str_buf_append(extraCCFlags, &extraCCFlagsLength, "-v");
-    }
-
-    //////////////////////////////////////////////////////////////////////////////
-
-    size_t extraLDFlagsLength = 0U;
-    char   extraLDFlags[50];
-
-    str_buf_append(extraLDFlags, &extraLDFlagsLength, "-Wl,-search_paths_first");
-
-    if (installOptions->profile == XCPKGBuildProfile_release) {
-        str_buf_append(extraLDFlags, &extraLDFlagsLength, "-Wl,-S");
-    }
-
-    if (installOptions->verbose_ld) {
-        str_buf_append(extraLDFlags, &extraLDFlagsLength, "-Wl,-v");
     }
 
     //////////////////////////////////////////////////////////////////////////////
@@ -5745,7 +5749,7 @@ int xcpkg_install(const char * packageName, const char * targetPlatformSpec, con
         fprintf(stderr, "dot=%s\n", dot.ptr);
         fprintf(stderr, "d2=%s\n", d2.ptr);
 
-        ret = xcpkg_install_package(packageName, targetPlatformSpec, package->formula, installOptions, &toolchain, &sysinfo, ccForNativeBuild, cxxForNativeBuild, cppForNativeBuild, objcForNativeBuild, ccForTargetBuild, cxxForTargetBuild, cppForTargetBuild, objcForTargetBuild, extraCCFlags, extraCCFlags, "", extraLDFlags, extraCCFlags, extraCCFlagsLength, extraLDFlags, extraLDFlagsLength, uppmPackageInstalledRootDIR, uppmPackageInstalledRootDIRCapacity, xcpkgExeFilePath, xcpkgHomeDIR, xcpkgHomeDIRLength, xcpkgCoreDIR, xcpkgCoreDIRCapacity, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, sessionDIR, sessionDIRLength, &txt, &dot, &d2);
+        ret = xcpkg_install_package(packageName, targetPlatformSpec, package->formula, installOptions, &toolchain, &toolchainForNativeBuild, &toolchainForTargetBuild, &sysinfo, uppmPackageInstalledRootDIR, uppmPackageInstalledRootDIRCapacity, xcpkgExeFilePath, xcpkgHomeDIR, xcpkgHomeDIRLength, xcpkgCoreDIR, xcpkgCoreDIRCapacity, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, sessionDIR, sessionDIRLength, &txt, &dot, &d2);
 
         free(txt.ptr);
         free(dot.ptr);

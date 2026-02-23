@@ -401,6 +401,8 @@ void xcpkg_receipt_dump(XCPKGReceipt * receipt);
 typedef struct {
     char * cc;
     char * cxx;
+    char * cpp;
+    char * objc;
     char * swiftc;
     char * as;
     char * ar;

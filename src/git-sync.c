@@ -343,7 +343,7 @@ int xcpkg_git_sync(const char * repositoryDIR, const char * remoteUrl, const cha
 
     git_fetch_options gitFetchOptions = GIT_FETCH_OPTIONS_INIT;
     gitFetchOptions.callbacks = gitRemoteCallbacks;
-    gitFetchOptions.download_tags = GIT_REMOTE_DOWNLOAD_TAGS_NONE;
+    gitFetchOptions.download_tags = (fetchDepth == 0U) ? GIT_REMOTE_DOWNLOAD_TAGS_ALL : GIT_REMOTE_DOWNLOAD_TAGS_NONE;
 
     // this feature was introduced in libgit2-1.7.0
 #if ((LIBGIT2_VER_MAJOR == 1) && (LIBGIT2_VER_MINOR >= 7)) || (LIBGIT2_VER_MAJOR > 1)

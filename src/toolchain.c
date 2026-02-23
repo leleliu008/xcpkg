@@ -394,6 +394,8 @@ void xcpkg_toolchain_dump(XCPKGToolChain * toolchain) {
 
     printf("cc:        %s\n", toolchain->cc);
     printf("cxx:       %s\n", toolchain->cxx);
+    printf("cpp:       %s\n", toolchain->cpp);
+    printf("objc:      %s\n", toolchain->objc);
     printf("swiftc:    %s\n", toolchain->swiftc);
     printf("as:        %s\n", toolchain->as);
     printf("ar:        %s\n", toolchain->ar);
@@ -419,6 +421,16 @@ void xcpkg_toolchain_free(XCPKGToolChain * toolchain) {
     if (toolchain->cxx != NULL) {
         free(toolchain->cxx);
         toolchain->cxx = NULL;
+    }
+
+    if (toolchain->cpp != NULL) {
+        free(toolchain->cpp);
+        toolchain->cpp = NULL;
+    }
+
+    if (toolchain->objc != NULL) {
+        free(toolchain->objc);
+        toolchain->objc = NULL;
     }
 
     if (toolchain->swiftc != NULL) {
