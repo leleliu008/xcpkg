@@ -5503,97 +5503,74 @@ int xcpkg_install(const char * packageName, const char * targetPlatformSpec, con
 
     //////////////////////////////////////////////////////////////////////
 
-    size_t capacity = xcpkgCoreDIRCapacity + 21U;
+    const char* arr1[2] = {"native", "target"};
+    const char* arr2[3] = {"cc", "c++", "objc"};
 
-    char ccForNativeBuild[capacity];
+    XCPKGToolChain toolchainForNativeBuild = {0};
+    XCPKGToolChain toolchainForTargetBuild = {0};
 
-    ret = snprintf(ccForNativeBuild, capacity, "%s/wrapper-native-cc", xcpkgCoreDIR);
+    //      0           1         2           3          4         5           6             7
+    //      cc         c++       objc         cc        c++       objc        cpp           cpp
+    // |__________|__________|__________|__________|__________|_________|_____________|_____________|
+    // |           forNative            |           forTarget           |  forNative  |  forTarget  |
 
-    if (ret < 0) {
-        perror(NULL);
-        return XCPKG_ERROR;
+    size_t slotSize = xcpkgCoreDIRCapacity + 21U;
+    size_t capacity = (slotSize << 3) + 6U;
+
+    char buf[capacity];
+
+    char * p = buf;
+
+    int k = 0;
+
+    for (int i = 0; i < 2; i++) {
+        for (int j = 0; j < 3; j++) {
+            ret = snprintf(p, slotSize, "%s/wrapper-%s-%s", xcpkgCoreDIR, arr1[i], arr2[j]);
+
+            if (ret < 0) {
+                perror(NULL);
+                return XCPKG_ERROR;
+            }
+
+            switch(k++) {
+                case 0: toolchainForNativeBuild.cc   = p; break;
+                case 1: toolchainForNativeBuild.cxx  = p; break;
+                case 2: toolchainForNativeBuild.objc = p; break;
+                case 3: toolchainForTargetBuild.cc   = p; break;
+                case 4: toolchainForTargetBuild.cxx  = p; break;
+                case 5: toolchainForTargetBuild.objc = p; break;
+            }
+
+            p += slotSize + 1;
+        }
     }
 
-    char cxxForNativeBuild[capacity];
+    //////////////////////////////////////////////////////////////////////////////
 
-    ret = snprintf(cxxForNativeBuild, capacity, "%s/wrapper-native-c++", xcpkgCoreDIR);
+    slotSize += 3U;
 
-    if (ret < 0) {
-        perror(NULL);
-        return XCPKG_ERROR;
+    char* arr3[2] = {toolchainForNativeBuild.cc, toolchainForTargetBuild.cc};
+
+    for (int i = 0; i < 2; i++) {
+        ret = snprintf(p, slotSize, "%s -E", arr3[i]);
+
+        if (ret < 0) {
+            perror(NULL);
+            return XCPKG_ERROR;
+        }
+
+        switch(i) {
+            case 0: toolchainForNativeBuild.cpp = p; break;
+            case 1: toolchainForTargetBuild.cpp = p; break;
+        }
+
+        p += slotSize + 1;
     }
 
-    char objcForNativeBuild[capacity];
-
-    ret = snprintf(objcForNativeBuild, capacity, "%s/wrapper-native-objc", xcpkgCoreDIR);
-
-    if (ret < 0) {
-        perror(NULL);
-        return XCPKG_ERROR;
+    if (installOptions->verbose_xcode) {
+        xcpkg_toolchain_dump(&toolchainForNativeBuild);
+        xcpkg_toolchain_dump(&toolchainForTargetBuild);
     }
-
-    size_t cppCapacity = capacity + 4U;
-
-    char cppForNativeBuild[cppCapacity];
-
-    ret = snprintf(cppForNativeBuild, cppCapacity, "%s -E", ccForNativeBuild);
-
-    if (ret < 0) {
-        perror(NULL);
-        return XCPKG_ERROR;
-    }
-
-    XCPKGToolChain toolchainForNativeBuild = {
-        .cc   = ccForNativeBuild,
-        .cxx  = cxxForNativeBuild,
-        .cpp  = cppForNativeBuild,
-        .objc = objcForNativeBuild,
-    };
-
-    //////////////////////////////////////////////////////////////////////
-
-    char ccForTargetBuild[capacity];
-
-    ret = snprintf(ccForTargetBuild, capacity, "%s/wrapper-target-cc", xcpkgCoreDIR);
-
-    if (ret < 0) {
-        perror(NULL);
-        return XCPKG_ERROR;
-    }
-
-    char cxxForTargetBuild[capacity];
-
-    ret = snprintf(cxxForTargetBuild, capacity, "%s/wrapper-target-c++", xcpkgCoreDIR);
-
-    if (ret < 0) {
-        perror(NULL);
-        return XCPKG_ERROR;
-    }
-
-    char objcForTargetBuild[capacity];
-
-    ret = snprintf(objcForTargetBuild, capacity, "%s/wrapper-target-objc", xcpkgCoreDIR);
-
-    if (ret < 0) {
-        perror(NULL);
-        return XCPKG_ERROR;
-    }
-
-    char cppForTargetBuild[cppCapacity];
-
-    ret = snprintf(cppForTargetBuild, cppCapacity, "%s -E", ccForTargetBuild);
-
-    if (ret < 0) {
-        perror(NULL);
-        return XCPKG_ERROR;
-    }
-
-    XCPKGToolChain toolchainForTargetBuild = {
-        .cc   = ccForTargetBuild,
-        .cxx  = cxxForTargetBuild,
-        .cpp  = cppForTargetBuild,
-        .objc = objcForTargetBuild,
-    };
 
     //////////////////////////////////////////////////////////////////////////////
 
