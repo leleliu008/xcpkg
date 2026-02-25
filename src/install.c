@@ -4222,7 +4222,7 @@ static int xcpkg_install_package(
                 break;
             }
 
-            while (p[0] != '\0' && p[0] == ' ') {
+            while (p[0] != '\0' && p[0] != ' ') {
                 p++;
             }
         }
@@ -4266,7 +4266,7 @@ static int xcpkg_install_package(
                 break;
             }
 
-            while (p[0] != '\0' && p[0] == ' ') {
+            while (p[0] != '\0' && p[0] != ' ') {
                 p++;
             }
         }
