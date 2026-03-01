@@ -2238,7 +2238,22 @@ static int generate_shell_script_file(
 
     //////////////////////////////////////////////////////////////////////////////
 
-    ret = dprintf(fd, "\nTIMESTAMP_UNIX=%ld\n\n", ts);
+    ret = dprintf(fd, "\nTIMESTAMP_UNIX=%ld\n", ts);
+
+    if (ret < 0) {
+        close(fd);
+        return XCPKG_ERROR;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+
+    struct tm * tms = gmtime(&ts);
+
+    char iso8601[21];
+
+    strftime(iso8601, 21, "%Y-%m-%dT%H:%M:%SZ", tms);
+
+    ret = dprintf(fd, "TIMESTAMP_ISO8601='%s'\n\n", iso8601);
 
     if (ret < 0) {
         close(fd);
@@ -2955,12 +2970,10 @@ int generate_manifest(const char * installedDIRPath) {
 }
 
 static int generate_receipt(const char * packageName, const XCPKGFormula * formula, const char * targetPlatformSpec, const SysInfo * sysinfo, const time_t ts) {
-    const char * const f = "RECEIPT.yml";
-
-    FILE * receiptFile = fopen(f, "w");
+    FILE * receiptFile = fopen(XCPKG_RECEIPT_FILENAME, "w");
 
     if (receiptFile == NULL) {
-        perror(f);
+        perror(XCPKG_RECEIPT_FILENAME);
         return XCPKG_ERROR;
     }
 
@@ -3043,7 +3056,7 @@ static int generate_receipt(const char * packageName, const XCPKGFormula * formu
 
         if (size > 0) {
             if (fwrite(buff, 1, size, receiptFile) != size || ferror(receiptFile)) {
-                perror(f);
+                perror(XCPKG_RECEIPT_FILENAME);
                 fclose(receiptFile);
                 fclose(formulaFile);
                 return XCPKG_ERROR;
