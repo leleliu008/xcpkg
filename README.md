@@ -1,6 +1,6 @@
 # xcpkg
 
-A package builder/manager for [Xcode](https://developer.apple.com/xcode) to build projects written in C, C++, Rust, Zig, Go, Haskell, etc.
+A package builder using [Xcode](https://developer.apple.com/xcode)
 
 ## Why another package manager ?
 
@@ -717,6 +717,7 @@ A xcpkg formula's file content only has one level mapping and shall/might have t
 |variable|overview|
 |-|-|
 |`TIMESTAMP_UNIX`|the unix timestamp of this action.|
+|`TIMESTAMP_ISO8601`|the ISO-8601 format timestamp of this action.|
 |||
 |`NATIVE_PLATFORM_KIND`|current running platform kind. value shall be `darwin`|
 |`NATIVE_PLATFORM_TYPE`|current running platform type. value shall be `macos`|
