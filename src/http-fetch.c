@@ -612,11 +612,12 @@ int xcpkg_http_fetch_then_unpack(const char * url, const char * uri, const char 
         return XCPKG_OK;
     }
 
-    if (strcmp(fileType, ".zip") == 0 ||
-        strcmp(fileType, ".tgz") == 0 ||
+    if (strcmp(fileType, ".tgz") == 0 ||
         strcmp(fileType, ".txz") == 0 ||
         strcmp(fileType, ".tlz") == 0 ||
         strcmp(fileType, ".tbz2") == 0 ||
+        strcmp(fileType, ".zip") == 0 ||
+        strcmp(fileType, ".7z")  == 0 ||
         strcmp(fileType, ".crate") == 0) {
 
         ret = tar_extract(unpackDIR, filePath, ARCHIVE_EXTRACT_TIME, verbose, 1);

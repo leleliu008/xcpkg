@@ -516,11 +516,12 @@ static int uppm_install_internal(const char * uppmHomeDIR, const size_t uppmHome
 
     //////////////////////////////////////////////////////////////////////////
 
-    if (strcmp(binFileNameExtension, ".zip") == 0 ||
-        strcmp(binFileNameExtension, ".tgz") == 0 ||
+    if (strcmp(binFileNameExtension, ".tgz") == 0 ||
         strcmp(binFileNameExtension, ".txz") == 0 ||
         strcmp(binFileNameExtension, ".tlz") == 0 ||
-        strcmp(binFileNameExtension, ".tbz2") == 0) {
+        strcmp(binFileNameExtension, ".tbz2") == 0 ||
+        strcmp(binFileNameExtension, ".zip") == 0 ||
+        strcmp(binFileNameExtension, ".7z") == 0) {
 
         if (formula->unpackd == NULL) {
             ret = tar_extract(packageInstalledRealDIR, binFilePath, ARCHIVE_EXTRACT_TIME, verbose, 1);

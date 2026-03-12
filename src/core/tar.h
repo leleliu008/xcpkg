@@ -13,6 +13,7 @@ typedef enum {
     ArchiveType_tar_lz,
     ArchiveType_tar_bz2,
     ArchiveType_zip,
+    ArchiveType_7z,
 } ArchiveType;
 
 int tar_list(const char * inputFilePath, const int flags);

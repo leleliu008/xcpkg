@@ -373,6 +373,9 @@ int tar_create(const char * inputDir, const char * outputFilePath, const Archive
         case ArchiveType_zip:
             archive_write_set_format_zip(aw);
             break;
+        case ArchiveType_7z:
+            archive_write_set_format_7zip(aw);
+            break;
     }
 
     archive_write_open_filename(aw, outputFilePath);
