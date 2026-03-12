@@ -35,7 +35,7 @@ jobs:
         target-arch: [x86_64, arm64]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: create a local tap for homebrew
         run: |
@@ -108,7 +108,7 @@ jobs:
           mv core/bin "$DIRNAME"
           tar cJvf "$DIRNAME.tar.xz" "$DIRNAME"
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: xcpkg-core-${{ needs.base.outputs.release-version }}-macos-${{ matrix.target-version }}-${{ matrix.target-arch }}.tar.xz
           path: xcpkg-core-${{ needs.base.outputs.release-version }}-macos-${{ matrix.target-version }}-${{ matrix.target-arch }}.tar.xz
@@ -124,7 +124,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
 
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v6
         with:
           pattern: '*'
           path: .

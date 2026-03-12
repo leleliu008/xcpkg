@@ -20,9 +20,9 @@ jobs:
       - run:  brew update
       - run:  brew install ninja pkg-config
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           repository: microsoft/vcpkg
           path: vcpkg
@@ -158,9 +158,9 @@ jobs:
       - run:  brew install --overwrite python@3.10 python@3.11
       - run:  brew install ninja llvm pkg-config
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           repository: microsoft/vcpkg
           path: vcpkg
