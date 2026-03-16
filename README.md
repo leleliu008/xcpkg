@@ -629,7 +629,7 @@ A xcpkg formula's file content only has one level mapping and shall/might have t
 |`ppflags`|`LIST`|A space-separated list of arguments to be passed to the PreProcessor.|
 |`ldflags`|`LIST`|A space-separated list of arguments to be passed to the linker.<br>`xcpkg` supports a custom option `-p<PKG-CONFIG-PACKAGE-NAME>`. It will be substituted by the result of `pkg-config --libs-only-l <PKG-CONFIG-PACKAGE-NAME>`|
 ||||
-|`bsystem`|`LIST`|A space-separated list of build system names (e.g. `autogen` `autotools` `configure` `cmake` `cmake+gmake` `cmake+ninja` `meson` `xmake` `gmake` `ninja` `cargo` `cabal` `zig` `go` `gn` `waf` `rake` `netsurf`)|
+|`bsystem`|`LIST`|A space-separated list of build system names (e.g. `autogen` `autotools` `configure` `cmake` `cmake+gmake` `cmake+ninja` `meson` `xmake` `gmake` `ninja` `cargo` `cabal` `swift` `zig` `go` `gn` `waf` `rake` `netsurf`)|
 |`bscript`|`PATH`|the directory where the build script is located, relative to `PACKAGE_WORKING_DIR`. build script such as `configure`, `Makefile`, `CMakeLists.txt`, `meson.build`, `Cargo.toml`, etc.|
 |`binbstd`|`BOOL`|whether to build in the directory where the build script is located, otherwise build in other directory.<br>value shall be `0` or `1`. default value is `0`.|
 |`ltoable`|`BOOL`|whether support [LTO](https://gcc.gnu.org/wiki/LinkTimeOptimization).<br>value shall be `0` or `1`. default value is `1`.|
@@ -786,6 +786,7 @@ A xcpkg formula's file content only has one level mapping and shall/might have t
 |`xmake`|`xmake.lua`|
 |`cargo`|`Cargo.toml`|
 |`cabal`|`cabal.project` `cabal.project.freeze` `cabal.project.local`|
+|`swift`|`Package.swift`|
 |`zig`|`build.zig`|
 |`waf`|`waf`|
 |`go`|`go.mod`|

@@ -1103,7 +1103,7 @@ to_meson_array() {
 swiftw() {
     case $TARGET_PLATFORM_NAME in
         MacOSX)
-            SWIFT_TARGET="$TARGET_PLATFORM_ARCH-apple-macos$TARGET_PLATFORM_VERS"
+            SWIFT_TARGET="$TARGET_PLATFORM_ARCH-apple-macosx$TARGET_PLATFORM_VERS"
             ;;
         iPhoneOS)
             SWIFT_TARGET="$TARGET_PLATFORM_ARCH-apple-ios$TARGET_PLATFORM_VERS"
@@ -1134,7 +1134,11 @@ swiftw() {
             ;;
     esac
 
-    run swift build --configuration "$PROFILE" --disable-sandbox -Xswiftc -target -Xswiftc "$SWIFT_TARGET"
+    if [ "$VERBOSE_SWIFT" = 1 ] ; then
+        set -- -v "$@"
+    fi
+
+    run swift build --configuration "$PROFILE" --disable-sandbox -Xswiftc -target -Xswiftc "$SWIFT_TARGET" -j "$BUILD_NJOBS" "$@"
 
     PACKAGE_BCACHED_DIR=".build/$PROFILE"
 
