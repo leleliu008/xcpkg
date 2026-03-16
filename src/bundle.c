@@ -59,6 +59,7 @@ int xcpkg_bundle(const char * packageName, const char * targetPlatformSpec, Arch
         case ArchiveType_tar_lz:  outputFileExt = ".tar.lz";  break;
         case ArchiveType_tar_bz2: outputFileExt = ".tar.bz2"; break;
         case ArchiveType_zip:     outputFileExt = ".zip";     break;
+        case ArchiveType_7z:      outputFileExt = ".7z";      break;
     }
 
     /////////////////////////////////////////////////////////////////////////////////

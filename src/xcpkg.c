@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 
 #include "core/log.h"
+#include "core/tar.h"
 
 #include "xcpkg.h"
 
@@ -1563,6 +1564,8 @@ static inline int xcpkg_action_bundle(int argc, char* argv[]) {
     if (argv[3][0] == '.') {
         if (strcmp(&argv[3][1], "zip") == 0) {
             outputType = ArchiveType_zip;
+        } else if (strcmp(&argv[3][1], "7z") == 0) {
+            outputType = ArchiveType_7z;
         } else if (strcmp(&argv[3][1], "tar.gz") == 0) {
             outputType = ArchiveType_tar_gz;
         } else if (strcmp(&argv[3][1], "tar.lz") == 0) {

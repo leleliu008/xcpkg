@@ -1,3 +1,4 @@
+#include <stddef.h>
 #include<stdio.h>
 #include<stdlib.h>
 
@@ -10,13 +11,13 @@ void listPATH() {
     char buf[PATH_MAX];
 
     while (p != NULL) {
-        for (int i = 0;; i++) {
+        for (size_t i = 0; ; i++) {
             if (p[i] == '\0') {
                 p = NULL;
 
                 buf[i] = '\0';
 
-                if (i != 0) {
+                if (i != 0U) {
                     puts(buf);
                 }
 
@@ -26,7 +27,7 @@ void listPATH() {
 
                 buf[i] = '\0';
 
-                if (i != 0) {
+                if (i != 0U) {
                     puts(buf);
                 }
 

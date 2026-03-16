@@ -250,6 +250,7 @@ typedef struct {
     bool useBuildSystemCabal;
     bool useBuildSystemCargo;
     bool useBuildSystemGolang;
+    bool useBuildSystemSwift;
     bool useBuildSystemGN;
     bool useBuildSystemZIG;
     bool useBuildSystemWAF;

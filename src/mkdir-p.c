@@ -15,51 +15,60 @@ int xcpkg_mkdir_p(const char * dir, const bool verbose) {
         return XCPKG_ERROR_ARG_IS_EMPTY;
     }
 
-    size_t len = strlen(dir);
+    if (dir[0] == '/' && dir[1] == '\0') {
+        return XCPKG_OK;
+    }
 
-    char buf[len + 1U];
+    size_t cap = strlen(dir) + 1U;
 
-    memset(buf, 0, len + 1U);
+    char buf[cap];
 
     struct stat st;
 
-    int i = 0;
+    for (size_t i = 0U; ; i++) {
+        buf[i] = dir[i];
 
-    for (;;) {
-        char c = dir[i];
+        if (dir[i] != '/' && dir[i] != '\0') {
+            continue;
+        }
 
-        if (c == '/' || c == '\0') {
-            if (buf[0] != '\0') {
-                if (stat(buf, &st) == 0) {
-                    if (!S_ISDIR(st.st_mode)) {
-                        fprintf(stderr, "%s was expected to be a directory, but it was not.\n", buf);
-                        return XCPKG_ERROR;
-                    }
-                } else {
-                    if (verbose) printf("mkdir -p %s\n", buf);
+        if (dir[i] == '/') {
+            if (i == 0U) {
+                continue;
+            } else {
+                buf[i] = '\0';
+            }
+        }
 
-                    if (mkdir(buf, S_IRWXU) != 0) {
-                        if (errno == EEXIST) {
-                            if (stat(buf, &st) == 0) {
-                                if (!S_ISDIR(st.st_mode)) {
-                                    fprintf(stderr, "%s was expected to be a directory, but it was not.\n", buf);
-                                    return XCPKG_ERROR;
-                                }
-                            }
-                        } else {
-                            perror(buf);
+        if (stat(buf, &st) == 0) {
+            if (!S_ISDIR(st.st_mode)) {
+                fprintf(stderr, "%s was expected to be a directory, but it was not.\n", buf);
+                return XCPKG_ERROR;
+            }
+        } else {
+            if (verbose) printf("mkdir %s\n", buf);
+
+            if (mkdir(buf, S_IRWXU) != 0) {
+                if (errno == EEXIST) {
+                    if (stat(buf, &st) == 0) {
+                        if (!S_ISDIR(st.st_mode)) {
+                            fprintf(stderr, "%s was expected to be a directory, but it was not.\n", buf);
                             return XCPKG_ERROR;
                         }
                     }
+                } else {
+                    perror(buf);
+                    return XCPKG_ERROR;
                 }
             }
         }
 
-        if (c == '\0') {
-            return 0;
-        } else {
-            buf[i] = c;
-            i++;
+        if (dir[i] == '\0') {
+            return XCPKG_OK;
+        }
+
+        if (dir[i] == '/') {
+            buf[i] = '/';
         }
     }
 }

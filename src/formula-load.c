@@ -168,6 +168,7 @@ void xcpkg_formula_dump(XCPKGFormula * formula) {
     printf("useBuildSystemMeson:    %d\n", formula->useBuildSystemMeson);
     printf("useBuildSystemNinja:    %d\n", formula->useBuildSystemNinja);
     printf("useBuildSystemCargo:    %d\n", formula->useBuildSystemCargo);
+    printf("useBuildSystemSwift:    %d\n", formula->useBuildSystemSwift);
     printf("useBuildSystemGolang:   %d\n", formula->useBuildSystemGolang);
     printf("useBuildSystemGN:       %d\n", formula->useBuildSystemGN);
     printf("useBuildSystemZIG:      %d\n", formula->useBuildSystemZIG);
@@ -732,6 +733,11 @@ loop:
         return "cargo";
     }
 
+    if (_str_equal(p, "swiftw")) {
+        formula->useBuildSystemSwift = true;
+        return "swift";
+    }
+
     if (_str_equal(p, "gow")) {
         formula->useBuildSystemGolang = true;
         return "go";
@@ -819,6 +825,10 @@ static inline const char* xcpkg_determine_default_install_commands_from_bsystem(
         return "cargow install";
     }
 
+    if (_str_equal(p, "swift")) {
+        return "swiftw";
+    }
+
     if (_str_equal(p, "go")) {
         return "gow";
     }
@@ -888,6 +898,8 @@ loop:
         formula->useBuildSystemCabal = true;
     } else if (_str_equal(p, "cargo")) {
         formula->useBuildSystemCargo = true;
+    } else if (_str_equal(p, "swift")) {
+        formula->useBuildSystemSwift = true;
     } else if (_str_equal(p, "go")) {
         formula->useBuildSystemGolang = true;
     } else if (_str_equal(p, "gn")) {
@@ -1391,7 +1403,7 @@ finalize:
                 binbstd = 0;
                 formula->binbstd_is_calculated = true;
 
-                if (formula->useBuildSystemGolang || formula->useBuildSystemCargo || formula->useBuildSystemCabal || formula->useBuildSystemXmake || formula->useBuildSystemZIG || formula->useBuildSystemWAF || formula->useBuildSystemNetsurf) {
+                if (formula->useBuildSystemGolang || formula->useBuildSystemSwift || formula->useBuildSystemCargo || formula->useBuildSystemCabal || formula->useBuildSystemXmake || formula->useBuildSystemZIG || formula->useBuildSystemWAF || formula->useBuildSystemNetsurf) {
                     binbstd = 1;
                 } else {
                     const char * p = formula->bsystem;

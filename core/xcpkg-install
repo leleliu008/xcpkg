@@ -1100,6 +1100,62 @@ to_meson_array() {
     printf '%s\n' "$RESULT"
 }
 
+swiftw() {
+    case $TARGET_PLATFORM_NAME in
+        MacOSX)
+            SWIFT_TARGET="$TARGET_PLATFORM_ARCH-apple-macos$TARGET_PLATFORM_VERS"
+            ;;
+        iPhoneOS)
+            SWIFT_TARGET="$TARGET_PLATFORM_ARCH-apple-ios$TARGET_PLATFORM_VERS"
+            ;;
+        iPhoneSimulator)
+            SWIFT_TARGET="$TARGET_PLATFORM_ARCH-apple-ios$TARGET_PLATFORM_VERS-simulator"
+            ;;
+        AppleTVOS)
+            SWIFT_TARGET="$TARGET_PLATFORM_ARCH-apple-tvos$TARGET_PLATFORM_VERS"
+            ;;
+        AppleTVSimulator)
+            SWIFT_TARGET="$TARGET_PLATFORM_ARCH-apple-tvos$TARGET_PLATFORM_VERS-simulator"
+            ;;
+        WatchOS)
+            SWIFT_TARGET="$TARGET_PLATFORM_ARCH-apple-watchos$TARGET_PLATFORM_VERS"
+            ;;
+        WatchSimulator)
+            SWIFT_TARGET="$TARGET_PLATFORM_ARCH-apple-watchos$TARGET_PLATFORM_VERS-simulator"
+            ;;
+        XROS)
+            SWIFT_TARGET="$TARGET_PLATFORM_ARCH-apple-xros$TARGET_PLATFORM_VERS"
+            ;;
+        XRSimulator)
+            SWIFT_TARGET="$TARGET_PLATFORM_ARCH-apple-xros$TARGET_PLATFORM_VERS-simulator"
+            ;;
+        DriverKit)
+            abort 1 'DriverKit project do NOT support building with swift'
+            ;;
+    esac
+
+    run swift build --configuration "$PROFILE" --disable-sandbox -Xswiftc -target -Xswiftc "$SWIFT_TARGET"
+
+    PACKAGE_BCACHED_DIR=".build/$PROFILE"
+
+    for item in $(cd "$PACKAGE_BCACHED_DIR" && ls -d *.product)
+    do
+        file="$PACKAGE_BCACHED_DIR/${item%.product}"
+
+        if [ -f "$file" ] ; then
+            install_bins "$file"
+        fi
+
+        if [ -f "$file.a" ] ; then
+            install_libs "$file.a"
+        fi
+
+        if [ -f "$file.dylib" ] ; then
+            install_libs "$file.dylib"
+        fi
+    done
+}
+
 cargow() {
     if [ "$CI" = true ] ; then
         run rustup default stable

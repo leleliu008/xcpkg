@@ -8,60 +8,43 @@
 
 #include "xcpkg.h"
 
-static int xcpkg_rm_rf_internal(const char * dirPath, const bool isRoot, const bool preserveRoot, const bool verbose) {
-    if (dirPath == NULL) {
-        return XCPKG_ERROR_ARG_IS_NULL;
-    }
-
-    if (dirPath[0] == '\0') {
-        return XCPKG_ERROR_ARG_IS_EMPTY;
-    }
-
-    size_t dirPathLength = strlen(dirPath);
-
+static int xcpkg_rm_rf_internal(const char * path, const bool isRoot, const bool preserveRoot, const bool verbose) {
     struct stat st;
 
-    if (lstat(dirPath, &st) != 0) {
-        // why does this happened?
-        // Suppose you have following directory structure:
-        // bin
-        // ├── gsed
-        // └── sed -> gsed
-        // if bin/gsed was removed, then bin/sed points to a non-existent file. In this case, bin/sed is known as a dangling link.
+    if (lstat(path, &st) != 0) {
+        // path may be a non-existent directory.
+        // path may be a non-existent file.
+        // path may be a dangling link.
 
         if (verbose) {
-            printf("rm %s\n", dirPath);
+            printf("rm %s\n", path);
         }
 
-        if (unlink(dirPath) == 0) {
+        if (unlink(path) == 0) {
             return XCPKG_OK;
         } else {
-            perror(dirPath);
+            perror(path);
             return XCPKG_ERROR;
         }
     }
 
     if (!S_ISDIR(st.st_mode)) {
-        if (isRoot && preserveRoot) {
+        if (verbose) {
+            printf("rm %s\n", path);
+        }
+
+        if (unlink(path) == 0) {
             return XCPKG_OK;
         } else {
-            if (verbose) {
-                printf("rm %s\n", dirPath);
-            }
-
-            if (unlink(dirPath) == 0) {
-                return XCPKG_OK;
-            } else {
-                perror(dirPath);
-                return XCPKG_ERROR;
-            }
+            perror(path);
+            return XCPKG_ERROR;
         }
     }
 
-    DIR * dir = opendir(dirPath);
+    DIR * dir = opendir(path);
 
     if (dir == NULL) {
-        perror(dirPath);
+        perror(path);
         return XCPKG_ERROR;
     }
 
@@ -76,20 +59,20 @@ static int xcpkg_rm_rf_internal(const char * dirPath, const bool isRoot, const b
 
                 if (isRoot && preserveRoot) {
                     return XCPKG_OK;
-                } else {
-                    if (verbose) {
-                        printf("rm %s\n", dirPath);
-                    }
+                }
 
-                    if (rmdir(dirPath) == 0) {
-                        return XCPKG_OK;
-                    } else {
-                        perror(dirPath);
-                        return XCPKG_ERROR;
-                    }
+                if (verbose) {
+                    printf("rm %s\n", path);
+                }
+
+                if (rmdir(path) == 0) {
+                    return XCPKG_OK;
+                } else {
+                    perror(path);
+                    return XCPKG_ERROR;
                 }
             } else {
-                perror(dirPath);
+                perror(path);
                 closedir(dir);
                 return XCPKG_ERROR;
             }
@@ -99,55 +82,32 @@ static int xcpkg_rm_rf_internal(const char * dirPath, const bool isRoot, const b
             continue;
         }
 
-        size_t filePathCapacity = dirPathLength + strlen(dir_entry->d_name) + 2U;
-        char   filePath[filePathCapacity];
+        size_t path2Capacity = strlen(path) + strlen(dir_entry->d_name) + 2U;
+        char   path2[path2Capacity];
 
-        int ret = snprintf(filePath, filePathCapacity, "%s/%s", dirPath, dir_entry->d_name);
+        int ret = snprintf(path2, path2Capacity, "%s/%s", path, dir_entry->d_name);
 
         if (ret < 0) {
             perror(NULL);
             return XCPKG_ERROR;
         }
 
-        if (lstat(filePath, &st) == 0) {
-            if (S_ISDIR(st.st_mode)) {
-                int ret = xcpkg_rm_rf_internal(filePath, false, false, verbose);
+        ret = xcpkg_rm_rf_internal(path2, false, false, verbose);
 
-                if (ret != XCPKG_OK) {
-                    return ret;
-                }
-            } else {
-                if (verbose) {
-                    printf("rm %s\n", filePath);
-                }
-
-                if (unlink(filePath) != 0) {
-                    perror(filePath);
-                    closedir(dir);
-                    return XCPKG_ERROR;
-                }
-            }
-        } else {
-            // why does this happened?
-            // Suppose you have following directory structure:
-            // bin
-            // ├── gsed
-            // └── sed -> gsed
-            // if bin/gsed was removed, then bin/sed points to a non-existent file. In this case, bin/sed is known as a dangling link.
-
-            if (verbose) {
-                printf("rm %s\n", filePath);
-            }
-
-            if (unlink(filePath) != 0) {
-                perror(filePath);
-                closedir(dir);
-                return XCPKG_ERROR;
-            }
+        if (ret != XCPKG_OK) {
+            return ret;
         }
     }
 }
 
-int xcpkg_rm_rf(const char * dirPath, const bool preserveRoot, const bool verbose) {
-    return xcpkg_rm_rf_internal(dirPath, true, preserveRoot, verbose);
+int xcpkg_rm_rf(const char * path, const bool preserveRoot, const bool verbose) {
+    if (path == NULL) {
+        return XCPKG_ERROR_ARG_IS_NULL;
+    }
+
+    if (path[0] == '\0') {
+        return XCPKG_ERROR_ARG_IS_EMPTY;
+    }
+
+    return xcpkg_rm_rf_internal(path, true, preserveRoot, verbose);
 }
