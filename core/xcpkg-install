@@ -266,8 +266,7 @@ install_etcs() {
 install_mans() {
     for item in "$@"
     do
-        unset NUMBER
-        NUMBER=$(echo "$item" | cut -c ${#item}-${#item})
+        NUMBER="${item##*.}"
         case $NUMBER in
             [1-8]);;
             *)    abort 1 "$item: not a manpage."
@@ -390,25 +389,23 @@ EOF
 
     ######################################################################
 
-    CABAL_ARGS="--jobs=$BUILD_NJOBS --max-backjumps=100000 --install-method=copy --installdir=$PACKAGE_INSTALL_DIR/bin"
-
     if [ "$VERBOSE_CABAL" = 1 ] ; then
-        CABAL_ARGS="$CABAL_ARGS -v2"
+        set -- -v2 "$@"
     fi
 
     if [ "$DEBUG_CABAL" = 1 ] ; then
-        CABAL_ARGS="$CABAL_ARGS -v3"
+        set -- -v3 "$@"
     fi
 
     if [ "$ENABLE_STRIP" = 1 ] ; then
-        CABAL_ARGS="$CABAL_ARGS --enable-executable-stripping"
+        set -- --enable-executable-stripping "$@"
     fi
 
     CABAL=$(command -v cabal) || abort 1 "command not found: cabal"
 
     run "$CABAL" --version
     run "$CABAL" update
-    run "$CABAL" v2-install "$CABAL_ARGS" "$@"
+    run "$CABAL" v2-install "--jobs=$BUILD_NJOBS" --max-backjumps=100000 --install-method=copy "--installdir=$PACKAGE_INSTALL_DIR/bin" "$@"
 }
 
 # }}}
@@ -437,8 +434,6 @@ waf() {
 # {{{ zig
 
 zig() {
-    ZIG_BUILD_EXTRA_ARGS="-j$BUILD_NJOBS"
-
     if [ "$TARGET_PLATFORM_NAME" = MacOSX ] ; then
         # https://zig.guide/build-system/cross-compilation/
         if [ $TARGET_PLATFORM_ARCH = arm64 ] ; then
@@ -447,18 +442,18 @@ zig() {
             ZIG_BUILD_TARGET=$TARGET_PLATFORM_ARCH-macos
         fi
 
-        ZIG_BUILD_EXTRA_ARGS="$ZIG_BUILD_EXTRA_ARGS -Dtarget=$ZIG_BUILD_TARGET"
+        set -- "-Dtarget=$ZIG_BUILD_TARGET" "$@"
     fi
 
     case $PROFILE in
-        release) ZIG_BUILD_EXTRA_ARGS="$ZIG_BUILD_EXTRA_ARGS --release=small" ;;
+        release) set -- --release=small "$@" ;;
     esac
 
     if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_NORMAL" ] ; then
-        ZIG_BUILD_EXTRA_ARGS="$ZIG_BUILD_EXTRA_ARGS --verbose"
+        set -- --verbose "$@"
     fi
 
-    run command zig build $ZIG_BUILD_EXTRA_ARGS --prefix "$PACKAGE_INSTALL_DIR" "$@"
+    run command zig build "-j$BUILD_NJOBS" --prefix "$PACKAGE_INSTALL_DIR" "$@"
 }
 
 configure() {
@@ -643,29 +638,23 @@ configure() {
 }
 
 gmakew() {
-    GMAKE_ARGS="-w -j$BUILD_NJOBS"
-
     if [ "$DEBUG_GMAKE" = 1 ] ; then
-        GMAKE_ARGS="$GMAKE_ARGS --debug"
+        set -- --debug "$@"
     fi
 
     if [ "$VERBOSE_GMAKE" = 1 ] ; then
-        GMAKE_ARGS="$GMAKE_ARGS V=1"
+        set -- V=1 "$@"
     fi
 
-    GMAKE="$(command -v gmake)" || abort 1 'command not found: gmake'
-
-    run "$GMAKE" "$GMAKE_ARGS" "$@"
+    run gmake -j$BUILD_NJOBS -w "$@"
 }
 
 ninjaw() {
-    NINJA="$(command -v ninja)" || abort 1 'command not found: ninja'
-
     if [ "$VERBOSE_NINJA" = 1 ] ; then
-        run "$NINJA" -j "$BUILD_NJOBS" -v "$@"
-    else
-        run "$NINJA" -j "$BUILD_NJOBS"    "$@"
+        set -- -v "$@"
     fi
+
+    run ninja -j "$BUILD_NJOBS" "$@"
 }
 
 # cmakew [2] [--targets=<comma-separated list>] [--components=<comma-separated list>] [CMAKE-OPTIONS]
@@ -1067,26 +1056,21 @@ cmake_toolchain_file='$CMAKE_TOOLCHAIN_FILE'
 EOF
     fi
 
-    MESON_SETUP_ARGS="--prefix=$PACKAGE_INSTALL_DIR --buildtype=$PROFILE --backend=ninja --pkg-config-path=$PKG_CONFIG_PATH --build.pkg-config-path=$PKG_CONFIG_PATH_FOR_BUILD --cross-file=$MESON_CROSS_FILE -Dlibdir=lib"
-
-    MESON_SETUP_ARGS="$MESON_SETUP_ARGS -Ddefault_library=both"
-
     if [ "$XCPKG_CREATE_MOSTLY_STATICALLY_LINKED_EXECUTABLE" = 1 ] ; then
-        MESON_SETUP_ARGS="$MESON_SETUP_ARGS --prefer-static"
+        set -- --prefer-static "$@"
     fi
 
     if [ "$VERBOSE_MESON" = 1 ] ; then
-        MESON_COMPILE_ARGS="$MESON_COMPILE_ARGS -v"
+        MESON_COMPILE_ARGS='-v'
+    else
+        MESON_COMPILE_ARGS=
     fi
-
-    MESON_COMPILE_ARGS="-C $PACKAGE_BCACHED_DIR -j $BUILD_NJOBS"
-    MESON_INSTALL_ARGS="-C $PACKAGE_BCACHED_DIR"
 
     MESON="$(command -v meson)" || abort 1 'command not found: meson'
 
-    run "$MESON" setup   "$MESON_SETUP_ARGS" "$@" "$PACKAGE_BCACHED_DIR" "$PACKAGE_BSCRIPT_DIR" &&
-    run "$MESON" compile "$MESON_COMPILE_ARGS" &&
-    run "$MESON" install "$MESON_INSTALL_ARGS"
+    run "$MESON" setup "--prefix=$PACKAGE_INSTALL_DIR" "--buildtype=$PROFILE" --backend=ninja "--pkg-config-path=$PKG_CONFIG_PATH" "--build.pkg-config-path=$PKG_CONFIG_PATH_FOR_BUILD" "--cross-file=$MESON_CROSS_FILE" -Dlibdir=lib -Ddefault_library=both "$@" "$PACKAGE_BCACHED_DIR" "$PACKAGE_BSCRIPT_DIR" &&
+    run "$MESON" compile -C "$PACKAGE_BCACHED_DIR" -j "$BUILD_NJOBS" "$MESON_COMPILE_ARGS" &&
+    run "$MESON" install -C "$PACKAGE_BCACHED_DIR"
 
 }
 

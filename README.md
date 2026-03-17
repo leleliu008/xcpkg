@@ -92,7 +92,7 @@ cmake --install build.d
 ```bash
 cat > xcpkg.rb <<EOF
 class Xcpkg < Formula
-    desc     "A package builder/manager for Xcode to build projects written in C, C++, Rust, Zig, Go, Haskell, etc"
+    desc     "A package builder using Xcode"
     homepage "https://github.com/leleliu008/xcpkg"
     head     "https://github.com/leleliu008/xcpkg.git", branch: "master"
     url      "https://github.com/leleliu008/xcpkg.git", revision: "302840bc853df7c64daef575781beae4378db5c9"
