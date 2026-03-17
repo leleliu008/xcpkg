@@ -941,12 +941,6 @@ EOF
 }
 
 xmakew() {
-    export CC="$XCPKG_CC"
-    export AS="$XCPKG_CC"
-    export LD="$XCPKG_CC"
-
-    XMAKE_CONFIG_OPTIONS="$*"
-
     XMAKE_CONFIG_OPTION_CLEAN=
     XMAKE_CONFIG_OPTION_MODE=
     XMAKE_CONFIG_OPTION_vD=
@@ -962,41 +956,44 @@ xmakew() {
 
     if [ "$DEBUG_XMAKE" = 1 ] ; then
         if [ -z "$XMAKE_CONFIG_OPTION_vD" ]; then
-            XMAKE_CONFIG_OPTIONS="$XMAKE_CONFIG_OPTIONS -vD"
+            set -- -vD "$@"
         fi
     else
         if [ "$VERBOSE_XMAKE" = 1 ] ; then
-            XMAKE_CONFIG_OPTIONS="$XMAKE_CONFIG_OPTIONS -v"
+            set -- -v "$@"
         fi
     fi
 
     if [ -z "$XMAKE_CONFIG_OPTION_CLEAN" ] ; then
-        XMAKE_CONFIG_OPTIONS="$XMAKE_CONFIG_OPTIONS --clean"
+        set -- --clean "$@"
     fi
 
     if [ -z "$XMAKE_CONFIG_OPTION_MODE" ] ; then
-        XMAKE_CONFIG_OPTIONS="$XMAKE_CONFIG_OPTIONS --mode=$PROFILE"
+        set -- "--mode=$PROFILE" "$@"
     fi
 
     XMAKE="$(command -v xmake)" || abort 1 'command not found: xmake'
 
     if [ "$BUILD_FOR_NATIVE" = 1 ] ; then
-        run $XMAKE config $XMAKE_CONFIG_OPTIONS --project=$PACKAGE_BSCRIPT_DIR --buildir=$PACKAGE_BCACHED_DIR &&
-        run $XMAKE --jobs=$BUILD_NJOBS &&
+        run $XMAKE config "--project=$PACKAGE_BSCRIPT_DIR" "--buildir=$PACKAGE_BCACHED_DIR" "$@" &&
+        run $XMAKE build "--jobs=$BUILD_NJOBS" &&
         run $XMAKE install -o "$PACKAGE_INSTALL_DIR"
     else
         unset XMAKE_PLATFORM
         XMAKE_PLATFORM="$(printf '%s\n' "$TARGET_PLATFORM_NAME" | tr 'A-Z' 'a-z' | sed 's|simulator|os|')"
-        XMAKE_CONFIG_OPTIONS="$XMAKE_CONFIG_OPTIONS --plat=$XMAKE_PLATFORM"
 
         case $TARGET_PLATFORM_NAME in
-            *Simulator) XMAKE_CONFIG_OPTIONS="$XMAKE_CONFIG_OPTIONS --appledev=simulator"
+            *Simulator) set -- --appledev=simulator "$@"
         esac
 
-        XMAKE_CONFIG_OPTIONS="$XMAKE_CONFIG_OPTIONS --arch=$TARGET_PLATFORM_ARCH --buildir=$PACKAGE_BCACHED_DIR"
+        if [ "$VERBOSE_XMAKE" = 1 ] ; then
+            XMAKE_BUILD_ARGS='-v'
+        else
+            XMAKE_BUILD_ARGS=
+        fi
 
-        run $XMAKE config $XMAKE_CONFIG_OPTIONS &&
-        run $XMAKE --jobs=$BUILD_NJOBS &&
+        run $XMAKE config "--as=$CC" "--ld=$CC" "--cc=$CC" "--cxx=$CXX" "--cflags='$CFLAGS $CPPFLAGS'" "--cxxflags='$CXXFLAGS $CPPFLAGS'" "--ldflags='$LDFLAGS'" "--shflags='$LDFLAGS'" "--builddir=$PACKAGE_BCACHED_DIR" "--arch=$TARGET_PLATFORM_ARCH" "--plat=$XMAKE_PLATFORM" "--target_minver=$TARGET_PLATFORM_VERS" "$@" &&
+        run $XMAKE build "--jobs=$BUILD_NJOBS" "$XMAKE_BUILD_ARGS" &&
         run $XMAKE install -o "$PACKAGE_INSTALL_DIR"
     fi
 }
