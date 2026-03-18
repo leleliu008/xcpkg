@@ -4209,7 +4209,11 @@ static int xcpkg_install_package(
     }
 
     if (installOptions->profile == XCPKGBuildProfile_release) {
-        str_buf_append(extraLDFlags, &extraLDFlagsLength, "-Wl,-S -flto");
+        str_buf_append(extraLDFlags, &extraLDFlagsLength, "-Wl,-S");
+    }
+
+    if (formula->ltoable) {
+        str_buf_append(extraLDFlags, &extraLDFlagsLength, "-flto");
     }
 
     //////////////////////////////////////////////////////////////////////////////
