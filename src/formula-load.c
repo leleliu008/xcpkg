@@ -1,5 +1,6 @@
 #include <errno.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include <limits.h>
@@ -953,6 +954,71 @@ static inline int xcpkg_formula_check(XCPKGFormula * formula, const char * formu
     if (formula->summary == NULL) {
         fprintf(stderr, "scheme error in formula file: %s : summary mapping not found.\n", formulaFilePath);
         return XCPKG_ERROR_FORMULA_SCHEME;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    if (formula->web_url == NULL || formula->git_url == NULL) {
+        if (formula->src_url != NULL) {
+            if (strncmp(formula->src_url, "https://ftp.gnu.org/gnu/", 24) == 0) {
+                char * p = formula->src_url + 24;
+
+                for (size_t i = 0U; ; i++) {
+                    if (p[i] == '\0') {
+                        fprintf(stderr, "scheme error in formula file: %s : src-url: %s seems not right.\n", formulaFilePath, formula->src_url);
+                        return XCPKG_ERROR_FORMULA_SCHEME;
+                    }
+
+                    if (p[i] == '/') {
+                        p[i] = '\0';
+
+                        if (formula->web_url == NULL) {
+                            size_t cap = 30 + i;
+
+                            char * webUrl = (char*)malloc(cap);
+
+                            if (webUrl == NULL) {
+                                return XCPKG_ERROR_MEMORY_ALLOCATE;
+                            }
+
+                            int ret = snprintf(webUrl, cap, "https://www.gnu.org/software/%s", p);
+
+                            if (ret < 0) {
+                                perror(NULL);
+                                return XCPKG_ERROR;
+                            }
+
+                            formula->web_url = webUrl;
+                            formula->web_url_is_calculated = true;
+                        }
+
+                        if (formula->git_url == NULL) {
+                            size_t cap = 38 + i;
+
+                            char * gitUrl = (char*)malloc(cap);
+
+                            if (gitUrl == NULL) {
+                                return XCPKG_ERROR_MEMORY_ALLOCATE;
+                            }
+
+                            int ret = snprintf(gitUrl, cap, "https://git.savannah.gnu.org/git/%s.git", p);
+
+                            if (ret < 0) {
+                                perror(NULL);
+                                return XCPKG_ERROR;
+                            }
+
+                            formula->git_url = gitUrl;
+                            formula->git_url_is_calculated = true;
+                        }
+
+                        p[i] = '/';
+
+                        break;
+                    }
+                }
+            }
+        }
     }
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////
