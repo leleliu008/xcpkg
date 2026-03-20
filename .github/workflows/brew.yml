@@ -94,15 +94,15 @@ jobs:
       - run: xcpkg search lib
       - run: xcpkg search zip
 
-      - run: xcpkg info-available libzip
-      - run: xcpkg info-available libzip --yaml
-      - run: xcpkg info-available libzip --json
-      - run: xcpkg info-available libzip summary
-      - run: xcpkg info-available libzip version
-      - run: xcpkg info-available libzip license
-      - run: xcpkg info-available libzip web-url
-      - run: xcpkg info-available libzip src-url
-      - run: xcpkg info-available libzip src-sha
+      - run: xcpkg info libzip
+      - run: xcpkg info libzip --yaml
+      - run: xcpkg info libzip --json
+      - run: xcpkg info libzip summary
+      - run: xcpkg info libzip version
+      - run: xcpkg info libzip license
+      - run: xcpkg info libzip web-url
+      - run: xcpkg info libzip src-url
+      - run: xcpkg info libzip src-sha
 
       - run: xcpkg depends libzip
       - run: xcpkg depends libzip -t dot
@@ -115,14 +115,14 @@ jobs:
 
       - run: xcpkg tree libzip
 
-      - run: xcpkg info-installed libzip --prefix
-      - run: xcpkg info-installed libzip --files
-      - run: xcpkg info-installed libzip --json
-      - run: xcpkg info-installed libzip --yaml
-      - run: xcpkg info-installed libzip builtat
-      - run: xcpkg info-installed libzip builtat-iso-8601
-      - run: xcpkg info-installed libzip builtat-rfc-3339
-      - run: xcpkg info-installed libzip version
+      - run: xcpkg show libzip --prefix
+      - run: xcpkg show libzip --files
+      - run: xcpkg show libzip --json
+      - run: xcpkg show libzip --yaml
+      - run: xcpkg show libzip builtat
+      - run: xcpkg show libzip builtat-iso-8601
+      - run: xcpkg show libzip builtat-rfc-3339
+      - run: xcpkg show libzip version
 
       - run: xcpkg bundle libzip .tar.gz
       - run: xcpkg bundle libzip .tar.lz
@@ -242,15 +242,15 @@ jobs:
       - run: xcpkg search lib
       - run: xcpkg search zip
 
-      - run: xcpkg info-available libzip
-      - run: xcpkg info-available libzip --yaml
-      - run: xcpkg info-available libzip --json
-      - run: xcpkg info-available libzip summary
-      - run: xcpkg info-available libzip version
-      - run: xcpkg info-available libzip license
-      - run: xcpkg info-available libzip web-url
-      - run: xcpkg info-available libzip src-url
-      - run: xcpkg info-available libzip src-sha
+      - run: xcpkg info libzip
+      - run: xcpkg info libzip --yaml
+      - run: xcpkg info libzip --json
+      - run: xcpkg info libzip summary
+      - run: xcpkg info libzip version
+      - run: xcpkg info libzip license
+      - run: xcpkg info libzip web-url
+      - run: xcpkg info libzip src-url
+      - run: xcpkg info libzip src-sha
 
       - run: xcpkg depends libzip
       - run: xcpkg depends libzip -t d2
@@ -276,14 +276,14 @@ jobs:
 
       - run: xcpkg tree libzip
 
-      - run: xcpkg info-installed libzip --prefix
-      - run: xcpkg info-installed libzip --files
-      - run: xcpkg info-installed libzip --json
-      - run: xcpkg info-installed libzip --yaml
-      - run: xcpkg info-installed libzip builtat
-      - run: xcpkg info-installed libzip builtat-iso-8601
-      - run: xcpkg info-installed libzip builtat-rfc-3339
-      - run: xcpkg info-installed libzip version
+      - run: xcpkg show libzip --prefix
+      - run: xcpkg show libzip --files
+      - run: xcpkg show libzip --json
+      - run: xcpkg show libzip --yaml
+      - run: xcpkg show libzip builtat
+      - run: xcpkg show libzip builtat-iso-8601
+      - run: xcpkg show libzip builtat-rfc-3339
+      - run: xcpkg show libzip version
 
       - run: xcpkg bundle libzip .tar.gz
       - run: xcpkg bundle libzip .tar.lz

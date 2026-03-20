@@ -102,10 +102,10 @@
     search all available packages whose name matches the given regular expression pattern.
 
 
-[0;32mxcpkg info-available <PACKAGE-NAME> [--json | --yaml | <KEY>][0m
+[0;32mxcpkg info <PACKAGE-NAME> [--json | --yaml | <KEY>][0m
     show information of the given available package.
 
-[0;32mxcpkg info-installed <PACKAGE-SPEC> [--json | --yaml | <KEY>][0m
+[0;32mxcpkg show <PACKAGE-SPEC> [--json | --yaml | <KEY>][0m
     show information of the given installed package.
 
 

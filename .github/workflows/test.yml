@@ -97,18 +97,18 @@ jobs:
       - run: xcpkg search libarchive
 
 
-      - run: xcpkg info-available libarchive
-      - run: xcpkg info-available libarchive --yaml
-      - run: xcpkg info-available libarchive --json
-      - run: xcpkg info-available libarchive version
-      - run: xcpkg info-available libarchive license
-      - run: xcpkg info-available libarchive summary
-      - run: xcpkg info-available libarchive web-url
-      - run: xcpkg info-available libarchive git-url
-      - run: xcpkg info-available libarchive git-sha
-      - run: xcpkg info-available libarchive git-ref
-      - run: xcpkg info-available libarchive src-url
-      - run: xcpkg info-available libarchive src-sha
+      - run: xcpkg info libarchive
+      - run: xcpkg info libarchive --yaml
+      - run: xcpkg info libarchive --json
+      - run: xcpkg info libarchive version
+      - run: xcpkg info libarchive license
+      - run: xcpkg info libarchive summary
+      - run: xcpkg info libarchive web-url
+      - run: xcpkg info libarchive git-url
+      - run: xcpkg info libarchive git-sha
+      - run: xcpkg info libarchive git-ref
+      - run: xcpkg info libarchive src-url
+      - run: xcpkg info libarchive src-sha
 
 
       - run: xcpkg depends libarchive
@@ -122,25 +122,25 @@ jobs:
       - run: xcpkg install ${{ matrix.target-platform }}/libarchive
 
 
-      - run: xcpkg info-installed ${{ matrix.target-platform }}/libarchive
-      - run: xcpkg info-installed ${{ matrix.target-platform }}/libarchive --yaml
-      - run: xcpkg info-installed ${{ matrix.target-platform }}/libarchive --json
-      - run: xcpkg info-installed ${{ matrix.target-platform }}/libarchive version
-      - run: xcpkg info-installed ${{ matrix.target-platform }}/libarchive license
-      - run: xcpkg info-installed ${{ matrix.target-platform }}/libarchive summary
-      - run: xcpkg info-installed ${{ matrix.target-platform }}/libarchive web-url
-      - run: xcpkg info-installed ${{ matrix.target-platform }}/libarchive git-url
-      - run: xcpkg info-installed ${{ matrix.target-platform }}/libarchive git-sha
-      - run: xcpkg info-installed ${{ matrix.target-platform }}/libarchive git-ref
-      - run: xcpkg info-installed ${{ matrix.target-platform }}/libarchive src-url
-      - run: xcpkg info-installed ${{ matrix.target-platform }}/libarchive src-sha
-      - run: xcpkg info-installed ${{ matrix.target-platform }}/libarchive builtat
-      - run: xcpkg info-installed ${{ matrix.target-platform }}/libarchive builtat-iso-8601
-      - run: xcpkg info-installed ${{ matrix.target-platform }}/libarchive builtat-rfc-3339
-      - run: xcpkg info-installed ${{ matrix.target-platform }}/libarchive builtat-iso-8601-utc
-      - run: xcpkg info-installed ${{ matrix.target-platform }}/libarchive builtat-rfc-3339-utc
-      - run: xcpkg info-installed ${{ matrix.target-platform }}/libarchive --prefix
-      - run: xcpkg info-installed ${{ matrix.target-platform }}/libarchive --files
+      - run: xcpkg show ${{ matrix.target-platform }}/libarchive
+      - run: xcpkg show ${{ matrix.target-platform }}/libarchive --yaml
+      - run: xcpkg show ${{ matrix.target-platform }}/libarchive --json
+      - run: xcpkg show ${{ matrix.target-platform }}/libarchive version
+      - run: xcpkg show ${{ matrix.target-platform }}/libarchive license
+      - run: xcpkg show ${{ matrix.target-platform }}/libarchive summary
+      - run: xcpkg show ${{ matrix.target-platform }}/libarchive web-url
+      - run: xcpkg show ${{ matrix.target-platform }}/libarchive git-url
+      - run: xcpkg show ${{ matrix.target-platform }}/libarchive git-sha
+      - run: xcpkg show ${{ matrix.target-platform }}/libarchive git-ref
+      - run: xcpkg show ${{ matrix.target-platform }}/libarchive src-url
+      - run: xcpkg show ${{ matrix.target-platform }}/libarchive src-sha
+      - run: xcpkg show ${{ matrix.target-platform }}/libarchive builtat
+      - run: xcpkg show ${{ matrix.target-platform }}/libarchive builtat-iso-8601
+      - run: xcpkg show ${{ matrix.target-platform }}/libarchive builtat-rfc-3339
+      - run: xcpkg show ${{ matrix.target-platform }}/libarchive builtat-iso-8601-utc
+      - run: xcpkg show ${{ matrix.target-platform }}/libarchive builtat-rfc-3339-utc
+      - run: xcpkg show ${{ matrix.target-platform }}/libarchive --prefix
+      - run: xcpkg show ${{ matrix.target-platform }}/libarchive --files
 
 
       - run: xcpkg tree ${{ matrix.target-platform }}/libarchive

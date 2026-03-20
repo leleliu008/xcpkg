@@ -204,42 +204,42 @@ You are allowed to change this by setting `XCPKG_HOME` envionment variable.
 - **show information of the given available package**
 
     ```bash
-    xcpkg info-available curl
-    xcpkg info-available curl --yaml
-    xcpkg info-available curl --json
-    xcpkg info-available curl version
-    xcpkg info-available curl license
-    xcpkg info-available curl summary
-    xcpkg info-available curl web-url
-    xcpkg info-available curl git-url
-    xcpkg info-available curl git-sha
-    xcpkg info-available curl git-ref
-    xcpkg info-available curl src-url
-    xcpkg info-available curl src-sha
+    xcpkg info curl
+    xcpkg info curl --yaml
+    xcpkg info curl --json
+    xcpkg info curl version
+    xcpkg info curl license
+    xcpkg info curl summary
+    xcpkg info curl web-url
+    xcpkg info curl git-url
+    xcpkg info curl git-sha
+    xcpkg info curl git-ref
+    xcpkg info curl src-url
+    xcpkg info curl src-sha
     ```
 
 - **show information of the given installed package**
 
     ```bash
-    xcpkg info-installed iPhoneOS-12.0-arm64/curl
-    xcpkg info-installed iPhoneOS-12.0-arm64/curl --prefix
-    xcpkg info-installed iPhoneOS-12.0-arm64/curl --files
-    xcpkg info-installed iPhoneOS-12.0-arm64/curl --yaml
-    xcpkg info-installed iPhoneOS-12.0-arm64/curl --json
-    xcpkg info-installed iPhoneOS-12.0-arm64/curl version
-    xcpkg info-installed iPhoneOS-12.0-arm64/curl license
-    xcpkg info-installed iPhoneOS-12.0-arm64/curl summary
-    xcpkg info-installed iPhoneOS-12.0-arm64/curl web-url
-    xcpkg info-installed iPhoneOS-12.0-arm64/curl git-url
-    xcpkg info-installed iPhoneOS-12.0-arm64/curl git-sha
-    xcpkg info-installed iPhoneOS-12.0-arm64/curl git-ref
-    xcpkg info-installed iPhoneOS-12.0-arm64/curl src-url
-    xcpkg info-installed iPhoneOS-12.0-arm64/curl src-sha
-    xcpkg info-installed iPhoneOS-12.0-arm64/curl builtat
-    xcpkg info-installed iPhoneOS-12.0-arm64/curl builtat-iso-8601
-    xcpkg info-installed iPhoneOS-12.0-arm64/curl builtat-rfc-3339
-    xcpkg info-installed iPhoneOS-12.0-arm64/curl builtat-iso-8601-utc
-    xcpkg info-installed iPhoneOS-12.0-arm64/curl builtat-rfc-3339-utc
+    xcpkg show iPhoneOS-12.0-arm64/curl
+    xcpkg show iPhoneOS-12.0-arm64/curl --prefix
+    xcpkg show iPhoneOS-12.0-arm64/curl --files
+    xcpkg show iPhoneOS-12.0-arm64/curl --yaml
+    xcpkg show iPhoneOS-12.0-arm64/curl --json
+    xcpkg show iPhoneOS-12.0-arm64/curl version
+    xcpkg show iPhoneOS-12.0-arm64/curl license
+    xcpkg show iPhoneOS-12.0-arm64/curl summary
+    xcpkg show iPhoneOS-12.0-arm64/curl web-url
+    xcpkg show iPhoneOS-12.0-arm64/curl git-url
+    xcpkg show iPhoneOS-12.0-arm64/curl git-sha
+    xcpkg show iPhoneOS-12.0-arm64/curl git-ref
+    xcpkg show iPhoneOS-12.0-arm64/curl src-url
+    xcpkg show iPhoneOS-12.0-arm64/curl src-sha
+    xcpkg show iPhoneOS-12.0-arm64/curl builtat
+    xcpkg show iPhoneOS-12.0-arm64/curl builtat-iso-8601
+    xcpkg show iPhoneOS-12.0-arm64/curl builtat-rfc-3339
+    xcpkg show iPhoneOS-12.0-arm64/curl builtat-iso-8601-utc
+    xcpkg show iPhoneOS-12.0-arm64/curl builtat-rfc-3339-utc
     ```
 
 - **show packages that are depended by the given package**

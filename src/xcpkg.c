@@ -184,13 +184,13 @@ static inline int xcpkg_action_info_available(int argc, char* argv[]) {
     int ret = xcpkg_available_info(argv[2], targetPlatformName, argv[3]);
 
     if (ret == XCPKG_ERROR_ARG_IS_NULL) {
-        fprintf(stderr, "Usage: %s info-available <PACKAGE-NAME> [KEY], <PACKAGE-NAME> is not given.\n", argv[0]);
+        fprintf(stderr, "Usage: %s info <PACKAGE-NAME> [KEY], <PACKAGE-NAME> is not given.\n", argv[0]);
     } else if (ret == XCPKG_ERROR_ARG_IS_EMPTY) {
-        fprintf(stderr, "Usage: %s info-available <PACKAGE-NAME> [KEY], <PACKAGE-NAME> is empty string.\n", argv[0]);
+        fprintf(stderr, "Usage: %s info <PACKAGE-NAME> [KEY], <PACKAGE-NAME> is empty string.\n", argv[0]);
     } else if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_INVALID) {
-        fprintf(stderr, "Usage: %s info-available <PACKAGE-NAME> [KEY], <PACKAGE-NAME> does not match pattern %s\n", argv[0], XCPKG_PACKAGE_NAME_PATTERN);
+        fprintf(stderr, "Usage: %s info <PACKAGE-NAME> [KEY], <PACKAGE-NAME> does not match pattern %s\n", argv[0], XCPKG_PACKAGE_NAME_PATTERN);
     } else if (ret == XCPKG_ERROR_ARG_IS_UNKNOWN) {
-        fprintf(stderr, "Usage: %s info-available <PACKAGE-NAME> [KEY], unknown KEY: %s\n", argv[0], argv[3]);
+        fprintf(stderr, "Usage: %s info <PACKAGE-NAME> [KEY], unknown KEY: %s\n", argv[0], argv[3]);
     } else if (ret == XCPKG_ERROR_PACKAGE_NOT_AVAILABLE) {
         fprintf(stderr, "package '%s' is not available for target '%s'\n", argv[2], targetPlatformName);
     } else if (ret == XCPKG_ERROR_PACKAGE_NOT_INSTALLED) {
@@ -216,13 +216,13 @@ static inline int xcpkg_action_info_installed(int argc, char* argv[]) {
     int ret = xcpkg_inspect_package(argv[2], NULL, &packageName, &platformSpec, buf);
 
     if (ret == XCPKG_ERROR_ARG_IS_NULL) {
-        fprintf(stderr, "Usage: %s info-installed <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <PACKAGE-NAME|PACKAGE-SPEC> is not given.\n", argv[0]);
+        fprintf(stderr, "Usage: %s show <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <PACKAGE-NAME|PACKAGE-SPEC> is not given.\n", argv[0]);
     } else if (ret == XCPKG_ERROR_ARG_IS_EMPTY) {
-        fprintf(stderr, "Usage: %s info-installed <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <PACKAGE-NAME|PACKAGE-SPEC> is empty string.\n", argv[0]);
+        fprintf(stderr, "Usage: %s show <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <PACKAGE-NAME|PACKAGE-SPEC> is empty string.\n", argv[0]);
     } else if (ret == XCPKG_ERROR_PACKAGE_NAME_IS_INVALID) {
-        fprintf(stderr, "Usage: %s info-installed <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <PACKAGE-NAME|PACKAGE-SPEC> does not match pattern %s\n", argv[0], XCPKG_PACKAGE_NAME_PATTERN);
+        fprintf(stderr, "Usage: %s show <PACKAGE-NAME|PACKAGE-SPEC> [KEY], <PACKAGE-NAME|PACKAGE-SPEC> does not match pattern %s\n", argv[0], XCPKG_PACKAGE_NAME_PATTERN);
     } else if (ret == XCPKG_ERROR_PLATFORM_SPEC_IS_INVALID) {
-        fprintf(stderr, "Usage: %s info-installed <PACKAGE-SPEC> [KEY], <TARGET-SPEC> does not match pattern A-B-C\n", argv[0]);
+        fprintf(stderr, "Usage: %s show <PACKAGE-SPEC> [KEY], <TARGET-SPEC> does not match pattern A-B-C\n", argv[0]);
     }
 
     if (platformSpec == NULL) {
@@ -236,7 +236,7 @@ static inline int xcpkg_action_info_installed(int argc, char* argv[]) {
     } else if (ret == XCPKG_ERROR_PACKAGE_NOT_INSTALLED) {
         fprintf(stderr, "package '%s' is not installed.\n", argv[2]);
     } else if (ret == XCPKG_ERROR_ARG_IS_UNKNOWN) {
-        fprintf(stderr, "Usage: %s info-installed <PACKAGE-NAME> [KEY], unknown KEY: %s\n", argv[0], argv[3]);
+        fprintf(stderr, "Usage: %s show <PACKAGE-NAME> [KEY], unknown KEY: %s\n", argv[0], argv[3]);
     } else if (ret == XCPKG_ERROR_ENV_HOME_NOT_SET) {
         fprintf(stderr, "%s\n", "HOME environment variable is not set.\n");
     } else if (ret == XCPKG_ERROR_ENV_PATH_NOT_SET) {
@@ -1897,11 +1897,11 @@ int xcpkg_main(int argc, char* argv[]) {
         return xcpkg_action_search(argc, argv);
     }
 
-    if (strcmp(argv[1], "info-available") == 0) {
+    if (strcmp(argv[1], "info") == 0) {
         return xcpkg_action_info_available(argc, argv);
     }
 
-    if (strcmp(argv[1], "info-installed") == 0) {
+    if (strcmp(argv[1], "show") == 0) {
         return xcpkg_action_info_installed(argc, argv);
     }
 

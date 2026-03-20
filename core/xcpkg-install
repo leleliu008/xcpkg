@@ -1119,6 +1119,7 @@ swiftw() {
         set -- -v "$@"
     fi
 
+    run swift --version
     run swift build --configuration "$PROFILE" --disable-sandbox -Xswiftc -target -Xswiftc "$SWIFT_TARGET" -j "$BUILD_NJOBS" "$@"
 
     PACKAGE_BCACHED_DIR=".build/$PROFILE"
