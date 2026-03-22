@@ -230,6 +230,7 @@ typedef struct {
     bool pkgtype_is_calculated;
     bool web_url_is_calculated;
     bool git_url_is_calculated;
+    bool git_uri_is_calculated;
     bool version_is_calculated;
     bool bsystem_is_calculated;
     bool binbstd_is_calculated;

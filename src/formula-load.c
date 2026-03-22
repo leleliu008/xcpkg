@@ -1017,7 +1017,65 @@ static inline int xcpkg_formula_check(XCPKGFormula * formula, const char * formu
                         break;
                     }
                 }
+            } else if (strncmp(formula->src_url, "https://download.gnome.org/sources/", 35) == 0) {
+                char * p = formula->src_url + 35;
+
+                for (size_t i = 0U; ; i++) {
+                    if (p[i] == '\0') {
+                        fprintf(stderr, "scheme error in formula file: %s : src-url: %s seems not right.\n", formulaFilePath, formula->src_url);
+                        return XCPKG_ERROR_FORMULA_SCHEME;
+                    }
+
+                    if (p[i] == '/') {
+                        p[i] = '\0';
+
+                        if (formula->git_url == NULL) {
+                            size_t cap = 32 + i;
+
+                            char * gitUrl = (char*)malloc(cap);
+
+                            if (gitUrl == NULL) {
+                                return XCPKG_ERROR_MEMORY_ALLOCATE;
+                            }
+
+                            int ret = snprintf(gitUrl, cap, "https://gitlab.gnome.org/GNOME/%s", p);
+
+                            if (ret < 0) {
+                                perror(NULL);
+                                return XCPKG_ERROR;
+                            }
+
+                            formula->git_url = gitUrl;
+                            formula->git_url_is_calculated = true;
+                        }
+
+                        if (formula->git_uri == NULL) {
+                            size_t cap = 26 + i;
+
+                            char * gitUrl = (char*)malloc(cap);
+
+                            if (gitUrl == NULL) {
+                                return XCPKG_ERROR_MEMORY_ALLOCATE;
+                            }
+
+                            int ret = snprintf(gitUrl, cap, "https://github.com/GNOME/%s", p);
+
+                            if (ret < 0) {
+                                perror(NULL);
+                                return XCPKG_ERROR;
+                            }
+
+                            formula->git_uri = gitUrl;
+                            formula->git_uri_is_calculated = true;
+                        }
+
+                        p[i] = '/';
+
+                        break;
+                    }
+                }
             }
+
         }
     }
 
