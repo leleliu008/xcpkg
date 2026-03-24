@@ -4832,6 +4832,7 @@ static int xcpkg_install_package(
     if (chdir (packageInstalledDIR) != 0) {
         perror(packageInstalledDIR);
 
+        puts("===========>>>>");
         if (errno == ENOENT) {
             fprintf(stderr, "nothing was installed.\n");
         }
