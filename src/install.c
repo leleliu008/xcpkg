@@ -4827,12 +4827,12 @@ static int xcpkg_install_package(
         return ret;
     }
 
+    puts("===========>>>>1");
     //////////////////////////////////////////////////////////////////////////////
 
     if (chdir (packageInstalledDIR) != 0) {
         perror(packageInstalledDIR);
 
-        puts("===========>>>>");
         if (errno == ENOENT) {
             fprintf(stderr, "nothing was installed.\n");
         }
@@ -4906,6 +4906,7 @@ static int xcpkg_install_package(
         }
     }
 
+    puts("===========>>>>2");
     //////////////////////////////////////////////////////////////////////////////
 
     const char* arr1[12] = { "AUTHORS", "LICENSE", "COPYING", "FAQ", "TODO", "NEWS", "THANKS", "CHANGELOG", "CHANGES", "README", "CONTRIBUTORS", "CONTRIBUTING" };
