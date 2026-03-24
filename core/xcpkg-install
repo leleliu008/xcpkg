@@ -1019,15 +1019,9 @@ mesonw() {
             ;;
     esac
 
-    MESON_CROSS_FILE="$PACKAGE_WORKING_DIR/cross-file"
+    MESON_CONFIG_FILE="$PACKAGE_WORKING_DIR/config.ini"
 
-    cat > "$MESON_CROSS_FILE" <<EOF
-[host_machine]
-system = 'darwin'
-endian = 'little'
-cpu_family = '$HOST_MACHINE_CPU_FAMILY'
-cpu = '$HOST_MACHINE_CPU_NAME'
-
+    cat > "$MESON_CONFIG_FILE" <<EOF
 [binaries]
 c = '$CC'
 cpp = '$CXX'
@@ -1048,9 +1042,22 @@ sys_root = ''
 EOF
 
     if [ "$PACKAGE_USE_BSYSTEM_CMAKE" = 1 ] ; then
-        cat >> "$MESON_CROSS_FILE" <<EOF
+        cat >> "$MESON_CONFIG_FILE" <<EOF
 cmake_toolchain_file='$CMAKE_TOOLCHAIN_FILE'
 EOF
+    fi
+
+    if [ "$CROSS_COMPILING" = 1 ] ; then
+        cat >> "$MESON_CONFIG_FILE" <<EOF
+[host_machine]
+system = 'darwin'
+endian = 'little'
+cpu_family = '$HOST_MACHINE_CPU_FAMILY'
+cpu = '$HOST_MACHINE_CPU_NAME'
+EOF
+        set -- "--cross-file=$MESON_CONFIG_FILE" "$@"
+    else
+        set -- "--native-file=$MESON_CONFIG_FILE" "$@"
     fi
 
     if [ "$XCPKG_CREATE_MOSTLY_STATICALLY_LINKED_EXECUTABLE" = 1 ] ; then
@@ -1065,7 +1072,7 @@ EOF
 
     MESON="$(command -v meson)" || abort 1 'command not found: meson'
 
-    run "$MESON" setup "--prefix=$PACKAGE_INSTALL_DIR" "--buildtype=$PROFILE" --backend=ninja "--pkg-config-path=$PKG_CONFIG_PATH" "--build.pkg-config-path=$PKG_CONFIG_PATH_FOR_BUILD" "--cross-file=$MESON_CROSS_FILE" -Dlibdir=lib -Ddefault_library=both "$@" "$PACKAGE_BCACHED_DIR" "$PACKAGE_BSCRIPT_DIR" &&
+    run "$MESON" setup "--prefix=$PACKAGE_INSTALL_DIR" "--buildtype=$PROFILE" --backend=ninja "--pkg-config-path=$PKG_CONFIG_PATH" "--build.pkg-config-path=$PKG_CONFIG_PATH_FOR_BUILD" -Dlibdir=lib -Ddefault_library=both "$@" "$PACKAGE_BCACHED_DIR" "$PACKAGE_BSCRIPT_DIR" &&
     run "$MESON" compile -C "$PACKAGE_BCACHED_DIR" -j "$BUILD_NJOBS" "$MESON_COMPILE_ARGS" &&
     run "$MESON" install -C "$PACKAGE_BCACHED_DIR"
 
@@ -1379,51 +1386,20 @@ gow() {
 }
 
 __install_for_target() {
-    step "dopatch for target"
+    [ "$PACKAGE_DOPATCH" = 1 ] && {
+        step "dopatch for target"
 
-    if [ "$PWD" != "$PACKAGE_BSCRIPT_DIR" ] ; then
-        run     cd "$PACKAGE_BSCRIPT_DIR"
-    fi
+        if [ "$PWD" != "$PACKAGE_BSCRIPT_DIR" ] ; then
+            run     cd "$PACKAGE_BSCRIPT_DIR"
+        fi
 
-    if [ -n "$PACKAGE_FIX_URL" ] ; then
-        case $PACKAGE_FIX_EXT in
-            .diff|.patch)
-                PACKAGE_FIX_FILENAME="$PACKAGE_FIX_SHA$PACKAGE_FIX_EXT"
-                PACKAGE_FIX_FILEPATH="$PACKAGE_WORKING_DIR/fix/$PACKAGE_FIX_FILENAME"
-
-                if [ -f "$PACKAGE_FIX_FILEPATH" ] ; then
-                    [ -z "$PACKAGE_FIX_OPT" ] && PACKAGE_FIX_OPT='-p1'
-                    run "patch $PACKAGE_FIX_OPT < $PACKAGE_FIX_FILEPATH"
-                fi
-        esac
-    fi
-
-    PACKAGE_FIX_INDEX="$PACKAGE_WORKING_DIR/fix/index"
-
-    if [ -f "$PACKAGE_FIX_INDEX" ] ; then
-        while read -r LINE
-        do
-            FILENAME="${LINE%|*}"
-            FILEPATH="$PACKAGE_WORKING_DIR/fix/$FILENAME"
-            OPTIONS="${LINE#*|}"
-            [ -z "$OPTIONS" ] && OPTIONS='-p1'
-            run "patch $OPTIONS < $FILEPATH"
-        done < "$PACKAGE_FIX_INDEX"
-    fi
-
-    [ "$PACKAGE_DOPATCH" = 1 ] && dopatch
+        dopatch
+    }
 
     #########################################################################################
 
     if [ "$PWD" != "$PACKAGE_BSCRIPT_DIR" ] ; then
         run     cd "$PACKAGE_BSCRIPT_DIR"
-    fi
-
-    #########################################################################################
-
-    # https://github.com/golang/go/issues/65568
-    if [ -f go.mod ] ; then
-        gsed -i 's|^go 1.22$|go 1.22.0|' go.mod
     fi
 
     #########################################################################################

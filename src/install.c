@@ -11,6 +11,7 @@
 #include <dirent.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
+#include <sys/mman.h>
 
 #include "core/printenv.h"
 #include "core/sysinfo.h"
@@ -509,6 +510,132 @@ static int setup_rust_toolchain(const XCPKGInstallOptions * installOptions, cons
     }
 
     return XCPKG_OK;
+}
+
+static int apply_fixlist(const char * packageWorkingTopDIR, const size_t packageWorkingTopDIRCapacity) {
+    char pathBuf[75 + packageWorkingTopDIRCapacity];
+
+    char * s = pathBuf;
+
+    for (size_t i = 0U; ; i++) {
+        s[i] = packageWorkingTopDIR[i];
+
+        if (s[i] == '\0') {
+            s[i] = '/';
+            s += i + 1;
+            break;
+        }
+    }
+
+    strncpy(s, "fix/", 4);
+
+    char * q = s + 4;
+
+    /////////////////////////////////////////////////
+
+    size_t cap = packageWorkingTopDIRCapacity + 10U;
+
+    char fp[cap];
+
+    int ret = snprintf(fp, cap, "%s/fix/index", packageWorkingTopDIR);
+
+    if (ret < 0) {
+        perror(NULL);
+        return XCPKG_ERROR;
+    }
+
+    int fd = open(fp, O_RDWR);
+
+    if (fd == -1) {
+        if (errno == ENOENT) {
+            return XCPKG_OK;
+        } else {
+            perror(fp);
+            return XCPKG_ERROR;
+        }
+    }
+
+    struct stat st;
+
+    if (fstat(fd, &st) == -1) {
+        perror(fp);
+        close(fd);
+        return XCPKG_ERROR;
+    }
+
+    if (st.st_size == 0) {
+        fprintf(stderr, "empty file: %s\n", fp);
+        close(fd);
+        return XCPKG_ERROR;
+    }
+
+    char * data = mmap(NULL, st.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+
+    if (data == MAP_FAILED) {
+        perror(fp);
+        close(fd);
+        return XCPKG_ERROR;
+    }
+
+    char * p = data;
+    char * a = NULL;
+    char * b = NULL;
+
+loop:
+    if (p[0] == '\0') goto finally;
+
+    a = p;
+
+    for (size_t i = 0U; ; i++) {
+        if (p[i] == '\0') {
+            fprintf(stderr, "patches index file is broken: %s.\n", fp);
+            ret = XCPKG_ERROR;
+            goto finally;
+        }
+
+        if (p[i] == '|') {
+            p[i] = '\0';
+            p += i + 1;
+            break;
+        }
+    }
+
+    ////////////////////////////////////
+
+    b = p;
+
+    for (size_t i = 0U; ; i++) {
+        if (p[i] == '\n') {
+            p[i] = '\0';
+            p += i + 1;
+            break;
+        }
+        if (p[i] == '\0') {
+            p += i;
+            break;
+        }
+    }
+
+    ////////////////////////////////////
+
+    strncpy(q, a, b - a);
+
+    ret = xcpkg_posix_spawn2(4, "patch", (b[0] == '\0') ? "-p1" : b, "-i", pathBuf);
+
+    if (ret == XCPKG_OK) {
+        goto loop;
+    } else {
+        goto finally;
+    }
+
+finally:
+    if (munmap(data, st.st_size) == -1) {
+        perror("Failed to unmap file");
+    }
+
+    close(fd);
+
+    return ret;
 }
 
 typedef int (*setenv_fn)(const char * packageInstalledDIR, const size_t packageInstalledDIRCapacity);
@@ -4575,6 +4702,119 @@ static int xcpkg_install_package(
     }
 
     //////////////////////////////////////////////////////////////////////////////
+
+    size_t len = (formula->bscript == NULL) ? 0 : strlen(formula->bscript);
+    size_t cap = 5U + len;
+
+    char bstdir[cap];
+
+    strncpy(bstdir, "src/", 4);
+
+    if (formula->bscript != NULL) {
+        strncpy(bstdir + 4, formula->bscript, len + 1);
+    }
+
+    if (chdir (bstdir) != 0) {
+        perror(bstdir);
+        return XCPKG_ERROR;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+    //                                 dopatch                                  //
+
+    if (formula->fix_url != NULL) {
+        char fp[75 + packageWorkingTopDIRCapacity];
+
+        char * p = fp;
+
+        for (size_t i = 0U; ; i++) {
+            p[i] = packageWorkingTopDIR[i];
+
+            if (p[i] == '\0') {
+                p[i] = '/';
+                p += i + 1;
+                break;
+            }
+        }
+
+        strncpy(p, "fix/", 4);
+        strncpy(p + 4, formula->fix_sha, 64);
+
+        p += 68;
+
+        p[0] = '.';
+        p++;
+
+        struct stat st;
+
+        const char * exts[2] = {"patch", "diff"};
+
+        for (int i = 0; i < 2; i++) {
+            strncpy(p, exts[i], strlen(exts[i]) + 1);
+
+            if (stat(fp, &st) == 0) {
+                break;
+            } else {
+                p[0] = '\0';
+            }
+        }
+
+        if (p[0] != '\0') {
+            const char * patchArgs = (formula->fix_opt == NULL) ? "-p1" : formula->fix_opt;
+
+            ret = xcpkg_posix_spawn2(4, "patch", patchArgs, "-i", fp);
+
+            if (ret != XCPKG_OK) {
+                return ret;
+            }
+        }
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+
+    ret = apply_fixlist(packageWorkingTopDIR, packageWorkingTopDIRCapacity);
+
+    if (ret != XCPKG_OK) {
+        return ret;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+
+    if (formula->useBuildSystemGolang) {
+        // https://github.com/golang/go/issues/65568
+        ret = xcpkg_posix_spawn2(4, "gsed", "-i", "s|^go 1.22$|go 1.22.0|", "go.mod");
+
+        if (ret != XCPKG_OK) {
+            return ret;
+        }
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+
+//    if (formula->useBuildSystemAutotools) {
+//        ret = xcpkg_posix_spawn2(2, "autoreconf", "-ivf");
+//
+//        if (ret != XCPKG_OK) {
+//            return ret;
+//        }
+//    }
+//
+//    //////////////////////////////////////////////////////////////////////////////
+//
+//    if (formula->useBuildSystemAutogen) {
+//        ret = xcpkg_posix_spawn2(3, "env", "NOCONFIGURE=yes", "./autogen.sh");
+//
+//        if (ret != XCPKG_OK) {
+//            return ret;
+//        }
+//    }
+
+    //////////////////////////////////////////////////////////////////////////////
+
+    if (chdir (packageWorkingTopDIR) != 0) {
+        perror(packageWorkingTopDIR);
+        return XCPKG_ERROR;
+    }
 
     ret = xcpkg_posix_spawn2(3, "/bin/sh", shellScriptFileName, "target");
 
