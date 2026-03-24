@@ -4840,6 +4840,7 @@ static int xcpkg_install_package(
         return XCPKG_ERROR;
     }
 
+    puts("===========>>>>4");
     //////////////////////////////////////////////////////////////////////////////
 
     const char* a[2] = { ".crates.toml", ".crates2.json" };
@@ -4871,6 +4872,7 @@ static int xcpkg_install_package(
         return XCPKG_ERROR;
     }
 
+    puts("===========>>>>2");
     //////////////////////////////////////////////////////////////////////////////
 
     if (txt->ptr != NULL) {
@@ -4906,7 +4908,7 @@ static int xcpkg_install_package(
         }
     }
 
-    puts("===========>>>>2");
+    puts("===========>>>>3");
     //////////////////////////////////////////////////////////////////////////////
 
     const char* arr1[12] = { "AUTHORS", "LICENSE", "COPYING", "FAQ", "TODO", "NEWS", "THANKS", "CHANGELOG", "CHANGES", "README", "CONTRIBUTORS", "CONTRIBUTING" };
