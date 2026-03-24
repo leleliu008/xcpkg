@@ -4708,9 +4708,14 @@ static int xcpkg_install_package(
 
     char bstdir[cap];
 
-    strncpy(bstdir, "src/", 4);
+    bstdir[0] = 's';
+    bstdir[1] = 'r';
+    bstdir[2] = 'c';
 
-    if (formula->bscript != NULL) {
+    if (formula->bscript == NULL) {
+        bstdir[3] = '\0';
+    } else {
+        bstdir[3] = '/';
         strncpy(bstdir + 4, formula->bscript, len + 1);
     }
 
