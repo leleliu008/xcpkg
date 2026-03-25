@@ -163,156 +163,160 @@ static int fetch_fixlist(const char * fixlist, const char * xcpkgDownloadsDIR, c
 
     char * p = buf;
 
-    int ret;
+    int ret = XCPKG_OK;
 
     int fd = -1;
 
-    while (p[0] != '\0') {
-        char * sha = NULL;
-        char * url = NULL;
-        char * uri = NULL;
-        char * opt = NULL;
+loop:
+    if (p[0] == '\0') {
+        goto finally;
+    }
 
-        ////////////////// sha //////////////////
+    char * sha = NULL;
+    char * url = NULL;
+    char * uri = NULL;
+    char * opt = NULL;
 
-        for (int i = 0; ; i++) {
-            if (p[i] == '\0') {
-                fprintf(stderr, "fixlist mapping is invalid.\n");
-                return XCPKG_ERROR_FORMULA_SCHEME;
-            }
+    ////////////////// sha //////////////////
 
-            if (p[i] == '|') {
-                if (i == 64) {
-                    sha = p;
-                    p[i] = '\0';
-                    p += i + 1;
-                    break;
-                } else {
-                    fprintf(stderr, "fixlist mapping is invalid. sha256sum length shall be 64.\n");
-                    return XCPKG_ERROR_FORMULA_SCHEME;
-                }
-            }
+    for (int i = 0; ; i++) {
+        if (p[i] == '\0') {
+            fprintf(stderr, "fixlist mapping is invalid.\n");
+            ret = XCPKG_ERROR_FORMULA_SCHEME;
+            goto finally;
         }
 
-        ////////////////// url //////////////////
-
-        for (int i = 0; ; i++) {
-            if (p[i] == '\n') {
+        if (p[i] == '|') {
+            if (i == 64) {
+                sha = p;
                 p[i] = '\0';
-                url = p;
-                p += i + 1;
-                goto action;
-            }
-
-            if (p[i] == '\0') {
-                p[i] = '\0';
-                url = p;
-                p = &p[i];
-                goto action;
-            }
-
-            if (p[i] == '|') {
-                p[i] = '\0';
-                url = p;
                 p += i + 1;
                 break;
+            } else {
+                fprintf(stderr, "fixlist mapping is invalid. sha256sum length shall be 64.\n");
+                ret = XCPKG_ERROR_FORMULA_SCHEME;
+                goto finally;
             }
-        }
-
-        ////////////////// uri //////////////////
-
-        for (int i = 0; ; i++) {
-            if (p[i] == '\n') {
-                p[i] = '\0';
-                uri = p;
-                p += i + 1;
-                goto action;
-            }
-
-            if (p[i] == '\0') {
-                p[i] = '\0';
-                uri = p;
-                p = &p[i];
-                goto action;
-            }
-
-            if (p[i] == '|') {
-                p[i] = '\0';
-                uri = p;
-                p += i + 1;
-                break;
-            }
-        }
-
-        ////////////////// opt //////////////////
-
-        for (int i = 0; ; i++) {
-            if (p[i] == '\n') {
-                p[i] = '\0';
-                opt = p;
-                p += i + 1;
-                goto action;
-            }
-
-            if (p[i] == '\0') {
-                p[i] = '\0';
-                opt = p;
-                p = &p[i];
-                goto action;
-            }
-
-            if (p[i] == '|') {
-                fprintf(stderr, "fixlist mapping is invalid.\n");
-                return XCPKG_ERROR_FORMULA_SCHEME;
-            }
-        }
-
-        action:
-        ret = xcpkg_http_fetch_then_unpack(url, uri, sha, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, "fix", 4U, verbose);
-
-        if (ret != XCPKG_OK) {
-            if (fd != -1) {
-                close(fd);
-            }
-            return ret;
-        }
-
-        char ft[XCPKG_FILE_EXTENSION_MAX_CAPACITY]; ft[0] = '\0';
-
-        ret = xcpkg_extract_filetype_from_url(url, ft, XCPKG_FILE_EXTENSION_MAX_CAPACITY);
-
-        if (ret != XCPKG_OK) {
-            if (fd != -1) {
-                close(fd);
-            }
-            return ret;
-        }
-
-        if (fd == -1) {
-            const char * fp = "fix/index";
-
-            fd = open(fp, O_CREAT | O_TRUNC | O_WRONLY, 0666);
-
-            if (fd == -1) {
-                perror(fp);
-                return XCPKG_ERROR;
-            }
-        }
-
-        ret = dprintf(fd, "%s%s|%s\n", sha, ft, (opt == NULL) ? "" : opt);
-
-        if (ret < 0) {
-            perror(NULL);
-            close(fd);
-            return XCPKG_ERROR;
         }
     }
 
+    ////////////////// url //////////////////
+
+    for (int i = 0; ; i++) {
+        if (p[i] == '\n') {
+            p[i] = '\0';
+            url = p;
+            p += i + 1;
+            goto action;
+        }
+
+        if (p[i] == '\0') {
+            p[i] = '\0';
+            url = p;
+            p = &p[i];
+            goto action;
+        }
+
+        if (p[i] == '|') {
+            p[i] = '\0';
+            url = p;
+            p += i + 1;
+            break;
+        }
+    }
+
+    ////////////////// uri //////////////////
+
+    for (int i = 0; ; i++) {
+        if (p[i] == '\n') {
+            p[i] = '\0';
+            uri = p;
+            p += i + 1;
+            goto action;
+        }
+
+        if (p[i] == '\0') {
+            p[i] = '\0';
+            uri = p;
+            p = &p[i];
+            goto action;
+        }
+
+        if (p[i] == '|') {
+            p[i] = '\0';
+            uri = p;
+            p += i + 1;
+            break;
+        }
+    }
+
+    ////////////////// opt //////////////////
+
+    for (int i = 0; ; i++) {
+        if (p[i] == '\n') {
+            p[i] = '\0';
+            opt = p;
+            p += i + 1;
+            goto action;
+        }
+
+        if (p[i] == '\0') {
+            p[i] = '\0';
+            opt = p;
+            p = &p[i];
+            goto action;
+        }
+
+        if (p[i] == '|') {
+            fprintf(stderr, "fixlist mapping is invalid.\n");
+            ret = XCPKG_ERROR_FORMULA_SCHEME;
+            goto finally;
+        }
+    }
+
+action:
+    ret = xcpkg_http_fetch_then_unpack(url, uri, sha, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, "fix", 4U, verbose);
+
+    if (ret != XCPKG_OK) {
+        goto finally;
+    }
+
+    char ft[XCPKG_FILE_EXTENSION_MAX_CAPACITY]; ft[0] = '\0';
+
+    ret = xcpkg_extract_filetype_from_url(url, ft, XCPKG_FILE_EXTENSION_MAX_CAPACITY);
+
+    if (ret != XCPKG_OK) {
+        goto finally;
+    }
+
+    if (fd == -1) {
+        const char * fp = "fix/index";
+
+        fd = open(fp, O_CREAT | O_TRUNC | O_WRONLY, 0666);
+
+        if (fd == -1) {
+            perror(fp);
+            ret = XCPKG_ERROR;
+            goto finally;
+        }
+    }
+
+    ret = dprintf(fd, "%s%s|%s\n", sha, ft, (opt == NULL) ? "" : opt);
+
+    if (ret < 0) {
+        perror(NULL);
+        ret = XCPKG_ERROR;
+        goto finally;
+    }
+
+    goto loop;
+
+finally:
     if (fd != -1) {
         close(fd);
     }
 
-    return XCPKG_OK;
+    return ret;
 }
 
 static int fetch_reslist(const char * reslist, const char * xcpkgDownloadsDIR, const size_t xcpkgDownloadsDIRCapacity, bool verbose) {
@@ -324,87 +328,90 @@ static int fetch_reslist(const char * reslist, const char * xcpkgDownloadsDIR, c
 
     int ret;
 
-    while (p[0] != '\0') {
-        char * sha = NULL;
-        char * url = NULL;
-        char * uri = NULL;
+loop:
+    if (p[0] == '\0') {
+        return XCPKG_OK;
+    }
 
-        for (int i = 0; ; i++) {
-            if (p[i] == '\0') {
-                fprintf(stderr, "reslist mapping is invalid.\n");
-                return XCPKG_ERROR_FORMULA_SCHEME;
-            }
+    char * sha = NULL;
+    char * url = NULL;
+    char * uri = NULL;
 
-            if (p[i] == '|') {
-                if (i == 64) {
-                    sha = p;
-                    p[i] = '\0';
-                    p += i + 1;
-                    break;
-                } else {
-                    fprintf(stderr, "reslist mapping is invalid. sha256sum length shall be 64.\n");
-                    return XCPKG_ERROR_FORMULA_SCHEME;
-                }
-            }
+    for (int i = 0; ; i++) {
+        if (p[i] == '\0') {
+            fprintf(stderr, "reslist mapping is invalid.\n");
+            return XCPKG_ERROR_FORMULA_SCHEME;
         }
 
-        ////////////////////////////////////
-
-        for (int i = 0; ; i++) {
-            if (p[i] == '\n') {
+        if (p[i] == '|') {
+            if (i == 64) {
+                sha = p;
                 p[i] = '\0';
-                url = p;
-                p += i + 1;
-                goto action;
-            }
-
-            if (p[i] == '\0') {
-                p[i] = '\0';
-                url = p;
-                p = &p[i];
-                goto action;
-            }
-
-            if (p[i] == '|') {
-                p[i] = '\0';
-                url = p;
                 p += i + 1;
                 break;
-            }
-        }
-
-        ////////////////////////////////////
-
-        for (int i = 0; ; i++) {
-            if (p[i] == '\n') {
-                p[i] = '\0';
-                uri = p;
-                p += i + 1;
-                goto action;
-            }
-
-            if (p[i] == '\0') {
-                p[i] = '\0';
-                uri = p;
-                p = &p[i];
-                goto action;
-            }
-
-            if (p[i] == '|') {
-                fprintf(stderr, "reslist mapping is invalid.\n");
+            } else {
+                fprintf(stderr, "reslist mapping is invalid. sha256sum length shall be 64.\n");
                 return XCPKG_ERROR_FORMULA_SCHEME;
             }
-        }
-
-        action:
-        ret = xcpkg_http_fetch_then_unpack(url, uri, sha, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, "res", 4U, verbose);
-
-        if (ret != XCPKG_OK) {
-            return ret;
         }
     }
 
-    return XCPKG_OK;
+    ////////////////////////////////////
+
+    for (int i = 0; ; i++) {
+        if (p[i] == '\n') {
+            p[i] = '\0';
+            url = p;
+            p += i + 1;
+            goto action;
+        }
+
+        if (p[i] == '\0') {
+            p[i] = '\0';
+            url = p;
+            p = &p[i];
+            goto action;
+        }
+
+        if (p[i] == '|') {
+            p[i] = '\0';
+            url = p;
+            p += i + 1;
+            break;
+        }
+    }
+
+    ////////////////////////////////////
+
+    for (int i = 0; ; i++) {
+        if (p[i] == '\n') {
+            p[i] = '\0';
+            uri = p;
+            p += i + 1;
+            goto action;
+        }
+
+        if (p[i] == '\0') {
+            p[i] = '\0';
+            uri = p;
+            p = &p[i];
+            goto action;
+        }
+
+        if (p[i] == '|') {
+            fprintf(stderr, "reslist mapping is invalid.\n");
+            return XCPKG_ERROR_FORMULA_SCHEME;
+        }
+    }
+
+action:
+    ret = xcpkg_http_fetch_then_unpack(url, uri, sha, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, "res", 4U, verbose);
+
+    if (ret != XCPKG_OK) {
+        return ret;
+    }
+
+    goto loop;
 }
 
 static int setup_rust_toolchain(const XCPKGInstallOptions * installOptions, const char * sessionDIR, const size_t sessionDIRLength) {
@@ -1935,7 +1942,7 @@ static int copy_dependent_libraries(
     }
 }
 
-static inline int config_envs_for_target(const char * recursiveDependentPackageNames, const char * packageInstalledRootDIR, const size_t packageInstalledRootDIRCapacity, const char * nativePackageInstalledRootDIR, const size_t nativePackageInstalledRootDIRCapacity, const char * packageWorkingTopDIR, const size_t packageWorkingTopDIRCapacity, const bool needToCopyStaticLibs, const bool isCrossBuild) {
+static inline int setenvs_for_target(const char * recursiveDependentPackageNames, const char * packageInstalledRootDIR, const size_t packageInstalledRootDIRCapacity, const char * nativePackageInstalledRootDIR, const size_t nativePackageInstalledRootDIRCapacity, const char * packageWorkingTopDIR, const size_t packageWorkingTopDIRCapacity, const bool needToCopyStaticLibs, const bool isCrossBuild) {
     size_t packageInstalledDIRCapacity = packageInstalledRootDIRCapacity + 52U;
     char   packageInstalledDIR[packageInstalledDIRCapacity];
 
@@ -2881,6 +2888,7 @@ static int adjust_macho_files(const char * packageInstalledDIR, const size_t pac
 }
 
 static int backup_formulas(const char * sessionDIR, const size_t sessionDIRLength, const char * recursiveDependentPackageNames) {
+    fprintf(stderr, "backup_formulas() sessionDIR=%s, sessionDIRLength=%ld, recursiveDependentPackageNames=%s\n", sessionDIR, sessionDIRLength, recursiveDependentPackageNames);
     size_t fromFilePathCapacity = sessionDIRLength + 60U;
     char   fromFilePath[fromFilePathCapacity];
 
@@ -2918,6 +2926,7 @@ static int backup_formulas(const char * sessionDIR, const size_t sessionDIRLengt
     ///////////////////////////////////////
 
     if (mkdir(toFilePath, S_IRWXU) != 0) {
+        puts(">>>>>>>>>>>>>>");
         if (errno != EEXIST) {
             perror(toFilePath);
             return XCPKG_ERROR;
@@ -4516,7 +4525,7 @@ static int xcpkg_install_package(
     }
 
     if (txt->ptr != NULL) {
-        ret = config_envs_for_target(txt->ptr, packageInstalledRootDIR, packageInstalledRootDIRCapacity, nativePackageInstalledRootDIR, nativePackageInstalledRootDIRCapacity, packageWorkingTopDIR, packageWorkingTopDIRCapacity, needToCopyStaticLibs, isCrossBuild);
+        ret = setenvs_for_target(txt->ptr, packageInstalledRootDIR, packageInstalledRootDIRCapacity, nativePackageInstalledRootDIR, nativePackageInstalledRootDIRCapacity, packageWorkingTopDIR, packageWorkingTopDIRCapacity, needToCopyStaticLibs, isCrossBuild);
 
         if (ret != XCPKG_OK) {
             return ret;
