@@ -2888,7 +2888,17 @@ static int adjust_macho_files(const char * packageInstalledDIR, const size_t pac
 }
 
 static int backup_formulas(const char * sessionDIR, const size_t sessionDIRLength, const char * recursiveDependentPackageNames) {
-    fprintf(stderr, "backup_formulas() sessionDIR=%s, sessionDIRLength=%ld, recursiveDependentPackageNames=%s\n", sessionDIR, sessionDIRLength, recursiveDependentPackageNames);
+    const char * p = "dependencies";
+
+    if (mkdir(p, S_IRWXU) != 0) {
+        if (errno != EEXIST) {
+            perror(p);
+            return XCPKG_ERROR;
+        }
+    }
+
+    ///////////////////////////////////////
+
     size_t fromFilePathCapacity = sessionDIRLength + 60U;
     char   fromFilePath[fromFilePathCapacity];
 
@@ -2910,32 +2920,21 @@ static int backup_formulas(const char * sessionDIR, const size_t sessionDIRLengt
 
     ///////////////////////////////////////
 
-    const char * s = "dependencies";
     char * n;
 
     for (size_t i = 0U; ; i++) {
-        if (s[i] == '\0') {
+        if (p[i] == '\0') {
             toFilePath[i] = '/';
             n = toFilePath + i + 1;
             break;
         }
 
-        toFilePath[i] = s[i];
+        toFilePath[i] = p[i];
     }
 
     ///////////////////////////////////////
 
-    if (mkdir(toFilePath, S_IRWXU) != 0) {
-        puts(">>>>>>>>>>>>>>");
-        if (errno != EEXIST) {
-            perror(toFilePath);
-            return XCPKG_ERROR;
-        }
-    }
-
-    ///////////////////////////////////////
-
-    const char * p = recursiveDependentPackageNames;
+    p = recursiveDependentPackageNames;
 
 loop:
     if (p[0] == '\0') {
@@ -2963,7 +2962,7 @@ loop:
         p++;
     }
 
-    s = ".yml";
+    const char * s = ".yml";
 
     for (;;) {
         x[0] = s[0];
@@ -4836,7 +4835,6 @@ static int xcpkg_install_package(
         return ret;
     }
 
-    puts("===========>>>>1");
     //////////////////////////////////////////////////////////////////////////////
 
     if (chdir (packageInstalledDIR) != 0) {
@@ -4849,7 +4847,6 @@ static int xcpkg_install_package(
         return XCPKG_ERROR;
     }
 
-    puts("===========>>>>4");
     //////////////////////////////////////////////////////////////////////////////
 
     const char* a[2] = { ".crates.toml", ".crates2.json" };
@@ -4881,7 +4878,6 @@ static int xcpkg_install_package(
         return XCPKG_ERROR;
     }
 
-    puts("===========>>>>2");
     //////////////////////////////////////////////////////////////////////////////
 
     if (txt->ptr != NULL) {
@@ -4917,7 +4913,6 @@ static int xcpkg_install_package(
         }
     }
 
-    puts("===========>>>>3");
     //////////////////////////////////////////////////////////////////////////////
 
     const char* arr1[12] = { "AUTHORS", "LICENSE", "COPYING", "FAQ", "TODO", "NEWS", "THANKS", "CHANGELOG", "CHANGES", "README", "CONTRIBUTORS", "CONTRIBUTING" };
