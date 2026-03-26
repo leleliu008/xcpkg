@@ -973,42 +973,44 @@ static inline int xcpkg_formula_check(XCPKGFormula * formula, const char * formu
                         p[i] = '\0';
 
                         if (formula->web_url == NULL) {
-                            size_t cap = 30 + i;
+                            size_t n = 30U + i;
 
-                            char * webUrl = (char*)malloc(cap);
+                            char * q = (char*)malloc(n);
 
-                            if (webUrl == NULL) {
+                            if (q == NULL) {
                                 return XCPKG_ERROR_MEMORY_ALLOCATE;
                             }
 
-                            int ret = snprintf(webUrl, cap, "https://www.gnu.org/software/%s", p);
+                            int ret = snprintf(q, n, "https://www.gnu.org/software/%s", p);
 
                             if (ret < 0) {
                                 perror(NULL);
+                                free(q);
                                 return XCPKG_ERROR;
                             }
 
-                            formula->web_url = webUrl;
+                            formula->web_url = q;
                             formula->web_url_is_calculated = true;
                         }
 
                         if (formula->git_url == NULL) {
-                            size_t cap = 38 + i;
+                            size_t n = 38U + i;
 
-                            char * gitUrl = (char*)malloc(cap);
+                            char * q = (char*)malloc(n);
 
-                            if (gitUrl == NULL) {
+                            if (q == NULL) {
                                 return XCPKG_ERROR_MEMORY_ALLOCATE;
                             }
 
-                            int ret = snprintf(gitUrl, cap, "https://git.savannah.gnu.org/git/%s.git", p);
+                            int ret = snprintf(q, n, "https://git.savannah.gnu.org/git/%s.git", p);
 
                             if (ret < 0) {
                                 perror(NULL);
+                                free(q);
                                 return XCPKG_ERROR;
                             }
 
-                            formula->git_url = gitUrl;
+                            formula->git_url = q;
                             formula->git_url_is_calculated = true;
                         }
 
@@ -1030,42 +1032,44 @@ static inline int xcpkg_formula_check(XCPKGFormula * formula, const char * formu
                         p[i] = '\0';
 
                         if (formula->git_url == NULL) {
-                            size_t cap = 32 + i;
+                            size_t n = 32U + i;
 
-                            char * gitUrl = (char*)malloc(cap);
+                            char * q = (char*)malloc(n);
 
-                            if (gitUrl == NULL) {
+                            if (q == NULL) {
                                 return XCPKG_ERROR_MEMORY_ALLOCATE;
                             }
 
-                            int ret = snprintf(gitUrl, cap, "https://gitlab.gnome.org/GNOME/%s", p);
+                            int ret = snprintf(q, n, "https://gitlab.gnome.org/GNOME/%s", p);
 
                             if (ret < 0) {
                                 perror(NULL);
+                                free(q);
                                 return XCPKG_ERROR;
                             }
 
-                            formula->git_url = gitUrl;
+                            formula->git_url = q;
                             formula->git_url_is_calculated = true;
                         }
 
                         if (formula->git_uri == NULL) {
-                            size_t cap = 26 + i;
+                            size_t n = 26U + i;
 
-                            char * gitUrl = (char*)malloc(cap);
+                            char * q = (char*)malloc(n);
 
-                            if (gitUrl == NULL) {
+                            if (q == NULL) {
                                 return XCPKG_ERROR_MEMORY_ALLOCATE;
                             }
 
-                            int ret = snprintf(gitUrl, cap, "https://github.com/GNOME/%s", p);
+                            int ret = snprintf(q, n, "https://github.com/GNOME/%s", p);
 
                             if (ret < 0) {
                                 perror(NULL);
+                                free(q);
                                 return XCPKG_ERROR;
                             }
 
-                            formula->git_uri = gitUrl;
+                            formula->git_uri = q;
                             formula->git_uri_is_calculated = true;
                         }
 
@@ -1073,6 +1077,61 @@ static inline int xcpkg_formula_check(XCPKGFormula * formula, const char * formu
 
                         break;
                     }
+                }
+            } else if (strncmp(formula->src_url, "https://www.x.org/archive/individual/", 37) == 0) {
+                if (formula->git_url == NULL) {
+                    char * p = formula->src_url + 37;
+
+                    int j = -1;
+
+                    for (size_t i = 0U; ; i++) {
+                        if (p[i] == '\0') {
+                            break;
+                        }
+
+                        if (p[i] == '-') {
+                            j = i;
+                        }
+                    }
+
+                    if (j == -1) {
+                        fprintf(stderr, "scheme error in formula file: %s : src-url: %s seems not right.\n", formulaFilePath, formula->src_url);
+                        return XCPKG_ERROR_FORMULA_SCHEME;
+                    }
+
+                    p[j] = '\0';
+
+                    size_t n = 37U + j;
+
+                    char * q = (char*)malloc(n);
+
+                    if (q == NULL) {
+                        return XCPKG_ERROR_MEMORY_ALLOCATE;
+                    }
+
+                    int ret = snprintf(q, n, "https://gitlab.freedesktop.org/xorg/%s", p);
+
+                    if (ret < 0) {
+                        perror(NULL);
+                        free(q);
+                        return XCPKG_ERROR;
+                    }
+
+                    formula->git_url = q;
+                    formula->git_url_is_calculated = true;
+
+                    p[j] = '-';
+                }
+
+                if (formula->web_url == NULL) {
+                    char * p = strdup("https://www.x.org/");
+
+                    if (p == NULL) {
+                        return XCPKG_ERROR_MEMORY_ALLOCATE;
+                    }
+
+                    formula->web_url = p;
+                    formula->web_url_is_calculated = true;
                 }
             }
 

@@ -4794,11 +4794,15 @@ static int xcpkg_install_package(
     //////////////////////////////////////////////////////////////////////////////
 
     if (formula->useBuildSystemGolang) {
-        // https://github.com/golang/go/issues/65568
-        ret = xcpkg_posix_spawn2(4, "gsed", "-i", "s|^go 1.22$|go 1.22.0|", "go.mod");
+        struct stat st;
 
-        if (ret != XCPKG_OK) {
-            return ret;
+        if (stat("go.mod", &st) == 0 && S_ISREG(st.st_mode)) {
+            // https://github.com/golang/go/issues/65568
+            ret = xcpkg_posix_spawn2(4, "gsed", "-i", "s|^go 1.22$|go 1.22.0|", "go.mod");
+
+            if (ret != XCPKG_OK) {
+                return ret;
+            }
         }
     }
 
