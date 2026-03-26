@@ -169,6 +169,7 @@ static int fetch_fixlist(const char * fixlist, const char * xcpkgDownloadsDIR, c
 
 loop:
     if (p[0] == '\0') {
+        ret = XCPKG_OK;
         goto finally;
     }
 
