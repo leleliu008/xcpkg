@@ -9,6 +9,7 @@
 
 #include "core/zlib-flate.h"
 #include "core/printenv.h"
+#include "core/list-PATH.h"
 #include "core/base16.h"
 #include "core/exe.h"
 #include "core/log.h"
@@ -699,6 +700,10 @@ int xcpkg_util(int argc, char* argv[]) {
     if (strcmp(argv[2], "printenv") == 0) {
         printenv();
         return XCPKG_OK;
+    }
+
+    if (strcmp(argv[2], "list-PATH") == 0) {
+        return list_PATH();
     }
 
     if (strcmp(argv[2], "http-fetch") == 0) {

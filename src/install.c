@@ -5643,6 +5643,8 @@ int xcpkg_install(const char * packageName, const char * targetPlatformSpec, con
 
         "TARGET_ARCH",
 
+        "PKG_CONFIG_SYSROOT_DIR",
+
         "XCPKG_TARGET_LDFLAGS",
         "XCPKG_TARGET_CCFLAGS",
         "XCPKG_TARGET_CXXFLAGS",
