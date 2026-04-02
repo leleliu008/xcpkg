@@ -1865,6 +1865,8 @@ int xcpkg_main(int argc, char* argv[]) {
         return xcpkg_action_about(argc, argv);
     }
 
+    ///////////////////////////////////////////////////
+
     int ret = xcpkg_setenv_SSL_CERT_FILE();
 
     if (ret == XCPKG_ERROR_ENV_HOME_NOT_SET) {
@@ -1876,6 +1878,22 @@ int xcpkg_main(int argc, char* argv[]) {
     if (ret != XCPKG_OK) {
         return ret;
     }
+
+    ///////////////////////////////////////////////////
+
+    ret = xcpkg_setenv_UPPM_HOME();
+
+    if (ret == XCPKG_ERROR_ENV_HOME_NOT_SET) {
+        fprintf(stderr, "%s\n", "HOME environment variable is not set.\n");
+    } else if (ret == XCPKG_ERROR) {
+        fprintf(stderr, "occurs error.\n");
+    }
+
+    if (ret != XCPKG_OK) {
+        return ret;
+    }
+
+    ///////////////////////////////////////////////////
 
     if (strcmp(argv[1], "completion") == 0) {
         return xcpkg_action_completion(argc, argv);

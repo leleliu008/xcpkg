@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include <unistd.h>
@@ -10,33 +11,11 @@
 #include "xcpkg.h"
 
 int xcpkg_get_command_path_of_uppm_package(const char * uppmPackageName, const char * cmdname, char buf[]) {
-    char   uppmHomeDIR[PATH_MAX];
-    size_t uppmHomeDIRLength;
-
-    int ret = xcpkg_home_dir(uppmHomeDIR, &uppmHomeDIRLength);
-
-    if (ret != XCPKG_OK) {
-        return ret;
-    }
-
-    char * const p = uppmHomeDIR + uppmHomeDIRLength;
-
-    const char * s = "/uppm";
-
-    for (int i = 0; ; i++) {
-        p[i] = s[i];
-
-        if (p[i] == '\0') {
-            uppmHomeDIRLength += i;
-            break;
-        }
-    }
-
-    //////////////////////////////////////////////////////////////////////////////
+    const char * const uppmHomeDIR = getenv("UPPM_HOME");
 
     char commandPath[PATH_MAX];
 
-    ret = snprintf(commandPath, PATH_MAX, "%s/installed/%s/bin/%s", uppmHomeDIR, uppmPackageName, cmdname);
+    int ret = snprintf(commandPath, PATH_MAX, "%s/installed/%s/bin/%s", uppmHomeDIR, uppmPackageName, cmdname);
 
     if (ret < 0) {
         perror(NULL);
@@ -53,6 +32,8 @@ int xcpkg_get_command_path_of_uppm_package(const char * uppmPackageName, const c
             return XCPKG_ERROR;
         }
     } else {
+        size_t uppmHomeDIRLength = strlen(uppmHomeDIR);
+
         ret = uppm_formula_repo_sync_official_core(uppmHomeDIR, uppmHomeDIRLength);
 
         if (ret != XCPKG_OK) {
@@ -66,7 +47,7 @@ int xcpkg_get_command_path_of_uppm_package(const char * uppmPackageName, const c
         }
     }
 
-    for (int i = 0; ; i++) {
+    for (size_t i = 0U; ; i++) {
         buf[i] = commandPath[i];
 
         if (buf[i] == '\0') {

@@ -1020,24 +1020,12 @@ static int native_package_installed_callback(const char * packageInstalledDIR, c
 
 static int install_native_packages_via_uppm(
         const char * uppmPackageNames,
-        const char * xcpkgHomeDIR,
-        const size_t xcpkgHomeDIRLength,
+        const char * uppmHomeDIR,
+        const size_t uppmHomeDIRLength,
         const char * uppmPackageInstalledRootDIR,
         const size_t uppmPackageInstalledRootDIRCapacity,
         const bool   verbose) {
-    size_t uppmHomeDIRCapacity = xcpkgHomeDIRLength + 6U;
-    char   uppmHomeDIR[uppmHomeDIRCapacity];
-
-    int ret = snprintf(uppmHomeDIR, uppmHomeDIRCapacity, "%s/uppm", xcpkgHomeDIR);
-
-    if (ret < 0) {
-        perror(NULL);
-        return XCPKG_ERROR;
-    }
-
-    size_t uppmHomeDIRLength = ret;
-
-    ret = uppm_formula_repo_sync_official_core(uppmHomeDIR, uppmHomeDIRLength);
+    int ret = uppm_formula_repo_sync_official_core(uppmHomeDIR, uppmHomeDIRLength);
 
     if (ret != XCPKG_OK) {
         return ret;
@@ -1200,8 +1188,8 @@ static inline __attribute__((always_inline)) bool _str_equal(const char * a, con
 
 static int install_native_packages_via_uppm_or_build(
         const char * depPackageNames,
-        const char * xcpkgHomeDIR,
-        const size_t xcpkgHomeDIRLength,
+        const char * uppmHomeDIR,
+        const size_t uppmHomeDIRLength,
         const char * xcpkgDownloadsDIR,
         const size_t xcpkgDownloadsDIRCapacity,
         const char * sessionDIR,
@@ -1366,7 +1354,7 @@ static int install_native_packages_via_uppm_or_build(
 
     //////////////////////////////////////////////////////////////////////////////
 
-    int ret = install_native_packages_via_uppm(uppmPackageNames, xcpkgHomeDIR, xcpkgHomeDIRLength, uppmPackageInstalledRootDIR, uppmPackageInstalledRootDIRCapacity, installOptions->verbose_net);
+    int ret = install_native_packages_via_uppm(uppmPackageNames, uppmHomeDIR, uppmHomeDIRLength, uppmPackageInstalledRootDIR, uppmPackageInstalledRootDIRCapacity, installOptions->verbose_net);
 
     if (ret != XCPKG_OK) {
         return ret;
@@ -3709,8 +3697,11 @@ static int xcpkg_install_package(
         const XCPKGToolChain * toolchainForTargetBuild,
         const SysInfo * sysinfo,
 
+        const char * uppmHomeDIR,
+        const size_t uppmHomeDIRLength,
         const char * uppmPackageInstalledRootDIR,
         const size_t uppmPackageInstalledRootDIRCapacity,
+
         const char * xcpkgExeFilePath,
         const char * xcpkgHomeDIR,
         const size_t xcpkgHomeDIRLength,
@@ -3718,8 +3709,10 @@ static int xcpkg_install_package(
         const size_t xcpkgCoreDIRCapacity,
         const char * xcpkgDownloadsDIR,
         const size_t xcpkgDownloadsDIRCapacity,
+
         const char * sessionDIR,
         const size_t sessionDIRLength,
+
         const StringBuf * txt,
         const StringBuf * dot,
         const StringBuf * d2) {
@@ -3994,7 +3987,7 @@ static int xcpkg_install_package(
 
     //////////////////////////////////////////////////////////////////////////////
 
-    ret = install_native_packages_via_uppm_or_build(formula->dep_upp, xcpkgHomeDIR, xcpkgHomeDIRLength, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, sessionDIR, sessionDIRLength, uppmPackageInstalledRootDIR, uppmPackageInstalledRootDIRCapacity, nativePackageInstalledRootDIR, nativePackageInstalledRootDIRCapacity, installOptions, njobs, flagsForNativeBuild);
+    ret = install_native_packages_via_uppm_or_build(formula->dep_upp, uppmHomeDIR, uppmHomeDIRLength, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, sessionDIR, sessionDIRLength, uppmPackageInstalledRootDIR, uppmPackageInstalledRootDIRCapacity, nativePackageInstalledRootDIR, nativePackageInstalledRootDIRCapacity, installOptions, njobs, flagsForNativeBuild);
 
     if (ret != XCPKG_OK) {
         return ret;
@@ -5741,10 +5734,14 @@ int xcpkg_install(const char * packageName, const char * targetPlatformSpec, con
 
     //////////////////////////////////////////////////////////////////////////////
 
-    size_t uppmPackageInstalledRootDIRCapacity = xcpkgHomeDIRLength + 16U;
+    const char * const uppmHomeDIR = getenv("UPPM_HOME");
+
+    size_t uppmHomeDIRLength = strlen(uppmHomeDIR);
+
+    size_t uppmPackageInstalledRootDIRCapacity = uppmHomeDIRLength + 12U;
     char   uppmPackageInstalledRootDIR[uppmPackageInstalledRootDIRCapacity];
 
-    ret = snprintf(uppmPackageInstalledRootDIR, uppmPackageInstalledRootDIRCapacity, "%s/uppm/installed", xcpkgHomeDIR);
+    ret = snprintf(uppmPackageInstalledRootDIR, uppmPackageInstalledRootDIRCapacity, "%s/installed", uppmHomeDIR);
 
     if (ret < 0) {
         perror(NULL);
@@ -6003,7 +6000,7 @@ int xcpkg_install(const char * packageName, const char * targetPlatformSpec, con
         fprintf(stderr, "dot=%s\n", dot.ptr);
         fprintf(stderr, "d2=%s\n", d2.ptr);
 
-        ret = xcpkg_install_package(packageName, targetPlatformSpec, package->formula, installOptions, &toolchain, &toolchainForNativeBuild, &toolchainForTargetBuild, &sysinfo, uppmPackageInstalledRootDIR, uppmPackageInstalledRootDIRCapacity, xcpkgExeFilePath, xcpkgHomeDIR, xcpkgHomeDIRLength, xcpkgCoreDIR, xcpkgCoreDIRCapacity, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, sessionDIR, sessionDIRLength, &txt, &dot, &d2);
+        ret = xcpkg_install_package(packageName, targetPlatformSpec, package->formula, installOptions, &toolchain, &toolchainForNativeBuild, &toolchainForTargetBuild, &sysinfo, uppmHomeDIR, uppmHomeDIRLength, uppmPackageInstalledRootDIR, uppmPackageInstalledRootDIRCapacity, xcpkgExeFilePath, xcpkgHomeDIR, xcpkgHomeDIRLength, xcpkgCoreDIR, xcpkgCoreDIRCapacity, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, sessionDIR, sessionDIRLength, &txt, &dot, &d2);
 
         free(txt.ptr);
         free(dot.ptr);

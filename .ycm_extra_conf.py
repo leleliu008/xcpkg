@@ -90,7 +90,7 @@ get_path( 'include' ),
 
 packahe_installed_root = p.expanduser('~') + '/.xcpkg/installed/MacOSX-15.3-arm64/'
 
-packages = [ "libarchive", "libcurl", "libgit2", "libyaml", "libjansson", "openssl-dev", "libz" ]
+packages = [ "libarchive", "libcurl", "libgit2", "libyaml", "libjansson", "libopenssl", "libz" ]
 
 for package in packages:
     flags.append("-I")
