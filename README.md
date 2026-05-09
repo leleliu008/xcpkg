@@ -1,14 +1,16 @@
 # xcpkg
 
-A package builder using [Xcode](https://developer.apple.com/xcode)
+A package builder for Apple platforms using [Xcode](https://developer.apple.com/xcode)
 
 ## Why another package manager ?
 
-- I need a package manager that can build not only for `macOS` but also for all Apple platforms (e.g. `iOS`, `tvOS`, `watchOS`, etc).
+- I need a package manager that can build not only for `macOS` but also for all Apple platforms (`iOS`, `tvOS`, `watchOS`, etc).
 
-- I need a package manager that can easily build mostly statically linked executables.
+- I need a package manager that can easily build for mostly statically linked executables.
 
-- I need a package manager that is super easy to use, which means it should have a simple CLI and its formula file should be as simple as possible, preferably using a config file in YAML rather than a programming language such as `Python`, `Ruby`, or something that is rarely used.
+- I need a package manager that should have a simple and super easy to use CLI.
+
+- I need a package manager whose formula files should have a simple syntax, preferably using `YAML` rather than a programming language such as `Python`, `Ruby`, or something that is rarely used.
 
 At first, I tried several widely used package managers, such as [HomeBrew](https://brew.sh/), [MacPorts](https://www.macports.org/), [Nix](https://nixos.org/) and [vcpkg](https://vcpkg.io/), but none of them felt right, so I finally rolled my own, this saves me from trying to persuade anyone else to cater to my needs.
 
@@ -767,7 +769,7 @@ A xcpkg formula's file content only has one level mapping and shall/might have t
 |`STRIP`|a command line tool to discard symbols and other data from object files.|
 |||
 |`PACKAGE_WORKING_DIR`|the working directory when installing.|
-|`PACKAGE_BSCRIPT_DIR`|the directory where the build script (e.g. `Makefile`, `configure`, `CMakeLists.txt`, `meson.build`, `Cargo.toml`, etc) is located in.|
+|`PACKAGE_BSCRIPT_DIR`|the directory where the build script (`Makefile`, `configure`, `CMakeLists.txt`, `meson.build`, `Cargo.toml`, etc) is located in.|
 |`PACKAGE_BCACHED_DIR`|the directory where the temporary files are stored in when building.|
 |`PACKAGE_INSTALL_DIR`|the directory where the final files will be installed to.|
 |||
