@@ -6,6 +6,20 @@
 #include "xcpkg.h"
 
 int xcpkg_formula_mapping_set(const char * packageName, const char * targetPlatformName, const char * key, const char * value) {
+    if (key == NULL) {
+        return XCPKG_ERROR_ARG_IS_NULL;
+    }
+
+    if (value == NULL) {
+        return XCPKG_ERROR_ARG_IS_NULL;
+    }
+
+    if (key[0] == '\0') {
+        return XCPKG_ERROR_ARG_IS_EMPTY;
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+
     char formulaFilePath[PATH_MAX];
 
     int ret = xcpkg_formula_path(packageName, targetPlatformName, formulaFilePath);
@@ -38,7 +52,7 @@ int xcpkg_formula_mapping_set(const char * packageName, const char * targetPlatf
 
     //////////////////////////////////////////////////////////////////////////////
 
-    execl(yqCommandPath, yqCommandPath, "-i", buf, formulaFilePath);
+    execl(yqCommandPath, yqCommandPath, "-i", buf, formulaFilePath, NULL);
 
     perror(yqCommandPath);
 
