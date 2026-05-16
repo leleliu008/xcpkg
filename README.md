@@ -347,6 +347,12 @@ You are allowed to change this by setting `XCPKG_HOME` envionment variable.
     xcpkg formula-bat curl --language=yaml --paging=never --color=always --theme=Dracula --style=plain
     ```
 
+- **change the give mapping of the formula of the given package**
+
+    ```bash
+    xcpkg formula-set curl git-sha 7994b29a004065e98dc114928a93fc11fb104479
+    ```
+
 - **open formula of the give package in a text editor for editing**
 
     ```bash

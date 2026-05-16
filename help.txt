@@ -91,6 +91,9 @@
 [0;32mxcpkg formula-bat <PACKAGE-NAME> [BAT-OPTIONS][0m
     show formula of the give package using bat.
 
+[0;32mxcpkg formula-set <PACKAGE-NAME> <KEY> <VALUE>[0m
+    change the give mapping of the formula of the given package.
+
 [0;32mxcpkg formula-edit <PACKAGE-NAME> [--editor=<EDITOR>][0m
     open formula of the give package in a text editor for editing.
 
