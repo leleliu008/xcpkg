@@ -50,12 +50,12 @@ For more details please refer to <https://github.com/leleliu008/xcpkg-package-ma
 |[ninja](https://ninja-build.org/)|required |for doing jobs that read from `build.ninja`|
 |[pkg-config>=0.18](https://www.freedesktop.org/wiki/Software/pkg-config/)|required|for finding libraries|
 ||||
-|[jansson](https://github.com/akheron/jansson)|required|for parsing and creating JSON.|
-|[libyaml](https://github.com/yaml/libyaml/)|required|for parsing formula files whose format is YAML.|
-|[libgit2](https://libgit2.org/)|required|for updating formula repositories.|
-|[libcurl](https://curl.se/)|required|for http requesting support.|
-|[openssl](https://www.openssl.org/)|required|for https requesting support and SHA-256 sum checking support.|
-|[libarchive](https://www.libarchive.org/)|required|for uncompressing .zip and .tar.* files.|
+|[jansson](https://github.com/akheron/jansson)|required|for parsing [JSON](https://datatracker.ietf.org/doc/html/rfc8259)|
+|[libyaml](https://github.com/yaml/libyaml/)|required|for parsing [YAML](https://yaml.org/spec/)|
+|[libgit2](https://libgit2.org/)|required|for updating git repositories.|
+|[libcurl](https://curl.se/)|required|for downloading files.|
+|[openssl](https://www.openssl.org/)|required|for `SSL` support and `SHA-256` sum checking support.|
+|[libarchive](https://www.libarchive.org/)|required|for uncompressing files (`.zip`, `.tar.gz`, `.tar.xz`, etc).|
 |[zlib](https://www.zlib.net/)|required|for compress and uncompress data.|
 
 ## Build from C source locally via [ppkg](https://github.com/leleliu008/ppkg)
@@ -94,7 +94,7 @@ cmake --install build.d
 ```bash
 cat > xcpkg.rb <<EOF
 class Xcpkg < Formula
-    desc     "A package builder using Xcode"
+    desc     "A package builder for Apple platforms using Xcode"
     homepage "https://github.com/leleliu008/xcpkg"
     head     "https://github.com/leleliu008/xcpkg.git", branch: "master"
     url      "https://github.com/leleliu008/xcpkg.git", revision: "302840bc853df7c64daef575781beae4378db5c9"
@@ -114,9 +114,9 @@ class Xcpkg < Formula
     depends_on "libarchive"
 
     def install
-      system "cmake", "-S", ".", "-B", "build", *std_cmake_args
-      system "cmake", "--build",   "build"
-      system "cmake", "--install", "build"
+      system "cmake", "-S", ".", "-B", "build.d", *std_cmake_args
+      system "cmake", "--build",   "build.d"
+      system "cmake", "--install", "build.d"
     end
 
     test do
