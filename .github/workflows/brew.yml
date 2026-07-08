@@ -59,6 +59,7 @@ jobs:
 
       - run: brew uninstall cmake
 
+      - run: brew trust leleliu008/xcpkg
       - run: brew info    xcpkg
       - run: brew install xcpkg -v
 

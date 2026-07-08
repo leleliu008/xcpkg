@@ -606,7 +606,7 @@ A xcpkg formula's file content only has one level mapping and shall/might have t
 |`git-sha`|`SHA1SUM`|the full git commit id, 40-byte hexadecimal string, if `git-ref` and `git-sha` both are present, `git-sha` takes precedence over `git-ref`|
 |`git-nth`|`INT`|tell `xcpkg` that how many depth commits would you like to fetch. default is `1`, this would save your time and storage. If you have to fetch all commits, set this to `0`|
 ||||
-|`src-url`|`URI`|the source code download url of this package.<br>If value of this mapping ends with one of `.zip` `.tar.xz` `.tar.gz` `.tar.lz` `.tar.bz2` `.tgz` `.txz` `.tlz` `.tbz2` `.crate`, it will be uncompressed to `$PACKAGE_WORKING_DIR/src` while this package is installing, otherwise, it will be copied to `$PACKAGE_WORKING_DIR/src`<br>also support format like `dir://DIR`|
+|`src-url`|`URL`|the source code download url of this package.<br>If value of this mapping ends with one of `.zip` `.tar.xz` `.tar.gz` `.tar.lz` `.tar.bz2` `.tgz` `.txz` `.tlz` `.tbz2` `.crate`, it will be uncompressed to `$PACKAGE_WORKING_DIR/src` while this package is installing, otherwise, it will be copied to `$PACKAGE_WORKING_DIR/src`<br>also support format like `dir://DIR`|
 |`src-uri`|`URL`|the mirror of `src-url`.|
 |`src-sha`|`SHA256SUM`|the `sha256sum` of source code.<br>`src-sha` and `src-url` must appear together.|
 ||||
@@ -727,9 +727,6 @@ A xcpkg formula's file content only has one level mapping and shall/might have t
 |`TIMESTAMP_UNIX`|the unix timestamp of this action.|
 |`TIMESTAMP_ISO8601`|the ISO-8601 format timestamp of this action.|
 |||
-|`NATIVE_PLATFORM_KIND`|current running platform kind. value shall be `darwin`|
-|`NATIVE_PLATFORM_TYPE`|current running platform type. value shall be `macos`|
-|`NATIVE_PLATFORM_NAME`|current running platform name. value shall be `MacOSX`|
 |`NATIVE_PLATFORM_VERS`|current running platform version.|
 |`NATIVE_PLATFORM_ARCH`|current running platform arch. value might be any one of `x86_64`, `arm64`, etc|
 |`NATIVE_PLATFORM_NCPU`|current running platform's cpu core count.|
