@@ -38,24 +38,24 @@ For more details please refer to <https://github.com/leleliu008/xcpkg-package-ma
 
 ## Build from C source remotely via GitHub Actions
 
-- https://github.com/leleliu008/xcpkg-package-manually-build
-- https://github.com/leleliu008/ppkg-package-manually-build
+- <https://github.com/leleliu008/xcpkg-package-manually-build>
+- <https://github.com/leleliu008/ppkg-package-manually-build>
 
 ## Build from C source locally dependencies
 
 |dependency|required?|purpose|
 |----|---------|-------|
-|[Xcode](https://developer.apple.com/xcode/) or [LLVM+clang](https://llvm.org/)|required |for compiling C source code|
-|[cmake](https://cmake.org/)|required |for generating `build.ninja`|
-|[ninja](https://ninja-build.org/)|required |for doing jobs that read from `build.ninja`|
+|[Xcode](https://developer.apple.com/xcode/) or [Clang](https://clang.llvm.org/)|required|for compiling C source code|
+|[cmake](https://cmake.org/)|required|for generating `build.ninja`|
+|[ninja](https://ninja-build.org/)|required|for doing jobs that read from `build.ninja`|
 |[pkg-config>=0.18](https://www.freedesktop.org/wiki/Software/pkg-config/)|required|for finding libraries|
 ||||
 |[jansson](https://github.com/akheron/jansson)|required|for parsing [JSON](https://datatracker.ietf.org/doc/html/rfc8259)|
 |[libyaml](https://github.com/yaml/libyaml/)|required|for parsing [YAML](https://yaml.org/spec/)|
 |[libgit2](https://libgit2.org/)|required|for updating git repositories.|
 |[libcurl](https://curl.se/)|required|for downloading files.|
-|[openssl](https://www.openssl.org/)|required|for `SSL` support and `SHA-256` sum checking support.|
 |[libarchive](https://www.libarchive.org/)|required|for uncompressing files (`.zip`, `.tar.gz`, `.tar.xz`, etc).|
+|[openssl](https://www.openssl.org/)|required|for `SSL` support and `SHA-256` sum checking support.|
 |[zlib](https://www.zlib.net/)|required|for compress and uncompress data.|
 
 ## Build from C source locally via [ppkg](https://github.com/leleliu008/ppkg)
@@ -129,6 +129,7 @@ MY_FORMULA_DIR="$(brew --repository)/Library/Taps/leleliu008/homebrew-xcpkg/Form
 install -d  "$MY_FORMULA_DIR/"
 mv xcpkg.rb "$MY_FORMULA_DIR/"
 
+brew trust leleliu008/xcpkg
 brew install xcpkg
 ```
 
@@ -136,7 +137,7 @@ brew install xcpkg
 
 **Caveats:** Please do NOT place your own files under `~/.xcpkg` directory, as xcpkg will change (remove, modify, override) files under `~/.xcpkg` directory without notice by default.
 
-You are allowed to change this by setting `XCPKG_HOME` envionment variable.
+You are allowed to change this by setting `XCPKG_HOME` environment variable.
 
 ## xcpkg command usage
 
@@ -495,7 +496,7 @@ You are allowed to change this by setting `XCPKG_HOME` envionment variable.
     export XCPKG_XTRACE=1
     ```
 
-- **XCPKG_DEFAULT_TARGET**
+- **XCPKG_TARGET**
 
     Some ACTIONs of xcpkg are associated with an installed package which need `PACKAGE-SPEC` to be specified.
 
@@ -511,18 +512,17 @@ You are allowed to change this by setting `XCPKG_HOME` envionment variable.
 
     **TARGET-PLATFORM-VERSION** : indicates which platform version was built with.
 
-    To simplify the usage, you are allowed to omit `<TARGET-PLATFORM>/`. If `<TARGET-PLATFORM>/` is omitted, environment variable `XCPKG_DEFAULT_TARGET` would be checked, if this environment variable is not set, then your current running platform target will be used as the default.
+    To simplify the usage, you are allowed to omit `<TARGET-PLATFORM>/`. If `<TARGET-PLATFORM>/` is omitted, environment variable `XCPKG_TARGET` would be checked, if this environment variable is not set, then your current running platform target will be used as the default.
 
     **Example**:
 
     ```bash
-    export XCPKG_DEFAULT_TARGET=MacOSX-10.15-x86_64
+    export XCPKG_TARGET=MacOSX-10.15-x86_64
     ```
 
-- **XCPKG_FORMULA_SEARCH_DIRS**
+- **XCPKG_FORMULA_DIRS**
 
-    colon-seperated list of directories to search formulas.
-
+    colon-separated list of directories to search formulas.
 
 ## environment variables unset by this software
 
@@ -624,7 +624,7 @@ A xcpkg formula's file content only has one level mapping and shall/might have t
 |`reslist`|`LIST`|A LF-delimited list of formatted TEXTs. each TEXT has format: `<res-sha>\|<res-url>[\|res-uri][\|unpack-dir][\|N]`. `unpack-dir` is relative to `$PACKAGE_WORKING_DIR/res`, default value is empty. `N` is `--strip-components=N`|
 ||||
 |`dep-pkg`|`LIST`|A space-separated list of   `xcpkg packages` depended by this package when installing and/or runtime, which will be installed via [xcpkg](https://github.com/leleliu008/xcpkg).|
-|`dep-lib`|`LIST`|A space-separated list of `pkg-config` packages needed by this package when installing.<br>each of them will be calculated via `pkg-config --libs-only-l ` then passed to the linker.|
+|`dep-lib`|`LIST`|A space-separated list of `pkg-config` packages needed by this package when installing.<br>each of them will be calculated via `pkg-config --libs-only-l` then passed to the linker.|
 |`dep-upp`|`LIST`|A space-separated list of   `uppm packages` depended by this package when installing and/or runtime, which will be installed via [uppm](https://github.com/leleliu008/uppm).|
 |`dep-plm`|`LIST`|A space-separated list of    `perl modules` depended by this package when installing and/or runtime, which will be installed via [cpan](https://metacpan.org/dist/CPAN/view/scripts/cpan).|
 |`dep-pip`|`LIST`|A space-separated list of `python packages` depended by this package when installing and/or runtime, which will be installed via [pip](https://github.com/pypa/pip).|
@@ -654,7 +654,7 @@ A xcpkg formula's file content only has one level mapping and shall/might have t
 ||||
 |`bindenv`|`LIST`|A LF-delimited list of formatted TEXTs. each TEXT has format: `<ENV>=<VALUE>`. `%s` in `<VALUE>` represents the install directory.<br>`xcpkg` will bind these environment variables to executables while you are running `xcpkg bundle`.|
 ||||
-|`wrapper`|`LIST`|A LF-delimited list of formatted TEXTs. each TEXT has format:  `<SRC>\|<DST>`. e.g. `bear.c\|bin/` means that `xcpkg` will fetch `bear.c` from https://raw.githubusercontent.com/leleliu008/xcpkg-formula-repository-official-core/refs/heads/master/wrappers/bear.c then install it to `$PACKAGE_INSTALL_DIR/bin/` directory.<br>`xcpkg` will use these C source files to build the corresponding wrappers rather than a generic one while you are running `xcpkg bundle`.|
+|`wrapper`|`LIST`|A LF-delimited list of formatted TEXTs. each TEXT has format:  `<SRC>\|<DST>`. e.g. `bear.c\|bin/` means that `xcpkg` will fetch `bear.c` from <https://raw.githubusercontent.com/leleliu008/xcpkg-formula-repository-official-core/refs/heads/master/wrappers/bear.c> then install it to `$PACKAGE_INSTALL_DIR/bin/` directory.<br>`xcpkg` will use these C source files to build the corresponding wrappers rather than a generic one while you are running `xcpkg bundle`.|
 ||||
 |`caveats`|`TEXT`|plain text to be displayed after installing.|
 
@@ -665,7 +665,7 @@ A xcpkg formula's file content only has one level mapping and shall/might have t
 
 **phases of a package's installation:**
 
-```
+```text
  process-0      process-1      process-2      process-3     process-0
 ┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐
 │ dosetup │ -> │ dofetch │ -> │ do12345 │ -> │ dopatch │
@@ -807,7 +807,7 @@ A xcpkg formula's file content only has one level mapping and shall/might have t
 
 a typical hierarchical structure of a xcpkg formula repository looks like below:
 
-```
+```tree
 XCPKGFormulaRepoName
 ├── formula
 │   ├── packageA.yml
@@ -841,7 +841,7 @@ If a xcpkg formula repository is `disabled`, which means xcpkg would not search 
 
 ## xcpkg formula repository management
 
-run `xcpkg formula-repo-add ` command to create a new formula repository locally from an exsting remote git repository.
+run `xcpkg formula-repo-add` command to create a new formula repository locally from an existing remote git repository.
 
 run `xcpkg formula-repo-init` command to create a new formula repository locally without taking any further action.
 

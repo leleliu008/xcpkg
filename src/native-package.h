@@ -55,6 +55,6 @@ int install_native_package(
 
         const size_t njobs,
         const XCPKGInstallOptions * installOptions,
-        const NativePackageInstalledCallback callbak);
+        const NativePackageInstalledCallback callback);
 
 #endif

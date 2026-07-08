@@ -4,7 +4,7 @@
 
 #include "xcpkg.h"
 
-int xcpkg_inspect_target_platform_spec(const char * targetPlatformSpec, int * hypenIndex1P, int * hypenIndex2P) {
+int xcpkg_inspect_target_platform_spec(const char * targetPlatformSpec, int * hyphenIndex1P, int * hyphenIndex2P) {
     if (targetPlatformSpec == NULL) {
         return XCPKG_ERROR_ARG_IS_NULL;
     }
@@ -17,8 +17,8 @@ int xcpkg_inspect_target_platform_spec(const char * targetPlatformSpec, int * hy
 
     const char * p = targetPlatformSpec;
 
-    int hypenIndex1 = -1;
-    int hypenIndex2 = -1;
+    int hyphenIndex1 = -1;
+    int hyphenIndex2 = -1;
 
     //////////////////////////////////////////////
 
@@ -29,7 +29,7 @@ int xcpkg_inspect_target_platform_spec(const char * targetPlatformSpec, int * hy
         }
 
         if (p[i] == '-') {
-            hypenIndex1 = i;
+            hyphenIndex1 = i;
 
             int support = 0;
 
@@ -85,7 +85,7 @@ int xcpkg_inspect_target_platform_spec(const char * targetPlatformSpec, int * hy
 
         if (p[i] == '-') {
             p += i + 1;
-            hypenIndex2 = i;
+            hyphenIndex2 = i;
             break;
         }
 
@@ -108,8 +108,8 @@ int xcpkg_inspect_target_platform_spec(const char * targetPlatformSpec, int * hy
         }
     }
 
-    (*hypenIndex1P) = hypenIndex1;
-    (*hypenIndex2P) = hypenIndex2;
+    (*hyphenIndex1P) = hyphenIndex1;
+    (*hyphenIndex2P) = hyphenIndex2;
 
     return XCPKG_OK;
 }

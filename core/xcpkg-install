@@ -662,10 +662,10 @@ cmakew() {
     unset CMAKE_EXTRA_ARGS
     unset CMAKE_BUILD_TARGETS
     unset CMAKE_INSTALL_COMPONENTS
-    unset CMAKE_BUILD_STATIC_SHARED_LIBRARY_SEPARATEDLY
+    unset CMAKE_BUILD_STATIC_SHARED_LIBRARY_SEPARATELY
 
     if [ "$1" = 2 ] ; then
-        CMAKE_BUILD_STATIC_SHARED_LIBRARY_SEPARATEDLY=1
+        CMAKE_BUILD_STATIC_SHARED_LIBRARY_SEPARATELY=1
         shift
     fi
 
@@ -703,7 +703,7 @@ cmakew() {
         shift
     done
 
-    if [ "$CMAKE_BUILD_STATIC_SHARED_LIBRARY_SEPARATEDLY" = 1 ] ; then
+    if [ "$CMAKE_BUILD_STATIC_SHARED_LIBRARY_SEPARATELY" = 1 ] ; then
         cmakew_internal $CMAKE_EXTRA_ARGS -DBUILD_SHARED_LIBS=OFF
         cmakew_internal $CMAKE_EXTRA_ARGS -DBUILD_SHARED_LIBS=ON
     else
@@ -1692,20 +1692,20 @@ EOF
     fi
 
     echo "__check_needed_dylibs $1 $2"
-    NEEDEDs=$(otool -l "$1" | grep LC_LOAD_DYLIB -A2 | grep name | sed 's|^[[:space:]]*||' | cut -d ' ' -f2)
+    NEEDED_DYLIBS=$(otool -l "$1" | grep LC_LOAD_DYLIB -A2 | grep name | sed 's|^[[:space:]]*||' | cut -d ' ' -f2)
 
-    if [ -z "$NEEDEDs" ] ; then
+    if [ -z "$NEEDED_DYLIBS" ] ; then
         abort 1 "no needed shared libraries set for $1"
     fi
 
     if [ "$LOG_LEVEL" -ge "$LOG_LEVEL_VERBOSE" ] ; then
         cat <<EOF
 FILEPATH = $1
-NEEDEDs  = $NEEDEDs
+NEEDED_DYLIBS  = $NEEDED_DYLIBS
 EOF
     fi
 
-    for NEEDED in $NEEDEDs
+    for NEEDED in $NEEDED_DYLIBS
     do
         case $NEEDED in
             /usr/lib/lib*.dylib)

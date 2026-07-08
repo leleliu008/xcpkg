@@ -160,7 +160,7 @@
         [0;94m--target=<TARGET>[0m
             specify the target to be built for.
 
-            If this option is unspecified, the environment variable [0;31mXCPKG_DEFAULT_TARGET[0m is honored, if the environment variable XCPKG_DEFAULT_TARGET is not set, <TARGET> will be same as your current running operation system.
+            If this option is unspecified, the environment variable [0;31mXCPKG_TARGET[0m is honored, if the environment variable XCPKG_TARGET is not set, <TARGET> will be same as your current running operation system.
 
         [0;94m--developer-dir=<DEVELOPER_DIR>[0m
             specify the Xcode developer directory.
@@ -363,7 +363,7 @@
 [0m    print environment variables.
 
 [0;32mxcpkg util http-fetch <URL> [-v] [--uri=<URI>] [--sha256=<SHA256SUM>] [-o <OUTPUT-PATH>]
-[0m    fetch data via HTTP/HTTPS protocal.
+[0m    fetch data via HTTP/HTTPS protocol.
 
 [0;32mxcpkg util git-sync <REMOTE-URL> [-v] [-C <REPOSITORY-PATH>] [--ref=<REF>] [--depth=<N>] [-B <CHECKOUT-BRANCH-NAME>]
 [0m    sync git repository from server.

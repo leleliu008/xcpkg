@@ -39,22 +39,22 @@ int xcpkg_inspect_package(const char * package, const char * userSpecifiedTarget
         }
 
         if (userSpecifiedTargetPlatformSpec == NULL) {
-            const char * XCPKG_DEFAULT_TARGET = getenv("XCPKG_DEFAULT_TARGET");
+            const char * XCPKG_TARGET = getenv("XCPKG_TARGET");
 
-            if (XCPKG_DEFAULT_TARGET == NULL || XCPKG_DEFAULT_TARGET[0] == '\0') {
+            if (XCPKG_TARGET == NULL || XCPKG_TARGET[0] == '\0') {
                 ret = xcpkg_get_native_platform_spec(targetPlatformSpec, 50, NULL);
 
                 if (ret != XCPKG_OK) {
                     return XCPKG_ERROR;
                 }
             } else {
-                int ret = xcpkg_check_if_the_given_argument_matches_platform_spec_pattern(XCPKG_DEFAULT_TARGET);
+                int ret = xcpkg_check_if_the_given_argument_matches_platform_spec_pattern(XCPKG_TARGET);
 
                 if (ret != XCPKG_OK) {
                     return ret;
                 }
 
-                (*targetPlatformSpecP) = XCPKG_DEFAULT_TARGET;
+                (*targetPlatformSpecP) = XCPKG_TARGET;
             }
         } else {
             int ret = xcpkg_check_if_the_given_argument_matches_platform_spec_pattern(userSpecifiedTargetPlatformSpec);

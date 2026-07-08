@@ -18,9 +18,9 @@ int sysinfo_arch(char * buf, size_t bufCapacity) {
         return -1;
     }
 
-    size_t capcity = strlen(uts.machine) + 1;
+    size_t capacity = strlen(uts.machine) + 1;
 
-    strncpy(buf, uts.machine, (bufCapacity > capcity) ? capcity : bufCapacity);
+    strncpy(buf, uts.machine, (bufCapacity > capacity) ? capacity : bufCapacity);
 
     return 0;
 }

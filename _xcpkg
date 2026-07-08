@@ -44,7 +44,7 @@ _xcpkg_actions=(
 _xcpkg_util_actions=(
     'which:find command in PATH.'
     'printenv:print environment variables.'
-    'http-fetch:fetch data via HTTP/HTTPS protocal.'
+    'http-fetch:fetch data via HTTP/HTTPS protocol.'
     'git-sync:sync local git repository with remote server.'
     'uncompress:uncompress the given archive file.'
     'sha256sum:calculate sha256sum of file.'

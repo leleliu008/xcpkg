@@ -48,7 +48,7 @@ int xcpkg_formula_repo_list(XCPKGFormulaRepoList * * out) {
         return XCPKG_ERROR;
     }
 
-    size_t capcity = 5;
+    size_t capacity = 5;
 
     XCPKGFormulaRepoList * formulaRepoList = NULL;
 
@@ -126,7 +126,7 @@ int xcpkg_formula_repo_list(XCPKGFormulaRepoList * * out) {
                 goto finalize;
             }
 
-            formulaRepoList->repos = (XCPKGFormulaRepo**)calloc(capcity, sizeof(XCPKGFormulaRepo*));
+            formulaRepoList->repos = (XCPKGFormulaRepo**)calloc(capacity, sizeof(XCPKGFormulaRepo*));
 
             if (formulaRepoList->repos == NULL) {
                 xcpkg_formula_repo_free(formulaRepo);
@@ -136,9 +136,9 @@ int xcpkg_formula_repo_list(XCPKGFormulaRepoList * * out) {
             }
         }
 
-        if (capcity == formulaRepoList->size) {
-            capcity += 5;
-            XCPKGFormulaRepo ** formulaRepoArray = (XCPKGFormulaRepo**)realloc(formulaRepoList->repos, capcity * sizeof(XCPKGFormulaRepo*));
+        if (capacity == formulaRepoList->size) {
+            capacity += 5;
+            XCPKGFormulaRepo ** formulaRepoArray = (XCPKGFormulaRepo**)realloc(formulaRepoList->repos, capacity * sizeof(XCPKGFormulaRepo*));
 
             if (formulaRepoArray == NULL) {
                 xcpkg_formula_repo_free(formulaRepo);
