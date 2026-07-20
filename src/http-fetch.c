@@ -245,7 +245,7 @@ static inline int xcpkg_http_fetch_to_proxy(const char * to, const char * url, c
     }
 
     if (uri != NULL && uri[0] != '\0') {
-        ret = xcpkg_http_fetch_to(uri, to, verbose, verbose);
+        ret = xcpkg_http_fetch_to(uri, to, verbose);
 
         if (ret == XCPKG_OK) {
             return XCPKG_OK;
@@ -301,7 +301,7 @@ static inline int xcpkg_http_fetch_to_proxy(const char * to, const char * url, c
             q++;
         }
 
-        ret = xcpkg_http_fetch_to(URL, to, verbose, verbose);
+        ret = xcpkg_http_fetch_to(URL, to, verbose);
 
         if (ret == XCPKG_OK) {
             return XCPKG_OK;
@@ -344,7 +344,7 @@ static inline int xcpkg_http_fetch_to_proxy(const char * to, const char * url, c
         q++;
     }
 
-    ret = xcpkg_http_fetch_to(URL, to, verbose, verbose);
+    ret = xcpkg_http_fetch_to(URL, to, verbose);
 
     if (ret == XCPKG_OK) {
         return XCPKG_OK;
@@ -385,7 +385,7 @@ static inline int xcpkg_http_fetch_to_proxy(const char * to, const char * url, c
         return XCPKG_ERROR;
     }
 
-    return xcpkg_http_fetch_to(URl, to, verbose, verbose);
+    return xcpkg_http_fetch_to(URl, to, verbose);
 }
 
 int xcpkg_http_fetch(const char * url, const char * uri, const char * expectedSHA256SUM, const char * outputPath, const bool verbose) {
