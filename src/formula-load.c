@@ -1223,7 +1223,7 @@ static inline int xcpkg_formula_check(XCPKGFormula * formula, const char * formu
     if ((formula->web_url == NULL || formula->git_url == NULL) && formula->src_url != NULL) {
         xcpkg_formula_amend amends[] = {xcpkg_formula_amend_x_org, xcpkg_formula_amend_gnu_org, xcpkg_formula_amend_gnome_org, NULL};
 
-        for (int i = 0; ; i++) {
+        for (int i = 0; amends[i] != NULL; i++) {
             ret = amends[i](formula, formulaFilePath);
 
             if (ret == XCPKG_FORMULA_AMEND_MISMATCHED) {
