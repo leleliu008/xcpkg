@@ -35,6 +35,8 @@ jobs:
       - run: rm -rf bin/
       - run: install -d bin/
 
+      - run: rm -rf ~/.xcpkg/repos.d/
+
       - run: ln -s ~/.xcpkg/installed/MacOSX-*-arm64/xcpkg/bin/xcpkg bin/
 
       - run: bin/xcpkg
