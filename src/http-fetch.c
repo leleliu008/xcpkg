@@ -208,8 +208,6 @@ int xcpkg_http_fetch_to_file(const char * url, const char * outputFilePath, cons
     return ret;
 }
 
-typedef int (*xcpkg_http_fetch_to_fn)(const char * url, const void * to, const bool verbose, const bool showProgress);
-
 static inline int startswith(const char * s1, const char * s2) {
     if (s1 == NULL || s2 == NULL) {
         return 1;
@@ -227,7 +225,19 @@ static inline int startswith(const char * s1, const char * s2) {
     return 0;
 }
 
-static inline int xcpkg_http_fetch_to_proxy(xcpkg_http_fetch_to_fn xcpkg_http_fetch_to, const void * to, const char * url, const char * uri, const bool verbose) {
+static inline int xcpkg_http_fetch_to(const char * to, const char * url, const bool verbose) {
+    if (to[0] == '-' && to[1] == '\0') {
+        return xcpkg_http_fetch_to_stream(url, stdout, verbose, verbose);
+    }
+
+    if (to[0] == '+' && to[1] == '\0') {
+        return xcpkg_http_fetch_to_stream(url, stderr, verbose, verbose);
+    }
+
+    return xcpkg_http_fetch_to_file(url, to, verbose, verbose);
+}
+
+static inline int xcpkg_http_fetch_to_proxy(const char * to, const char * url, const char * uri, const bool verbose) {
     int ret = xcpkg_http_fetch_to(url, to, verbose, verbose);
 
     if (ret == XCPKG_OK) {
@@ -400,11 +410,11 @@ int xcpkg_http_fetch(const char * url, const char * uri, const char * expectedSH
     //////////////////////////////////////////////////////////////////////////
 
     if (outputPath == NULL || outputPath[0] == '\0' || (outputPath[0] == '-' && outputPath[1] == '\0') || strcmp(outputPath, "/dev/stdout") == 0) {
-        return xcpkg_http_fetch_to_proxy((xcpkg_http_fetch_to_fn)xcpkg_http_fetch_to_stream, stdout, url, uri, verbose);
+        return xcpkg_http_fetch_to_proxy("-", url, uri, verbose);
     }
 
     if (strcmp(outputPath, "/dev/stderr") == 0) {
-        return xcpkg_http_fetch_to_proxy((xcpkg_http_fetch_to_fn)xcpkg_http_fetch_to_stream, stderr, url, uri, verbose);
+        return xcpkg_http_fetch_to_proxy("+", url, uri, verbose);
     }
 
     char outputFilePath[PATH_MAX];
@@ -539,7 +549,7 @@ int xcpkg_http_fetch(const char * url, const char * uri, const char * expectedSH
 
     //////////////////////////////////////////////////////////////////////////
 
-    ret = xcpkg_http_fetch_to_proxy((xcpkg_http_fetch_to_fn)xcpkg_http_fetch_to_file, tmpFilePath, url, uri, verbose);
+    ret = xcpkg_http_fetch_to_proxy(tmpFilePath, url, uri, verbose);
 
     if (ret != XCPKG_OK) {
         return ret;

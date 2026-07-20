@@ -8,8 +8,6 @@
 
 #include <yaml.h>
 
-#include "core/regex/regex.h"
-
 #include "xcpkg.h"
 
 static inline __attribute__((always_inline)) void string_buffer_append(char buf[], size_t * bufLengthP, const char * s) {
