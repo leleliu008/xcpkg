@@ -950,6 +950,266 @@ loop:
     }
 }
 
+#define XCPKG_FORMULA_AMEND_MISMATCHED 1000
+
+static int xcpkg_formula_amend_gnu_org(XCPKGFormula * formula, const char * formulaFilePath) {
+    // https://ftp.gnu.org/gnu/findutils/findutils-4.10.0.tar.xz
+    if (strncmp(formula->src_url, "https://ftp.gnu.org/gnu/", 24) != 0) {
+        return XCPKG_FORMULA_AMEND_MISMATCHED;
+    }
+
+    char * p = formula->src_url + 24;
+
+    for (size_t i = 0U; ; i++) {
+        if (p[i] == '\0') {
+            fprintf(stderr, "scheme error in formula file: %s : src-url: %s seems not right.\n", formulaFilePath, formula->src_url);
+            return XCPKG_ERROR_FORMULA_SCHEME;
+        }
+
+        if (p[i] != '/') {
+            continue;
+        }
+
+        p[i] = '\0';
+
+        if (formula->web_url == NULL) {
+            size_t n = 30U + i;
+
+            char * q = (char*)malloc(n);
+
+            if (q == NULL) {
+                return XCPKG_ERROR_MEMORY_ALLOCATE;
+            }
+
+            int ret = snprintf(q, n, "https://www.gnu.org/software/%s", p);
+
+            if (ret < 0) {
+                perror(NULL);
+                free(q);
+                return XCPKG_ERROR;
+            }
+
+            formula->web_url = q;
+            formula->web_url_is_calculated = true;
+        }
+
+        if (formula->git_url == NULL) {
+            size_t n = 38U + i;
+
+            char * q = (char*)malloc(n);
+
+            if (q == NULL) {
+                return XCPKG_ERROR_MEMORY_ALLOCATE;
+            }
+
+            int ret = snprintf(q, n, "https://git.savannah.gnu.org/git/%s.git", p);
+
+            if (ret < 0) {
+                perror(NULL);
+                free(q);
+                return XCPKG_ERROR;
+            }
+
+            formula->git_url = q;
+            formula->git_url_is_calculated = true;
+        }
+
+        p[i] = '/';
+
+        break;
+    }
+}
+
+static int xcpkg_formula_amend_gnome_org(XCPKGFormula * formula, const char * formulaFilePath) {
+    if (strncmp(formula->src_url, "https://download.gnome.org/sources/", 35) != 0) {
+        return XCPKG_FORMULA_AMEND_MISMATCHED;
+    }
+
+    char * p = formula->src_url + 35;
+
+    for (size_t i = 0U; ; i++) {
+        if (p[i] == '\0') {
+            fprintf(stderr, "scheme error in formula file: %s : src-url: %s seems not right.\n", formulaFilePath, formula->src_url);
+            return XCPKG_ERROR_FORMULA_SCHEME;
+        }
+
+        if (p[i] != '/') {
+            continue;
+        }
+
+        p[i] = '\0';
+
+        if (formula->git_url == NULL) {
+            size_t n = 32U + i;
+
+            char * q = (char*)malloc(n);
+
+            if (q == NULL) {
+                return XCPKG_ERROR_MEMORY_ALLOCATE;
+            }
+
+            int ret = snprintf(q, n, "https://gitlab.gnome.org/GNOME/%s", p);
+
+            if (ret < 0) {
+                perror(NULL);
+                free(q);
+                return XCPKG_ERROR;
+            }
+
+            formula->git_url = q;
+            formula->git_url_is_calculated = true;
+        }
+
+        if (formula->git_uri == NULL) {
+            size_t n = 26U + i;
+
+            char * q = (char*)malloc(n);
+
+            if (q == NULL) {
+                return XCPKG_ERROR_MEMORY_ALLOCATE;
+            }
+
+            int ret = snprintf(q, n, "https://github.com/GNOME/%s", p);
+
+            if (ret < 0) {
+                perror(NULL);
+                free(q);
+                return XCPKG_ERROR;
+            }
+
+            formula->git_uri = q;
+            formula->git_uri_is_calculated = true;
+        }
+
+        p[i] = '/';
+
+        break;
+    }
+}
+
+static int xcpkg_formula_amend_x_org(XCPKGFormula * formula, const char * formulaFilePath) {
+    if (strncmp(formula->src_url, "https://www.x.org/archive/individual/", 37) != 0) {
+        return XCPKG_FORMULA_AMEND_MISMATCHED;
+    }
+
+    if (formula->git_url == NULL) {
+        char * p = formula->src_url + 37;
+
+        int j = -1;
+
+        for (size_t i = 0U; ; i++) {
+            if (p[i] == '\0') {
+                break;
+            }
+
+            if (p[i] == '-') {
+                j = i;
+            }
+        }
+
+        if (j == -1) {
+            fprintf(stderr, "scheme error in formula file: %s : src-url: %s seems not right.\n", formulaFilePath, formula->src_url);
+            return XCPKG_ERROR_FORMULA_SCHEME;
+        }
+
+        p[j] = '\0';
+
+        size_t n = 37U + j;
+
+        char * q = (char*)malloc(n);
+
+        if (q == NULL) {
+            return XCPKG_ERROR_MEMORY_ALLOCATE;
+        }
+
+        int ret = snprintf(q, n, "https://gitlab.freedesktop.org/xorg/%s", p);
+
+        if (ret < 0) {
+            perror(NULL);
+            free(q);
+            return XCPKG_ERROR;
+        }
+
+        formula->git_url = q;
+        formula->git_url_is_calculated = true;
+
+        p[j] = '-';
+    }
+
+    if (formula->web_url == NULL) {
+        char * p = strdup("https://www.x.org/");
+
+        if (p == NULL) {
+            return XCPKG_ERROR_MEMORY_ALLOCATE;
+        }
+
+        formula->web_url = p;
+        formula->web_url_is_calculated = true;
+    }
+
+    return 0;
+}
+
+static int xcpkg_formula_amend_prefix(XCPKGFormula * formula, const char * formulaFilePath, const char * prefix) {
+    size_t n = strlen(prefix);
+
+    if (strncmp(formula->src_url, prefix, n) != 0) {
+        return XCPKG_FORMULA_AMEND_MISMATCHED;
+    }
+
+    if (formula->git_url == NULL) {
+        char * p = formula->src_url + n;
+
+        size_t j = 0U;
+        size_t k = 0U;
+
+        for (size_t i = 0U; ; i++) {
+            if (p[i] == '\0') {
+                fprintf(stderr, "scheme error in formula file: %s : src-url: %s seems not right.\n", formulaFilePath, formula->src_url);
+                return XCPKG_ERROR_FORMULA_SCHEME;
+            }
+
+            if (p[i] == '/') {
+                j = i;
+
+                k++;
+
+                if (k == 2U) {
+                    break;
+                }
+            }
+        }
+
+        p[j] = '\0';
+
+        char * q = strndup(formula->src_url, n + j);
+
+        if (q == NULL) {
+            return XCPKG_ERROR_MEMORY_ALLOCATE;
+        }
+
+        p[j] = '/';
+
+        formula->git_url = q;
+        formula->git_url_is_calculated = true;
+    }
+
+    if (formula->web_url == NULL) {
+        char * p = strdup(formula->git_url);
+
+        if (p == NULL) {
+            return XCPKG_ERROR_MEMORY_ALLOCATE;
+        }
+
+        formula->web_url = p;
+        formula->web_url_is_calculated = true;
+    }
+
+    return 0;
+}
+
+typedef int (*xcpkg_formula_amend)(XCPKGFormula * formula, const char * formulaFilePath);
+
 static inline int xcpkg_formula_check(XCPKGFormula * formula, const char * formulaFilePath) {
     if (formula->summary == NULL) {
         fprintf(stderr, "scheme error in formula file: %s : summary mapping not found.\n", formulaFilePath);
@@ -958,207 +1218,49 @@ static inline int xcpkg_formula_check(XCPKGFormula * formula, const char * formu
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    if (formula->web_url == NULL || formula->git_url == NULL) {
-        if (formula->src_url != NULL) {
-            if (strncmp(formula->src_url, "https://ftp.gnu.org/gnu/", 24) == 0) {
-                char * p = formula->src_url + 24;
+    int ret;
 
-                for (size_t i = 0U; ; i++) {
-                    if (p[i] == '\0') {
-                        fprintf(stderr, "scheme error in formula file: %s : src-url: %s seems not right.\n", formulaFilePath, formula->src_url);
-                        return XCPKG_ERROR_FORMULA_SCHEME;
-                    }
+    if ((formula->web_url == NULL || formula->git_url == NULL) && formula->src_url != NULL) {
+        xcpkg_formula_amend amends[] = {xcpkg_formula_amend_x_org, xcpkg_formula_amend_gnu_org, xcpkg_formula_amend_gnome_org, NULL};
 
-                    if (p[i] == '/') {
-                        p[i] = '\0';
+        for (int i = 0; ; i++) {
+            ret = amends[i](formula, formulaFilePath);
 
-                        if (formula->web_url == NULL) {
-                            size_t n = 30U + i;
-
-                            char * q = (char*)malloc(n);
-
-                            if (q == NULL) {
-                                return XCPKG_ERROR_MEMORY_ALLOCATE;
-                            }
-
-                            int ret = snprintf(q, n, "https://www.gnu.org/software/%s", p);
-
-                            if (ret < 0) {
-                                perror(NULL);
-                                free(q);
-                                return XCPKG_ERROR;
-                            }
-
-                            formula->web_url = q;
-                            formula->web_url_is_calculated = true;
-                        }
-
-                        if (formula->git_url == NULL) {
-                            size_t n = 38U + i;
-
-                            char * q = (char*)malloc(n);
-
-                            if (q == NULL) {
-                                return XCPKG_ERROR_MEMORY_ALLOCATE;
-                            }
-
-                            int ret = snprintf(q, n, "https://git.savannah.gnu.org/git/%s.git", p);
-
-                            if (ret < 0) {
-                                perror(NULL);
-                                free(q);
-                                return XCPKG_ERROR;
-                            }
-
-                            formula->git_url = q;
-                            formula->git_url_is_calculated = true;
-                        }
-
-                        p[i] = '/';
-
-                        break;
-                    }
-                }
-            } else if (strncmp(formula->src_url, "https://download.gnome.org/sources/", 35) == 0) {
-                char * p = formula->src_url + 35;
-
-                for (size_t i = 0U; ; i++) {
-                    if (p[i] == '\0') {
-                        fprintf(stderr, "scheme error in formula file: %s : src-url: %s seems not right.\n", formulaFilePath, formula->src_url);
-                        return XCPKG_ERROR_FORMULA_SCHEME;
-                    }
-
-                    if (p[i] == '/') {
-                        p[i] = '\0';
-
-                        if (formula->git_url == NULL) {
-                            size_t n = 32U + i;
-
-                            char * q = (char*)malloc(n);
-
-                            if (q == NULL) {
-                                return XCPKG_ERROR_MEMORY_ALLOCATE;
-                            }
-
-                            int ret = snprintf(q, n, "https://gitlab.gnome.org/GNOME/%s", p);
-
-                            if (ret < 0) {
-                                perror(NULL);
-                                free(q);
-                                return XCPKG_ERROR;
-                            }
-
-                            formula->git_url = q;
-                            formula->git_url_is_calculated = true;
-                        }
-
-                        if (formula->git_uri == NULL) {
-                            size_t n = 26U + i;
-
-                            char * q = (char*)malloc(n);
-
-                            if (q == NULL) {
-                                return XCPKG_ERROR_MEMORY_ALLOCATE;
-                            }
-
-                            int ret = snprintf(q, n, "https://github.com/GNOME/%s", p);
-
-                            if (ret < 0) {
-                                perror(NULL);
-                                free(q);
-                                return XCPKG_ERROR;
-                            }
-
-                            formula->git_uri = q;
-                            formula->git_uri_is_calculated = true;
-                        }
-
-                        p[i] = '/';
-
-                        break;
-                    }
-                }
-            } else if (strncmp(formula->src_url, "https://www.x.org/archive/individual/", 37) == 0) {
-                if (formula->git_url == NULL) {
-                    char * p = formula->src_url + 37;
-
-                    int j = -1;
-
-                    for (size_t i = 0U; ; i++) {
-                        if (p[i] == '\0') {
-                            break;
-                        }
-
-                        if (p[i] == '-') {
-                            j = i;
-                        }
-                    }
-
-                    if (j == -1) {
-                        fprintf(stderr, "scheme error in formula file: %s : src-url: %s seems not right.\n", formulaFilePath, formula->src_url);
-                        return XCPKG_ERROR_FORMULA_SCHEME;
-                    }
-
-                    p[j] = '\0';
-
-                    size_t n = 37U + j;
-
-                    char * q = (char*)malloc(n);
-
-                    if (q == NULL) {
-                        return XCPKG_ERROR_MEMORY_ALLOCATE;
-                    }
-
-                    int ret = snprintf(q, n, "https://gitlab.freedesktop.org/xorg/%s", p);
-
-                    if (ret < 0) {
-                        perror(NULL);
-                        free(q);
-                        return XCPKG_ERROR;
-                    }
-
-                    formula->git_url = q;
-                    formula->git_url_is_calculated = true;
-
-                    p[j] = '-';
-                }
-
-                if (formula->web_url == NULL) {
-                    char * p = strdup("https://www.x.org/");
-
-                    if (p == NULL) {
-                        return XCPKG_ERROR_MEMORY_ALLOCATE;
-                    }
-
-                    formula->web_url = p;
-                    formula->web_url_is_calculated = true;
-                }
+            if (ret == XCPKG_FORMULA_AMEND_MISMATCHED) {
+                continue;
             }
 
+            if (ret == XCPKG_OK) {
+                break;
+            }
+
+            return ret;
+        }
+
+        if (ret == XCPKG_FORMULA_AMEND_MISMATCHED) {
+            const char* ps[] = {"https://github.com/", "https://gitlab.com/", "https://codeberg.org/", NULL};
+
+            for (int i = 0; ps[i] != NULL; i++) {
+                ret = xcpkg_formula_amend_prefix(formula, formulaFilePath, ps[i]);
+
+                if (ret == XCPKG_FORMULA_AMEND_MISMATCHED) {
+                    continue;
+                }
+
+                if (ret == XCPKG_OK) {
+                    break;
+                }
+
+                return ret;
+            }
         }
     }
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    if (formula->git_url == NULL) {
-        if (formula->src_url != NULL) {
-            char * p = regex_extract(formula->src_url, "https://git(hub|lab).com/[^/]*/[^/]*/");
-
-            if (p == NULL) {
-                if (errno != 0) {
-                    perror(NULL);
-                    return XCPKG_ERROR;
-                }
-            } else {
-                formula->git_url = p;
-                formula->git_url_is_calculated = true;
-            }
-        }
-    } else {
-        if ((formula->git_sha != NULL) && (strlen(formula->git_sha) != 40)) {
-            fprintf(stderr, "scheme error in formula file: %s : git-sha mapping's value's length must be 40.\n", formulaFilePath);
-            return XCPKG_ERROR_FORMULA_SCHEME;
-        }
+    if (formula->git_url != NULL && formula->git_sha != NULL && strlen(formula->git_sha) != 40) {
+        fprintf(stderr, "scheme error in formula file: %s : git-sha mapping's value's length must be 40.\n", formulaFilePath);
+        return XCPKG_ERROR_FORMULA_SCHEME;
     }
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1237,7 +1339,7 @@ static inline int xcpkg_formula_check(XCPKGFormula * formula, const char * formu
             if (!formula->src_is_dir) {
                 char version[20]; version[0] = '\0';
 
-                int ret = xcpkg_extract_version(formula->src_url, version, 20);
+                ret = xcpkg_extract_version(formula->src_url, version, 20);
 
                 if (ret != XCPKG_OK) {
                     return ret;
@@ -1257,7 +1359,7 @@ static inline int xcpkg_formula_check(XCPKGFormula * formula, const char * formu
         } else if (formula->git_url != NULL && formula->git_ref != NULL) {
             char version[20]; version[0] = '\0';
 
-            int ret = xcpkg_extract_version(formula->git_ref, version, 20);
+            ret = xcpkg_extract_version(formula->git_ref, version, 20);
 
             if (ret != XCPKG_OK) {
                 return ret;
@@ -1322,7 +1424,7 @@ static inline int xcpkg_formula_check(XCPKGFormula * formula, const char * formu
             formula->install = p;
         }
 
-        int ret = xcpkg_parse_bsystem(formula, dep_upp_extra_buf, &dep_upp_extra_buf_len);
+        ret = xcpkg_parse_bsystem(formula, dep_upp_extra_buf, &dep_upp_extra_buf_len);
 
         if (ret != XCPKG_OK) {
             return ret;
@@ -1390,7 +1492,7 @@ static inline int xcpkg_formula_check(XCPKGFormula * formula, const char * formu
                 return XCPKG_ERROR_MEMORY_ALLOCATE;
             }
 
-            int ret = snprintf(p, newLength, "%s %s", formula->dep_upp, dep_upp_extra_buf);
+            ret = snprintf(p, newLength, "%s %s", formula->dep_upp, dep_upp_extra_buf);
 
             if (ret < 0) {
                 perror(NULL);
@@ -1425,7 +1527,7 @@ static inline int xcpkg_formula_check(XCPKGFormula * formula, const char * formu
                 return XCPKG_ERROR_MEMORY_ALLOCATE;
             }
 
-            int ret = snprintf(p, newLength, "%s meson", formula->dep_pip);
+            ret = snprintf(p, newLength, "%s meson", formula->dep_pip);
 
             if (ret < 0) {
                 perror(NULL);

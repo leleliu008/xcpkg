@@ -1,0 +1,129 @@
+name: build with xcpkg
+
+on:
+  push:
+    branches: [ master, dev ]
+  pull_request:
+    branches: [ master, dev ]
+
+jobs:
+  ppkg:
+
+    strategy:
+      fail-fast: false
+      matrix:
+        version: [macos-15, macos-14, macos-26]
+
+    runs-on: ${{ matrix.version }}
+
+    steps:
+      - run: curl -LO https://github.com/leleliu008/test/releases/download/2023.10.08/xcpkg-0.30.0-macos-15.0-arm64.release.tar.xz
+      - run: /usr/bin/bsdtar xf xcpkg-0.30.0-macos-15.0-arm64.release.tar.xz --strip-components=1
+
+      - run: bin/xcpkg about
+      - run: bin/xcpkg sysinfo
+
+      - run: bin/xcpkg update
+
+      - run: |
+          cat >> ~/.xcpkg/repos.d/official-core/formula/xcpkg.yml <<EOF
+          git-sha: ${{ github.sha }}
+          EOF
+
+      - run: bin/xcpkg install xcpkg
+      - run: bin/xcpkg bundle  xcpkg .tar.xz
+
+      - run: rm -rf bin/
+
+      - run: tar vxf *.tar.xz --strip-components=1
+
+      - run: bin/xcpkg
+
+      - run: bin/xcpkg --help
+      - run: bin/xcpkg -h
+
+      - run: bin/xcpkg --version
+      - run: bin/xcpkg -V
+
+      - run: bin/xcpkg util printenv
+
+      - run: bin/xcpkg about
+      - run: bin/xcpkg about -v
+
+      - run: bin/xcpkg sysinfo
+
+      - run: bin/xcpkg completion zsh
+      - run: bin/xcpkg completion zsh -v
+
+      - run: bin/xcpkg formula-repo-list
+      - run: bin/xcpkg formula-repo-add official-core https://github.com/leleliu008/xcpkg-formula-repository-official-core
+      - run: bin/xcpkg formula-repo-list
+
+      - run: bin/xcpkg formula-repo-add my_repo https://github.com/leleliu008/xcpkg-formula-repository-official-core
+      - run: bin/xcpkg formula-repo-list
+      - run: bin/xcpkg formula-repo-del my_repo
+      - run: bin/xcpkg formula-repo-list
+
+      - run: bin/xcpkg update
+
+      - run: bin/xcpkg search lib
+      - run: bin/xcpkg search zip
+
+      - run: bin/xcpkg info libzip
+      - run: bin/xcpkg info libzip --yaml
+      - run: bin/xcpkg info libzip --json
+      - run: bin/xcpkg info libzip summary
+      - run: bin/xcpkg info libzip version
+      - run: bin/xcpkg info libzip license
+      - run: bin/xcpkg info libzip web-url
+      - run: bin/xcpkg info libzip src-url
+      - run: bin/xcpkg info libzip src-sha
+
+      - run: bin/xcpkg depends libzip
+      - run: bin/xcpkg depends libzip -t dot
+      - run: bin/xcpkg depends libzip -t box
+
+      - run: bin/xcpkg fetch gzip
+      - run: bin/xcpkg fetch gsed -v
+
+      - run: bin/xcpkg install libzip -v
+
+      - run: bin/xcpkg tree libzip
+
+      - run: bin/xcpkg show libzip --prefix
+      - run: bin/xcpkg show libzip --files
+      - run: bin/xcpkg info libzip --json
+      - run: bin/xcpkg info libzip --yaml
+      - run: bin/xcpkg show libzip builtat
+      - run: bin/xcpkg show libzip builtat-iso-8601
+      - run: bin/xcpkg show libzip builtat-rfc-3339
+      - run: bin/xcpkg info libzip version
+
+      - run: bin/xcpkg bundle libzip .tar.gz
+      - run: bin/xcpkg bundle libzip .tar.lz
+      - run: bin/xcpkg bundle libzip .tar.xz
+      - run: bin/xcpkg bundle libzip .tar.bz2
+      - run: bin/xcpkg bundle libzip .zip
+
+      - run: |
+          printf '%s\n' 'version: 1000' >> ~/.xcpkg/repos.d/official-core/formula/libzip.yml
+
+      - run: bin/xcpkg ls-available
+      - run: bin/xcpkg ls-installed
+      - run: bin/xcpkg ls-outdated
+
+      - run: bin/xcpkg is-available libzip
+      - run: bin/xcpkg is-installed libzip
+      - run: bin/xcpkg is-outdated  libzip
+
+      - run: bin/xcpkg upgrade   libzip
+      - run: bin/xcpkg reinstall libzip
+      - run: bin/xcpkg uninstall libzip
+
+      - run: bin/xcpkg formula-repo-list
+      - run: bin/xcpkg formula-repo-add my_repo https://github.com/leleliu008/xcpkg-formula-repository-official-core
+      - run: bin/xcpkg formula-repo-del my_repo
+
+      - run: bin/xcpkg cleanup
+
+      - run: bin/xcpkg upgrade-self
