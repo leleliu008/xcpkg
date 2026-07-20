@@ -1014,7 +1014,7 @@ static int xcpkg_formula_amend_gnu_org(XCPKGFormula * formula, const char * form
 
         p[i] = '/';
 
-        break;
+        return 0;
     }
 }
 
@@ -1081,7 +1081,7 @@ static int xcpkg_formula_amend_gnome_org(XCPKGFormula * formula, const char * fo
 
         p[i] = '/';
 
-        break;
+        return 0;
     }
 }
 
