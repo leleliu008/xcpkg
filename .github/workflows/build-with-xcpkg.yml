@@ -31,11 +31,11 @@ jobs:
           EOF
 
       - run: bin/xcpkg install xcpkg
-      - run: bin/xcpkg bundle  xcpkg .tar.xz
 
       - run: rm -rf bin/
+      - run: install -d bin/
 
-      - run: tar vxf *.tar.xz --strip-components=1
+      - run: ln -s ~/.xcpkg/installed/MacOSX-*-arm64/xcpkg/bin/xcpkg bin/
 
       - run: bin/xcpkg
 

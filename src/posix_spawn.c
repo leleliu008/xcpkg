@@ -1,9 +1,10 @@
+#include <stdio.h>
 #include <stddef.h>
 #include <stdarg.h>
 
 #include <spawn.h>
+#include <sys/wait.h>
 #include <crt_externs.h>
-#include <stdio.h>
 
 #include "core/log.h"
 
