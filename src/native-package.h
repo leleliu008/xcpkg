@@ -32,9 +32,9 @@ typedef struct {
     const char * srcUri;
     const char * srcSha;
 
-    const char * buildConfigureArgs;
+    const char * buildArgs;
 
-    int buildSystemType;
+    int buildSystem;
 
     int depPackageIDArray[10];
 } NativePackage;

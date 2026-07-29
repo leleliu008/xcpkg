@@ -134,21 +134,6 @@ int xcpkg_http_fetch_to_stream(const char * url, FILE * outputFile, const bool v
     //curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
     //curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L);
 
-    // https://www.openssl.org/docs/man1.1.1/man3/SSL_CTX_set_default_verify_paths.html
-    const char * const SSL_CERT_FILE = getenv("SSL_CERT_FILE");
-
-    if ((SSL_CERT_FILE != NULL) && (SSL_CERT_FILE[0] != '\0')) {
-        // https://curl.se/libcurl/c/CURLOPT_CAINFO.html
-        curl_easy_setopt(curl, CURLOPT_CAINFO, SSL_CERT_FILE);
-    }
-
-    const char * const SSL_CERT_DIR = getenv("SSL_CERT_DIR");
-
-    if ((SSL_CERT_DIR != NULL) && (SSL_CERT_DIR[0] != '\0')) {
-        // https://curl.se/libcurl/c/CURLOPT_CAPATH.html
-        curl_easy_setopt(curl, CURLOPT_CAPATH, SSL_CERT_DIR);
-    }
-
     ///////////////////////////////////////////////////////////
 
     struct curl_slist *list = NULL;
@@ -165,7 +150,6 @@ int xcpkg_http_fetch_to_stream(const char * url, FILE * outputFile, const bool v
 
     // https://curl.se/libcurl/c/libcurl-errors.html
     if (curlcode != CURLE_OK) {
-        fprintf(stderr, "SSL_CERT_FILE=%s\n", SSL_CERT_FILE);
         fprintf(stderr, "%s\n", curl_easy_strerror(curlcode));
 
         // https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Status

@@ -16,8 +16,11 @@ jobs:
 
     runs-on: ${{ matrix.version }}
 
+    env:
+      SSL_CERT_FILE: /etc/ssl/cert.pem
+
     steps:
-      - run: curl -LO https://github.com/leleliu008/test/releases/download/2023.10.08/xcpkg-0.30.0-macos-15.0-arm64.release.tar.xz
+      - run: curl -v -LO https://github.com/leleliu008/test/releases/download/2023.10.08/xcpkg-0.30.0-macos-15.0-arm64.release.tar.xz
       - run: /usr/bin/bsdtar xf xcpkg-0.30.0-macos-15.0-arm64.release.tar.xz --strip-components=1
 
       - run: bin/xcpkg about
