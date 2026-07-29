@@ -5,7 +5,9 @@
 #include "xcpkg.h"
 
 int xcpkg_setenv_UPPM_HOME() {
-    if (getenv("UPPM_HOME") != NULL) {
+    const char * const uppmHomeDIR = getenv("UPPM_HOME");
+
+    if (uppmHomeDIR != NULL && uppmHomeDIR[0] != '\0') {
         return XCPKG_OK;
     }
 
@@ -15,16 +17,16 @@ int xcpkg_setenv_UPPM_HOME() {
         return XCPKG_ERROR_ENV_HOME_NOT_SET;
     }
 
-    char uppmHomeDIR[PATH_MAX];
+    char p[PATH_MAX];
 
-    int ret = snprintf(uppmHomeDIR, PATH_MAX, "%s/.uppm", userHomeDIR);
+    int ret = snprintf(p, PATH_MAX, "%s/.uppm", userHomeDIR);
 
     if (ret < 0) {
         perror(NULL);
         return XCPKG_ERROR;
     }
 
-    if (setenv("UPPM_HOME", uppmHomeDIR, 1) != 0) {
+    if (setenv("UPPM_HOME", p, 1) != 0) {
         perror("UPPM_HOME");
         return XCPKG_ERROR;
     } else {

@@ -1,3 +1,4 @@
+#include <time.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -5,6 +6,8 @@
 
 #include <fcntl.h>
 #include <unistd.h>
+
+#include <sys/stat.h>
 
 #include "sha256sum.h"
 
@@ -18,42 +21,51 @@ static int getNativePackageInfoByID(const int packageID, NativePackage * package
     switch (packageID) {
         case NATIVE_PACKAGE_ID_LIBZ:
             package->name = "libz";
-            package->srcUrl = "https://zlib.net/zlib-1.3.1.tar.gz";
-            package->srcSha = "9a93b2b7dfdac77ceba5a558a580e74667dd6fede4585b91eefb60f03b72df23";
-            package->buildConfigureArgs = "-DZLIB_BUILD_EXAMPLES=OFF";
+            package->srcUrl = "https://distfiles.macports.org/zlib/zlib-1.3.2.tar.xz";
+            package->srcSha = "d7a0654783a4da529d1bb793b7ad9c3318020af77667bcae35f95d0e42a792f3";
+            package->buildConfigureArgs = "-DZLIB_BUILD_TESTING=OFF -DZLIB_BUILD_STATIC=ON -DZLIB_BUILD_SHARED=ON";
             package->buildSystemType = BUILD_SYSTEM_TYPE_CMAKE;
             break;
         case NATIVE_PACKAGE_ID_OPENSSL:
             package->name = "openssl";
-            package->srcUrl = "https://www.openssl.org/source/openssl-3.6.1.tar.gz";
-            package->srcSha = "b1bfedcd5b289ff22aee87c9d600f515767ebf45f77168cb6d64f231f518a82e";
+            package->srcUrl = "https://github.com/openssl/openssl/releases/download/openssl-3.6.3/openssl-3.6.3.tar.gz";
+            package->srcSha = "243a86649cf6f23eeb6a2ff2456e09e5d77dd9018a54d3d96b0c6bdd6ba6c7f1";
             package->buildSystemType = BUILD_SYSTEM_TYPE_CONFIGURE;
             break;
         case NATIVE_PACKAGE_ID_LIBEXPAT:
             package->name = "libexpat";
-            package->srcUrl = "https://github.com/libexpat/libexpat/releases/download/R_2_6_4/expat-2.6.4.tar.xz";
-            package->srcSha = "a695629dae047055b37d50a0ff4776d1d45d0a4c842cf4ccee158441f55ff7ee";
+            package->srcUrl = "https://github.com/libexpat/libexpat/releases/download/R_2_7_4/expat-2.7.4.tar.lz";
+            package->srcSha = "882bb3c124cdfd6d594818276f3ea851b780473a722385150a5793277635fcae";
             package->buildConfigureArgs = "-DEXPAT_BUILD_DOCS=OFF -DEXPAT_BUILD_TESTS=OFF -DEXPAT_BUILD_FUZZERS=OFF -DEXPAT_BUILD_EXAMPLES=OFF -DEXPAT_BUILD_TOOLS=OFF";
             package->buildSystemType = BUILD_SYSTEM_TYPE_CMAKE;
             break;
+        case NATIVE_PACKAGE_ID_LIBXML2:
+            package->name = "libxml2";
+            package->srcUrl = "https://download.gnome.org/sources/libxml2/2.15/libxml2-2.15.3.tar.xz";
+            package->srcSha = "78262a6e7ac170d6528ebfe2efccdf220191a5af6a6cd61ea4a9a9a5042c7a07";
+            package->depPackageIDArray[0] = NATIVE_PACKAGE_ID_LIBZ;
+            package->buildConfigureArgs = "--with-legacy --with-zlib --without-python --without-iconv --without-lzma --without-readline --without-coverage --without-debug --enable-ipv6 --enable-static --enable-shared";
+            package->buildSystemType = BUILD_SYSTEM_TYPE_CONFIGURE;
+            break;
+
         case NATIVE_PACKAGE_ID_LIBTOOL:
             package->name = "libtool";
             package->srcUrl = "https://ftp.gnu.org/gnu/libtool/libtool-2.5.4.tar.xz";
             package->srcSha = "f81f5860666b0bc7d84baddefa60d1cb9fa6fceb2398cc3baca6afaa60266675";
-            package->buildConfigureArgs = "--enable-ltdl-install";
+            package->buildConfigureArgs = "--disable-ltdl-install";
             package->buildSystemType = BUILD_SYSTEM_TYPE_CONFIGURE;
             break;
         case NATIVE_PACKAGE_ID_TEXINFO:
             package->name = "texinfo";
-            package->srcUrl = "https://ftp.gnu.org/gnu/texinfo/texinfo-7.2.tar.xz";
-            package->srcSha = "0329d7788fbef113fa82cb80889ca197a344ce0df7646fe000974c5d714363a6";
+            package->srcUrl = "https://ftp.gnu.org/gnu/texinfo/texinfo-7.3.tar.xz";
+            package->srcSha = "51f74eb0f51cfa9873b85264dfdd5d46e8957ec95b88f0fb762f63d9e164c72e";
             package->buildConfigureArgs = "--with-included-regex --enable-threads=posix --disable-nls";
             package->buildSystemType = BUILD_SYSTEM_TYPE_CONFIGURE;
             break;
         case NATIVE_PACKAGE_ID_AUTOCONF:
             package->name = "autoconf";
-            package->srcUrl = "https://ftp.gnu.org/gnu/autoconf/autoconf-2.72.tar.gz";
-            package->srcSha = "afb181a76e1ee72832f6581c0eddf8df032b83e2e0239ef79ebedc4467d92d6e";
+            package->srcUrl = "https://ftp.gnu.org/gnu/autoconf/autoconf-2.73.tar.gz";
+            package->srcSha = "259ddfa3bddc799cfb81489cc0f17dfdf1bd6d1505dda53c0f45ff60d6a4f9a7";
             package->buildSystemType = BUILD_SYSTEM_TYPE_CONFIGURE;
             break;
         case NATIVE_PACKAGE_ID_AUTOMAKE:
@@ -71,7 +83,7 @@ static int getNativePackageInfoByID(const int packageID, NativePackage * package
             break;
         case NATIVE_PACKAGE_ID_INTLTOOL:
             package->name = "intltool";
-            package->srcUrl = "https://launchpad.net/intltool/trunk/0.51.0/+download/intltool-0.51.0.tar.gz";
+            package->srcUrl = "https://distfiles.macports.org/intltool/intltool-0.51.0.tar.gz";
             package->srcSha = "67c74d94196b153b774ab9f89b2fa6c6ba79352407037c8c14d5aeb334e959cd";
             package->depPackageIDArray[0] = NATIVE_PACKAGE_ID_PERL_XML_PARSER;
             package->buildConfigureArgs = "";
@@ -79,8 +91,8 @@ static int getNativePackageInfoByID(const int packageID, NativePackage * package
             break;
         case NATIVE_PACKAGE_ID_PERL_XML_PARSER:
             package->name = "perl-XML-Parser";
-            package->srcUrl = "https://cpan.metacpan.org/authors/id/T/TO/TODDR/XML-Parser-2.46.tar.gz";
-            package->srcSha = "d331332491c51cccfb4cb94ffc44f9cd73378e618498d4a37df9e043661c515d";
+            package->srcUrl = "https://cpan.metacpan.org/authors/id/T/TO/TODDR/XML-Parser-2.47.tar.gz";
+            package->srcSha = "ad4aae643ec784f489b956abe952432871a622d4e2b5c619e8855accbfc4d1d8";
             package->depPackageIDArray[0] = NATIVE_PACKAGE_ID_LIBEXPAT;
             package->buildSystemType = BUILD_SYSTEM_TYPE_CONFIGURE;
             break;

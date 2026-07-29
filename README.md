@@ -133,11 +133,18 @@ brew trust leleliu008/xcpkg
 brew install xcpkg
 ```
 
-## ~/.xcpkg
+## Directories
 
-**Caveats:** Please do NOT place your own files under `~/.xcpkg` directory, as xcpkg will change (remove, modify, override) files under `~/.xcpkg` directory without notice by default.
+||default location|environment variable|
+|-|-|-|
+|`uppm` home directory|`~/.uppm`|`UPPM_HOME`|
+|`xcpkg` home directory|`~/.xcpkg`|`XCPKG_HOME`|
+|`xcpkg` downloads directory|`$XCPKG_HOME/downloads`|`XCPKG_DOWNLOADS_DIR`|
 
-You are allowed to change this by setting `XCPKG_HOME` environment variable.
+**Notes:**
+
+- you can change these via corresponding environment variable.
+- Don't place your own files under these directories, as `xcpkg` will change files under these directories without notice.
 
 ## xcpkg command usage
 
@@ -459,6 +466,7 @@ You are allowed to change this by setting `XCPKG_HOME` environment variable.
 
     ```bash
     curl -LO https://curl.se/ca/cacert.pem
+    chmod -w cacert.pem
     export SSL_CERT_FILE="$PWD/cacert.pem"
     ```
 

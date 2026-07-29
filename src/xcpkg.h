@@ -604,8 +604,6 @@ int xcpkg_posix_spawn(const char * cmd);
 
 int xcpkg_posix_spawn2(const size_t n, ...);
 
-int xcpkg_setenv_SSL_CERT_FILE();
-
 int xcpkg_setenv_UPPM_HOME();
 
 int xcpkg_get_platform_id_by_name(const char * const platformName, XCPKGPlatformID * const platformID);

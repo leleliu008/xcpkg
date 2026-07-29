@@ -2279,7 +2279,6 @@ static int generate_shell_script_file(
         {"XCPKG_PATH", xcpkgExeFilePath},
         {"XCPKG_HOME", xcpkgHomeDIR},
         {"XCPKG_CORE_DIR", xcpkgCoreDIR},
-        {"XCPKG_DOWNLOADS_DIR", xcpkgDownloadsDIR},
         {"XCPKG_PACKAGE_INSTALLED_ROOT", packageInstalledRootDIR},
         {" UPPM_PACKAGE_INSTALLED_ROOT", uppmPackageInstalledRootDIR},
         {"NATIVE_PACKAGE_INSTALLED_ROOT", nativePackageInstalledRootDIR},
@@ -5502,22 +5501,6 @@ static int setup_core_tools(const char * sessionDIR, const size_t sessionDIRLeng
 
     for (;;) {
         if (rename("core", xcpkgCoreDIR) == 0) {
-            size_t cacertFilePathCapacity = xcpkgCoreDIRCapacity + 11U;
-            char   cacertFilePath[cacertFilePathCapacity];
-
-            ret = snprintf(cacertFilePath, cacertFilePathCapacity, "%s/cacert.pem", xcpkgCoreDIR);
-
-            if (ret < 0) {
-                perror(NULL);
-                return XCPKG_ERROR;
-            }
-
-            // https://www.openssl.org/docs/man1.1.1/man3/SSL_CTX_set_default_verify_paths.html
-            if (setenv("SSL_CERT_FILE", cacertFilePath, 1) != 0) {
-                perror("SSL_CERT_FILE");
-                return XCPKG_ERROR;
-            }
-
             return XCPKG_OK;
         } else {
             if (errno == ENOTEMPTY || errno == EEXIST) {
