@@ -4,7 +4,7 @@
 
 #include "xcpkg.h"
 
-int xcpkg_setenv_UPPM_HOME() {
+int xcpkg_setenv_XCPKG_DOWNLOADS_DIR() {
     char p[PATH_MAX];
 
     const char * const xcpkgDownloadsDIR = getenv("XCPKG_DOWNLOADS_DIR");
