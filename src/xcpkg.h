@@ -440,15 +440,13 @@ int xcpkg_about(const bool verbose);
 
 /** get the xcpkg home directory absolute path
  *
- *  the capacity of buf must be PATH_MAX
+ *  len can be null if you do not want to known the length of p
  *
- *  len can be null if you do not want to known the length of filled string
+ *  on success, 0 is returned and p will point to a null-terminated string
  *
- *  on success, 0 is returned and buf will be filled with a null-terminated string
- *
- *  on error, none-zero value will be returned and buf remains unchanged.
+ *  on error, none-zero value will be returned and p remains unchanged.
  */
-int xcpkg_home_dir(char buf[], size_t * len);
+int xcpkg_get_home_dir(char ** p, size_t * len, bool create);
 
 /** get the session directory absolute path
  *
@@ -460,7 +458,7 @@ int xcpkg_home_dir(char buf[], size_t * len);
  *
  *  on error, none-zero value will be returned and buf remains unchanged.
  */
-int xcpkg_session_dir(char buf[], size_t * len);
+int xcpkg_get_session_dir(char buf[], size_t * len);
 
 int xcpkg_search(const char * regPattern, const char * targetPlatformName, const bool verbose);
 
@@ -604,7 +602,7 @@ int xcpkg_posix_spawn(const char * cmd);
 
 int xcpkg_posix_spawn2(const size_t n, ...);
 
-int xcpkg_setenv_UPPM_HOME();
+int xcpkg_setenv();
 
 int xcpkg_get_platform_id_by_name(const char * const platformName, XCPKGPlatformID * const platformID);
 

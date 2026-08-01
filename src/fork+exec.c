@@ -3,6 +3,8 @@
 
 #include <unistd.h>
 
+#include <sys/wait.h>
+
 #include "core/log.h"
 
 #include "xcpkg.h"

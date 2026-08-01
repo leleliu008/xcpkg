@@ -20,19 +20,9 @@ int xcpkg_logs(const char * packageName, const char * targetPlatformSpec) {
         return XCPKG_ERROR_ARG_IS_NULL;
     }
 
-    char   xcpkgHomeDIR[PATH_MAX];
-    size_t xcpkgHomeDIRLength;
+    char metaInfoDIR[PATH_MAX];
 
-    ret = xcpkg_home_dir(xcpkgHomeDIR, &xcpkgHomeDIRLength);
-
-    if (ret != XCPKG_OK) {
-        return ret;
-    }
-
-    size_t metaInfoDIRCapacity = xcpkgHomeDIRLength + strlen(targetPlatformSpec) + strlen(packageName) + strlen(XCPKG_METADATA_DIRNAME) + 15U;
-    char   metaInfoDIR[metaInfoDIRCapacity];
-
-    ret = snprintf(metaInfoDIR, metaInfoDIRCapacity, "%s/installed/%s/%s/%s", xcpkgHomeDIR, targetPlatformSpec, packageName, XCPKG_METADATA_DIRNAME);
+    ret = snprintf(metaInfoDIR, PATH_MAX, "%s/installed/%s/%s/%s", getenv("XCPKG_HOME"), targetPlatformSpec, packageName, XCPKG_METADATA_DIRNAME);
 
     if (ret < 0) {
         perror(NULL);

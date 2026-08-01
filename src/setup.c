@@ -14,7 +14,7 @@ int xcpkg_setup(const bool verbose) {
     char   sessionDIR[PATH_MAX];
     size_t sessionDIRLength;
 
-    int ret = xcpkg_session_dir(sessionDIR, &sessionDIRLength);
+    int ret = xcpkg_get_session_dir(sessionDIR, &sessionDIRLength);
 
     if (ret != XCPKG_OK) {
         return ret;
@@ -136,14 +136,7 @@ int xcpkg_setup(const bool verbose) {
 
     //////////////////////////////////////////////////////////////////////////////////
 
-    char   xcpkgHomeDIR[PATH_MAX];
-    size_t xcpkgHomeDIRLength;
-
-    ret = xcpkg_home_dir(xcpkgHomeDIR, &xcpkgHomeDIRLength);
-
-    if (ret != XCPKG_OK) {
-        return ret;
-    }
+    const char * const xcpkgHomeDIR = getenv("XCPKG_HOME");
 
     //////////////////////////////////////////////////////////////////////////////////
 

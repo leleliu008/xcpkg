@@ -15,7 +15,7 @@ int xcpkg_upgrade_self(const bool verbose) {
     char   sessionDIR[PATH_MAX];
     size_t sessionDIRLength;
 
-    int ret = xcpkg_session_dir(sessionDIR, &sessionDIRLength);
+    int ret = xcpkg_get_session_dir(sessionDIR, &sessionDIRLength);
 
     if (ret != XCPKG_OK) {
         return ret;

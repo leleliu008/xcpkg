@@ -34,10 +34,10 @@ int xcpkg_formula_repo_add(const char * formulaRepoName, const char * formulaRep
 
     ///////////////////////////////////////////////////////////////////////////////////////
 
-    char   xcpkgHomeDIR[PATH_MAX];
+    char * xcpkgHomeDIR;
     size_t xcpkgHomeDIRLength;
 
-    int ret = xcpkg_home_dir(xcpkgHomeDIR, &xcpkgHomeDIRLength);
+    int ret = xcpkg_get_home_dir(&xcpkgHomeDIR, &xcpkgHomeDIRLength, false);
 
     if (ret != XCPKG_OK) {
         return ret;
@@ -72,7 +72,7 @@ int xcpkg_formula_repo_add(const char * formulaRepoName, const char * formulaRep
     char   sessionDIR[PATH_MAX];
     size_t sessionDIRLength;
 
-    ret = xcpkg_session_dir(sessionDIR, &sessionDIRLength);
+    ret = xcpkg_get_session_dir(sessionDIR, &sessionDIRLength);
 
     if (ret != XCPKG_OK) {
         return ret;

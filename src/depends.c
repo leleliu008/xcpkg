@@ -112,7 +112,7 @@ static inline int xcpkg_tmpfile(char fp[PATH_MAX], const char * p, const size_t 
     char   sessionDIR[PATH_MAX];
     size_t sessionDIRLength;
 
-    int ret = xcpkg_session_dir(sessionDIR, &sessionDIRLength);
+    int ret = xcpkg_get_session_dir(sessionDIR, &sessionDIRLength);
 
     if (ret != XCPKG_OK) {
         return ret;
@@ -218,7 +218,7 @@ static inline int xcpkg_depends_output_box(const char * packageName, const char 
         char   sessionDIR[PATH_MAX];
         size_t sessionDIRLength;
 
-        int ret = xcpkg_session_dir(sessionDIR, &sessionDIRLength);
+        int ret = xcpkg_get_session_dir(sessionDIR, &sessionDIRLength);
 
         if (ret != XCPKG_OK) {
             return ret;

@@ -7,18 +7,12 @@
 #include "xcpkg.h"
 
 int xcpkg_about(const bool verbose) {
+    printf("xcpkg.version : %s\n", XCPKG_VERSION_STRING);
+    printf("xcpkg.homedir : %s\n", getenv("XCPKG_HOME"));
+
     char buf[PATH_MAX];
 
-    int ret = xcpkg_home_dir(buf, NULL);
-
-    if (ret != XCPKG_OK) {
-        return ret;
-    }
-
-    printf("xcpkg.version : %s\n", XCPKG_VERSION_STRING);
-    printf("xcpkg.homedir : %s\n", buf);
-
-    ret = selfpath(buf);
+    int ret = selfpath(buf);
 
     if (ret == -1) {
         perror(NULL);

@@ -105,19 +105,10 @@ int xcpkg_bundle(const char * packageName, const char * targetPlatformSpec, Arch
     fprintf(stderr, "outputFilePath=%s\n", outputFilePath);
     ///////////////////////////////////////////////////////////////////////////////////
 
-    char   xcpkgHomeDIR[PATH_MAX];
-    size_t xcpkgHomeDIRLength;
-
-    ret = xcpkg_home_dir(xcpkgHomeDIR, &xcpkgHomeDIRLength);
-
-    if (ret != XCPKG_OK) {
-        return ret;
-    }
-
     char   sessionDIR[PATH_MAX];
     size_t sessionDIRLength;
 
-    ret = xcpkg_session_dir(sessionDIR, &sessionDIRLength);
+    ret = xcpkg_get_session_dir(sessionDIR, &sessionDIRLength);
 
     if (ret != XCPKG_OK) {
         return ret;
@@ -131,6 +122,15 @@ int xcpkg_bundle(const char * packageName, const char * targetPlatformSpec, Arch
     }
 
     /////////////////////////////////////////////////////////////////////////////////
+
+    char * xcpkgHomeDIR;
+    size_t xcpkgHomeDIRLength;
+
+    ret = xcpkg_get_home_dir(&xcpkgHomeDIR, &xcpkgHomeDIRLength, false);
+
+    if (ret != XCPKG_OK) {
+        return ret;
+    }
 
     size_t packageInstalledDIRCapacity = xcpkgHomeDIRLength + strlen(targetPlatformSpec) + strlen(packageName) + 15U;
     char   packageInstalledDIR[packageInstalledDIRCapacity];

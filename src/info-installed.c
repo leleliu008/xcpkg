@@ -30,10 +30,10 @@ int xcpkg_installed_info(const char * packageName, const char * targetPlatformSp
     }
 
     if (strcmp(key, "--prefix") == 0) {
-        char   xcpkgHomeDIR[PATH_MAX];
+        char * xcpkgHomeDIR;
         size_t xcpkgHomeDIRLength;
 
-        int ret = xcpkg_home_dir(xcpkgHomeDIR, &xcpkgHomeDIRLength);
+        int ret = xcpkg_get_home_dir(&xcpkgHomeDIR, &xcpkgHomeDIRLength, false);
 
         if (ret != XCPKG_OK) {
             return ret;
@@ -84,10 +84,10 @@ int xcpkg_installed_info(const char * packageName, const char * targetPlatformSp
             return XCPKG_ERROR_PACKAGE_IS_BROKEN;
         }
     } else if (strcmp(key, "--files") == 0) {
-        char   xcpkgHomeDIR[PATH_MAX];
+        char * xcpkgHomeDIR;
         size_t xcpkgHomeDIRLength;
 
-        int ret = xcpkg_home_dir(xcpkgHomeDIR, &xcpkgHomeDIRLength);
+        int ret = xcpkg_get_home_dir(&xcpkgHomeDIR, &xcpkgHomeDIRLength, false);
 
         if (ret != XCPKG_OK) {
             return ret;
@@ -183,10 +183,10 @@ int xcpkg_installed_info(const char * packageName, const char * targetPlatformSp
             }
         }
     } else if (strcmp(key, "--path") == 0) {
-        char   xcpkgHomeDIR[PATH_MAX] = {0};
+        char * xcpkgHomeDIR;
         size_t xcpkgHomeDIRLength;
 
-        int ret = xcpkg_home_dir(xcpkgHomeDIR, &xcpkgHomeDIRLength);
+        int ret = xcpkg_get_home_dir(&xcpkgHomeDIR, &xcpkgHomeDIRLength, false);
 
         if (ret != XCPKG_OK) {
             return ret;
@@ -237,10 +237,10 @@ int xcpkg_installed_info(const char * packageName, const char * targetPlatformSp
             return XCPKG_ERROR_PACKAGE_IS_BROKEN;
         }
     } else if (strcmp(key, "--yaml") == 0) {
-        char   xcpkgHomeDIR[PATH_MAX];
+        char * xcpkgHomeDIR;
         size_t xcpkgHomeDIRLength;
 
-        int ret = xcpkg_home_dir(xcpkgHomeDIR, &xcpkgHomeDIRLength);
+        int ret = xcpkg_get_home_dir(&xcpkgHomeDIR, &xcpkgHomeDIRLength, false);
 
         if (ret != XCPKG_OK) {
             return ret;

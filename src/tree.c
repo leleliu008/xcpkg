@@ -18,24 +18,18 @@ int xcpkg_tree(const char * packageName, const char * targetPlatformSpec, size_t
         return XCPKG_ERROR_ARG_IS_NULL;
     }
 
-    char   xcpkgHomeDIR[PATH_MAX];
-    size_t xcpkgHomeDIRLength;
+    ///////////////////////////////////////////////////
 
-    ret = xcpkg_home_dir(xcpkgHomeDIR, &xcpkgHomeDIRLength);
+    char packageInstalledDIR[PATH_MAX];
 
-    if (ret != XCPKG_OK) {
-        return ret;
-    }
-
-    size_t packageInstalledDIRCapacity = xcpkgHomeDIRLength + strlen(targetPlatformSpec) + strlen(packageName) + 16U;
-    char   packageInstalledDIR[packageInstalledDIRCapacity];
-
-    ret = snprintf(packageInstalledDIR, packageInstalledDIRCapacity, "%s/installed/%s/%s", xcpkgHomeDIR, targetPlatformSpec, packageName);
+    ret = snprintf(packageInstalledDIR, PATH_MAX, "%s/installed/%s/%s", getenv("XCPKG_HOME"), targetPlatformSpec, packageName);
 
     if (ret < 0) {
         perror(NULL);
         return XCPKG_ERROR;
     }
+
+    ///////////////////////////////////////////////////
 
     struct stat st;
 
@@ -43,7 +37,9 @@ int xcpkg_tree(const char * packageName, const char * targetPlatformSpec, size_t
         return XCPKG_ERROR_PACKAGE_NOT_INSTALLED;
     }
 
-    size_t receiptFilePathCapacity = packageInstalledDIRCapacity + sizeof(XCPKG_RECEIPT_FILEPATH_RELATIVE_TO_INSTALLED_ROOT) + 1U;
+    ///////////////////////////////////////////////////
+
+    size_t receiptFilePathCapacity = ret + sizeof(XCPKG_RECEIPT_FILEPATH_RELATIVE_TO_INSTALLED_ROOT) + 2U;
     char   receiptFilePath[receiptFilePathCapacity];
 
     ret = snprintf(receiptFilePath, receiptFilePathCapacity, "%s/%s", packageInstalledDIR, XCPKG_RECEIPT_FILEPATH_RELATIVE_TO_INSTALLED_ROOT);
@@ -57,7 +53,7 @@ int xcpkg_tree(const char * packageName, const char * targetPlatformSpec, size_t
         return XCPKG_ERROR_PACKAGE_IS_BROKEN;
     }
 
-    //////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////
 
     char treeCommandPath[PATH_MAX];
 
@@ -67,7 +63,7 @@ int xcpkg_tree(const char * packageName, const char * targetPlatformSpec, size_t
         return ret;
     }
 
-    //////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////////////////////
 
     char* args[argc + 5];
 

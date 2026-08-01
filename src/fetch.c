@@ -57,51 +57,14 @@ int xcpkg_fetch(const char * packageName, const char * targetPlatformName, const
 
     ///////////////////////////////////////////////////////////////
 
-    char   xcpkgHomeDIR[PATH_MAX];
-    size_t xcpkgHomeDIRLength;
+    const char * const xcpkgDownloadsDIR = getenv("XCPKG_DOWNLOADS_DIR");
 
-    ret = xcpkg_home_dir(xcpkgHomeDIR, &xcpkgHomeDIRLength);
+    size_t xcpkgDownloadsDIRCapacity = strlen(xcpkgDownloadsDIR) + 1;
+
+    ret = xcpkg_mkdir_p(xcpkgDownloadsDIR, verbose);
 
     if (ret != XCPKG_OK) {
         return ret;
-    }
-
-    size_t xcpkgDownloadsDIRCapacity = xcpkgHomeDIRLength + 11U;
-    char   xcpkgDownloadsDIR[xcpkgDownloadsDIRCapacity];
-
-    ret = snprintf(xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, "%s/downloads", xcpkgHomeDIR);
-
-    if (ret < 0) {
-        perror(NULL);
-        return XCPKG_ERROR;
-    }
-
-    struct stat st;
-
-    if (stat(xcpkgDownloadsDIR, &st) == 0) {
-        if (!S_ISDIR(st.st_mode)) {
-            if (unlink(xcpkgDownloadsDIR) != 0) {
-                perror(xcpkgDownloadsDIR);
-                xcpkg_formula_free(formula);
-                return XCPKG_ERROR;
-            }
-
-            if (mkdir(xcpkgDownloadsDIR, S_IRWXU) != 0) {
-                if (errno != EEXIST) {
-                    perror(xcpkgDownloadsDIR);
-                    xcpkg_formula_free(formula);
-                    return XCPKG_ERROR;
-                }
-            }
-        }
-    } else {
-        if (mkdir(xcpkgDownloadsDIR, S_IRWXU) != 0) {
-            if (errno != EEXIST) {
-                perror(xcpkgDownloadsDIR);
-                xcpkg_formula_free(formula);
-                return XCPKG_ERROR;
-            }
-        }
     }
 
     ///////////////////////////////////////////////////////////////

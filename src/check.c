@@ -17,11 +17,7 @@ int xcpkg_check_if_the_given_argument_matches_package_name_pattern(const char * 
         return XCPKG_ERROR_ARG_IS_EMPTY;
     }
 
-    for (int i = 0; ; i++) {
-        if (i == 50) {
-            return XCPKG_ERROR_PACKAGE_NAME_IS_TOOLONG;
-        }
-
+    for (int i = 0; i < 50; i++) {
         if (arg[i] == '\0') {
             return XCPKG_OK;
         }
@@ -44,6 +40,8 @@ int xcpkg_check_if_the_given_argument_matches_package_name_pattern(const char * 
 
         return XCPKG_ERROR_PACKAGE_NAME_IS_INVALID;
     }
+
+    return XCPKG_ERROR_PACKAGE_NAME_IS_TOOLONG;
 }
 
 int xcpkg_check_if_the_given_argument_matches_platform_spec_pattern(const char * p) {
@@ -179,21 +177,11 @@ int xcpkg_check_if_the_given_package_is_installed(const char * packageName, cons
         return ret;
     }
 
-    char   xcpkgHomeDIR[PATH_MAX];
-    size_t xcpkgHomeDIRLength;
-
-    ret = xcpkg_home_dir(xcpkgHomeDIR, &xcpkgHomeDIRLength);
-
-    if (ret != XCPKG_OK) {
-        return ret;
-    }
-
     struct stat st;
 
-    size_t packageInstalledDIRCapacity = xcpkgHomeDIRLength + strlen(targetPlatformSpec) + strlen(packageName) + 15U;
-    char   packageInstalledDIR[packageInstalledDIRCapacity];
+    char packageInstalledDIR[PATH_MAX];
 
-    ret = snprintf(packageInstalledDIR, packageInstalledDIRCapacity, "%s/installed/%s/%s", xcpkgHomeDIR, targetPlatformSpec, packageName);
+    ret = snprintf(packageInstalledDIR, PATH_MAX, "%s/installed/%s/%s", getenv("XCPKG_HOME"), targetPlatformSpec, packageName);
 
     if (ret < 0) {
         perror(NULL);
@@ -208,7 +196,7 @@ int xcpkg_check_if_the_given_package_is_installed(const char * packageName, cons
         return XCPKG_ERROR_PACKAGE_NOT_INSTALLED;
     }
 
-    size_t receiptFilePathCapacity = packageInstalledDIRCapacity + sizeof(XCPKG_RECEIPT_FILEPATH_RELATIVE_TO_INSTALLED_ROOT) + 1U;
+    size_t receiptFilePathCapacity = ret + sizeof(XCPKG_RECEIPT_FILEPATH_RELATIVE_TO_INSTALLED_ROOT) + 2U;
     char   receiptFilePath[receiptFilePathCapacity];
 
     ret = snprintf(receiptFilePath, receiptFilePathCapacity, "%s/%s", packageInstalledDIR, XCPKG_RECEIPT_FILEPATH_RELATIVE_TO_INSTALLED_ROOT);

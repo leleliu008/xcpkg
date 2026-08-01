@@ -724,10 +724,10 @@ int xcpkg_receipt_parse(const char * packageName, const char * targetPlatformSpe
         return XCPKG_ERROR_ARG_IS_NULL;
     }
 
-    char   xcpkgHomeDIR[PATH_MAX];
+    char * xcpkgHomeDIR;
     size_t xcpkgHomeDIRLength;
 
-    ret = xcpkg_home_dir(xcpkgHomeDIR, &xcpkgHomeDIRLength);
+    ret = xcpkg_get_home_dir(&xcpkgHomeDIR, &xcpkgHomeDIRLength, false);
 
     if (ret != XCPKG_OK) {
         return ret;

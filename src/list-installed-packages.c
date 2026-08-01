@@ -95,10 +95,10 @@ static int _list_dir(const char * targetPlatformSpec, const char * packageInstal
 }
 
 int xcpkg_list_the_installed_packages(const char * targetPlatformName, const bool verbose) {
-    char   xcpkgHomeDIR[PATH_MAX];
+    char * xcpkgHomeDIR;
     size_t xcpkgHomeDIRLength;
 
-    int ret = xcpkg_home_dir(xcpkgHomeDIR, &xcpkgHomeDIRLength);
+    int ret = xcpkg_get_home_dir(&xcpkgHomeDIR, &xcpkgHomeDIRLength, false);
 
     if (ret != XCPKG_OK) {
         return ret;

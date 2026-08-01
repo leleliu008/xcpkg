@@ -1909,13 +1909,9 @@ int xcpkg_main(int argc, char* argv[]) {
         return xcpkg_sysinfo();
     }
 
-    if (strcmp(argv[1], "about") == 0) {
-        return xcpkg_action_about(argc, argv);
-    }
-
     ///////////////////////////////////////////////////
 
-    int ret = xcpkg_setenv_UPPM_HOME();
+    int ret = xcpkg_setenv();
 
     if (ret == XCPKG_ERROR_ENV_HOME_NOT_SET) {
         fprintf(stderr, "%s\n", "HOME environment variable is not set.\n");
@@ -1928,6 +1924,10 @@ int xcpkg_main(int argc, char* argv[]) {
     }
 
     ///////////////////////////////////////////////////
+
+    if (strcmp(argv[1], "about") == 0) {
+        return xcpkg_action_about(argc, argv);
+    }
 
     if (strcmp(argv[1], "completion") == 0) {
         return xcpkg_action_completion(argc, argv);

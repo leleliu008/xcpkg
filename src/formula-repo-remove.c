@@ -21,10 +21,10 @@ int xcpkg_formula_repo_remove(const char * formulaRepoName) {
         return XCPKG_ERROR;
     }
 
-    char   xcpkgHomeDIR[PATH_MAX];
+    char * xcpkgHomeDIR;
     size_t xcpkgHomeDIRLength;
 
-    int ret = xcpkg_home_dir(xcpkgHomeDIR, &xcpkgHomeDIRLength);
+    int ret = xcpkg_get_home_dir(&xcpkgHomeDIR, &xcpkgHomeDIRLength, false);
 
     if (ret != XCPKG_OK) {
         return ret;

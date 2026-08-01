@@ -5638,10 +5638,10 @@ int xcpkg_install(const char * packageName, const char * targetPlatformSpec, con
 
     //////////////////////////////////////////////////////////////////////////////
 
-    char   xcpkgHomeDIR[PATH_MAX];
+    char * xcpkgHomeDIR;
     size_t xcpkgHomeDIRLength;
 
-    int ret = xcpkg_home_dir(xcpkgHomeDIR, &xcpkgHomeDIRLength);
+    int ret = xcpkg_get_home_dir(&xcpkgHomeDIR, &xcpkgHomeDIRLength, false);
 
     if (ret != XCPKG_OK) {
         return ret;
@@ -5664,7 +5664,7 @@ int xcpkg_install(const char * packageName, const char * targetPlatformSpec, con
     char   sessionDIR[PATH_MAX];
     size_t sessionDIRLength;
 
-    ret = xcpkg_session_dir(sessionDIR, &sessionDIRLength);
+    ret = xcpkg_get_session_dir(sessionDIR, &sessionDIRLength);
 
     if (ret != XCPKG_OK) {
         return ret;
@@ -5672,39 +5672,13 @@ int xcpkg_install(const char * packageName, const char * targetPlatformSpec, con
 
     //////////////////////////////////////////////////////////////////////////////
 
-    size_t xcpkgDownloadsDIRCapacity = xcpkgHomeDIRLength + 11U;
-    char   xcpkgDownloadsDIR[xcpkgDownloadsDIRCapacity];
+    const char * const xcpkgDownloadsDIR = getenv("XCPKG_DOWNLOADS_DIR");
+    size_t xcpkgDownloadsDIRCapacity = strlen(xcpkgDownloadsDIR) + 1U;
 
-    ret = snprintf(xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, "%s/downloads", xcpkgHomeDIR);
+    ret = xcpkg_mkdir_p(xcpkgDownloadsDIR, installOptions->verbose_net);
 
-    if (ret < 0) {
-        perror(NULL);
-        return XCPKG_ERROR;
-    }
-
-    struct stat st;
-
-    if (stat(xcpkgDownloadsDIR, &st) == 0) {
-        if (!S_ISDIR(st.st_mode)) {
-            if (unlink(xcpkgDownloadsDIR) != 0) {
-                perror(xcpkgDownloadsDIR);
-                return XCPKG_ERROR;
-            }
-
-            if (mkdir(xcpkgDownloadsDIR, S_IRWXU) != 0) {
-                if (errno != EEXIST) {
-                    perror(xcpkgDownloadsDIR);
-                    return XCPKG_ERROR;
-                }
-            }
-        }
-    } else {
-        if (mkdir(xcpkgDownloadsDIR, S_IRWXU) != 0) {
-            if (errno != EEXIST) {
-                perror(xcpkgDownloadsDIR);
-                return XCPKG_ERROR;
-            }
-        }
+    if (ret != XCPKG_OK) {
+        return ret;
     }
 
     //////////////////////////////////////////////////////////////////////////////

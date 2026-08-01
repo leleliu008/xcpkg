@@ -345,24 +345,15 @@ int xcpkg_available_info2(const XCPKGFormula * formula, const char * packageName
 
         printf("%s\n", fileNameExtension);
     } else if (strcmp(key, "src-fp") == 0) {
-        char   xcpkgHomeDIR[PATH_MAX];
-        size_t xcpkgHomeDIRLength;
-
-        int ret = xcpkg_home_dir(xcpkgHomeDIR, &xcpkgHomeDIRLength);
-
-        if (ret != XCPKG_OK) {
-            return ret;
-        }
-
         char fileNameExtension[XCPKG_FILE_EXTENSION_MAX_CAPACITY] = {0};
 
-        ret = xcpkg_extract_filetype_from_url(formula->src_url, fileNameExtension, XCPKG_FILE_EXTENSION_MAX_CAPACITY);
+        int ret = xcpkg_extract_filetype_from_url(formula->src_url, fileNameExtension, XCPKG_FILE_EXTENSION_MAX_CAPACITY);
 
         if (ret != XCPKG_OK) {
             return ret;
         }
 
-        printf("%s/downloads/%s%s\n", xcpkgHomeDIR, formula->src_sha, fileNameExtension);
+        printf("%s/%s%s\n", getenv("XCPKG_DOWNLOADS_DIR"), formula->src_sha, fileNameExtension);
     } else if (strcmp(key, "fix-url") == 0) {
         if (formula->fix_url != NULL) {
             printf("%s\n", formula->fix_url);
@@ -386,24 +377,15 @@ int xcpkg_available_info2(const XCPKGFormula * formula, const char * packageName
 
         printf("%s\n", fileNameExtension);
     } else if (strcmp(key, "fix-fp") == 0) {
-        char   xcpkgHomeDIR[PATH_MAX];
-        size_t xcpkgHomeDIRLength;
-
-        int ret = xcpkg_home_dir(xcpkgHomeDIR, &xcpkgHomeDIRLength);
-
-        if (ret != XCPKG_OK) {
-            return ret;
-        }
-
         char fileNameExtension[XCPKG_FILE_EXTENSION_MAX_CAPACITY] = {0};
 
-        ret = xcpkg_extract_filetype_from_url(formula->fix_url, fileNameExtension, XCPKG_FILE_EXTENSION_MAX_CAPACITY);
+        int ret = xcpkg_extract_filetype_from_url(formula->fix_url, fileNameExtension, XCPKG_FILE_EXTENSION_MAX_CAPACITY);
 
         if (ret != XCPKG_OK) {
             return ret;
         }
 
-        printf("%s/downloads/%s%s\n", xcpkgHomeDIR, formula->fix_sha, fileNameExtension);
+        printf("%s/%s%s\n", getenv("XCPKG_DOWNLOADS_DIR"), formula->fix_sha, fileNameExtension);
     } else if (strcmp(key, "res-url") == 0) {
         if (formula->res_url != NULL) {
             printf("%s\n", formula->res_url);
@@ -427,24 +409,15 @@ int xcpkg_available_info2(const XCPKGFormula * formula, const char * packageName
 
         printf("%s\n", fileNameExtension);
     } else if (strcmp(key, "res-fp") == 0) {
-        char   xcpkgHomeDIR[PATH_MAX];
-        size_t xcpkgHomeDIRLength;
-
-        int ret = xcpkg_home_dir(xcpkgHomeDIR, &xcpkgHomeDIRLength);
-
-        if (ret != XCPKG_OK) {
-            return ret;
-        }
-
         char fileNameExtension[XCPKG_FILE_EXTENSION_MAX_CAPACITY] = {0};
 
-        ret = xcpkg_extract_filetype_from_url(formula->res_url, fileNameExtension, XCPKG_FILE_EXTENSION_MAX_CAPACITY);
+        int ret = xcpkg_extract_filetype_from_url(formula->res_url, fileNameExtension, XCPKG_FILE_EXTENSION_MAX_CAPACITY);
 
         if (ret != XCPKG_OK) {
             return ret;
         }
 
-        printf("%s/downloads/%s%s\n", xcpkgHomeDIR, formula->res_sha, fileNameExtension);
+        printf("%s/%s%s\n", getenv("XCPKG_DOWNLOADS_DIR"), formula->res_sha, fileNameExtension);
     } else if (strcmp(key, "dep-pkg") == 0) {
         if (formula->dep_pkg != NULL) {
             printf("%s\n", formula->dep_pkg);

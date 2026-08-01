@@ -14,26 +14,18 @@ int xcpkg_uninstall(const char * packageName, const char * targetPlatformSpec, c
         return ret;
     }
 
-    char   xcpkgHomeDIR[PATH_MAX];
-    size_t xcpkgHomeDIRLength;
+    char packageInstalledRootDIR[PATH_MAX];
 
-    ret = xcpkg_home_dir(xcpkgHomeDIR, &xcpkgHomeDIRLength);
-
-    if (ret != XCPKG_OK) {
-        return ret;
-    }
-
-    size_t packageInstalledRootDIRCapacity = xcpkgHomeDIRLength + strlen(targetPlatformSpec) + 14U;
-    char   packageInstalledRootDIR[packageInstalledRootDIRCapacity];
-
-    ret = snprintf(packageInstalledRootDIR, packageInstalledRootDIRCapacity, "%s/installed/%s", xcpkgHomeDIR, targetPlatformSpec);
+    ret = snprintf(packageInstalledRootDIR, PATH_MAX, "%s/installed/%s", getenv("XCPKG_HOME"), targetPlatformSpec);
 
     if (ret < 0) {
         perror(NULL);
         return XCPKG_ERROR;
     }
 
-    size_t packageInstalledLinkDIRCapacity = packageInstalledRootDIRCapacity + strlen(packageName) + 2U;
+    size_t packageInstalledRootDIRCapacity= ret + 1;
+
+    size_t packageInstalledLinkDIRCapacity = ret + strlen(packageName) + 1U;
     char   packageInstalledLinkDIR[packageInstalledLinkDIRCapacity];
 
     ret = snprintf(packageInstalledLinkDIR, packageInstalledLinkDIRCapacity, "%s/%s", packageInstalledRootDIR, packageName);
