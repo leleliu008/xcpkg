@@ -446,7 +446,7 @@ int xcpkg_about(const bool verbose);
  *
  *  on error, none-zero value will be returned and p remains unchanged.
  */
-int xcpkg_get_home_dir(char ** p, size_t * len, bool create);
+int xcpkg_get_home_dir(const char ** p, size_t * len, bool create);
 
 /** get the session directory absolute path
  *

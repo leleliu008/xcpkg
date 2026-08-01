@@ -1,11 +1,6 @@
-#include <errno.h>
-#include <stdio.h>
 #include <string.h>
 
 #include <unistd.h>
-#include <limits.h>
-
-#include <sys/stat.h>
 
 #include "xcpkg.h"
 
@@ -17,20 +12,10 @@ int xcpkg_get_home_dir(const char ** p, size_t * len, bool create) {
     const char * const xcpkgHomeDIR = getenv("XCPKG_HOME");
 
     if (create) {
-        struct stat st;
+        int ret = xcpkg_mkdir_p(xcpkgHomeDIR, false);
 
-        if (stat(xcpkgHomeDIR, &st) == 0) {
-            if (!S_ISDIR(st.st_mode)) {
-                fprintf(stderr, "%s was expected to be a directory, but it was not.\n", xcpkgHomeDIR);
-                return XCPKG_ERROR;
-            }
-        } else {
-            if (mkdir(xcpkgHomeDIR, S_IRWXU) != 0) {
-                if (errno != EEXIST) {
-                    perror(xcpkgHomeDIR);
-                    return XCPKG_ERROR;
-                }
-            }
+        if (ret != XCPKG_OK) {
+            return ret;
         }
     }
 
