@@ -530,7 +530,7 @@ brew install xcpkg
 
 - **XCPKG_FORMULA_DIRS**
 
-    colon-separated list of directories to search formulas.
+    colon-separated list of directories to be searched for formulas.
 
 ## environment variables unset by this software
 

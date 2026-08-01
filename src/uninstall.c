@@ -25,7 +25,7 @@ int xcpkg_uninstall(const char * packageName, const char * targetPlatformSpec, c
 
     size_t packageInstalledRootDIRCapacity= ret + 1;
 
-    size_t packageInstalledLinkDIRCapacity = ret + strlen(packageName) + 1U;
+    size_t packageInstalledLinkDIRCapacity = packageInstalledRootDIRCapacity + strlen(packageName) + 1U;
     char   packageInstalledLinkDIR[packageInstalledLinkDIRCapacity];
 
     ret = snprintf(packageInstalledLinkDIR, packageInstalledLinkDIRCapacity, "%s/%s", packageInstalledRootDIR, packageName);
