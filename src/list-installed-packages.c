@@ -2,10 +2,10 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <unistd.h>
 #include <limits.h>
 #include <dirent.h>
 #include <sys/stat.h>
-#include <unistd.h>
 
 #include "xcpkg.h"
 
@@ -81,7 +81,7 @@ static int _list_dir(const char * targetPlatformSpec, const char * packageInstal
 
         if (lstat(receiptFilePath, &st) == 0 && S_ISREG(st.st_mode)) {
             if (verbose) {
-                ret = xcpkg_installed_info(p, targetPlatformSpec, NULL);
+                ret = xcpkg_show_installed_info(p, targetPlatformSpec, NULL);
 
                 if (ret != XCPKG_OK) {
                     closedir(dir);
@@ -95,7 +95,7 @@ static int _list_dir(const char * targetPlatformSpec, const char * packageInstal
 }
 
 int xcpkg_list_the_installed_packages(const char * targetPlatformName, const bool verbose) {
-    char * xcpkgHomeDIR;
+    const char * xcpkgHomeDIR;
     size_t xcpkgHomeDIRLength;
 
     int ret = xcpkg_get_home_dir(&xcpkgHomeDIR, &xcpkgHomeDIRLength, false);

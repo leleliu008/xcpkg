@@ -123,7 +123,7 @@ int xcpkg_bundle(const char * packageName, const char * targetPlatformSpec, Arch
 
     /////////////////////////////////////////////////////////////////////////////////
 
-    char * xcpkgHomeDIR;
+    const char * xcpkgHomeDIR;
     size_t xcpkgHomeDIRLength;
 
     ret = xcpkg_get_home_dir(&xcpkgHomeDIR, &xcpkgHomeDIRLength, false);

@@ -5638,7 +5638,7 @@ int xcpkg_install(const char * packageName, const char * targetPlatformSpec, con
 
     //////////////////////////////////////////////////////////////////////////////
 
-    char * xcpkgHomeDIR;
+    const char * xcpkgHomeDIR;
     size_t xcpkgHomeDIRLength;
 
     int ret = xcpkg_get_home_dir(&xcpkgHomeDIR, &xcpkgHomeDIRLength, false);

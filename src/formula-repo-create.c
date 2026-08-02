@@ -39,7 +39,7 @@ int xcpkg_formula_repo_create(const char * formulaRepoName, const char * formula
 
     ///////////////////////////////////////////////////////////////////////////////////////
 
-    char * xcpkgHomeDIR;
+    const char * xcpkgHomeDIR;
     size_t xcpkgHomeDIRLength;
 
     int ret = xcpkg_get_home_dir(&xcpkgHomeDIR, &xcpkgHomeDIRLength, false);

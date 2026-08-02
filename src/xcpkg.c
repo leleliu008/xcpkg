@@ -228,7 +228,7 @@ static inline int xcpkg_action_info_installed(int argc, char* argv[]) {
         platformSpec = buf;
     }
 
-    ret = xcpkg_installed_info(packageName, platformSpec, argv[3]);
+    ret = xcpkg_show_installed_info(packageName, platformSpec, argv[3]);
 
     if (ret == XCPKG_ERROR_PACKAGE_NOT_AVAILABLE) {
         fprintf(stderr, "package '%s' is not available for target '%s'\n", argv[2], platformSpec);

@@ -125,7 +125,7 @@ static int _list_dir(const char * targetPlatformSpec, const char * packageInstal
 }
 
 int xcpkg_list_the__outdated_packages(const char * targetPlatformName, const bool verbose) {
-    char * xcpkgHomeDIR;
+    const char * xcpkgHomeDIR;
     size_t xcpkgHomeDIRLength;
 
     int ret = xcpkg_get_home_dir(&xcpkgHomeDIR, &xcpkgHomeDIRLength, false);
