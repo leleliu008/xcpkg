@@ -347,8 +347,6 @@ cabal_v2_install() {
 
     export LD_LIBRARY_PATH="$libncurses_LIBRARY_DIR:$libgmp_LIBRARY_DIR"
 
-    export XCPKG_TARGET_LDFLAGS="$XCPKG_TARGET_LDFLAGS -L$PACKAGE_WORKING_DIR/lib"
-
     export PATH="$GHCUP_INSTALL_BASE_PREFIX/.ghcup/bin:$PATH"
 
     ######################################################################
@@ -1442,6 +1440,8 @@ __install_for_target() {
 
     #########################################################################################
 
+    export XCPKG_TARGET_LDFLAGS="-L$PACKAGE_WORKING_DIR/lib"
+
     for item in $PACKAGE_DEP_LIB
     do
         case $item in
@@ -1454,8 +1454,6 @@ __install_for_target() {
 
         XCPKG_TARGET_LDFLAGS="$XCPKG_TARGET_LDFLAGS $item"
     done
-
-    [ -n "$XCPKG_TARGET_LDFLAGS" ] && export XCPKG_TARGET_LDFLAGS
 
     #########################################################################################
 
