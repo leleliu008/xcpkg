@@ -91,8 +91,6 @@ loop:
 
     if (ret != XCPKG_OK) {
         closedir(dir);
-        xcpkg_receipt_free(receipt);
-        receipt = NULL;
         return ret;
     }
 
@@ -115,10 +113,14 @@ loop:
 
     ret = xcpkg_formula_load(dir_entry->d_name, targetPlatformName, NULL, &formula);
 
-    if (ret == XCPKG_OK) {
-        if (strcmp(receipt->version, formula->version) != 0) {
-            printf("%s %s => %s\n", dir_entry->d_name, receipt->version, formula->version);
-        }
+    if (ret != XCPKG_OK) {
+        closedir(dir);
+        xcpkg_receipt_free(receipt);
+        return ret;
+    }
+
+    if (receipt->version != NULL && formula->version != NULL && strcmp(receipt->version, formula->version) != 0) {
+        printf("%s %s => %s\n", dir_entry->d_name, receipt->version, formula->version);
     }
 
     xcpkg_formula_free(formula);

@@ -11,7 +11,7 @@
 #include "xcpkg.h"
 
 
-static inline int xcpkg_action_about(int argc, char* argv[]) {
+static int xcpkg_action_about(int argc, char* argv[]) {
     bool verbose = false;
 
     for (int i = 2; i < argc; i++) {
@@ -34,7 +34,7 @@ static inline int xcpkg_action_about(int argc, char* argv[]) {
     return ret;
 }
 
-static inline int xcpkg_action_completion(int argc, char* argv[]) {
+static int xcpkg_action_completion(int argc, char* argv[]) {
     if (argv[2] == NULL) {
         fprintf(stderr, "Usage: %s completion <zsh|bash|fish>\n", argv[0]);
         return XCPKG_ERROR_ARG_IS_UNSPECIFIED;
@@ -50,7 +50,7 @@ static inline int xcpkg_action_completion(int argc, char* argv[]) {
     }
 }
 
-static inline int xcpkg_action_update(int argc, char* argv[]) {
+static int xcpkg_action_update(int argc, char* argv[]) {
     int ret = xcpkg_formula_repo_list_update();
 
     if (ret == XCPKG_ERROR_ENV_HOME_NOT_SET) {
@@ -64,7 +64,7 @@ static inline int xcpkg_action_update(int argc, char* argv[]) {
     return ret;
 }
 
-static inline int xcpkg_action_setup(int argc, char* argv[]) {
+static int xcpkg_action_setup(int argc, char* argv[]) {
     bool verbose = false;
 
     for (int i = 2; i < argc; i++) {
@@ -77,7 +77,7 @@ static inline int xcpkg_action_setup(int argc, char* argv[]) {
     return xcpkg_setup(verbose);
 }
 
-static inline int xcpkg_action_cleanup(int argc, char* argv[]) {
+static int xcpkg_action_cleanup(int argc, char* argv[]) {
     bool verbose = false;
 
     for (int i = 2; i < argc; i++) {
@@ -90,7 +90,7 @@ static inline int xcpkg_action_cleanup(int argc, char* argv[]) {
     return xcpkg_cleanup(verbose);
 }
 
-static inline int xcpkg_action_search(int argc, char* argv[]) {
+static int xcpkg_action_search(int argc, char* argv[]) {
     const char * targetPlatformName = NULL;
 
     char verbose = false;
@@ -147,7 +147,7 @@ static inline int xcpkg_action_search(int argc, char* argv[]) {
     return ret;
 }
 
-static inline int xcpkg_action_info_available(int argc, char* argv[]) {
+static int xcpkg_action_info_available(int argc, char* argv[]) {
     const char * targetPlatformName = NULL;
 
     for (int i = 4; i < argc; i++) {
@@ -205,7 +205,7 @@ static inline int xcpkg_action_info_available(int argc, char* argv[]) {
     return ret;
 }
 
-static inline int xcpkg_action_info_installed(int argc, char* argv[]) {
+static int xcpkg_action_info_installed(int argc, char* argv[]) {
     const char * packageName = NULL;
 
     const char * platformSpec = NULL;
@@ -247,7 +247,7 @@ static inline int xcpkg_action_info_installed(int argc, char* argv[]) {
     return ret;
 }
 
-static inline int xcpkg_action_depends(int argc, char* argv[]) {
+static int xcpkg_action_depends(int argc, char* argv[]) {
     if (argv[2] == NULL) {
         fprintf(stderr, "Usage: %s depends <PACKAGE-NAME>, <PACKAGE-NAME> is unspecified.\n", argv[0]);
         return XCPKG_ERROR_ARG_IS_UNSPECIFIED;
@@ -379,7 +379,7 @@ static inline int xcpkg_action_depends(int argc, char* argv[]) {
     return ret;
 }
 
-static inline int xcpkg_action_fetch(int argc, char* argv[]) {
+static int xcpkg_action_fetch(int argc, char* argv[]) {
     const char * targetPlatformName = NULL;
 
     bool verbose = false;
@@ -440,7 +440,7 @@ static inline int xcpkg_action_fetch(int argc, char* argv[]) {
     return ret;
 }
 
-static inline int xcpkg_action_install(int argc, char* argv[]) {
+static int xcpkg_action_install(int argc, char* argv[]) {
     XCPKGInstallOptions installOptions = {0};
 
     installOptions.logLevel = XCPKGLogLevel_normal;
@@ -631,7 +631,7 @@ static inline int xcpkg_action_install(int argc, char* argv[]) {
     return XCPKG_OK;
 }
 
-static inline int xcpkg_action_reinstall(int argc, char* argv[]) {
+static int xcpkg_action_reinstall(int argc, char* argv[]) {
     XCPKGInstallOptions installOptions = {0};
 
     installOptions.logLevel = XCPKGLogLevel_normal;
@@ -787,7 +787,7 @@ static inline int xcpkg_action_reinstall(int argc, char* argv[]) {
     return XCPKG_OK;
 }
 
-static inline int xcpkg_action_upgrade(int argc, char* argv[]) {
+static int xcpkg_action_upgrade(int argc, char* argv[]) {
     XCPKGInstallOptions installOptions = {0};
 
     installOptions.logLevel = XCPKGLogLevel_normal;
@@ -940,7 +940,7 @@ static inline int xcpkg_action_upgrade(int argc, char* argv[]) {
     return XCPKG_OK;
 }
 
-static inline int xcpkg_action_uninstall(int argc, char* argv[]) {
+static int xcpkg_action_uninstall(int argc, char* argv[]) {
     int packageIndexArray[argc];
     int packageIndexArraySize = 0;
 
@@ -1016,7 +1016,7 @@ static inline int xcpkg_action_uninstall(int argc, char* argv[]) {
     return XCPKG_OK;
 }
 
-static inline int xcpkg_action_ls_available(int argc, char* argv[]) {
+static int xcpkg_action_ls_available(int argc, char* argv[]) {
     const char * targetPlatformName = NULL;
 
     bool verbose = false;
@@ -1069,7 +1069,7 @@ static inline int xcpkg_action_ls_available(int argc, char* argv[]) {
     return ret;
 }
 
-static inline int xcpkg_action_ls_installed(int argc, char* argv[]) {
+static int xcpkg_action_ls_installed(int argc, char* argv[]) {
     bool verbose = false;
 
     for (int i = 2; i < argc; i++) {
@@ -1094,7 +1094,7 @@ static inline int xcpkg_action_ls_installed(int argc, char* argv[]) {
     return ret;
 }
 
-static inline int xcpkg_action_ls_outdated(int argc, char* argv[]) {
+static int xcpkg_action_ls_outdated(int argc, char* argv[]) {
     bool verbose = false;
 
     for (int i = 2; i < argc; i++) {
@@ -1119,7 +1119,7 @@ static inline int xcpkg_action_ls_outdated(int argc, char* argv[]) {
     return ret;
 }
 
-static inline int xcpkg_action_is_available(int argc, char* argv[]) {
+static int xcpkg_action_is_available(int argc, char* argv[]) {
     const char * targetPlatformName = NULL;
 
     for (int i = 3; i < argc; i++) {
@@ -1176,7 +1176,7 @@ static inline int xcpkg_action_is_available(int argc, char* argv[]) {
     return ret;
 }
 
-static inline int xcpkg_action_is_installed(int argc, char* argv[]) {
+static int xcpkg_action_is_installed(int argc, char* argv[]) {
     if (argv[2] == NULL) {
         fprintf(stderr, "Usage: %s is-installed <PACKAGE-SPEC>, <PACKAGE-SPEC> is unspecified.\n", argv[0]);
         return XCPKG_ERROR_ARG_IS_UNSPECIFIED;
@@ -1224,7 +1224,7 @@ static inline int xcpkg_action_is_installed(int argc, char* argv[]) {
     return ret;
 }
 
-static inline int xcpkg_action_is_outdated(int argc, char* argv[]) {
+static int xcpkg_action_is_outdated(int argc, char* argv[]) {
     if (argv[2] == NULL) {
         fprintf(stderr, "Usage: %s is-installed <PACKAGE-SPEC>, <PACKAGE-SPEC> is unspecified.\n", argv[0]);
         return XCPKG_ERROR_ARG_IS_UNSPECIFIED;
@@ -1275,7 +1275,7 @@ static inline int xcpkg_action_is_outdated(int argc, char* argv[]) {
 
 }
 
-static inline int xcpkg_action_formula_repo_add(int argc, char* argv[]) {
+static int xcpkg_action_formula_repo_add(int argc, char* argv[]) {
     if (argv[2] == NULL) {
         fprintf(stderr, "Usage: %s %s <FORMULA-REPO-NAME> <FORMULA-REPO-URL> [--branch=VALUE --pin/--unpin --enable/--disable]\n", argv[0], argv[1]);
         return XCPKG_ERROR_ARG_IS_UNSPECIFIED;
@@ -1316,7 +1316,7 @@ static inline int xcpkg_action_formula_repo_add(int argc, char* argv[]) {
     return xcpkg_formula_repo_add(argv[2], argv[3], branch, pinned, enabled);
 }
 
-static inline int xcpkg_action_formula_repo_init(int argc, char* argv[]) {
+static int xcpkg_action_formula_repo_init(int argc, char* argv[]) {
     if (argv[2] == NULL) {
         fprintf(stderr, "Usage: %s %s <FORMULA-REPO-NAME> <FORMULA-REPO-URL> [--branch=VALUE --pin/--unpin --enable/--disable]\n", argv[0], argv[1]);
         return XCPKG_ERROR_ARG_IS_UNSPECIFIED;
@@ -1357,7 +1357,7 @@ static inline int xcpkg_action_formula_repo_init(int argc, char* argv[]) {
     return xcpkg_formula_repo_create(argv[2], argv[3], branch, pinned, enabled);
 }
 
-static inline int xcpkg_action_formula_repo_conf(int argc, char* argv[]) {
+static int xcpkg_action_formula_repo_conf(int argc, char* argv[]) {
     if (argv[2] == NULL) {
         fprintf(stderr, "Usage: %s %s <FORMULA-REPO-NAME> [--url=VALUE --branch=VALUE --pin/--unpin --enable/--disable]\n", argv[0], argv[1]);
         return XCPKG_ERROR_ARG_IS_UNSPECIFIED;
@@ -1406,7 +1406,7 @@ static inline int xcpkg_action_formula_repo_conf(int argc, char* argv[]) {
     return xcpkg_formula_repo_config(argv[2], url, branch, pinned, enabled);
 }
 
-static inline int xcpkg_action_formula_repo_del(int argc, char* argv[]) {
+static int xcpkg_action_formula_repo_del(int argc, char* argv[]) {
     if (argv[2] == NULL) {
         fprintf(stderr, "Usage: %s %s <FORMULA-REPO-NAME>\n", argv[0], argv[1]);
         return XCPKG_ERROR_ARG_IS_UNSPECIFIED;
@@ -1415,7 +1415,7 @@ static inline int xcpkg_action_formula_repo_del(int argc, char* argv[]) {
     return xcpkg_formula_repo_remove(argv[2]);
 }
 
-static inline int xcpkg_action_formula_repo_sync(int argc, char* argv[]) {
+static int xcpkg_action_formula_repo_sync(int argc, char* argv[]) {
     if (argv[2] == NULL) {
         fprintf(stderr, "Usage: %s %s <FORMULA-REPO-NAME>\n", argv[0], argv[1]);
         return XCPKG_ERROR_ARG_IS_UNSPECIFIED;
@@ -1424,7 +1424,7 @@ static inline int xcpkg_action_formula_repo_sync(int argc, char* argv[]) {
     return xcpkg_formula_repo_sync_(argv[2]);
 }
 
-static inline int xcpkg_action_formula_repo_info(int argc, char* argv[]) {
+static int xcpkg_action_formula_repo_info(int argc, char* argv[]) {
     if (argv[2] == NULL) {
         fprintf(stderr, "Usage: %s %s <FORMULA-REPO-NAME>\n", argv[0], argv[1]);
         return XCPKG_ERROR_ARG_IS_UNSPECIFIED;
@@ -1433,7 +1433,7 @@ static inline int xcpkg_action_formula_repo_info(int argc, char* argv[]) {
     return xcpkg_formula_repo_info_(argv[2]);
 }
 
-static inline int xcpkg_action_tree(int argc, char* argv[]) {
+static int xcpkg_action_tree(int argc, char* argv[]) {
     if (argv[2] == NULL) {
         fprintf(stderr, "Usage: %s tree <PACKAGE-SPEC> [KEY], <PACKAGE-SPEC> is unspecified.\n", argv[0]);
         return XCPKG_ERROR_ARG_IS_UNSPECIFIED;
@@ -1485,7 +1485,7 @@ static inline int xcpkg_action_tree(int argc, char* argv[]) {
     return ret;
 }
 
-static inline int xcpkg_action_logs(int argc, char* argv[]) {
+static int xcpkg_action_logs(int argc, char* argv[]) {
     if (argv[2] == NULL) {
         fprintf(stderr, "Usage: %s logs <PACKAGE-SPEC>, <PACKAGE-SPEC> is unspecified.\n", argv[0]);
         return XCPKG_ERROR_ARG_IS_UNSPECIFIED;
@@ -1537,7 +1537,7 @@ static inline int xcpkg_action_logs(int argc, char* argv[]) {
     return ret;
 }
 
-static inline int xcpkg_action_bundle(int argc, char* argv[]) {
+static int xcpkg_action_bundle(int argc, char* argv[]) {
     if (argv[2] == NULL) {
         fprintf(stderr, "Usage: %s bundle <PACKAGE-SPEC> <BUNDLE-TYPE>, <PACKAGE-SPEC> is unspecified.\n", argv[0]);
         return XCPKG_ERROR_ARG_IS_UNSPECIFIED;
@@ -1654,7 +1654,7 @@ static inline int xcpkg_action_bundle(int argc, char* argv[]) {
     return ret;
 }
 
-static inline int xcpkg_action_xcinfo(int argc, char* argv[]) {
+static int xcpkg_action_xcinfo(int argc, char* argv[]) {
     for (int i = 2; i < argc; i++) {
         if (strncmp(argv[i], "--developer-dir=", 15) == 0) {
             const char * developerDIR = &argv[i][15];
@@ -1695,7 +1695,7 @@ static inline int xcpkg_action_xcinfo(int argc, char* argv[]) {
     return XCPKG_OK;
 }
 
-static inline int xcpkg_action_formula_parse(int argc, char* argv[]) {
+static int xcpkg_action_formula_parse(int argc, char* argv[]) {
     if (argv[2] == NULL) {
         fprintf(stderr, "Usage: %s %s <FORMULA-FILEPATH>\n", argv[0], argv[1]);
         return XCPKG_ERROR_ARG_IS_NULL;
@@ -1742,7 +1742,7 @@ static inline int xcpkg_action_formula_parse(int argc, char* argv[]) {
     return xcpkg_print_available_info(packageName, NULL, NULL, argv[3]);
 }
 
-static inline int xcpkg_action_formula_cat(int argc, char* argv[]) {
+static int xcpkg_action_formula_cat(int argc, char* argv[]) {
     int ret = xcpkg_formula_cat(argv[2], NULL);
 
     if (ret == XCPKG_ERROR_ARG_IS_NULL) {
@@ -1764,7 +1764,7 @@ static inline int xcpkg_action_formula_cat(int argc, char* argv[]) {
     return ret;
 }
 
-static inline int xcpkg_action_formula_bat(int argc, char* argv[]) {
+static int xcpkg_action_formula_bat(int argc, char* argv[]) {
     int ret = xcpkg_formula_bat(argv[2], NULL, argc - 3, &argv[3]);
 
     if (ret == XCPKG_ERROR_ARG_IS_NULL) {
@@ -1786,7 +1786,7 @@ static inline int xcpkg_action_formula_bat(int argc, char* argv[]) {
     return ret;
 }
 
-static inline int xcpkg_action_formula_set(int argc, char* argv[]) {
+static int xcpkg_action_formula_set(int argc, char* argv[]) {
     if (argv[2] == NULL) {
         fprintf(stderr, "Usage: %s %s <PACKAGE-NAME> <KEY> <VALUE>, <PACKAGE-NAME> is not given.\n", argv[0], argv[1]);
         return XCPKG_ERROR_ARG_IS_NULL;
@@ -1834,7 +1834,7 @@ static inline int xcpkg_action_formula_set(int argc, char* argv[]) {
     return ret;
 }
 
-static inline int xcpkg_action_formula_edit(int argc, char* argv[]) {
+static int xcpkg_action_formula_edit(int argc, char* argv[]) {
     const char * editor = NULL;
 
     for (int i = 3; i < argc; i++) {
@@ -1867,7 +1867,7 @@ static inline int xcpkg_action_formula_edit(int argc, char* argv[]) {
     return ret;
 }
 
-static inline int xcpkg_action_upgrade_self(int argc, char* argv[]) {
+static int xcpkg_action_upgrade_self(int argc, char* argv[]) {
     bool verbose = false;
 
     for (int i = 2; i < argc; i++) {
@@ -1880,7 +1880,12 @@ static inline int xcpkg_action_upgrade_self(int argc, char* argv[]) {
     return xcpkg_upgrade_self(verbose);
 }
 
-int xcpkg_main(int argc, char* argv[]) {
+typedef struct {
+    const char * arg;
+    int (*fn)(int argc, char* argv[]);
+} XCPKGAction;
+
+int main(int argc, char* argv[]) {
     if (argc == 1) {
         xcpkg_help();
         return XCPKG_OK;
@@ -1916,158 +1921,60 @@ int xcpkg_main(int argc, char* argv[]) {
 
     ///////////////////////////////////////////////////
 
-    if (strcmp(argv[1], "about") == 0) {
-        return xcpkg_action_about(argc, argv);
-    }
+    const XCPKGAction actions[] = {
+        {"about",        xcpkg_action_about},
+        {"update",       xcpkg_action_update},
+        {"search",       xcpkg_action_search},
+        {"info",         xcpkg_action_info_available},
+        {"show",         xcpkg_action_info_installed},
+        {"depends",      xcpkg_action_depends},
+        {"fetch",        xcpkg_action_fetch},
+        {"install",      xcpkg_action_install},
+        {"reinstall",    xcpkg_action_reinstall},
+        {"uninstall",    xcpkg_action_uninstall},
+        {"upgrade",      xcpkg_action_upgrade},
+        {"cleanup",      xcpkg_action_cleanup},
 
-    if (strcmp(argv[1], "completion") == 0) {
-        return xcpkg_action_completion(argc, argv);
-    }
+        {"tree",         xcpkg_action_tree},
+        {"logs",         xcpkg_action_logs},
+        {"bundle",       xcpkg_action_bundle},
+        {"xcinfo",       xcpkg_action_xcinfo},
+        {"util",         xcpkg_util},
 
-    if (strcmp(argv[1], "upgrade-self") == 0) {
-        return xcpkg_action_upgrade_self(argc, argv);
-    }
+        {"ls-available", xcpkg_action_ls_available},
+        {"ls-installed", xcpkg_action_ls_installed},
+        {"ls-outdated",  xcpkg_action_ls_outdated},
 
-    if (strcmp(argv[1], "cleanup") == 0) {
-        return xcpkg_action_cleanup(argc, argv);
-    }
+        {"is-available", xcpkg_action_is_available},
+        {"is-installed", xcpkg_action_is_installed},
+        {"is-outdated",  xcpkg_action_is_outdated},
 
-    if (strcmp(argv[1], "update") == 0) {
-        return xcpkg_action_update(argc, argv);
-    }
+        {"completion",   xcpkg_action_completion},
+        {"upgrade-self", xcpkg_action_upgrade_self},
 
-    if (strcmp(argv[1], "search") == 0) {
-        return xcpkg_action_search(argc, argv);
-    }
+        {"formula-cat",  xcpkg_action_formula_cat},
+        {"formula-bat",  xcpkg_action_formula_bat},
+        {"formula-set",  xcpkg_action_formula_set},
+        {"formula-edit", xcpkg_action_formula_edit},
+        {"formula-parse", xcpkg_action_formula_parse},
 
-    if (strcmp(argv[1], "info") == 0) {
-        return xcpkg_action_info_available(argc, argv);
-    }
+        {"formula-repo-list", xcpkg_formula_repo_list},
+        {"formula-repo-init", xcpkg_action_formula_repo_init},
+        {"formula-repo-add",  xcpkg_action_formula_repo_add},
+        {"formula-repo-del",  xcpkg_action_formula_repo_del},
+        {"formula-repo-sync", xcpkg_action_formula_repo_sync},
+        {"formula-repo-conf", xcpkg_action_formula_repo_conf},
+        {"formula-repo-info", xcpkg_action_formula_repo_info},
 
-    if (strcmp(argv[1], "show") == 0) {
-        return xcpkg_action_info_installed(argc, argv);
-    }
+        {NULL, NULL}
+    };
 
-    if (strcmp(argv[1], "depends") == 0) {
-        return xcpkg_action_depends(argc, argv);
-    }
-
-    if (strcmp(argv[1], "fetch") == 0) {
-        return xcpkg_action_fetch(argc, argv);
-    }
-
-    if (strcmp(argv[1], "install") == 0) {
-        return xcpkg_action_install(argc, argv);
-    }
-
-    if (strcmp(argv[1], "reinstall") == 0) {
-        return xcpkg_action_reinstall(argc, argv);
-    }
-
-    if (strcmp(argv[1], "upgrade") == 0) {
-        return xcpkg_action_upgrade(argc, argv);
-    }
-
-    if (strcmp(argv[1], "uninstall") == 0) {
-        return xcpkg_action_uninstall(argc, argv);
-    }
-
-    if (strcmp(argv[1], "ls-available") == 0) {
-        return xcpkg_action_ls_available(argc, argv);
-    }
-
-    if (strcmp(argv[1], "ls-installed") == 0) {
-        return xcpkg_action_ls_installed(argc, argv);
-    }
-
-    if (strcmp(argv[1], "ls-outdated") == 0) {
-        return xcpkg_action_ls_outdated(argc, argv);
-    }
-
-    if (strcmp(argv[1], "is-available") == 0) {
-        return xcpkg_action_is_available(argc, argv);
-    }
-
-    if (strcmp(argv[1], "is-installed") == 0) {
-        return xcpkg_action_is_installed(argc, argv);
-    }
-
-    if (strcmp(argv[1], "is-outdated") == 0) {
-        return xcpkg_action_is_outdated(argc, argv);
-    }
-
-    if (strcmp(argv[1], "formula-repo-list") == 0) {
-        return xcpkg_formula_repo_list();
-    }
-
-    if (strcmp(argv[1], "formula-repo-add") == 0) {
-        return xcpkg_action_formula_repo_add(argc, argv);
-    }
-
-    if (strcmp(argv[1], "formula-repo-init") == 0) {
-        return xcpkg_action_formula_repo_init(argc, argv);
-    }
-
-    if (strcmp(argv[1], "formula-repo-del") == 0) {
-        return xcpkg_action_formula_repo_del(argc, argv);
-    }
-
-    if (strcmp(argv[1], "formula-repo-sync") == 0) {
-        return xcpkg_action_formula_repo_sync(argc, argv);
-    }
-
-    if (strcmp(argv[1], "formula-repo-conf") == 0) {
-        return xcpkg_action_formula_repo_conf(argc, argv);
-    }
-
-    if (strcmp(argv[1], "formula-repo-info") == 0) {
-        return xcpkg_action_formula_repo_info(argc, argv);
-    }
-
-    if (strcmp(argv[1], "formula-cat") == 0) {
-        return xcpkg_action_formula_cat(argc, argv);
-    }
-
-    if (strcmp(argv[1], "formula-bat") == 0) {
-        return xcpkg_action_formula_bat(argc, argv);
-    }
-
-    if (strcmp(argv[1], "formula-set") == 0) {
-        return xcpkg_action_formula_set(argc, argv);
-    }
-
-    if (strcmp(argv[1], "formula-edit") == 0) {
-        return xcpkg_action_formula_edit(argc, argv);
-    }
-
-    if (strcmp(argv[1], "formula-parse") == 0) {
-        return xcpkg_action_formula_parse(argc, argv);
-    }
-
-    if (strcmp(argv[1], "tree") == 0) {
-        return xcpkg_action_tree(argc, argv);
-    }
-
-    if (strcmp(argv[1], "logs") == 0) {
-        return xcpkg_action_logs(argc, argv);
-    }
-
-    if (strcmp(argv[1], "bundle") == 0) {
-        return xcpkg_action_bundle(argc, argv);
-    }
-
-    if (strcmp(argv[1], "xcinfo") == 0) {
-        return xcpkg_action_xcinfo(argc, argv);
-    }
-
-    if (strcmp(argv[1], "util") == 0) {
-        return xcpkg_util(argc, argv);
+    for (size_t i = 0U; actions[i].arg != NULL; i++) {
+        if (strcmp(argv[1], actions[i].arg) == 0) {
+            return actions[i].fn(argc, argv);
+        }
     }
 
     LOG_ERROR2("unknown argument: ", argv[1]);
     return XCPKG_ERROR_ARG_IS_UNKNOWN;
-}
-
-int main(int argc, char* argv[]) {
-    return xcpkg_main(argc, argv);
 }
