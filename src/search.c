@@ -6,7 +6,7 @@
 
 #include "xcpkg.h"
 
-static int xcpkg_scan_the_available_packages_callback(const char * targetPlatformName, const char * packageName, const char * formulaFilePath, const bool verbose, size_t i, const void * regPattern) {
+static int xcpkg_scan_the_available_packages_callback(const char * targetPlatformName, const char * packageName, const char * formulaFilePath, const bool verbose, size_t i, const void * regPattern, void * _) {
     if (regex_matched(packageName, (const char *)regPattern) == 0) {
         if (verbose) {
             if (i != 0U) {
@@ -37,5 +37,5 @@ int xcpkg_search(const char * regPattern, const char * targetPlatformName, const
         return XCPKG_ERROR_ARG_IS_EMPTY;
     }
 
-    return xcpkg_scan_the_available_packages(targetPlatformName, verbose, xcpkg_scan_the_available_packages_callback, regPattern);
+    return xcpkg_scan_the_available_packages(targetPlatformName, verbose, xcpkg_scan_the_available_packages_callback, regPattern, NULL);
 }

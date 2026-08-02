@@ -2,7 +2,7 @@
 
 #include "xcpkg.h"
 
-static int xcpkg_scan_the_available_packages_callback(const char * targetPlatformName, const char * packageName, const char * formulaFilePath, const bool verbose, size_t i, const void * payload __attribute__((unused))) {
+static int xcpkg_scan_the_available_packages_callback(const char * targetPlatformName, const char * packageName, const char * formulaFilePath, const bool verbose, size_t i, const void * p1 __attribute__((unused)), void * p2 __attribute__((unused))) {
     if (verbose) {
         if (i != 0U) {
             printf("\n");
@@ -16,5 +16,5 @@ static int xcpkg_scan_the_available_packages_callback(const char * targetPlatfor
 }
 
 int xcpkg_list_the_available_packages(const char * targetPlatformName, const bool verbose) {
-    return xcpkg_scan_the_available_packages(targetPlatformName, verbose, xcpkg_scan_the_available_packages_callback, NULL);
+    return xcpkg_scan_the_available_packages(targetPlatformName, verbose, xcpkg_scan_the_available_packages_callback, NULL, NULL);
 }

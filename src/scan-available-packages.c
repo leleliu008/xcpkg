@@ -6,16 +6,15 @@
 
 #include "xcpkg.h"
 
-static size_t counter = 0U;
-
 typedef struct {
         const char * targetPlatformName;
         const bool verbose;
         XCPKGPackageCallback packageCallback;
-        const void * payload;
+        const void * p1;
+              void * p2;
 } Payload4;
 
-static int xcpkg_formula_repo_scan_callback(XCPKGFormulaRepo * formulaRepo, const void * payload) {
+static int xcpkg_formula_repo_scan_callback(XCPKGFormulaRepo * formulaRepo, const void * p1, void * p2) {
     char * formulaRepoPath  = formulaRepo->path;
 
     size_t formulaDIRCapacity = strlen(formulaRepoPath) + 10U;
@@ -102,9 +101,9 @@ loop:
 
     p[0] = '\0';
 
-    const Payload4 * payload4 = payload;
+    const Payload4 * payload4 = p1;
 
-    ret = payload4->packageCallback(payload4->targetPlatformName, fileName, formulaFilePath, payload4->verbose, counter++, payload4->payload);
+    ret = payload4->packageCallback(payload4->targetPlatformName, fileName, formulaFilePath, payload4->verbose, (*((size_t*)p2))++, payload4->p1, payload4->p2);
 
     if (ret == XCPKG_OK) {
         goto loop;
@@ -114,13 +113,16 @@ loop:
     return ret;
 }
 
-int xcpkg_scan_the_available_packages(const char * targetPlatformName, const bool verbose, XCPKGPackageCallback packageCallback, const void * payload) {
-    const Payload4 payload4 = {
+int xcpkg_scan_the_available_packages(const char * targetPlatformName, const bool verbose, XCPKGPackageCallback packageCallback, const void * p1, void * p2) {
+    const Payload4 payload = {
         .targetPlatformName = targetPlatformName,
         .verbose = verbose,
         .packageCallback = packageCallback,
-        .payload = payload
+        .p1 = p1,
+        .p2 = p2
     };
 
-    return xcpkg_formula_repo_scan(xcpkg_formula_repo_scan_callback, &payload4);
+    size_t counter = 0U;
+
+    return xcpkg_formula_repo_scan(xcpkg_formula_repo_scan_callback, &payload, &counter);
 }

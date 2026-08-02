@@ -287,7 +287,7 @@ typedef struct {
     bool   enabled;
 } XCPKGFormulaRepo;
 
-typedef int (*XCPKGFormulaRepoScanCallback)(XCPKGFormulaRepo * formulaRepo, const void * payload);
+typedef int (*XCPKGFormulaRepoScanCallback)(XCPKGFormulaRepo * formulaRepo, const void * p1, void * p2);
 
 int  xcpkg_formula_repo_create(const char * formulaRepoName, const char * formulaRepoUrl, const char * branchName, int pinned, int enabled);
 int  xcpkg_formula_repo_add   (const char * formulaRepoName, const char * formulaRepoUrl, const char * branchName, int pinned, int enabled);
@@ -304,7 +304,7 @@ void xcpkg_formula_repo_dump(XCPKGFormulaRepo * formulaRepo);
 int  xcpkg_formula_repo_info(XCPKGFormulaRepo * formulaRepo);
 int  xcpkg_formula_repo_sync(XCPKGFormulaRepo * formulaRepo);
 
-int  xcpkg_formula_repo_scan(XCPKGFormulaRepoScanCallback callback, const void * payload);
+int  xcpkg_formula_repo_scan(XCPKGFormulaRepoScanCallback callback, const void * p1, void * p2);
 
 int  xcpkg_formula_repo_list();
 int  xcpkg_formula_repo_list_update();
@@ -557,9 +557,9 @@ int xcpkg_check_if_the_given_package_is_available(const char * packageName, cons
 int xcpkg_check_if_the_given_package_is_installed(const char * packageName, const char * targetPlatformSpec);
 int xcpkg_check_if_the_given_package_is_outdated (const char * packageName, const char * targetPlatformSpec);
 
-typedef int (*XCPKGPackageCallback)(const char * targetPlatformName, const char * packageName, const char * formulaFilePath, const bool verbose, const size_t index, const void * payload);
+typedef int (*XCPKGPackageCallback)(const char * targetPlatformName, const char * packageName, const char * formulaFilePath, const bool verbose, const size_t index, const void * p1, void * p2);
 
-int xcpkg_scan_the_available_packages(const char * targetPlatformName, const bool verbose, XCPKGPackageCallback availablePackageCallback, const void * payload);
+int xcpkg_scan_the_available_packages(const char * targetPlatformName, const bool verbose, XCPKGPackageCallback availablePackageCallback, const void * p1, void * p2);
 int xcpkg_list_the_available_packages(const char * targetPlatformName, const bool verbose);
 int xcpkg_list_the_installed_packages(const char * targetPlatformName, const bool verbose);
 

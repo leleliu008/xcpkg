@@ -2,11 +2,9 @@
 
 #include "xcpkg.h"
 
-static int officialCoreIsThere = 0;
-
-static int xcpkg_formula_repo_scan_callback(XCPKGFormulaRepo * formulaRepo, const void * payload __attribute__((unused))) {
+static int xcpkg_formula_repo_scan_callback(XCPKGFormulaRepo * formulaRepo, const void * p1 __attribute__((unused)), void * p2) {
     if (strcmp(formulaRepo->name, "official-core") == 0) {
-        officialCoreIsThere = 1;
+        (*((int*)p2)) = 1;
     }
 
     int ret = xcpkg_formula_repo_sync(formulaRepo);
@@ -19,7 +17,9 @@ static int xcpkg_formula_repo_scan_callback(XCPKGFormulaRepo * formulaRepo, cons
 }
 
 int xcpkg_formula_repo_list_update() {
-    int ret = xcpkg_formula_repo_scan(xcpkg_formula_repo_scan_callback, NULL);
+    int officialCoreIsThere = 0;
+
+    int ret = xcpkg_formula_repo_scan(xcpkg_formula_repo_scan_callback, NULL, &officialCoreIsThere);
 
     if (ret == XCPKG_OK) {
         return ret;

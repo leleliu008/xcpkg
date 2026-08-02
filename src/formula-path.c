@@ -6,24 +6,22 @@
 
 #include "xcpkg.h"
 
-static int available = 0;
-
 typedef struct {
           size_t packageNameLength;
     const char * packageName;
     const char * targetPlatformName;
           char * p;
-} Payload2;
+} Payload5;
 
-static int xcpkg_formula_repo_scan_callback(XCPKGFormulaRepo * formulaRepo, const void * payload) {
-    const Payload2 * payload2 = payload;
+static int xcpkg_formula_repo_scan_callback(XCPKGFormulaRepo * formulaRepo, const void * p1, void * p2) {
+    const Payload5 * payload5 = p1;
 
     char * formulaRepoPath = formulaRepo->path;
 
-    size_t formulaFilePathCapacity = strlen(formulaRepoPath) + payload2->packageNameLength + 15U;
+    size_t formulaFilePathCapacity = strlen(formulaRepoPath) + payload5->packageNameLength + 15U;
     char   formulaFilePath[formulaFilePathCapacity];
 
-    int ret = snprintf(formulaFilePath, formulaFilePathCapacity, "%s/formula/%s.yml", formulaRepoPath, payload2->packageName);
+    int ret = snprintf(formulaFilePath, formulaFilePathCapacity, "%s/formula/%s.yml", formulaRepoPath, payload5->packageName);
 
     if (ret < 0) {
         perror(NULL);
@@ -33,8 +31,8 @@ static int xcpkg_formula_repo_scan_callback(XCPKGFormulaRepo * formulaRepo, cons
     struct stat st;
 
     if (stat(formulaFilePath, &st) == 0 && S_ISREG(st.st_mode)) {
-        strncpy(payload2->p, formulaFilePath, formulaFilePathCapacity);
-        available = 1;
+        strncpy(payload5->p, formulaFilePath, formulaFilePathCapacity);
+        (*((int*)p2)) = 1;
         return XCPKG_SCAN_BREAK;
     }
 
@@ -50,14 +48,16 @@ int xcpkg_formula_path(const char * packageName, const char * targetPlatformName
 
     ////////////////////////////////////////////////////////////////
 
-    const Payload2 payload = {
+    int available = 0;
+
+    const Payload5 payload = {
         .packageNameLength = strlen(packageName),
         .packageName = packageName,
         .targetPlatformName = targetPlatformName,
         .p = out
     };
 
-    ret = xcpkg_formula_repo_scan(xcpkg_formula_repo_scan_callback, &payload);
+    ret = xcpkg_formula_repo_scan(xcpkg_formula_repo_scan_callback, &payload, &available);
 
     if (ret != XCPKG_OK) {
         return ret;
@@ -65,7 +65,7 @@ int xcpkg_formula_path(const char * packageName, const char * targetPlatformName
 
     ////////////////////////////////////////////////////////////////
 
-    if (available) {
+    if (available == 1) {
         return XCPKG_OK;
     } else {
         return XCPKG_ERROR_PACKAGE_NOT_AVAILABLE;

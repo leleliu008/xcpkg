@@ -131,8 +131,8 @@ typedef struct {
     const char * targetPlatformName;
 } Payload3;
 
-static int xcpkg_formula_repo_scan_callback(XCPKGFormulaRepo * formulaRepo, const void * payload) {
-    const Payload3 * Payload3 = payload;
+static int xcpkg_formula_repo_scan_callback(XCPKGFormulaRepo * formulaRepo, const void * p1, void * p2) {
+    const Payload3 * Payload3 = p1;
 
     char * formulaRepoPath = formulaRepo->path;
 
@@ -151,6 +151,8 @@ static int xcpkg_formula_repo_scan_callback(XCPKGFormulaRepo * formulaRepo, cons
     if (lstat(formulaFilePath, &st) == 0 && S_ISREG(st.st_mode)) {
         return XCPKG_SCAN_BREAK;
     }
+
+    return XCPKG_OK;
 }
 
 int xcpkg_check_if_the_given_package_is_available(const char * packageName, const char * targetPlatformName) {
@@ -165,7 +167,7 @@ int xcpkg_check_if_the_given_package_is_available(const char * packageName, cons
         .targetPlatformName = targetPlatformName
     };
 
-    return xcpkg_formula_repo_scan(xcpkg_formula_repo_scan_callback, &payload);
+    return xcpkg_formula_repo_scan(xcpkg_formula_repo_scan_callback, &payload, NULL);
 }
 
 int xcpkg_check_if_the_given_package_is_installed(const char * packageName, const char * targetPlatformSpec) {

@@ -8,7 +8,7 @@
 
 #include "xcpkg.h"
 
-int xcpkg_formula_repo_scan(XCPKGFormulaRepoScanCallback callback, const void * payload) {
+int xcpkg_formula_repo_scan(XCPKGFormulaRepoScanCallback callback, const void * p1, void * p2) {
     const char * xcpkgHomeDIR;
     size_t xcpkgHomeDIRLength;
 
@@ -117,7 +117,7 @@ loop:
         return XCPKG_ERROR_MEMORY_ALLOCATE;
     }
 
-    ret = callback(formulaRepo, payload);
+    ret = callback(formulaRepo, p1, p2);
 
     xcpkg_formula_repo_free(formulaRepo);
 
