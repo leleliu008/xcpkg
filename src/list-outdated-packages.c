@@ -3,125 +3,128 @@
 #include <string.h>
 
 #include <unistd.h>
-#include <limits.h>
 #include <dirent.h>
+
 #include <sys/stat.h>
 
 #include "xcpkg.h"
 
-static int _list_dir(const char * targetPlatformSpec, const char * packageInstalledRootDIR, const size_t packageInstalledRootDIRCapacity, const bool verbose) {
-
-    size_t targetPlatformSpecLength = strlen(targetPlatformSpec);
-
-    struct stat st;
-
-    if (!((stat(targetPlatformSpec, &st) == 0) && S_ISDIR(st.st_mode))) {
-        return XCPKG_OK;
-    }
-
+static int _scan_dir(const char * targetPlatformSpec) {
     DIR * dir = opendir(targetPlatformSpec);
 
     if (dir == NULL) {
+        if (errno == ENOENT) {
+            XCPKG_OK;
+        }
+
+        if (errno == ENOTDIR) {
+            XCPKG_OK;
+        }
+
         perror(targetPlatformSpec);
         return XCPKG_ERROR;
     }
 
-    for (;;) {
-        errno = 0;
+    size_t targetPlatformSpecLength = strlen(targetPlatformSpec);
 
-        struct dirent * dir_entry = readdir(dir);
+loop:
+    errno = 0;
 
-        if (dir_entry == NULL) {
-            if (errno == 0) {
-                closedir(dir);
-                return XCPKG_OK;
-            } else {
-                perror(targetPlatformSpec);
-                closedir(dir);
-                return XCPKG_ERROR;
-            }
-        }
+    struct dirent * dir_entry = readdir(dir);
 
-        if ((strcmp(dir_entry->d_name, ".") == 0) || (strcmp(dir_entry->d_name, "..") == 0)) {
-            continue;
-        }
-
-        size_t packageInstalledDIRCapacity = targetPlatformSpecLength + strlen(dir_entry->d_name) + 2U;
-        char   packageInstalledDIR[packageInstalledDIRCapacity];
-
-        int ret = snprintf(packageInstalledDIR, packageInstalledDIRCapacity, "%s/%s", targetPlatformSpec, dir_entry->d_name);
-
-        if (ret < 0) {
-            perror(NULL);
+    if (dir_entry == NULL) {
+        if (errno == 0) {
             closedir(dir);
-            return XCPKG_ERROR;
-        }
-
-        if (lstat(packageInstalledDIR, &st) == 0) {
-            if (!S_ISLNK(st.st_mode)) {
-                continue;
-            }
+            return XCPKG_OK;
         } else {
-            continue;
-        }
-
-        size_t receiptFilePathCapacity = packageInstalledDIRCapacity + sizeof(XCPKG_RECEIPT_FILEPATH_RELATIVE_TO_INSTALLED_ROOT) + 1U;
-        char   receiptFilePath[receiptFilePathCapacity];
-
-        ret = snprintf(receiptFilePath, receiptFilePathCapacity, "%s/%s", packageInstalledDIR, XCPKG_RECEIPT_FILEPATH_RELATIVE_TO_INSTALLED_ROOT);
-
-        if (ret < 0) {
-            perror(NULL);
+            perror(targetPlatformSpec);
             closedir(dir);
             return XCPKG_ERROR;
-        }
-
-        if (lstat(receiptFilePath, &st) == 0 && S_ISREG(st.st_mode)) {
-            //printf("%s\n", dir_entry->d_name);
-
-            XCPKGReceipt * receipt = NULL;
-
-            ret = xcpkg_receipt_parse(dir_entry->d_name, targetPlatformSpec, &receipt);
-
-            if (ret != XCPKG_OK) {
-                closedir(dir);
-                xcpkg_receipt_free(receipt);
-                receipt = NULL;
-                return ret;
-            }
-
-            char targetPlatformName[51];
-
-            for (int i = 0; i < 50; i++) {
-                if (targetPlatformSpec[i] == '\0') {
-                    return XCPKG_ERROR_ARG_IS_INVALID;
-                }
-
-                if (targetPlatformSpec[i] == '-') {
-                    targetPlatformName[i] = '\0';
-                    break;
-                }
-
-                targetPlatformName[i] = targetPlatformSpec[i];
-            }
-
-            XCPKGFormula * formula = NULL;
-
-            ret = xcpkg_formula_load(dir_entry->d_name, targetPlatformName, NULL, &formula);
-
-            if (ret == XCPKG_OK) {
-                if (strcmp(receipt->version, formula->version) != 0) {
-                    printf("%s %s => %s\n", dir_entry->d_name, receipt->version, formula->version);
-                }
-            }
-
-            xcpkg_formula_free(formula);
-            xcpkg_receipt_free(receipt);
-
-            formula = NULL;
-            receipt = NULL;
         }
     }
+
+    if ((strcmp(dir_entry->d_name, ".") == 0) || (strcmp(dir_entry->d_name, "..") == 0)) {
+        goto loop;
+    }
+
+    size_t packageInstalledDIRCapacity = targetPlatformSpecLength + strlen(dir_entry->d_name) + 2U;
+    char   packageInstalledDIR[packageInstalledDIRCapacity];
+
+    int ret = snprintf(packageInstalledDIR, packageInstalledDIRCapacity, "%s/%s", targetPlatformSpec, dir_entry->d_name);
+
+    if (ret < 0) {
+        perror(NULL);
+        closedir(dir);
+        return XCPKG_ERROR;
+    }
+
+    struct stat st;
+
+    if (lstat(packageInstalledDIR, &st) == 0) {
+        if (!S_ISLNK(st.st_mode)) {
+            goto loop;
+        }
+    } else {
+        goto loop;
+    }
+
+    size_t receiptFilePathCapacity = packageInstalledDIRCapacity + sizeof(XCPKG_RECEIPT_FILEPATH_RELATIVE_TO_INSTALLED_ROOT) + 1U;
+    char   receiptFilePath[receiptFilePathCapacity];
+
+    ret = snprintf(receiptFilePath, receiptFilePathCapacity, "%s/%s", packageInstalledDIR, XCPKG_RECEIPT_FILEPATH_RELATIVE_TO_INSTALLED_ROOT);
+
+    if (ret < 0) {
+        perror(NULL);
+        closedir(dir);
+        return XCPKG_ERROR;
+    }
+
+    if (lstat(receiptFilePath, &st) != 0 || !S_ISREG(st.st_mode)) {
+        goto loop;
+    }
+
+    //printf("%s\n", dir_entry->d_name);
+
+    XCPKGReceipt * receipt = NULL;
+
+    ret = xcpkg_receipt_parse(dir_entry->d_name, targetPlatformSpec, &receipt);
+
+    if (ret != XCPKG_OK) {
+        closedir(dir);
+        xcpkg_receipt_free(receipt);
+        receipt = NULL;
+        return ret;
+    }
+
+    char targetPlatformName[51];
+
+    for (int i = 0; i < 50; i++) {
+        if (targetPlatformSpec[i] == '\0') {
+            return XCPKG_ERROR_ARG_IS_INVALID;
+        }
+
+        if (targetPlatformSpec[i] == '-') {
+            targetPlatformName[i] = '\0';
+            break;
+        }
+
+        targetPlatformName[i] = targetPlatformSpec[i];
+    }
+
+    XCPKGFormula * formula = NULL;
+
+    ret = xcpkg_formula_load(dir_entry->d_name, targetPlatformName, NULL, &formula);
+
+    if (ret == XCPKG_OK) {
+        if (strcmp(receipt->version, formula->version) != 0) {
+            printf("%s %s => %s\n", dir_entry->d_name, receipt->version, formula->version);
+        }
+    }
+
+    xcpkg_formula_free(formula);
+    xcpkg_receipt_free(receipt);
+
+    goto loop;
 }
 
 int xcpkg_list_the__outdated_packages(const char * targetPlatformName, const bool verbose) {
@@ -160,45 +163,46 @@ int xcpkg_list_the__outdated_packages(const char * targetPlatformName, const boo
         return XCPKG_ERROR;
     }
 
-    for (;;) {
-        errno = 0;
+loop:
+    errno = 0;
 
-        struct dirent * dir_entry = readdir(dir);
+    struct dirent * dir_entry = readdir(dir);
 
-        if (dir_entry == NULL) {
-            if (errno == 0) {
-                closedir(dir);
-                return XCPKG_OK;
-            } else {
-                perror(packageInstalledRootDIR);
-                closedir(dir);
-                return XCPKG_ERROR;
-            }
-        }
-
-        const char * p = dir_entry->d_name;
-
-        if ((strcmp(p, ".") == 0) || (strcmp(p, "..") == 0)) {
-            continue;
-        }
-
-        ret = xcpkg_check_if_the_given_argument_matches_platform_spec_pattern(p);
-
-        if (ret != XCPKG_OK) {
-            continue;
-        }
-
-        if (targetPlatformName != NULL && targetPlatformName[0] != '\0') {
-            if (strncmp(targetPlatformName, p, strlen(p)) != 0) {
-                continue;
-            }
-        }
-
-        ret = _list_dir(p, packageInstalledRootDIR, packageInstalledRootDIRCapacity, verbose);
-
-        if (ret != XCPKG_OK) {
+    if (dir_entry == NULL) {
+        if (errno == 0) {
             closedir(dir);
-            return ret;
+            return XCPKG_OK;
+        } else {
+            perror(packageInstalledRootDIR);
+            closedir(dir);
+            return XCPKG_ERROR;
         }
     }
+
+    const char * p = dir_entry->d_name;
+
+    if ((strcmp(p, ".") == 0) || (strcmp(p, "..") == 0)) {
+        goto loop;
+    }
+
+    ret = xcpkg_check_if_the_given_argument_matches_platform_spec_pattern(p);
+
+    if (ret != XCPKG_OK) {
+        goto loop;
+    }
+
+    if (targetPlatformName != NULL && targetPlatformName[0] != '\0') {
+        if (strncmp(targetPlatformName, p, strlen(p)) != 0) {
+            goto loop;
+        }
+    }
+
+    ret = _scan_dir(p);
+
+    if (ret == XCPKG_OK) {
+        goto loop;
+    }
+
+    closedir(dir);
+    return ret;
 }
