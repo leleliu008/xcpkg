@@ -126,6 +126,9 @@ extern size_t XCPKG_ZSH_COMPLETION_SCRIPT_STRING_LENGTH;
 #define UPPM_ERROR_RECEIPT_SYNTAX     253
 #define UPPM_ERROR_RECEIPT_SCHEME     254
 
+#define XCPKG_SCAN_FOUND   1000
+#define XCPKG_SCAN_BREAK   1000
+
 
 static const char * supportedTargetPlatformNames[] = {
     "MacOSX",
@@ -284,10 +287,7 @@ typedef struct {
     bool   enabled;
 } XCPKGFormulaRepo;
 
-typedef struct {
-    XCPKGFormulaRepo * * repos;
-    size_t size;
-} XCPKGFormulaRepoList;
+typedef int (*XCPKGFormulaRepoScanCallback)(XCPKGFormulaRepo * formulaRepo, const void * payload);
 
 int  xcpkg_formula_repo_create(const char * formulaRepoName, const char * formulaRepoUrl, const char * branchName, int pinned, int enabled);
 int  xcpkg_formula_repo_add   (const char * formulaRepoName, const char * formulaRepoUrl, const char * branchName, int pinned, int enabled);
@@ -304,10 +304,9 @@ void xcpkg_formula_repo_dump(XCPKGFormulaRepo * formulaRepo);
 int  xcpkg_formula_repo_info(XCPKGFormulaRepo * formulaRepo);
 int  xcpkg_formula_repo_sync(XCPKGFormulaRepo * formulaRepo);
 
-int  xcpkg_formula_repo_list     (XCPKGFormulaRepoList * * p);
-void xcpkg_formula_repo_list_free(XCPKGFormulaRepoList   * p);
+int  xcpkg_formula_repo_scan(XCPKGFormulaRepoScanCallback callback, const void * payload);
 
-int  xcpkg_formula_repo_list_printf();
+int  xcpkg_formula_repo_list();
 int  xcpkg_formula_repo_list_update();
 
 
@@ -462,9 +461,13 @@ int xcpkg_get_session_dir(char buf[], size_t * len);
 
 int xcpkg_search(const char * regPattern, const char * targetPlatformName, const bool verbose);
 
-int xcpkg_available_info(const char * packageName, const char * targetPlatformName, const char * key);
+int xcpkg_print_available_info(const char * packageName, const char * targetPlatformName, const char * key, const char * formulaFilePath);
 
-int xcpkg_installed_info(const char * packageName, const char * targetPlatformSpec, const char * key);
+int xcpkg_dump_available_info(const char * packageName, const char * targetPlatformName, const char * key, const XCPKGFormula * formula);
+
+int xcpkg_show_available_info(const char * packageName, const char * targetPlatformName, const char * key);
+
+int xcpkg_show_installed_info(const char * packageName, const char * targetPlatformSpec, const char * key);
 
 int xcpkg_tree(const char * packageName, const char * targetPlatformSpec, size_t argc, char* argv[]);
 
@@ -554,12 +557,12 @@ int xcpkg_check_if_the_given_package_is_available(const char * packageName, cons
 int xcpkg_check_if_the_given_package_is_installed(const char * packageName, const char * targetPlatformSpec);
 int xcpkg_check_if_the_given_package_is_outdated (const char * packageName, const char * targetPlatformSpec);
 
-typedef int (*XCPKGPackageNameFilter)(const char * packageName, const char * targetPlatformName, const bool verbose, const size_t index, const void * payload);
+typedef int (*XCPKGPackageCallback)(const char * targetPlatformName, const char * packageName, const char * formulaFilePath, const bool verbose, const size_t index, const void * payload);
 
-int xcpkg_show_the_available_packages(const char * targetPlatformName, const bool verbose);
-
-int xcpkg_list_the_available_packages(const char * targetPlatformName, const bool verbose, XCPKGPackageNameFilter packageNameFilter, const void * payload);
+int xcpkg_scan_the_available_packages(const char * targetPlatformName, const bool verbose, XCPKGPackageCallback availablePackageCallback, const void * payload);
+int xcpkg_list_the_available_packages(const char * targetPlatformName, const bool verbose);
 int xcpkg_list_the_installed_packages(const char * targetPlatformName, const bool verbose);
+
 int xcpkg_list_the__outdated_packages(const char * targetPlatformName, const bool verbose);
 
 int xcpkg_git_sync(const char * gitRepositoryDIRPath, const char * remoteUrl, const char * remoteRef, const char * remoteTrackingRef, const char * checkoutToBranchName, const size_t fetchDepth);

@@ -10,7 +10,6 @@
 
 #include "xcpkg.h"
 
-int xcpkg_available_info2(const XCPKGFormula * formula, const char * packageName, const char * targetPlatformName, const char * key);
 
 static inline int xcpkg_action_about(int argc, char* argv[]) {
     bool verbose = false;
@@ -181,7 +180,7 @@ static inline int xcpkg_action_info_available(int argc, char* argv[]) {
         }
     }
 
-    int ret = xcpkg_available_info(argv[2], targetPlatformName, argv[3]);
+    int ret = xcpkg_show_available_info(argv[2], targetPlatformName, argv[3]);
 
     if (ret == XCPKG_ERROR_ARG_IS_NULL) {
         fprintf(stderr, "Usage: %s info <PACKAGE-NAME> [KEY], <PACKAGE-NAME> is not given.\n", argv[0]);
@@ -1057,7 +1056,7 @@ static inline int xcpkg_action_ls_available(int argc, char* argv[]) {
         }
     }
 
-    int ret = xcpkg_show_the_available_packages(targetPlatformName, verbose);
+    int ret = xcpkg_list_the_available_packages(targetPlatformName, verbose);
 
     if (ret == XCPKG_ERROR_ENV_HOME_NOT_SET) {
         fprintf(stderr, "%s\n", "HOME environment variable is not set.\n");
@@ -1740,15 +1739,7 @@ static inline int xcpkg_action_formula_parse(int argc, char* argv[]) {
     strncpy(packageName, p, dotIndex);
     packageName[dotIndex] = '\0';
 
-    XCPKGFormula * formula = NULL;
-
-    int ret = xcpkg_formula_load(packageName, NULL, argv[2], &formula);
-
-    if (ret != XCPKG_OK) {
-        return ret;
-    }
-
-    return xcpkg_available_info2(formula, packageName, NULL, argv[3]);
+    return xcpkg_print_available_info(packageName, NULL, NULL, argv[3]);
 }
 
 static inline int xcpkg_action_formula_cat(int argc, char* argv[]) {
@@ -2006,7 +1997,7 @@ int xcpkg_main(int argc, char* argv[]) {
     }
 
     if (strcmp(argv[1], "formula-repo-list") == 0) {
-        return xcpkg_formula_repo_list_printf();
+        return xcpkg_formula_repo_list();
     }
 
     if (strcmp(argv[1], "formula-repo-add") == 0) {

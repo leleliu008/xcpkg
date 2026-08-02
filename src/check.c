@@ -126,6 +126,33 @@ int xcpkg_check_if_the_given_argument_matches_platform_spec_pattern(const char *
     return XCPKG_OK;
 }
 
+typedef struct {
+    const char * packageName;
+    const char * targetPlatformName;
+} Payload3;
+
+static int xcpkg_formula_repo_scan_callback(XCPKGFormulaRepo * formulaRepo, const void * payload) {
+    const Payload3 * Payload3 = payload;
+
+    char * formulaRepoPath = formulaRepo->path;
+
+    size_t formulaFilePathCapacity = strlen(formulaRepoPath) + strlen(Payload3->packageName) + 15U;
+    char   formulaFilePath[formulaFilePathCapacity];
+
+    int ret = snprintf(formulaFilePath, formulaFilePathCapacity, "%s/formula/%s.yml", formulaRepoPath, Payload3->packageName);
+
+    if (ret < 0) {
+        perror(NULL);
+        return XCPKG_ERROR;
+    }
+
+    struct stat st;
+
+    if (lstat(formulaFilePath, &st) == 0 && S_ISREG(st.st_mode)) {
+        return XCPKG_SCAN_BREAK;
+    }
+}
+
 int xcpkg_check_if_the_given_package_is_available(const char * packageName, const char * targetPlatformName) {
     int ret = xcpkg_check_if_the_given_argument_matches_package_name_pattern(packageName);
 
@@ -133,41 +160,12 @@ int xcpkg_check_if_the_given_package_is_available(const char * packageName, cons
         return ret;
     }
 
-    ////////////////////////////////////////////////////////////////
+    const Payload3 payload = {
+        .packageName = packageName,
+        .targetPlatformName = targetPlatformName
+    };
 
-    XCPKGFormulaRepoList * formulaRepoList = NULL;
-
-    ret = xcpkg_formula_repo_list(&formulaRepoList);
-
-    if (ret != XCPKG_OK) {
-        xcpkg_formula_repo_list_free(formulaRepoList);
-        return ret;
-    }
-
-    struct stat st;
-
-    for (size_t i = 0; i < formulaRepoList->size; i++) {
-        char * formulaRepoPath = formulaRepoList->repos[i]->path;
-
-        size_t formulaFilePathCapacity = strlen(formulaRepoPath) + strlen(packageName) + 15U;
-        char   formulaFilePath[formulaFilePathCapacity];
-
-        ret = snprintf(formulaFilePath, formulaFilePathCapacity, "%s/formula/%s.yml", formulaRepoPath, packageName);
-
-        if (ret < 0) {
-            perror(NULL);
-            xcpkg_formula_repo_list_free(formulaRepoList);
-            return XCPKG_ERROR;
-        }
-
-        if (lstat(formulaFilePath, &st) == 0 && S_ISREG(st.st_mode)) {
-            xcpkg_formula_repo_list_free(formulaRepoList);
-            return XCPKG_OK;
-        }
-    }
-
-    xcpkg_formula_repo_list_free(formulaRepoList);
-    return XCPKG_ERROR_PACKAGE_NOT_AVAILABLE;
+    return xcpkg_formula_repo_scan(xcpkg_formula_repo_scan_callback, &payload);
 }
 
 int xcpkg_check_if_the_given_package_is_installed(const char * packageName, const char * targetPlatformSpec) {

@@ -6,18 +6,14 @@
 
 #include "xcpkg.h"
 
-static size_t j = 0U;
-
-static int package_name_filter(const char * packageName, const char * targetPlatformName, const bool verbose, size_t i, const void * regPattern) {
-    if (regex_matched(packageName, (char*)regPattern) == 0) {
+static int xcpkg_scan_the_available_packages_callback(const char * targetPlatformName, const char * packageName, const char * formulaFilePath, const bool verbose, size_t i, const void * regPattern) {
+    if (regex_matched(packageName, (const char *)regPattern) == 0) {
         if (verbose) {
-            if (j != 0U) {
+            if (i != 0U) {
                 printf("\n");
             }
 
-            j++;
-
-            return xcpkg_available_info(packageName, targetPlatformName, NULL);
+            return xcpkg_print_available_info(packageName, targetPlatformName, NULL, formulaFilePath);
         } else {
             puts(packageName);
             return XCPKG_OK;
@@ -41,5 +37,5 @@ int xcpkg_search(const char * regPattern, const char * targetPlatformName, const
         return XCPKG_ERROR_ARG_IS_EMPTY;
     }
 
-    return xcpkg_list_the_available_packages(targetPlatformName, verbose, package_name_filter, regPattern);
+    return xcpkg_scan_the_available_packages(targetPlatformName, verbose, xcpkg_scan_the_available_packages_callback, regPattern);
 }

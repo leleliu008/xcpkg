@@ -26,7 +26,23 @@ typedef struct {
 } KB;
 
 
-int xcpkg_available_info2(const XCPKGFormula * formula, const char * packageName, const char * targetPlatformName, const char * key) {
+int xcpkg_print_available_info(const char * packageName, const char * targetPlatformName, const char * key, const char * formulaFilePath) {
+    XCPKGFormula * formula = NULL;
+
+    int ret = xcpkg_formula_load(packageName, targetPlatformName, formulaFilePath, &formula);
+
+    if (ret != XCPKG_OK) {
+        return ret;
+    }
+
+    ret = xcpkg_dump_available_info(packageName, targetPlatformName, key, formula);
+
+    xcpkg_formula_free(formula);
+
+    return ret;
+}
+
+int xcpkg_dump_available_info(const char * packageName, const char * targetPlatformName, const char * key, const XCPKGFormula * formula) {
     if ((key == NULL) || (key[0] == '\0') || (strcmp(key, "--yaml") == 0)) {
         if (isatty(STDOUT_FILENO)) {
             printf("pkgname: %s%s%s\n", COLOR_GREEN, packageName, COLOR_OFF);
@@ -517,7 +533,7 @@ int xcpkg_available_info2(const XCPKGFormula * formula, const char * packageName
     return XCPKG_OK;
 }
 
-int xcpkg_available_info(const char * packageName, const char * targetPlatformName, const char * key) {
+int xcpkg_show_available_info(const char * packageName, const char * targetPlatformName, const char * key) {
     if (key != NULL && key[0] != '\0' && strcmp(key, "formula") == 0) {
         char formulaFilePath[PATH_MAX];
 
@@ -531,18 +547,6 @@ int xcpkg_available_info(const char * packageName, const char * targetPlatformNa
 
         return XCPKG_OK;
     } else {
-        XCPKGFormula * formula = NULL;
-
-        int ret = xcpkg_formula_load(packageName, targetPlatformName, NULL, &formula);
-
-        if (ret != XCPKG_OK) {
-            return ret;
-        }
-
-        ret = xcpkg_available_info2(formula, packageName, targetPlatformName, key);
-
-        xcpkg_formula_free(formula);
-
-        return ret;
+        return xcpkg_print_available_info(packageName, targetPlatformName, key, NULL);
     }
 }
