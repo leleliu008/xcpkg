@@ -104,7 +104,7 @@ loop:
 
     const Payload4 * payload4 = payload;
 
-    ret = payload4->packageCallback(payload4->targetPlatformName, fileName, formulaFilePath, payload4->verbose, counter++, payload);
+    ret = payload4->packageCallback(payload4->targetPlatformName, fileName, formulaFilePath, payload4->verbose, counter++, payload4->payload);
 
     if (ret == XCPKG_OK) {
         goto loop;
