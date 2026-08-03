@@ -1,34 +1,30 @@
 #ifndef XCPKG_UTIL_H
 #define XCPKG_UTIL_H
 
-int xcpkg_util_base16_encode(int argc, char* argv[]);
+#define DECLARE_UTIL(name) int xcpkg_util_##name(int argc, char* argv[]);
 
-int xcpkg_util_base16_decode(int argc, char* argv[]);
+DECLARE_UTIL(base16_encode)
+DECLARE_UTIL(base16_decode)
 
-int xcpkg_util_base64_encode(int argc, char* argv[]);
+DECLARE_UTIL(base64_encode)
+DECLARE_UTIL(base64_decode)
 
-int xcpkg_util_base64_decode(int argc, char* argv[]);
+DECLARE_UTIL(zlib_deflate)
+DECLARE_UTIL(zlib_inflate)
 
-int xcpkg_util_zlib_deflate(int argc, char* argv[]);
+DECLARE_UTIL(sha256sum)
 
-int xcpkg_util_zlib_inflate(int argc, char* argv[]);
+DECLARE_UTIL(http_fetch)
+DECLARE_UTIL(git_sync)
 
-int xcpkg_util_sha256sum(int argc, char* argv[]);
+DECLARE_UTIL(uncompress)
 
-int xcpkg_util_http_fetch(int argc, char* argv[]);
+DECLARE_UTIL(which)
+DECLARE_UTIL(printenv)
 
-int xcpkg_util_git_sync(int argc, char* argv[]);
+DECLARE_UTIL(mkdir_p)
+DECLARE_UTIL(rm_rf)
 
-int xcpkg_util_uncompress(int argc, char* argv[]);
-
-int xcpkg_util_mkdir_p(int argc, char* argv[]);
-
-int xcpkg_util_rm_rf(int argc, char* argv[]);
-
-int xcpkg_util_which(int argc, char* argv[]);
-
-int xcpkg_util_printenv(int argc, char* argv[]);
-
-int xcpkg_util_list_PATH(int argc, char* argv[]);
+DECLARE_UTIL(list_PATH)
 
 #endif

@@ -80,11 +80,14 @@ endif()
 
 ####################################################
 
-aux_source_directory(src/base BASE_SRCS)
 aux_source_directory(src/core CORE_SRCS)
+aux_source_directory(src/base BASE_SRCS)
+aux_source_directory(src/impl IMPL_SRCS)
+aux_source_directory(src/util UTIL_SRCS)
+aux_source_directory(src/main MAIN_SRCS)
 aux_source_directory(src           SRCS)
 
-add_executable(xcpkg "${BASE_SRCS};${CORE_SRCS};${SRCS}")
+add_executable(xcpkg "${CORE_SRCS};${BASE_SRCS};${IMPL_SRCS};${UTIL_SRCS};${MAIN_SRCS};${SRCS}")
 
 ####################################################
 
