@@ -10,7 +10,7 @@
 
 #include <git2.h>
 
-#include "../core/url-transform.h"
+#include "url-transform.h"
 
 #include "../xcpkg.h"
 

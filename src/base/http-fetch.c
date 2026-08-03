@@ -12,7 +12,7 @@
 #include <curl/curl.h>
 #include <curl/curlver.h>
 
-#include "core/url-transform.h"
+#include "url-transform.h"
 
 #include "sha256sum.h"
 
