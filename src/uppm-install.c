@@ -15,7 +15,7 @@
 #include "core/sysinfo.h"
 #include "core/tar.h"
 
-#include "sha256sum.h"
+#include "base/sha256sum.h"
 #include "uppm.h"
 #include "xcpkg.h"
 

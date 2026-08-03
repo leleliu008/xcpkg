@@ -36,7 +36,12 @@ int file2c(const char * const fp, const char * varName) {
         return -1;
     }
 
-    printf("size_t %s_LENGTH = %lld;\n", varName, st.st_size);
+    if (sizeof(off_t) == sizeof(long long)) {
+        printf("size_t %s_LENGTH = %lld;\n", varName, (long long)st.st_size);
+    } else {
+        printf("size_t %s_LENGTH = %ld;\n",  varName, (long int)st.st_size);
+    }
+
     printf("char %s[] = {", varName);
     printf("0x%.2X", p[0]);
 

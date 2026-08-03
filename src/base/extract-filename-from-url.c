@@ -1,4 +1,4 @@
-#include "xcpkg.h"
+#include "../xcpkg.h"
 
 int xcpkg_extract_filename_from_url(const char * url, char buf[], const size_t bufCapacity) {
     if (url == NULL) {

@@ -10,9 +10,9 @@
 
 #include <git2.h>
 
-#include "core/url-transform.h"
+#include "../core/url-transform.h"
 
-#include "xcpkg.h"
+#include "../xcpkg.h"
 
 typedef struct {
     git_indexer_progress indexerProgress;

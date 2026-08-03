@@ -3,7 +3,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#include "xcpkg.h"
+#include "../xcpkg.h"
 
 int xcpkg_write_file(const char * fp, const char * str, size_t strLen) {
     int fd = open(fp, O_WRONLY | O_CREAT | O_TRUNC, 0666);

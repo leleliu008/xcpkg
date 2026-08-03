@@ -19,7 +19,8 @@
 #include "core/exe.h"
 #include "core/log.h"
 
-#include "sha256sum.h"
+#include "base/sha256sum.h"
+
 #include "native-package.h"
 #include "xcpkg.h"
 #include "uppm.h"

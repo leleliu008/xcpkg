@@ -9,7 +9,7 @@ if (NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
-########################################################################################
+####################################################
 
 string(TIMESTAMP COMPILED_TIMESTAMP "%Y-%m-%d %H:%M:%S UTC" UTC)
 
@@ -17,7 +17,7 @@ configure_file(src/config.h.in "${CMAKE_CURRENT_SOURCE_DIR}/src/config.h" @ONLY)
 
 execute_process(COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/build-aux-utils/gen-data.sh" "${CMAKE_CURRENT_SOURCE_DIR}/src/data.c" COMMAND_ERROR_IS_FATAL ANY)
 
-########################################################################################
+####################################################
 
 message(STATUS "CMAKE_HOST_SYSTEM_NAME = ${CMAKE_HOST_SYSTEM_NAME}")
 message(STATUS "CMAKE_SYSTEM_NAME      = ${CMAKE_SYSTEM_NAME}")
@@ -29,7 +29,7 @@ message(STATUS "CMAKE_LIBRARY_PATH   = ${CMAKE_LIBRARY_PATH}")
 message(STATUS "CMAKE_FIND_ROOT_PATH = ${CMAKE_FIND_ROOT_PATH}")
 message(STATUS "ENV: PKG_CONFIG_PATH = $ENV{PKG_CONFIG_PATH}")
 
-########################################################################################
+####################################################
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" "${CMAKE_MODULE_PATH}")
 
@@ -53,7 +53,7 @@ find_package(JANSSON REQUIRED)
 
 find_package(ZLIB REQUIRED)
 
-########################################################################################
+####################################################
 
 message(STATUS "CURL_LIBRARIES=${CURL_LIBRARIES}")
 message(STATUS "OPENSSL_LIBRARIES=${OPENSSL_LIBRARIES}")
@@ -63,7 +63,7 @@ message(STATUS "LIBYAML_LIBRARY=${LIBYAML_LIBRARY}")
 message(STATUS "JANSSON_LIBRARY=${JANSSON_LIBRARY}")
 message(STATUS "ZLIB_LIBRARIES=${ZLIB_LIBRARIES}")
 
-########################################################################################
+####################################################
 
 if (OPENSSL_VERSION)
     message(STATUS "OPENSSL_VERSION = ${OPENSSL_VERSION}")
@@ -78,14 +78,15 @@ if (OPENSSL_VERSION)
     endif()
 endif()
 
-########################################################################################
+####################################################
 
+aux_source_directory(src/base BASE_SRCS)
 aux_source_directory(src/core CORE_SRCS)
 aux_source_directory(src           SRCS)
 
-add_executable(xcpkg "${CORE_SRCS};src/core/regex/posix.c;${SRCS}")
+add_executable(xcpkg "${BASE_SRCS};${CORE_SRCS};${SRCS}")
 
-########################################################################################
+####################################################
 
 target_link_libraries(xcpkg CURL::libcurl)
 target_link_libraries(xcpkg OpenSSL::SSL)
@@ -97,7 +98,7 @@ target_link_libraries(xcpkg JANSSON::JANSSON)
 target_link_libraries(xcpkg ZLIB::ZLIB)
 target_link_libraries(xcpkg -lm)
 
-########################################################################################
+####################################################
 
 include(GNUInstallDirs)
 

@@ -4,7 +4,7 @@
 
 #include <sys/stat.h>
 
-#include "xcpkg.h"
+#include "../xcpkg.h"
 
 int xcpkg_mkdir_p(const char * dir, const bool verbose) {
     if (dir == NULL) {

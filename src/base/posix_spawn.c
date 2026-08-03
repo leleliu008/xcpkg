@@ -4,11 +4,12 @@
 
 #include <spawn.h>
 #include <sys/wait.h>
+
 #include <crt_externs.h>
 
-#include "core/log.h"
+#include "../core/log.h"
 
-#include "xcpkg.h"
+#include "../xcpkg.h"
 
 static inline __attribute__((always_inline)) int xcpkg_posix_spawn_internal(const char * cmd, char* argv[]) {
     fprintf(stderr, "%s==>%s %s%s%s\n", COLOR_PURPLE, COLOR_OFF, COLOR_GREEN, cmd, COLOR_OFF);

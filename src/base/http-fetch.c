@@ -16,7 +16,7 @@
 
 #include "sha256sum.h"
 
-#include "xcpkg.h"
+#include "../xcpkg.h"
 
 int xcpkg_http_fetch_to_stream(const char * url, FILE * outputFile, const bool verbose, const bool showProgress) {
     if (url == NULL) {

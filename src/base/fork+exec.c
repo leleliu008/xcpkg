@@ -5,9 +5,9 @@
 
 #include <sys/wait.h>
 
-#include "core/log.h"
+#include "../core/log.h"
 
-#include "xcpkg.h"
+#include "../xcpkg.h"
 
 int xcpkg_fork_exec(char * cmd) {
     fprintf(stderr, "%s==>%s %s%s%s\n", COLOR_PURPLE, COLOR_OFF, COLOR_GREEN, cmd, COLOR_OFF);

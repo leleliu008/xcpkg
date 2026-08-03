@@ -1,6 +1,6 @@
 #include <stddef.h>
 
-#include "xcpkg.h"
+#include "../xcpkg.h"
 
 /**
  * v2_0_2.tar.gz

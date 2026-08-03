@@ -3,7 +3,7 @@
 
 #include <sys/stat.h>
 
-#include "xcpkg.h"
+#include "../xcpkg.h"
 
 int xcpkg_rename_or_copy_file(const char * fromFilePath, const char * toFilePath) {
     if (fromFilePath == NULL) {

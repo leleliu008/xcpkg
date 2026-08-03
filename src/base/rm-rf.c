@@ -6,7 +6,7 @@
 #include <dirent.h>
 #include <sys/stat.h>
 
-#include "xcpkg.h"
+#include "../xcpkg.h"
 
 static int xcpkg_rm_rf_internal(const char * path, const bool isRoot, const bool preserveRoot, const bool verbose) {
     struct stat st;

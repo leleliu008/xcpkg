@@ -3,7 +3,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#include "xcpkg.h"
+#include "../xcpkg.h"
 
 int xcpkg_copy_file(const char * fromFilePath, const char * toFilePath) {
     int fromFD = open(fromFilePath, O_RDONLY);

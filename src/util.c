@@ -14,7 +14,8 @@
 #include "core/exe.h"
 #include "core/log.h"
 
-#include "sha256sum.h"
+#include "base/sha256sum.h"
+
 #include "xcpkg.h"
 
 static inline __attribute__((always_inline)) int xcpkg_util_base16_encode(int argc, char* argv[]) {

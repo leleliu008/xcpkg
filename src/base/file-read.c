@@ -1,7 +1,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#include "xcpkg.h"
+#include "../xcpkg.h"
 
 int xcpkg_read_the_first_n_bytes_of_a_file(const char * fp, unsigned int n, char buf[]) {
     int fd = open(fp, O_RDONLY);
