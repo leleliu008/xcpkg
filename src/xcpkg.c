@@ -8,6 +8,11 @@
 #include "core/log.h"
 #include "core/tar.h"
 
+#include "core/printenv.h"
+#include "core/list-PATH.h"
+
+#include "util.h"
+
 #include "xcpkg.h"
 
 
@@ -1880,10 +1885,63 @@ static int xcpkg_action_upgrade_self(int argc, char* argv[]) {
     return xcpkg_upgrade_self(verbose);
 }
 
+int xcpkg_util_printenv(int argc, char* argv[]) {
+    printenv();
+    return XCPKG_OK;
+}
+
+int xcpkg_util_list_PATH(int argc, char* argv[]) {
+    return list_PATH();
+}
+
 typedef struct {
     const char * arg;
     int (*fn)(int argc, char* argv[]);
 } XCPKGAction;
+
+//invoked as 'xcpkg util <CMD> [ARGUMENT]...'
+int xcpkg_action_util(int argc, char* argv[]) {
+    if (argv[2] == NULL) {
+        fprintf(stderr, "Usage: %s %s <COMMAND> , <COMMAND> is unspecified.\n", argv[0], argv[1]);
+        return XCPKG_ERROR_ARG_IS_NULL;
+    }
+
+    if (argv[2][0] == '\0') {
+        fprintf(stderr, "Usage: %s %s <COMMAND> , <COMMAND> should be a non-empty string.\n", argv[0], argv[1]);
+        return XCPKG_ERROR_ARG_IS_NULL;
+    }
+
+    ///////////////////////////////////////////////////
+
+    const XCPKGAction actions[] = {
+        {"base16-encode",        xcpkg_util_base16_encode},
+        {"base16-encode",        xcpkg_util_base16_decode},
+        {"base64-encode",        xcpkg_util_base64_encode},
+        {"base64-encode",        xcpkg_util_base64_decode},
+        {"zlib-deflate",         xcpkg_util_zlib_deflate},
+        {"zlib-inflate",         xcpkg_util_zlib_inflate},
+        {"sha256sum",            xcpkg_util_sha256sum},
+        {"printenv",             xcpkg_util_printenv},
+        {"which",                xcpkg_util_which},
+        {"list-PATH",            xcpkg_util_list_PATH},
+        {"http-fetch",           xcpkg_util_http_fetch},
+        {"git-sync",             xcpkg_util_git_sync},
+        {"uncompress",           xcpkg_util_uncompress},
+        {"mkdir-p",              xcpkg_util_mkdir_p},
+        {"rm-rf",                xcpkg_util_rm_rf},
+        {NULL, NULL}
+    };
+
+    for (size_t i = 0U; actions[i].arg != NULL; i++) {
+        if (strcmp(argv[2], actions[i].arg) == 0) {
+            return actions[i].fn(argc, argv);
+        }
+    }
+
+    fprintf(stderr, "Usage: %s %s <COMMAND> , unknown <COMMAND>: %s\n", argv[0], argv[1], argv[2]);
+
+    return XCPKG_ERROR_ARG_IS_UNKNOWN;
+}
 
 int main(int argc, char* argv[]) {
     if (argc == 1) {
@@ -1939,7 +1997,7 @@ int main(int argc, char* argv[]) {
         {"logs",         xcpkg_action_logs},
         {"bundle",       xcpkg_action_bundle},
         {"xcinfo",       xcpkg_action_xcinfo},
-        {"util",         xcpkg_util},
+        {"util",         xcpkg_action_util},
 
         {"ls-available", xcpkg_action_ls_available},
         {"ls-installed", xcpkg_action_ls_installed},

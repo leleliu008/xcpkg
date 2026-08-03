@@ -16,9 +16,11 @@
 
 #include "base/sha256sum.h"
 
+#include "util.h"
+
 #include "xcpkg.h"
 
-static inline __attribute__((always_inline)) int xcpkg_util_base16_encode(int argc, char* argv[]) {
+int xcpkg_util_base16_encode(int argc, char* argv[]) {
     if (argv[3] == NULL) {
         unsigned char inputBuf[1024];
 
@@ -94,7 +96,7 @@ static inline __attribute__((always_inline)) int xcpkg_util_base16_encode(int ar
     }
 }
 
-static inline __attribute__((always_inline)) int xcpkg_util_base16_decode(int argc, char* argv[]) {
+int xcpkg_util_base16_decode(int argc, char* argv[]) {
     if (argv[3] == NULL) {
         fprintf(stderr, "Usage: %s %s %s <BASE16-ENCODED-STR> , <BASE16-ENCODED-STR> is unspecified.\n", argv[0], argv[1], argv[2]);
         return XCPKG_ERROR_ARG_IS_NULL;
@@ -144,7 +146,7 @@ static inline __attribute__((always_inline)) int xcpkg_util_base16_decode(int ar
     }
 }
 
-static inline __attribute__((always_inline)) int xcpkg_util_base64_encode(int argc, char* argv[]) {
+int xcpkg_util_base64_encode(int argc, char* argv[]) {
     if (argv[3] == NULL) {
         unsigned char inputBuf[1023];
 
@@ -225,7 +227,7 @@ static inline __attribute__((always_inline)) int xcpkg_util_base64_encode(int ar
     }
 }
 
-static inline __attribute__((always_inline)) int xcpkg_util_base64_decode(int argc, char* argv[]) {
+int xcpkg_util_base64_decode(int argc, char* argv[]) {
     if (argv[3] == NULL) {
         unsigned char readBuf[1024];
 
@@ -306,7 +308,7 @@ static inline __attribute__((always_inline)) int xcpkg_util_base64_decode(int ar
     }
 }
 
-static inline __attribute__((always_inline)) int xcpkg_util_sha256sum(int argc, char* argv[]) {
+int xcpkg_util_sha256sum(int argc, char* argv[]) {
     if (argv[3] == NULL || strcmp(argv[3], "-") == 0) {
         char outputBuf[65] = {0};
 
@@ -332,7 +334,7 @@ static inline __attribute__((always_inline)) int xcpkg_util_sha256sum(int argc, 
     }
 }
 
-static inline __attribute__((always_inline)) int xcpkg_util_zlib_deflate(int argc, char* argv[]) {
+int xcpkg_util_zlib_deflate(int argc, char* argv[]) {
     int level = 1;
 
     for (int i = 3; i < argc; i++) {
@@ -367,11 +369,11 @@ static inline __attribute__((always_inline)) int xcpkg_util_zlib_deflate(int arg
     return zlib_deflate_file_to_file(stdin, stdout, level);
 }
 
-static inline __attribute__((always_inline)) int xcpkg_util_zlib_inflate(int argc, char* argv[]) {
+int xcpkg_util_zlib_inflate(int argc, char* argv[]) {
     return zlib_inflate_file_to_file(stdin, stdout);
 }
 
-static inline __attribute__((always_inline)) int xcpkg_util_which(int argc, char* argv[]) {
+int xcpkg_util_which(int argc, char* argv[]) {
     if (argv[3] == NULL) {
         fprintf(stderr, "USAGE: %s %s %s <COMMAND-NAME> , <COMMAND-NAME> is unspecified.\n", argv[0], argv[1], argv[2]);
         return 1;
@@ -415,7 +417,7 @@ static inline __attribute__((always_inline)) int xcpkg_util_which(int argc, char
     return ret;
 }
 
-static inline __attribute__((always_inline)) int xcpkg_util_http_fetch(int argc, char* argv[]) {
+int xcpkg_util_http_fetch(int argc, char* argv[]) {
     if (argv[3] == NULL) {
         fprintf(stderr, "USAGE: %s %s %s <URL> , <URL> is unspecified.\n", argv[0], argv[1], argv[2]);
         return 1;
@@ -474,7 +476,7 @@ static inline __attribute__((always_inline)) int xcpkg_util_http_fetch(int argc,
     return xcpkg_http_fetch(url, uri, expectedSHA256SUM, outputPath, verbose);
 }
 
-static inline __attribute__((always_inline)) int xcpkg_util_git_sync(int argc, char* argv[]) {
+int xcpkg_util_git_sync(int argc, char* argv[]) {
     if (argv[3] == NULL) {
         fprintf(stderr, "USAGE: %s %s %s <URL> , <URL> is unspecified.\n", argv[0], argv[1], argv[2]);
         return 1;
@@ -547,7 +549,7 @@ static inline __attribute__((always_inline)) int xcpkg_util_git_sync(int argc, c
     return xcpkg_git_sync(gitRepositoryDIRPath, remoteUrl, remoteRef, remoteTrackingRef, checkoutBranchName, depth);
 }
 
-static inline __attribute__((always_inline)) int xcpkg_util_uncompress(int argc, char* argv[]) {
+int xcpkg_util_uncompress(int argc, char* argv[]) {
     if (argv[3] == NULL) {
         fprintf(stderr, "USAGE: %s %s %s <FILEPATH> , <FILEPATH> is unspecified.\n", argv[0], argv[1], argv[2]);
         return XCPKG_ERROR_ARG_IS_UNSPECIFIED;
@@ -602,7 +604,7 @@ static inline __attribute__((always_inline)) int xcpkg_util_uncompress(int argc,
     return xcpkg_uncompress(argv[3], unpackDIR, stripComponentNumber, verbose);
 }
 
-static inline __attribute__((always_inline)) int xcpkg_util_mkdir_p(int argc, char* argv[]) {
+int xcpkg_util_mkdir_p(int argc, char* argv[]) {
     if (argv[3] == NULL) {
         fprintf(stderr, "USAGE: %s %s %s <FILEPATH> , <FILEPATH> is unspecified.\n", argv[0], argv[1], argv[2]);
         return XCPKG_ERROR_ARG_IS_UNSPECIFIED;
@@ -628,7 +630,7 @@ static inline __attribute__((always_inline)) int xcpkg_util_mkdir_p(int argc, ch
     return xcpkg_mkdir_p(argv[3], verbose);
 }
 
-static inline __attribute__((always_inline)) int xcpkg_util_rm_rf(int argc, char* argv[]) {
+int xcpkg_util_rm_rf(int argc, char* argv[]) {
     if (argv[3] == NULL) {
         fprintf(stderr, "USAGE: %s %s %s <FILEPATH> , <FILEPATH> is unspecified.\n", argv[0], argv[1], argv[2]);
         return XCPKG_ERROR_ARG_IS_UNSPECIFIED;
@@ -652,82 +654,4 @@ static inline __attribute__((always_inline)) int xcpkg_util_rm_rf(int argc, char
     }
 
     return xcpkg_rm_rf(argv[3], false, verbose);
-}
-
-//invoked as 'xcpkg util <CMD> [ARGUMENTS]'
-int xcpkg_util(int argc, char* argv[]) {
-    if (argv[2] == NULL) {
-        fprintf(stderr, "Usage: %s %s <COMMAND> , <COMMAND> is unspecified.\n", argv[0], argv[1]);
-        return XCPKG_ERROR_ARG_IS_NULL;
-    }
-
-    if (argv[2][0] == '\0') {
-        fprintf(stderr, "Usage: %s %s <COMMAND> , <COMMAND> should be a non-empty string.\n", argv[0], argv[1]);
-        return XCPKG_ERROR_ARG_IS_NULL;
-    }
-
-    if (strcmp(argv[2], "base16-encode") == 0) {
-        return xcpkg_util_base16_encode(argc, argv);
-    }
-
-    if (strcmp(argv[2], "base16-decode") == 0) {
-        return xcpkg_util_base16_decode(argc, argv);
-    }
-
-    if (strcmp(argv[2], "base64-encode") == 0) {
-        return xcpkg_util_base64_encode(argc, argv);
-    }
-
-    if (strcmp(argv[2], "base64-decode") == 0) {
-        return xcpkg_util_base64_decode(argc, argv);
-    }
-
-    if (strcmp(argv[2], "sha256sum") == 0) {
-        return xcpkg_util_sha256sum(argc, argv);
-    }
-
-    if (strcmp(argv[2], "zlib-deflate") == 0) {
-        return xcpkg_util_zlib_deflate(argc, argv);
-    }
-
-    if (strcmp(argv[2], "zlib-inflate") == 0) {
-        return xcpkg_util_zlib_inflate(argc, argv);
-    }
-
-    if (strcmp(argv[2], "which") == 0) {
-        return xcpkg_util_which(argc, argv);
-    }
-
-    if (strcmp(argv[2], "printenv") == 0) {
-        printenv();
-        return XCPKG_OK;
-    }
-
-    if (strcmp(argv[2], "list-PATH") == 0) {
-        return list_PATH();
-    }
-
-    if (strcmp(argv[2], "http-fetch") == 0) {
-        return xcpkg_util_http_fetch(argc, argv);
-    }
-
-    if (strcmp(argv[2], "git-sync") == 0) {
-        return xcpkg_util_git_sync(argc, argv);
-    }
-
-    if (strcmp(argv[2], "uncompress") == 0) {
-        return xcpkg_util_uncompress(argc, argv);
-    }
-
-    if (strcmp(argv[2], "mkdir-p") == 0) {
-        return xcpkg_util_mkdir_p(argc, argv);
-    }
-
-    if (strcmp(argv[2], "rm-rf") == 0) {
-        return xcpkg_util_rm_rf(argc, argv);
-    }
-
-    fprintf(stderr, "Usage: %s %s <COMMAND> , unknown <COMMAND>: %s\n", argv[0], argv[1], argv[2]);
-
-    return XCPKG_ERROR_ARG_IS_UNKNOWN;
 }
