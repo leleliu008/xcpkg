@@ -577,23 +577,25 @@ int xcpkg_util_uncompress(int argc, char* argv[]) {
                 return XCPKG_ERROR_ARG_IS_INVALID;
             }
         } else if (strncmp(argv[i], "--strip-components=", 19) == 0) {
-            if (argv[i][19] == '\0') {
+            const char * p = &argv[i][19];
+
+            if (p[0] == '\0') {
                 fprintf(stderr, "USAGE: %s %s %s <URL> [--strip-components=<N>] , <N> should be a non-empty string.\n", argv[0], argv[1], argv[2]);
                 return XCPKG_ERROR_ARG_IS_INVALID;
             }
 
-            for (int j = 19; ;j++) {
-                if (argv[i][j] == '\0') {
+            for (int j = 0; ; j++) {
+                if (p[j] == '\0') {
                     break;
                 }
 
-                if (argv[i][j] < '0' || argv[i][j] > '0') {
+                if (p[j] < '0' || p[j] > '9') {
                     fprintf(stderr, "USAGE: %s %s %s <URL> [--strip-components=<N>] , <N> should be a integer.\n", argv[0], argv[1], argv[2]);
                     return XCPKG_ERROR_ARG_IS_INVALID;
                 }
             }
 
-            stripComponentNumber = atoi(argv[i]);
+            stripComponentNumber = atoi(p);
         } else {
             LOG_ERROR2("unknown argument: ", argv[i]);
             fprintf(stderr, "USAGE: %s %s %s <URL> [-v]\n", argv[0], argv[1], argv[2]);
