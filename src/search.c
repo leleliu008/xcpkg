@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "core/regex/regex.h"
+#include "core/regex.h"
 
 #include "xcpkg.h"
 
