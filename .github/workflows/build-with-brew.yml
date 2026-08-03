@@ -88,7 +88,7 @@ jobs:
       - run: xcpkg util zlib-deflate > cacert.zlib < cacert.pem
       - run: xcpkg util zlib-inflate < cacert.zlib > cacert2.pem
 
-      - run: xcpkg util http-fetch https://ftp.gnu.org/gnu/gzip/gzip-1.14.tar.gz
+      - run: xcpkg util http-fetch https://ftp.gnu.org/gnu/gzip/gzip-1.14.tar.gz -o gzip-1.14.tar.gz
       - run: xcpkg util uncompress *.tar.gz
       - run: xcpkg util uncompress *.tar.gz -C tar.src
       - run: xcpkg util uncompress *.tar.gz -C tar/src --strip-components=1
