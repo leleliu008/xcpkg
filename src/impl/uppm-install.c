@@ -15,9 +15,11 @@
 #include "../core/sysinfo.h"
 #include "../core/tar.h"
 
-#include "base/sha256sum.h"
-#include "uppm.h"
+#include "../base/sha256sum.h"
+
 #include "../xcpkg.h"
+
+#include "uppm.h"
 
 static int generate_install_shell_script_file(
         const char * shellScriptFilePath,

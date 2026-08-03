@@ -9,7 +9,7 @@
 
 #include <sys/stat.h>
 
-#include "base/sha256sum.h"
+#include "../base/sha256sum.h"
 
 #include "native-package.h"
 

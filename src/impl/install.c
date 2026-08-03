@@ -19,10 +19,11 @@
 #include "../core/exe.h"
 #include "../core/log.h"
 
-#include "base/sha256sum.h"
+#include "../base/sha256sum.h"
+
+#include "../xcpkg.h"
 
 #include "native-package.h"
-#include "../xcpkg.h"
 #include "uppm.h"
 
 typedef struct {
