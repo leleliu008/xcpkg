@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-#include "config.h"
+#include "../config.h"
 
 #define UPPM_VERSION "20000.0.0"
 #define UPPM_VERSION_MAJOR 20000
