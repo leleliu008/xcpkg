@@ -71,8 +71,6 @@ jobs:
       - run: xcpkg --version
       - run: xcpkg -V
 
-      - run: xcpkg util printenv
-
       - run: xcpkg about
       - run: xcpkg about -v
 
@@ -80,6 +78,20 @@ jobs:
 
       - run: xcpkg completion zsh
       - run: xcpkg completion zsh -v
+
+      - run: xcpkg util printenv
+      - run: xcpkg util which curl
+      - run: xcpkg util which curl -a
+      - run: xcpkg util http-fetch https://curl.se/ca/cacert.pem -v
+      - run: xcpkg util http-fetch https://curl.se/ca/cacert.pem
+      - run: xcpkg util http-fetch https://curl.se/ca/cacert.pem -v -o cacert.pem
+      - run: xcpkg util zlib-deflate > cacert.zlib < cacert.pem
+      - run: xcpkg util zlib-inflate < cacert.zlib > cacert2.pem
+
+      - run: xcpkg util http-fetch https://ftp.gnu.org/gnu/gzip/gzip-1.14.tar.gz
+      - run: xcpkg util uncompress *.tar.gz
+      - run: xcpkg util uncompress *.tar.gz -C tar.src
+      - run: xcpkg util uncompress *.tar.gz -C tar/src --strip-components=1
 
       - run: xcpkg formula-repo-list
       - run: xcpkg formula-repo-add official-core https://github.com/leleliu008/xcpkg-formula-repository-official-core
@@ -93,6 +105,7 @@ jobs:
       - run: xcpkg update
 
       - run: xcpkg search lib
+      - run: xcpkg search libarchive
       - run: xcpkg search zip
 
       - run: xcpkg info libzip
@@ -102,12 +115,16 @@ jobs:
       - run: xcpkg info libzip version
       - run: xcpkg info libzip license
       - run: xcpkg info libzip web-url
+      - run: xcpkg info libzip git-url
       - run: xcpkg info libzip src-url
       - run: xcpkg info libzip src-sha
 
       - run: xcpkg depends libzip
+      - run: xcpkg depends libzip -t d2
       - run: xcpkg depends libzip -t dot
       - run: xcpkg depends libzip -t box
+      - run: xcpkg depends libarchive -t dot -o a/
+      - run: xcpkg depends libarchive -o libarchive.box
 
       - run: xcpkg fetch gzip
       - run: xcpkg fetch gsed -v

@@ -425,18 +425,6 @@ int  xcpkg_sdk_path(const char * sdk, char buf[]);
 
 //////////////////////////////////////////////////////////////////////
 
-int xcpkg_main(int argc, char* argv[]);
-
-int xcpkg_util(int argc, char* argv[]);
-
-int xcpkg_help();
-
-int xcpkg_sysinfo();
-
-int xcpkg_buildinfo();
-
-int xcpkg_about(const bool verbose);
-
 /** get the xcpkg home directory absolute path
  *
  *  len can be null if you do not want to known the length of p
@@ -459,7 +447,31 @@ int xcpkg_get_home_dir(const char ** p, size_t * len, bool create);
  */
 int xcpkg_get_session_dir(char buf[], size_t * len);
 
+//////////////////////////////////////////////////////////////////////
+
+int xcpkg_setenv();
+
+int xcpkg_help();
+
+int xcpkg_sysinfo();
+
+int xcpkg_buildinfo();
+
+int xcpkg_setup(const bool verbose);
+
+int xcpkg_about(const bool verbose);
+
+int xcpkg_cleanup(const bool verbose);
+
+int xcpkg_upgrade_self(const bool verbose);
+
+int xcpkg_completion_zsh ();
+int xcpkg_completion_bash();
+int xcpkg_completion_fish();
+
 int xcpkg_search(const char * regPattern, const char * targetPlatformName, const bool verbose);
+
+int xcpkg_fetch(const char * packageName, const char * targetPlatformName, const bool verbose);
 
 int xcpkg_print_available_info(const char * packageName, const char * targetPlatformName, const char * key, const char * formulaFilePath);
 
@@ -489,8 +501,6 @@ typedef enum {
 } XCPKGDependsOutputDiagramEngine;
 
 int xcpkg_depends(const char * packageName, const char * targetPlatformName, XCPKGDependsOutputType outputType, const char * outputPath, XCPKGDependsOutputDiagramEngine engine);
-
-int xcpkg_fetch(const char * packageName, const char * targetPlatformName, const bool verbose);
 
 //////////////////////////////////////////////////////////////////////
 
@@ -540,22 +550,7 @@ int xcpkg_reinstall(const char * packageName, const char * targetPlatformSpec, c
 
 int xcpkg_uninstall(const char * packageName, const char * targetPlatformSpec, const bool verbose);
 
-int xcpkg_upgrade_self(const bool verbose);
-
-int xcpkg_completion_zsh ();
-int xcpkg_completion_bash();
-int xcpkg_completion_fish();
-
-int xcpkg_setup(const bool verbose);
-
-int xcpkg_cleanup(const bool verbose);
-
-int xcpkg_check_if_the_given_argument_matches_package_name_pattern(const char * p);
-int xcpkg_check_if_the_given_argument_matches_platform_spec_pattern(const char * p);
-
-int xcpkg_check_if_the_given_package_is_available(const char * packageName, const char * targetPlatformName);
-int xcpkg_check_if_the_given_package_is_installed(const char * packageName, const char * targetPlatformSpec);
-int xcpkg_check_if_the_given_package_is_outdated (const char * packageName, const char * targetPlatformSpec);
+//////////////////////////////////////////////////////////////////////
 
 typedef int (*XCPKGPackageCallback)(const char * targetPlatformName, const char * packageName, const char * formulaFilePath, const bool verbose, const size_t index, const void * p1, void * p2);
 
@@ -565,9 +560,18 @@ int xcpkg_list_the_installed_packages(const char * targetPlatformName, const boo
 
 int xcpkg_list_the__outdated_packages(const char * targetPlatformName, const bool verbose);
 
-int xcpkg_git_sync(const char * gitRepositoryDIRPath, const char * remoteUrl, const char * remoteRef, const char * remoteTrackingRef, const char * checkoutToBranchName, const size_t fetchDepth);
+//////////////////////////////////////////////////////////////////////
 
-int xcpkg_generate_url_transform_sample();
+int xcpkg_check_if_the_given_argument_matches_package_name_pattern(const char * p);
+int xcpkg_check_if_the_given_argument_matches_platform_spec_pattern(const char * p);
+
+int xcpkg_check_if_the_given_package_is_available(const char * packageName, const char * targetPlatformName);
+int xcpkg_check_if_the_given_package_is_installed(const char * packageName, const char * targetPlatformSpec);
+int xcpkg_check_if_the_given_package_is_outdated (const char * packageName, const char * targetPlatformSpec);
+
+//////////////////////////////////////////////////////////////////////
+
+int xcpkg_git_sync(const char * gitRepositoryDIRPath, const char * remoteUrl, const char * remoteRef, const char * remoteTrackingRef, const char * checkoutToBranchName, const size_t fetchDepth);
 
 int xcpkg_extract_filetype_from_url(const char * url, char buf[], const size_t bufSize);
 
@@ -604,8 +608,6 @@ int xcpkg_fork_exec2(const size_t n, ...);
 int xcpkg_posix_spawn(const char * cmd);
 
 int xcpkg_posix_spawn2(const size_t n, ...);
-
-int xcpkg_setenv();
 
 int xcpkg_get_platform_id_by_name(const char * const platformName, XCPKGPlatformID * const platformID);
 
