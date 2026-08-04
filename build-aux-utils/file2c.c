@@ -45,7 +45,7 @@ int file2c(const char * const fp, const char * varName) {
     printf("char %s[] = {", varName);
     printf("0x%.2X", p[0]);
 
-    for (int i = 1; i < st.st_size; i++) {
+    for (off_t i = 1; i < st.st_size; i++) {
         printf(", 0x%.2X", p[i]);
     }
 
