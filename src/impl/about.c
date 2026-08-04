@@ -8,7 +8,7 @@
 
 int xcpkg_about(const bool verbose) {
     printf("xcpkg.version : %s\n", XCPKG_VERSION_STRING);
-    printf("../xcpkg.homedir : %s\n", getenv("XCPKG_HOME"));
+    printf("xcpkg.homedir : %s\n", getenv("XCPKG_HOME"));
 
     char buf[PATH_MAX];
 

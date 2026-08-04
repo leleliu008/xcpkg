@@ -21,7 +21,7 @@ int xcpkg_formula_repo_list_update() {
 
     int ret = xcpkg_formula_repo_scan(xcpkg_formula_repo_scan_callback, NULL, &officialCoreIsThere);
 
-    if (ret == XCPKG_OK) {
+    if (ret != XCPKG_OK) {
         return ret;
     }
 
