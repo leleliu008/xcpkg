@@ -4,6 +4,7 @@
 
 #include <fcntl.h>
 #include <unistd.h>
+
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/utsname.h>
@@ -49,13 +50,15 @@ int sysinfo_vers(char * buf, size_t bufCapacity) {
         return -1;
     }
 
-    char * data = mmap(NULL, st.st_size, PROT_READ, MAP_SHARED, fd, 0);
+    char * data = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, fd, 0);
 
     if (data == MAP_FAILED) {
         perror(fp);
         close(fd);
         return -1;
     }
+
+    close(fd);
 
     int ret = 0;
 
@@ -90,9 +93,7 @@ int sysinfo_vers(char * buf, size_t bufCapacity) {
 
     size_t len = (m > n) ? n : m;
 
-    for (size_t i = 0; i < len; i++) {
-        buf[i] = p[i];
-    }
+    memcpy(buf, p, len);
 
     buf[len] = '\0';
 
@@ -100,8 +101,6 @@ finally:
     if (munmap(data, st.st_size) == -1) {
         perror("Failed to unmap file");
     }
-
-    close(fd);
 
     return ret;
 }
