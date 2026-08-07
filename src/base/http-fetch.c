@@ -221,6 +221,43 @@ static inline int xcpkg_http_fetch_to(const char * to, const char * url, const b
     return xcpkg_http_fetch_to_file(url, to, verbose, verbose);
 }
 
+#define XCPKG_HTTP_FETCH_TO_MISMATCHED 1000
+
+static inline int xcpkg_http_fetch_from_mirror(const char * to, const char * url, const char * a, const char * b, const bool verbose) {
+    if (startswith(url, a) != 0) {
+        return XCPKG_HTTP_FETCH_TO_MISMATCHED;
+    }
+
+    size_t aLen = strlen(a);
+    size_t bLen = strlen(b);
+    size_t xLen = strlen(url) + bLen - aLen;
+
+    char URL[xLen + 1];
+
+    memcpy(URL, b, bLen);
+    memcpy(URL + bLen, url + aLen, xLen - bLen);
+
+    URL[xLen] = '\0';
+
+    return xcpkg_http_fetch_to(to, URL, verbose);
+}
+
+static inline int xcpkg_http_fetch_from_mirror2(const char * to, const char * server, const char * filename, const size_t filenameCap, const bool verbose) {
+    size_t len = strlen(server);
+
+    char URL[len + filenameCap];
+
+    memcpy(URL, server, len);
+    memcpy(URL + len, filename, filenameCap);
+
+    return xcpkg_http_fetch_to(to, URL, verbose);
+}
+
+typedef struct {
+    const char * key;
+    const char * val;
+} KV;
+
 static inline int xcpkg_http_fetch_to_proxy(const char * to, const char * url, const char * uri, const bool verbose) {
     int ret = xcpkg_http_fetch_to(to, url, verbose);
 
@@ -238,13 +275,34 @@ static inline int xcpkg_http_fetch_to_proxy(const char * to, const char * url, c
 
     ///////////////////////////////////////////////////
 
+    KV kvs[] = {
+        {"https://ftp.gnu.org/gnu/", "https://mirrors.kernel.org/gnu/"},
+        {"https://download.savannah.gnu.org/", "https://download-mirror.savannah.nongnu.org/"},
+        {"https://download.savannah.nongnu.org/releases/", "https://mirrors.ocf.berkeley.edu/nongnu/"},
+        {NULL, NULL}
+    };
+
+    for (size_t i = 0U; kvs[i].key != NULL; i++) {
+        ret = xcpkg_http_fetch_from_mirror(to, url, kvs[i].key, kvs[i].val, verbose);
+
+        if (ret == XCPKG_OK) {
+            return XCPKG_OK;
+        }
+
+        if (ret != XCPKG_HTTP_FETCH_TO_MISMATCHED) {
+            break;
+        }
+    }
+
+    ///////////////////////////////////////////////////
+
     size_t slashIndex = 0U;
 
     size_t n = 0U;
 
     for (; ; n++) {
         if (url[n] == '\0') break;
-        if (url[n] == '?')  break;
+        if (url[n] == '?')  return XCPKG_OK;
         if (url[n] == '/')  slashIndex = n;
     }
 
@@ -252,83 +310,13 @@ static inline int xcpkg_http_fetch_to_proxy(const char * to, const char * url, c
         return XCPKG_ERROR_INVALID_URL;
     }
 
-          char * p;
-    const char * q;
+    const size_t filenameCap = n - slashIndex;
+
+    const char * filename = url + slashIndex + 1;
 
     ///////////////////////////////////////////////////
 
-    if (startswith(url, "https://ftp.gnu.org/gnu/") == 0) {
-        const char * const s = "https://mirrors.kernel.org/gnu/";
-
-        char URL[n + 8];
-
-        int j;
-
-        for (j = 0; s[j] != '\0'; j++) {
-            URL[j] = s[j];
-        }
-
-        p = URL + j;
-        q = url + j - 7;
-
-        for (;;) {
-            p[0] = q[0];
-
-            if (p[0] == '\0') break;
-
-            if (p[0] == '?') {
-                p[0] = '\0';
-                break;
-            }
-
-            p++;
-            q++;
-        }
-
-        ret = xcpkg_http_fetch_to(to, URL, verbose);
-
-        if (ret == XCPKG_OK) {
-            return XCPKG_OK;
-        }
-    }
-
-    ///////////////////////////////////////////////////
-
-    size_t m = n - slashIndex;
-
-    const char * const filename = url + slashIndex + 1;
-
-    q = "https://fossies.org/linux/misc/";
-
-    size_t capacity = strlen(q) + m;
-
-    char URL[capacity];
-
-    p = URL;
-
-    while (q[0] != '\0') {
-        p[0] = q[0];
-        p++;
-        q++;
-    }
-
-    q = filename;
-
-    for (;;) {
-        p[0] = q[0];
-
-        if (p[0] == '\0') break;
-
-        if (p[0] == '?') {
-            p[0] = '\0';
-            break;
-        }
-
-        p++;
-        q++;
-    }
-
-    ret = xcpkg_http_fetch_to(to, URL, verbose);
+    ret = xcpkg_http_fetch_from_mirror2(to, "https://fossies.org/linux/misc/", filename, filenameCap, verbose);
 
     if (ret == XCPKG_OK) {
         return XCPKG_OK;
@@ -336,40 +324,49 @@ static inline int xcpkg_http_fetch_to_proxy(const char * to, const char * url, c
 
     ///////////////////////////////////////////////////
 
-    char pkgname[m];
+    char p[filenameCap];
 
-    p = pkgname;
+    for (size_t i = 0U; ; i++) {
+        p[i] = filename[i];
 
-    q = filename;
+        if (p[i] == '\0') return XCPKG_OK;
 
-    for (;;) {
-        p[0] = q[0];
-
-        if (p[0] == '\0') break;
-
-        if (p[0] == '-' || p[0] == '.') {
-            p[0] = '\0';
+        if (p[i] == '-' || p[i] == '.') {
+            p[i] = '\0';
+            n = i;
             break;
         }
-
-        p++;
-        q++;
     }
 
-    q = "https://distfiles.macports.org/";
+    const char * s = "https://distfiles.macports.org/";
 
-    capacity = strlen(q) + (m << 2) + 2U;
+    size_t cap = strlen(s) + n + filenameCap + 5U;
 
-    char URl[capacity];
+    char URL[cap];
 
-    ret = snprintf(URl, capacity, "%s%s/%s", q, pkgname, filename);
+    ret = snprintf(URL, cap, "%s/%s/%s", s, p, filename);
 
     if (ret < 0) {
         perror(NULL);
         return XCPKG_ERROR;
     }
 
-    return xcpkg_http_fetch_to(to, URl, verbose);
+    return xcpkg_http_fetch_to(to, URL, verbose);
+
+    ///////////////////////////////////////////////////
+
+    if (startswith(p, "lib") == 0) {
+        ret = snprintf(URL, cap, "%s/%s/%s", s, p + 3, filename);
+    } else {
+        ret = snprintf(URL, cap, "%s/lib%s/%s", s, p, filename);
+    }
+
+    if (ret < 0) {
+        perror(NULL);
+        return XCPKG_ERROR;
+    }
+
+    return xcpkg_http_fetch_to(to, URL, verbose);
 }
 
 int xcpkg_http_fetch(const char * url, const char * uri, const char * expectedSHA256SUM, const char * outputPath, const bool verbose) {
