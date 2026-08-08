@@ -50,5 +50,5 @@ int xcpkg_main_formula_parse(int argc, char* argv[]) {
     strncpy(packageName, p, dotIndex);
     packageName[dotIndex] = '\0';
 
-    return xcpkg_print_available_info(packageName, NULL, NULL, argv[3]);
+    return xcpkg_print_available_info(packageName, NULL, argv[3], argv[2]);
 }
