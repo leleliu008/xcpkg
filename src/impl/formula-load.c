@@ -1148,6 +1148,59 @@ static int xcpkg_formula_amend_x_org(XCPKGFormula * formula, const char * formul
     return 0;
 }
 
+static int xcpkg_formula_amend_xorg_freedesktop_org(XCPKGFormula * formula, const char * formulaFilePath) {
+    if (strncmp(formula->src_url, "https://xorg.freedesktop.org/archive/individual/", 48) != 0) {
+        return XCPKG_FORMULA_AMEND_MISMATCHED;
+    }
+
+    if (formula->git_url == NULL) {
+        char * p = formula->src_url + 48;
+
+        char * q = strrchr(p, '-');
+
+        if (q == NULL) {
+            fprintf(stderr, "scheme error in formula file: %s : src-url: %s seems not right.\n", formulaFilePath, formula->src_url);
+            return XCPKG_ERROR_FORMULA_SCHEME;
+        }
+
+        q[0] = '\0';
+
+        size_t n = 37U + (q - p);
+
+        char * s = (char*)malloc(n);
+
+        if (s == NULL) {
+            return XCPKG_ERROR_MEMORY_ALLOCATE;
+        }
+
+        int ret = snprintf(s, n, "https://gitlab.freedesktop.org/xorg/%s", p);
+
+        if (ret < 0) {
+            perror(NULL);
+            free(s);
+            return XCPKG_ERROR;
+        }
+
+        formula->git_url = s;
+        formula->git_url_is_calculated = true;
+
+        q[0] = '-';
+    }
+
+    if (formula->web_url == NULL) {
+        char * p = strdup("https://www.x.org/");
+
+        if (p == NULL) {
+            return XCPKG_ERROR_MEMORY_ALLOCATE;
+        }
+
+        formula->web_url = p;
+        formula->web_url_is_calculated = true;
+    }
+
+    return 0;
+}
+
 static int xcpkg_formula_amend_prefix(XCPKGFormula * formula, const char * formulaFilePath, const char * prefix) {
     size_t n = strlen(prefix);
 
@@ -1219,7 +1272,7 @@ static inline int xcpkg_formula_check(XCPKGFormula * formula, const char * formu
     int ret;
 
     if ((formula->web_url == NULL || formula->git_url == NULL) && formula->src_url != NULL) {
-        xcpkg_formula_amend amends[] = {xcpkg_formula_amend_x_org, xcpkg_formula_amend_gnu_org, xcpkg_formula_amend_gnome_org, NULL};
+        xcpkg_formula_amend amends[] = {xcpkg_formula_amend_x_org, xcpkg_formula_amend_xorg_freedesktop_org, xcpkg_formula_amend_gnu_org, xcpkg_formula_amend_gnome_org, NULL};
 
         for (int i = 0; amends[i] != NULL; i++) {
             ret = amends[i](formula, formulaFilePath);
