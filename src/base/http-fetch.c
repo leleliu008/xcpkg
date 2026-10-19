@@ -126,10 +126,10 @@ int xcpkg_http_fetch_to_stream(const char * url, FILE * outputFile, const bool v
     //curl_easy_setopt(curl, CURLOPT_TIMEOUT, 300L);
 
     // https://curl.se/libcurl/c/CURLOPT_VERBOSE.html
-    curl_easy_setopt(curl, CURLOPT_VERBOSE, verbose ? 1 : 0);
+    curl_easy_setopt(curl, CURLOPT_VERBOSE, verbose ? 1L : 0L);
 
     // https://curl.se/libcurl/c/CURLOPT_NOPROGRESS.html
-    curl_easy_setopt(curl, CURLOPT_NOPROGRESS, showProgress ? 0: 1L);
+    curl_easy_setopt(curl, CURLOPT_NOPROGRESS, showProgress ? 0L: 1L);
 
     //curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
     //curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L);
