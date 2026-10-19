@@ -90,6 +90,7 @@ int xcpkg_dump_available_info(const char * packageName, const char * targetPlatf
             {"git-uri", formula->git_uri},
             {"git-sha", formula->git_sha},
             {"git-ref", formula->git_ref},
+            {"git-tag", formula->git_tag},
 
             {"src-url", formula->src_url},
             {"src-uri", formula->src_uri},
@@ -234,6 +235,7 @@ int xcpkg_dump_available_info(const char * packageName, const char * targetPlatf
         json_object_set_new(root, "git-uri", json_string(formula->git_uri));
         json_object_set_new(root, "git-sha", json_string(formula->git_sha));
         json_object_set_new(root, "git-ref", json_string(formula->git_ref));
+        json_object_set_new(root, "git-tag", json_string(formula->git_tag));
         json_object_set_new(root, "git-nth", json_integer(formula->git_nth));
 
         json_object_set_new(root, "src-url", json_string(formula->src_url));
@@ -335,6 +337,10 @@ int xcpkg_dump_available_info(const char * packageName, const char * targetPlatf
     } else if (strcmp(key, "git-ref") == 0) {
         if (formula->git_ref != NULL) {
             printf("%s\n", formula->git_ref);
+        }
+    } else if (strcmp(key, "git-tag") == 0) {
+        if (formula->git_tag != NULL) {
+            printf("%s\n", formula->git_tag);
         }
     } else if (strcmp(key, "git-nth") == 0) {
         printf("%zu\n", formula->git_nth);

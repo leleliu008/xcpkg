@@ -178,6 +178,7 @@ typedef struct {
     char * git_uri;
     char * git_sha;
     char * git_ref;
+    char * git_tag;
     size_t git_nth;
 
     char * src_url;

@@ -610,7 +610,8 @@ A xcpkg formula's file content only has one level mapping and shall/might have t
 |`web-url`|`URL`|the home webpage of this package.<br>If this mapping is not present, `git-url` must be present.|
 ||||
 |`git-url`|`URL`|the source code git repository url.<br>If `src-url` is not present, this mapping must be present.|
-|`git-ref`|`TEXT`|reference: <https://git-scm.com/book/en/v2/Git-Internals-Git-References> <br>example values: `HEAD` `refs/heads/master` `refs/heads/main` `refs/tags/v1`, default value is `HEAD`|
+|`git-ref`|`TEXT`|reference: <https://git-scm.com/book/en/v2/Git-Internals-Git-References> <br>example values: `HEAD` `refs/heads/master` `refs/heads/main` `refs/tags/v7.5.0`, default value is `HEAD`|
+|`git-tag`|`TEXT`|git tag name. e.g. `v7.5.0`. `git-ref` and `git-tag` cannot coexist.|
 |`git-sha`|`SHA1SUM`|the full git commit id, 40-byte hexadecimal string, if `git-ref` and `git-sha` both are present, `git-sha` takes precedence over `git-ref`|
 |`git-nth`|`INT`|tell `xcpkg` that how many depth commits would you like to fetch. default is `1`, this would save your time and storage. If you have to fetch all commits, set this to `0`|
 ||||

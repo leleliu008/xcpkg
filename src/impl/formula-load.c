@@ -45,6 +45,7 @@ typedef enum {
     FORMULA_KEY_CODE_git_uri,
     FORMULA_KEY_CODE_git_sha,
     FORMULA_KEY_CODE_git_ref,
+    FORMULA_KEY_CODE_git_tag,
     FORMULA_KEY_CODE_git_nth,
 
     FORMULA_KEY_CODE_src_url,
@@ -115,6 +116,7 @@ void xcpkg_formula_dump(XCPKGFormula * formula) {
     printf("git_uri: %s\n", formula->git_uri);
     printf("git_sha: %s\n", formula->git_sha);
     printf("git_ref: %s\n", formula->git_ref);
+    printf("git_tag: %s\n", formula->git_tag);
     printf("git_nth: %zu\n", formula->git_nth);
 
     printf("src_url: %s\n", formula->src_url);
@@ -223,6 +225,11 @@ void xcpkg_formula_free(XCPKGFormula * formula) {
     if (formula->git_ref != NULL) {
         free(formula->git_ref);
         formula->git_ref = NULL;
+    }
+
+    if (formula->git_tag != NULL) {
+        free(formula->git_tag);
+        formula->git_tag = NULL;
     }
 
     ///////////////////////////////
@@ -421,6 +428,8 @@ static inline XCPKGFormulaKeyCode xcpkg_formula_key_code_from_key_name(char * ke
         return FORMULA_KEY_CODE_git_sha;
     } else if (strcmp(key, "git-ref") == 0) {
         return FORMULA_KEY_CODE_git_ref;
+    } else if (strcmp(key, "git-tag") == 0) {
+        return FORMULA_KEY_CODE_git_tag;
     } else if (strcmp(key, "git-nth") == 0) {
         return FORMULA_KEY_CODE_git_nth;
     } else if (strcmp(key, "src-url") == 0) {
@@ -533,6 +542,7 @@ static inline int xcpkg_formula_set_value(XCPKGFormulaKeyCode keyCode, char * va
         case FORMULA_KEY_CODE_git_uri: if (formula->git_uri != NULL) free(formula->git_uri); formula->git_uri = strdup(value); break;
         case FORMULA_KEY_CODE_git_sha: if (formula->git_sha != NULL) free(formula->git_sha); formula->git_sha = strdup(value); break;
         case FORMULA_KEY_CODE_git_ref: if (formula->git_ref != NULL) free(formula->git_ref); formula->git_ref = strdup(value); break;
+        case FORMULA_KEY_CODE_git_tag: if (formula->git_tag != NULL) free(formula->git_tag); formula->git_tag = strdup(value); break;
 
         case FORMULA_KEY_CODE_src_url: if (formula->src_url != NULL) free(formula->src_url); formula->src_url = strdup(value); break;
         case FORMULA_KEY_CODE_src_uri: if (formula->src_uri != NULL) free(formula->src_uri); formula->src_uri = strdup(value); break;
@@ -1309,9 +1319,41 @@ static inline int xcpkg_formula_check(XCPKGFormula * formula, const char * formu
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    if (formula->git_url != NULL && formula->git_sha != NULL && strlen(formula->git_sha) != 40) {
-        fprintf(stderr, "scheme error in formula file: %s : git-sha mapping's value's length must be 40.\n", formulaFilePath);
-        return XCPKG_ERROR_FORMULA_SCHEME;
+    if (formula->git_url != NULL) {
+        if (formula->git_sha != NULL && strlen(formula->git_sha) != 40) {
+            fprintf(stderr, "scheme error in formula file: %s : git-sha mapping's value's length must be 40.\n", formulaFilePath);
+            return XCPKG_ERROR_FORMULA_SCHEME;
+        }
+
+        if (formula->git_tag != NULL) {
+            if (strlen(formula->git_tag) > 50) {
+                fprintf(stderr, "scheme error in formula file: %s : git-tag mapping's value's length must be less than 50.\n", formulaFilePath);
+                return XCPKG_ERROR_FORMULA_SCHEME;
+            }
+
+            if (formula->git_ref == NULL) {
+                size_t n = 64U;
+
+                char * p = malloc(n);
+
+                if (p == NULL) {
+                    return XCPKG_ERROR_MEMORY_ALLOCATE;
+                }
+
+                ret = snprintf(p, n, "refs/tags/%s", formula->git_tag);
+
+                if (ret < 0) {
+                    perror(NULL);
+                    free(p);
+                    return XCPKG_ERROR;
+                }
+
+                formula->git_ref = p;
+            } else {
+                fprintf(stderr, "scheme error in formula file: %s : git-ref and git-tag cannot coexist.\n", formulaFilePath);
+                return XCPKG_ERROR_FORMULA_SCHEME;
+            }
+        }
     }
 
     //////////////////////////////////////////////////////////////////////////////////////////////////////
