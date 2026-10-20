@@ -4788,6 +4788,19 @@ static int xcpkg_install_package(
 
     //////////////////////////////////////////////////////////////////////////////
 
+    if (formula->useBuildSystemCargo) {
+        const char * f = "rust-toolchain.toml";
+
+        if (unlink(f) != 0) {
+            if (errno != ENOENT) {
+                perror(f);
+                return XCPKG_ERROR;
+            }
+        }
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+
     if (formula->useBuildSystemGolang) {
         struct stat st;
 
