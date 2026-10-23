@@ -195,6 +195,7 @@ typedef struct {
     char * res_url;
     char * res_uri;
     char * res_sha;
+    char * res_dir;
     char * reslist;
 
     char * dep_pkg;

@@ -322,7 +322,7 @@ finally:
     return ret;
 }
 
-static int fetch_reslist(const char * reslist, const char * xcpkgDownloadsDIR, const size_t xcpkgDownloadsDIRCapacity, bool verbose) {
+static int fetch_reslist(const char * reslist, const char * res_dir, const size_t res_dir_capcity, const char * xcpkgDownloadsDIR, const size_t xcpkgDownloadsDIRCapacity, bool verbose) {
     size_t  bufCapacity = strlen(reslist) + 1U;
     char    buf[bufCapacity];
     strncpy(buf, reslist, bufCapacity);
@@ -408,7 +408,7 @@ loop:
     }
 
 action:
-    ret = xcpkg_http_fetch_then_unpack(url, uri, sha, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, "res", 4U, verbose);
+    ret = xcpkg_http_fetch_then_unpack(url, uri, sha, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, res_dir, res_dir_capcity, verbose);
 
     if (ret != XCPKG_OK) {
         return ret;
@@ -4072,6 +4072,16 @@ static int xcpkg_install_package(
 
     //////////////////////////////////////////////////////////////////////////////
 
+    if (formula->res_dir != NULL) {
+        ret = xcpkg_mkdir_p(formula->res_dir, installOptions->verbose_net);
+
+        if (ret != XCPKG_OK) {
+            return ret;
+        }
+    }
+
+    //////////////////////////////////////////////////////////////////////////////
+
     size_t packageInstalledRootDIRCapacity = xcpkgHomeDIRLength + targetPlatformSpecLength + 15U;
     char   packageInstalledRootDIR[packageInstalledRootDIRCapacity];
 
@@ -4179,7 +4189,9 @@ static int xcpkg_install_package(
     }
 
     if (formula->res_url != NULL) {
-        ret = xcpkg_http_fetch_then_unpack(formula->res_url, formula->res_uri, formula->res_sha, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, "res", 4U, installOptions->verbose_net);
+        char * res_dir = (formula->res_dir == NULL) ? "res" : formula->res_dir;
+
+        ret = xcpkg_http_fetch_then_unpack(formula->res_url, formula->res_uri, formula->res_sha, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, res_dir, strlen(res_dir) + 1, installOptions->verbose_net);
 
         if (ret != XCPKG_OK) {
             return ret;
@@ -4195,7 +4207,9 @@ static int xcpkg_install_package(
     }
 
     if (formula->reslist != NULL) {
-        ret = fetch_reslist(formula->reslist, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, installOptions->verbose_net);
+        char * res_dir = (formula->res_dir == NULL) ? "res" : formula->res_dir;
+
+        ret = fetch_reslist(formula->reslist, res_dir, strlen(res_dir) + 1, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, installOptions->verbose_net);
 
         if (ret != XCPKG_OK) {
             return ret;

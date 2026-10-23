@@ -60,6 +60,7 @@ typedef enum {
     FORMULA_KEY_CODE_res_url,
     FORMULA_KEY_CODE_res_uri,
     FORMULA_KEY_CODE_res_sha,
+    FORMULA_KEY_CODE_res_dir,
 
     FORMULA_KEY_CODE_dep_pkg,
     FORMULA_KEY_CODE_dep_lib,
@@ -131,6 +132,7 @@ void xcpkg_formula_dump(XCPKGFormula * formula) {
     printf("res_url: %s\n", formula->res_url);
     printf("res_uri: %s\n", formula->res_uri);
     printf("res_sha: %s\n", formula->res_sha);
+    printf("res_dir: %s\n", formula->res_dir);
 
     printf("dep_pkg: %s\n", formula->dep_pkg);
     printf("dep_lib: %s\n", formula->dep_lib);
@@ -286,6 +288,11 @@ void xcpkg_formula_free(XCPKGFormula * formula) {
     if (formula->res_sha != NULL) {
         free(formula->res_sha);
         formula->res_sha = NULL;
+    }
+
+    if (formula->res_dir != NULL) {
+        free(formula->res_dir);
+        formula->res_dir = NULL;
     }
 
     ///////////////////////////////
@@ -452,6 +459,8 @@ static inline XCPKGFormulaKeyCode xcpkg_formula_key_code_from_key_name(char * ke
         return FORMULA_KEY_CODE_res_uri;
     } else if (strcmp(key, "res-sha") == 0) {
         return FORMULA_KEY_CODE_res_sha;
+    } else if (strcmp(key, "res-dir") == 0) {
+        return FORMULA_KEY_CODE_res_dir;
     } else if (strcmp(key, "dep-pkg") == 0) {
         return FORMULA_KEY_CODE_dep_pkg;
     } else if (strcmp(key, "dep-lib") == 0) {
@@ -556,6 +565,7 @@ static inline int xcpkg_formula_set_value(XCPKGFormulaKeyCode keyCode, char * va
         case FORMULA_KEY_CODE_res_url: if (formula->res_url != NULL) free(formula->res_url); formula->res_url = strdup(value); break;
         case FORMULA_KEY_CODE_res_uri: if (formula->res_uri != NULL) free(formula->res_uri); formula->res_uri = strdup(value); break;
         case FORMULA_KEY_CODE_res_sha: if (formula->res_sha != NULL) free(formula->res_sha); formula->res_sha = strdup(value); break;
+        case FORMULA_KEY_CODE_res_dir: if (formula->res_dir != NULL) free(formula->res_dir); formula->res_dir = strdup(value); break;
 
         case FORMULA_KEY_CODE_dep_pkg: if (formula->dep_pkg != NULL) free(formula->dep_pkg); formula->dep_pkg = strdup(value); break;
         case FORMULA_KEY_CODE_dep_lib: if (formula->dep_lib != NULL) free(formula->dep_lib); formula->dep_lib = strdup(value); break;

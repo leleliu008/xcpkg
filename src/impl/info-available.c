@@ -104,6 +104,7 @@ int xcpkg_dump_available_info(const char * packageName, const char * targetPlatf
             {"res-url", formula->res_url},
             {"res-uri", formula->res_uri},
             {"res-sha", formula->res_sha},
+            {"res-dir", formula->res_dir},
 
             {"dep-pkg", formula->dep_pkg},
             {"dep-lib", formula->dep_lib},
@@ -250,6 +251,7 @@ int xcpkg_dump_available_info(const char * packageName, const char * targetPlatf
         json_object_set_new(root, "res-url", json_string(formula->res_url));
         json_object_set_new(root, "res-uri", json_string(formula->res_uri));
         json_object_set_new(root, "res-sha", json_string(formula->res_sha));
+        json_object_set_new(root, "res-dir", json_string(formula->res_dir));
 
         json_object_set_new(root, "dep-pkg", json_string(formula->dep_pkg));
         json_object_set_new(root, "dep-lib", json_string(formula->dep_lib));
@@ -419,6 +421,10 @@ int xcpkg_dump_available_info(const char * packageName, const char * targetPlatf
     } else if (strcmp(key, "res-sha") == 0) {
         if (formula->res_sha != NULL) {
             printf("%s\n", formula->res_sha);
+        }
+    } else if (strcmp(key, "res-dir") == 0) {
+        if (formula->res_dir != NULL) {
+            printf("%s\n", formula->res_dir);
         }
     } else if (strcmp(key, "res-ft") == 0) {
         char fileNameExtension[XCPKG_FILE_EXTENSION_MAX_CAPACITY] = {0};
