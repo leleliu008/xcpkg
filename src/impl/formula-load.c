@@ -8,6 +8,7 @@
 
 #include <yaml.h>
 
+#include "../core/regex.h"
 #include "../xcpkg.h"
 
 static inline __attribute__((always_inline)) void string_buffer_append(char buf[], size_t * bufLengthP, const char * s) {
@@ -1221,64 +1222,6 @@ static int xcpkg_formula_amend_xorg_freedesktop_org(XCPKGFormula * formula, cons
     return 0;
 }
 
-static int xcpkg_formula_amend_prefix(XCPKGFormula * formula, const char * formulaFilePath, const char * prefix) {
-    size_t n = strlen(prefix);
-
-    if (strncmp(formula->src_url, prefix, n) != 0) {
-        return XCPKG_FORMULA_AMEND_MISMATCHED;
-    }
-
-    if (formula->git_url == NULL) {
-        char * p = formula->src_url + n;
-
-        size_t j = 0U;
-        size_t k = 0U;
-
-        for (size_t i = 0U; ; i++) {
-            if (p[i] == '\0') {
-                fprintf(stderr, "scheme error in formula file: %s : src-url: %s seems not right.\n", formulaFilePath, formula->src_url);
-                return XCPKG_ERROR_FORMULA_SCHEME;
-            }
-
-            if (p[i] == '/') {
-                j = i;
-
-                k++;
-
-                if (k == 2U) {
-                    break;
-                }
-            }
-        }
-
-        p[j] = '\0';
-
-        char * q = strndup(formula->src_url, n + j);
-
-        if (q == NULL) {
-            return XCPKG_ERROR_MEMORY_ALLOCATE;
-        }
-
-        p[j] = '/';
-
-        formula->git_url = q;
-        formula->git_url_is_calculated = true;
-    }
-
-    if (formula->web_url == NULL) {
-        char * p = strdup(formula->git_url);
-
-        if (p == NULL) {
-            return XCPKG_ERROR_MEMORY_ALLOCATE;
-        }
-
-        formula->web_url = p;
-        formula->web_url_is_calculated = true;
-    }
-
-    return 0;
-}
-
 typedef int (*xcpkg_formula_amend)(XCPKGFormula * formula, const char * formulaFilePath);
 
 static inline int xcpkg_formula_check(XCPKGFormula * formula, const char * formulaFilePath) {
@@ -1287,127 +1230,7 @@ static inline int xcpkg_formula_check(XCPKGFormula * formula, const char * formu
         return XCPKG_ERROR_FORMULA_SCHEME;
     }
 
-    //////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    int ret;
-
-    if ((formula->web_url == NULL || formula->git_url == NULL) && formula->src_url != NULL) {
-        xcpkg_formula_amend amends[] = {xcpkg_formula_amend_x_org, xcpkg_formula_amend_xorg_freedesktop_org, xcpkg_formula_amend_gnu_org, xcpkg_formula_amend_gnome_org, NULL};
-
-        for (int i = 0; amends[i] != NULL; i++) {
-            ret = amends[i](formula, formulaFilePath);
-
-            if (ret == XCPKG_FORMULA_AMEND_MISMATCHED) {
-                continue;
-            }
-
-            if (ret == XCPKG_OK) {
-                break;
-            }
-
-            return ret;
-        }
-
-        if (ret == XCPKG_FORMULA_AMEND_MISMATCHED) {
-            const char* ps[] = {"https://github.com/", "https://gitlab.com/", "https://codeberg.org/", NULL};
-
-            for (int i = 0; ps[i] != NULL; i++) {
-                ret = xcpkg_formula_amend_prefix(formula, formulaFilePath, ps[i]);
-
-                if (ret == XCPKG_FORMULA_AMEND_MISMATCHED) {
-                    continue;
-                }
-
-                if (ret == XCPKG_OK) {
-                    break;
-                }
-
-                return ret;
-            }
-        }
-    }
-
-    //////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    if (formula->git_url != NULL) {
-        if (formula->git_sha != NULL && strlen(formula->git_sha) != 40) {
-            fprintf(stderr, "scheme error in formula file: %s : git-sha mapping's value's length must be 40.\n", formulaFilePath);
-            return XCPKG_ERROR_FORMULA_SCHEME;
-        }
-
-        if (formula->git_tag != NULL) {
-            if (strlen(formula->git_tag) > 50) {
-                fprintf(stderr, "scheme error in formula file: %s : git-tag mapping's value's length must be less than 50.\n", formulaFilePath);
-                return XCPKG_ERROR_FORMULA_SCHEME;
-            }
-
-            if (formula->git_ref == NULL) {
-                size_t n = 64U;
-
-                char * p = malloc(n);
-
-                if (p == NULL) {
-                    return XCPKG_ERROR_MEMORY_ALLOCATE;
-                }
-
-                ret = snprintf(p, n, "refs/tags/%s", formula->git_tag);
-
-                if (ret < 0) {
-                    perror(NULL);
-                    free(p);
-                    return XCPKG_ERROR;
-                }
-
-                formula->git_ref = p;
-            } else {
-                fprintf(stderr, "scheme error in formula file: %s : git-ref and git-tag cannot coexist.\n", formulaFilePath);
-                return XCPKG_ERROR_FORMULA_SCHEME;
-            }
-        }
-    }
-
-    //////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    if (formula->web_url == NULL) {
-        if (formula->git_url == NULL) {
-            fprintf(stderr, "scheme error in formula file: %s : web-url mapping not found.\n", formulaFilePath);
-            return XCPKG_ERROR_FORMULA_SCHEME;
-        } else {
-            formula->web_url_is_calculated = true;
-            formula->web_url = strdup(formula->git_url);
-
-            if (formula->web_url == NULL) {
-                return XCPKG_ERROR_MEMORY_ALLOCATE;
-            }
-        }
-    }
-
-    //////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    if (formula->src_url != NULL) {
-        if (strncmp(formula->src_url, "dir://", 6) == 0) {
-            struct stat st;
-
-            if (stat(&formula->src_url[6], &st) != 0 || !S_ISDIR(st.st_mode)) {
-                fprintf(stderr, "src-url mapping request local dir %s not exist. in formula file: %s.\n", &formula->src_url[6], formulaFilePath);
-                return XCPKG_ERROR;
-            }
-
-            formula->src_is_dir = true;
-        } else {
-            if (formula->src_sha == NULL) {
-                fprintf(stderr, "scheme error in formula file: %s : src-sha mapping not found.\n", formulaFilePath);
-                return XCPKG_ERROR_FORMULA_SCHEME;
-            }
-
-            if (strlen(formula->src_sha) != 64) {
-                fprintf(stderr, "scheme error in formula file: %s : src-sha mapping's value's length must be 64.\n", formulaFilePath);
-                return XCPKG_ERROR_FORMULA_SCHEME;
-            }
-        }
-    }
-
-    //////////////////////////////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////
 
     if (formula->fix_url != NULL) {
         if (formula->fix_sha == NULL) {
@@ -1421,7 +1244,7 @@ static inline int xcpkg_formula_check(XCPKGFormula * formula, const char * formu
         }
     }
 
-    //////////////////////////////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////
 
     if (formula->res_url != NULL) {
         if (formula->res_sha == NULL) {
@@ -1435,54 +1258,269 @@ static inline int xcpkg_formula_check(XCPKGFormula * formula, const char * formu
         }
     }
 
-    //////////////////////////////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////
+
+    if (formula->src_url == NULL) {
+        goto check_git_url;
+    }
+
+    ///////////////////////////////////
+
+    if (strncmp(formula->src_url, "dir://", 6) == 0) {
+        struct stat st;
+
+        if (stat(&formula->src_url[6], &st) != 0 || !S_ISDIR(st.st_mode)) {
+            fprintf(stderr, "src-url mapping request local dir %s not exist. in formula file: %s.\n", &formula->src_url[6], formulaFilePath);
+            return XCPKG_ERROR;
+        }
+
+        formula->src_is_dir = true;
+
+        goto check_git_url;
+    }
+
+    ///////////////////////////////////
+
+    if (formula->src_sha == NULL) {
+        fprintf(stderr, "scheme error in formula file: %s : src-sha mapping not found.\n", formulaFilePath);
+        return XCPKG_ERROR_FORMULA_SCHEME;
+    }
+
+    if (strlen(formula->src_sha) != 64) {
+        fprintf(stderr, "scheme error in formula file: %s : src-sha mapping's value's length must be 64.\n", formulaFilePath);
+        return XCPKG_ERROR_FORMULA_SCHEME;
+    }
+
+    ///////////////////////////////////
+
+    int ret;
 
     if (formula->version == NULL) {
-        if (formula->src_url != NULL) {
-            if (!formula->src_is_dir) {
-                char version[20]; version[0] = '\0';
+        char version[20]; version[0] = '\0';
 
-                ret = xcpkg_extract_version(formula->src_url, version, 20);
+        ret = xcpkg_extract_version(formula->src_url, version, 20);
 
-                if (ret != XCPKG_OK) {
-                    return ret;
-                }
+        if (ret != XCPKG_OK) {
+            return ret;
+        }
 
-                if (version[0] == '\0') {
-                    fprintf(stderr, "Can't extract package version from src-url: '%s' in formula file: %s\n", formula->src_url, formulaFilePath);
-                    return XCPKG_ERROR_FORMULA_SCHEME;
-                } else {
-                    formula->version = strdup(version);
+        if (version[0] != '\0') {
+            formula->version = strdup(version);
 
-                    if (formula->version == NULL) {
-                        return XCPKG_ERROR_MEMORY_ALLOCATE;
-                    }
-                }
+            if (formula->version == NULL) {
+                return XCPKG_ERROR_MEMORY_ALLOCATE;
             }
-        } else if (formula->git_url != NULL && formula->git_ref != NULL) {
-            char version[20]; version[0] = '\0';
+        }
 
-            ret = xcpkg_extract_version(formula->git_ref, version, 20);
+        formula->version_is_calculated = true;
+    }
+
+    ///////////////////////////////////
+
+    if (strncmp(formula->src_url, "https://", 8) != 0) {
+        goto check_git_url;
+    }
+
+    ///////////////////////////////////
+
+    bool matched = false;
+
+    if (formula->git_url == NULL) {
+        const char* a[] = {"github.com/", "gitlab.com/", "codeberg.org/", NULL};
+
+        for(size_t i = 0U; a[i] != NULL; i++) {
+            size_t n = strlen(a[i]);
+
+            if (strncmp(formula->src_url + 8, a[i], n) != 0) {
+                continue;
+            }
+
+            matched = true;
+
+            char * p = strchr(formula->src_url + n + 8, '/');
+
+            if (p == NULL) {
+                fprintf(stderr, "scheme error in formula file: %s : src-url: %s seems not right.\n", formulaFilePath, formula->src_url);
+                return XCPKG_ERROR_FORMULA_SCHEME;
+            }
+
+            p = strchr(p + 1, '/');
+
+            if (p == NULL) {
+                fprintf(stderr, "scheme error in formula file: %s : src-url: %s seems not right.\n", formulaFilePath, formula->src_url);
+                return XCPKG_ERROR_FORMULA_SCHEME;
+            }
+
+            p[0] = '\0';
+
+            char * q = strdup(formula->src_url);
+
+            if (q == NULL) {
+                return XCPKG_ERROR_MEMORY_ALLOCATE;
+            }
+
+            p[0] = '/';
+
+            formula->git_url = q;
+            formula->git_url_is_calculated = true;
+
+            goto check_web_url;
+        }
+    }
+
+    /////////////////////////////////
+
+    if (formula->web_url == NULL || formula->git_url == NULL) {
+        xcpkg_formula_amend amends[] = {xcpkg_formula_amend_x_org, xcpkg_formula_amend_xorg_freedesktop_org, xcpkg_formula_amend_gnu_org, xcpkg_formula_amend_gnome_org, NULL};
+
+        for (int i = 0; amends[i] != NULL; i++) {
+            ret = amends[i](formula, formulaFilePath);
+
+            if (ret == XCPKG_FORMULA_AMEND_MISMATCHED) {
+                continue;
+            }
 
             if (ret != XCPKG_OK) {
                 return ret;
             }
 
-            if (version[0] != '\0') {
-                formula->version = strdup(version);
+            matched = true;
 
-                if (formula->version == NULL) {
+            break;
+        }
+    }
+
+
+check_web_url:
+
+    if (formula->web_url == NULL) {
+        if(matched) {
+            if (formula->git_url == NULL) {
+                fprintf(stderr, "scheme error in formula file: %s : web-url mapping not found.\n", formulaFilePath);
+                return XCPKG_ERROR_FORMULA_SCHEME;
+            } else {
+                char * p = strdup(formula->git_url);
+
+                if (p == NULL) {
                     return XCPKG_ERROR_MEMORY_ALLOCATE;
                 }
+
+                formula->web_url = p;
+                formula->web_url_is_calculated = true;
+            }
+        } else {
+            char * p = regex_extract(formula->src_url, "^https?://[^/]+/");
+
+            if (p == NULL) {
+                if (errno == 0) {
+                    fprintf(stderr, "scheme error in formula file: %s : web-url mapping not found.\n", formulaFilePath);
+                    return XCPKG_ERROR_FORMULA_SCHEME;
+                } else {
+                    perror(NULL);
+                    return XCPKG_ERROR;
+                }
+            } else {
+                formula->web_url = p;
+                formula->web_url_is_calculated = true;
             }
         }
+    }
 
-        if (formula->version != NULL) {
+
+check_git_url:
+
+    if (formula->git_url == NULL) {
+        goto check_version;
+    }
+
+    if (formula->git_sha != NULL && strlen(formula->git_sha) != 40) {
+        fprintf(stderr, "scheme error in formula file: %s : git-sha mapping's value's length must be 40.\n", formulaFilePath);
+        return XCPKG_ERROR_FORMULA_SCHEME;
+    }
+
+    if (formula->git_tag != NULL) {
+        if (strlen(formula->git_tag) > 50) {
+            fprintf(stderr, "scheme error in formula file: %s : git-tag mapping's value's length must be less than 50.\n", formulaFilePath);
+            return XCPKG_ERROR_FORMULA_SCHEME;
+        }
+
+        if (formula->git_ref == NULL) {
+            size_t n = 64U;
+
+            char * p = malloc(n);
+
+            if (p == NULL) {
+                return XCPKG_ERROR_MEMORY_ALLOCATE;
+            }
+
+            ret = snprintf(p, n, "refs/tags/%s", formula->git_tag);
+
+            if (ret < 0) {
+                perror(NULL);
+                free(p);
+                return XCPKG_ERROR;
+            }
+
+            formula->git_ref = p;
+        } else {
+            fprintf(stderr, "scheme error in formula file: %s : git-ref and git-tag cannot coexist.\n", formulaFilePath);
+            return XCPKG_ERROR_FORMULA_SCHEME;
+        }
+    }
+
+    ////////////////////////////////
+
+    if (formula->version == NULL) {
+        const char * p = formula->git_tag;
+
+        if (p == NULL) {
+            p = formula->git_ref;
+        }
+
+        if (p == NULL) {
+            goto check_version;
+        }
+
+        char version[20]; version[0] = '\0';
+
+        ret = xcpkg_extract_version(formula->git_ref, version, 20);
+
+        if (ret != XCPKG_OK) {
+            return ret;
+        }
+
+        if (version[0] != '\0') {
+            formula->version = strdup(version);
+
+            if (formula->version == NULL) {
+                return XCPKG_ERROR_MEMORY_ALLOCATE;
+            }
+
             formula->version_is_calculated = true;
         }
     }
 
-    //////////////////////////////////////////////////////////////////////////////////////////////////////
+
+check_version:
+
+    if (formula->version == NULL) {
+        if (formula->src_url != NULL && !formula->src_is_dir) {
+            fprintf(stderr, "Can't extract package version from src-url: '%s' in formula file: %s\n", formula->src_url, formulaFilePath);
+            return XCPKG_ERROR_FORMULA_SCHEME;
+        }
+
+        if (formula->git_tag != NULL) {
+            fprintf(stderr, "Can't extract package version from git-tag: '%s' in formula file: %s\n", formula->git_tag, formulaFilePath);
+            return XCPKG_ERROR_FORMULA_SCHEME;
+        }
+
+        if (formula->git_ref != NULL) {
+            fprintf(stderr, "Can't extract package version from git-ref: '%s' in formula file: %s\n", formula->git_ref, formulaFilePath);
+            return XCPKG_ERROR_FORMULA_SCHEME;
+        }
+    }
+
+    ///////////////////////////////////
 
     char   dep_upp_extra_buf[256]; dep_upp_extra_buf[0] = '\0';
     size_t dep_upp_extra_buf_len = 0U;
@@ -1534,7 +1572,7 @@ static inline int xcpkg_formula_check(XCPKGFormula * formula, const char * formu
         }
     }
 
-    //////////////////////////////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////
 
     if (formula->useBuildSystemNetsurf) {
         string_buffer_append(dep_upp_extra_buf, &dep_upp_extra_buf_len, "netsurf_buildsystem");
@@ -1609,7 +1647,7 @@ static inline int xcpkg_formula_check(XCPKGFormula * formula, const char * formu
         }
     }
 
-    //////////////////////////////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////////////
 
     if (formula->useBuildSystemMeson) {
         if (formula->dep_pip == NULL) {
