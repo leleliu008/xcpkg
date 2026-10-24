@@ -1556,10 +1556,10 @@ check_version:
             return XCPKG_ERROR_FORMULA_SCHEME;
         }
 
-        if (formula->git_ref != NULL) {
-            fprintf(stderr, "Can't extract package version from git-ref: '%s' in formula file: %s\n", formula->git_ref, formulaFilePath);
-            return XCPKG_ERROR_FORMULA_SCHEME;
-        }
+        //if (formula->git_ref != NULL) {
+        //    fprintf(stderr, "Can't extract package version from git-ref: '%s' in formula file: %s\n", formula->git_ref, formulaFilePath);
+        //    return XCPKG_ERROR_FORMULA_SCHEME;
+        //}
     }
 
     ///////////////////////////////////
