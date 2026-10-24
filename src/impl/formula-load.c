@@ -8,7 +8,6 @@
 
 #include <yaml.h>
 
-#include "../core/regex.h"
 #include "../xcpkg.h"
 
 static inline __attribute__((always_inline)) void string_buffer_append(char buf[], size_t * bufLengthP, const char * s) {
@@ -1224,7 +1223,7 @@ static int xcpkg_formula_amend_xorg_freedesktop_org(XCPKGFormula * formula, cons
 
 typedef int (*xcpkg_formula_amend)(XCPKGFormula * formula, const char * formulaFilePath);
 
-static inline int xcpkg_formula_check(XCPKGFormula * formula, const char * formulaFilePath) {
+static inline int xcpkg_formula_check(const char * packageName, XCPKGFormula * formula, const char * formulaFilePath) {
     if (formula->summary == NULL) {
         fprintf(stderr, "scheme error in formula file: %s : summary mapping not found.\n", formulaFilePath);
         return XCPKG_ERROR_FORMULA_SCHEME;
@@ -1409,20 +1408,63 @@ check_web_url:
                 formula->web_url_is_calculated = true;
             }
         } else {
-            char * p = regex_extract(formula->src_url, "^https?://[^/]+/");
+            char * p = strchr(formula->src_url + 8, '/');
 
             if (p == NULL) {
-                if (errno == 0) {
-                    fprintf(stderr, "scheme error in formula file: %s : web-url mapping not found.\n", formulaFilePath);
-                    return XCPKG_ERROR_FORMULA_SCHEME;
-                } else {
-                    perror(NULL);
-                    return XCPKG_ERROR;
-                }
-            } else {
-                formula->web_url = p;
-                formula->web_url_is_calculated = true;
+                fprintf(stderr, "scheme error in formula file: %s : src-url: %s seems not right.\n", formulaFilePath, formula->src_url);
+                return XCPKG_ERROR_FORMULA_SCHEME;
             }
+
+            char * q = strchr(p + 1, '/');
+
+            char * s = p + 1;
+
+            //printf("packageName=%s\n", packageName);
+            //printf("p=%s\n", p);
+            //printf("q=%s\n", q);
+
+            if (q != NULL) {
+                q[0] = '\0';
+
+                bool y = false;
+
+                if (strcmp(s, packageName) == 0) {
+                    y = true;
+                } else {
+                    if (strncmp(packageName, "lib", 3) == 0) {
+                        if (strcmp(s, packageName + 3) == 0) {
+                            y = true;
+                        }
+                    } else {
+                        if (strncmp(s, "lib", 3) == 0) {
+                            if (strcmp(s + 3, packageName) == 0) {
+                                y = true;
+                            }
+                        }
+                    }
+                }
+
+                q[0] = '/';
+
+                if (y) {
+                    s = q + 1;
+                }
+            }
+
+            char c = s[0];
+
+            s[0] = '\0';
+
+            p = strdup(formula->src_url);
+
+            s[0] = c;
+
+            if (p == NULL) {
+                return XCPKG_ERROR_MEMORY_ALLOCATE;
+            }
+
+            formula->web_url = p;
+            formula->web_url_is_calculated = true;
         }
     }
 
@@ -1797,7 +1839,7 @@ finalize:
     fclose(file);
 
     if (ret == XCPKG_OK) {
-        ret = xcpkg_formula_check(formula, formulaFilePath);
+        ret = xcpkg_formula_check(packageName, formula, formulaFilePath);
 
         if (ret == XCPKG_OK) {
             if (symlink == -1) {
