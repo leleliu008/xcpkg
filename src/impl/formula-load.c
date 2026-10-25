@@ -1259,8 +1259,10 @@ static inline int xcpkg_formula_check(const char * packageName, XCPKGFormula * f
 
     ///////////////////////////////////
 
+    bool src_url_starts_with_git_url = false;
+
     if (formula->src_url == NULL) {
-        goto check_git_url;
+        goto check_web_url;
     }
 
     ///////////////////////////////////
@@ -1275,7 +1277,7 @@ static inline int xcpkg_formula_check(const char * packageName, XCPKGFormula * f
 
         formula->src_is_dir = true;
 
-        goto check_git_url;
+        goto check_web_url;
     }
 
     ///////////////////////////////////
@@ -1317,12 +1319,10 @@ static inline int xcpkg_formula_check(const char * packageName, XCPKGFormula * f
     ///////////////////////////////////
 
     if (strncmp(formula->src_url, "https://", 8) != 0) {
-        goto check_git_url;
+        goto check_web_url;
     }
 
     ///////////////////////////////////
-
-    bool matched = false;
 
     if (formula->git_url == NULL) {
         const char* a[] = {"github.com/", "gitlab.com/", "codeberg.org/", NULL};
@@ -1334,7 +1334,7 @@ static inline int xcpkg_formula_check(const char * packageName, XCPKGFormula * f
                 continue;
             }
 
-            matched = true;
+            src_url_starts_with_git_url = true;
 
             char * p = strchr(formula->src_url + n + 8, '/');
 
@@ -1383,8 +1383,6 @@ static inline int xcpkg_formula_check(const char * packageName, XCPKGFormula * f
                 return ret;
             }
 
-            matched = true;
-
             break;
         }
     }
@@ -1392,72 +1390,16 @@ static inline int xcpkg_formula_check(const char * packageName, XCPKGFormula * f
 
 check_web_url:
 
-    if (formula->web_url == NULL) {
-        if(matched) {
-            if (formula->git_url == NULL) {
-                fprintf(stderr, "scheme error in formula file: %s : web-url mapping not found.\n", formulaFilePath);
-                return XCPKG_ERROR_FORMULA_SCHEME;
-            } else {
-                char * p = strdup(formula->git_url);
+    if (formula->web_url != NULL) {
+        goto check_git_url;
+    }
 
-                if (p == NULL) {
-                    return XCPKG_ERROR_MEMORY_ALLOCATE;
-                }
-
-                formula->web_url = p;
-                formula->web_url_is_calculated = true;
-            }
+    if(formula->src_url == NULL || formula->src_is_dir || src_url_starts_with_git_url) {
+        if (formula->git_url == NULL) {
+            fprintf(stderr, "scheme error in formula file: %s : web-url mapping not found.\n", formulaFilePath);
+            return XCPKG_ERROR_FORMULA_SCHEME;
         } else {
-            char * p = strchr(formula->src_url + 8, '/');
-
-            if (p == NULL) {
-                fprintf(stderr, "scheme error in formula file: %s : src-url: %s seems not right.\n", formulaFilePath, formula->src_url);
-                return XCPKG_ERROR_FORMULA_SCHEME;
-            }
-
-            char * q = strchr(p + 1, '/');
-
-            char * s = p + 1;
-
-            //printf("packageName=%s\n", packageName);
-            //printf("p=%s\n", p);
-            //printf("q=%s\n", q);
-
-            if (q != NULL) {
-                q[0] = '\0';
-
-                bool y = false;
-
-                if (strcmp(s, packageName) == 0) {
-                    y = true;
-                } else {
-                    if (strncmp(packageName, "lib", 3) == 0) {
-                        if (strcmp(s, packageName + 3) == 0) {
-                            y = true;
-                        }
-                    } else {
-                        if (strncmp(s, "lib", 3) == 0) {
-                            if (strcmp(s + 3, packageName) == 0) {
-                                y = true;
-                            }
-                        }
-                    }
-                }
-
-                q[0] = '/';
-
-                if (y) {
-                    s = q + 1;
-                }
-            }
-
-            char c = s[0];
-
-            s[0] = '\0';
-
-            p = strdup(formula->src_url);
-
-            s[0] = c;
+            char * p = strdup(formula->git_url);
 
             if (p == NULL) {
                 return XCPKG_ERROR_MEMORY_ALLOCATE;
@@ -1466,6 +1408,64 @@ check_web_url:
             formula->web_url = p;
             formula->web_url_is_calculated = true;
         }
+    } else {
+        char * p = strchr(formula->src_url + 8, '/');
+
+        if (p == NULL) {
+            fprintf(stderr, "scheme error in formula file: %s : src-url: %s seems not right.\n", formulaFilePath, formula->src_url);
+            return XCPKG_ERROR_FORMULA_SCHEME;
+        }
+
+        char * q = strchr(p + 1, '/');
+
+        char * s = p + 1;
+
+        //printf("packageName=%s\n", packageName);
+        //printf("p=%s\n", p);
+        //printf("q=%s\n", q);
+
+        if (q != NULL) {
+            q[0] = '\0';
+
+            bool y = false;
+
+            if (strcmp(s, packageName) == 0) {
+                y = true;
+            } else {
+                if (strncmp(packageName, "lib", 3) == 0) {
+                    if (strcmp(s, packageName + 3) == 0) {
+                        y = true;
+                    }
+                } else {
+                    if (strncmp(s, "lib", 3) == 0) {
+                        if (strcmp(s + 3, packageName) == 0) {
+                            y = true;
+                        }
+                    }
+                }
+            }
+
+            q[0] = '/';
+
+            if (y) {
+                s = q + 1;
+            }
+        }
+
+        char c = s[0];
+
+        s[0] = '\0';
+
+        p = strdup(formula->src_url);
+
+        s[0] = c;
+
+        if (p == NULL) {
+            return XCPKG_ERROR_MEMORY_ALLOCATE;
+        }
+
+        formula->web_url = p;
+        formula->web_url_is_calculated = true;
     }
 
 
