@@ -322,7 +322,7 @@ finally:
     return ret;
 }
 
-static int fetch_reslist(const char * reslist, const char * res_dir, const size_t res_dir_capcity, const char * xcpkgDownloadsDIR, const size_t xcpkgDownloadsDIRCapacity, bool verbose) {
+static int fetch_reslist(const char * reslist, const char * res_dir, const size_t res_dir_capacity, const char * xcpkgDownloadsDIR, const size_t xcpkgDownloadsDIRCapacity, bool verbose) {
     size_t  bufCapacity = strlen(reslist) + 1U;
     char    buf[bufCapacity];
     strncpy(buf, reslist, bufCapacity);
@@ -408,7 +408,7 @@ loop:
     }
 
 action:
-    ret = xcpkg_http_fetch_then_unpack(url, uri, sha, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, res_dir, res_dir_capcity, verbose);
+    ret = xcpkg_http_fetch_then_unpack(url, uri, sha, xcpkgDownloadsDIR, xcpkgDownloadsDIRCapacity, res_dir, res_dir_capacity, verbose);
 
     if (ret != XCPKG_OK) {
         return ret;
