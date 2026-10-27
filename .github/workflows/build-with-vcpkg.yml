@@ -146,7 +146,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        version: [macos-15, macos-14, macos-26]
+        version: [macos-15, macos-26]
 
     runs-on: ${{ matrix.version }}
 
