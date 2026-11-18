@@ -229,6 +229,7 @@ typedef struct {
     char * prepare;
     char * install;
     char * dotweak;
+    char * cpfiles;
     char * bindenv;
     char * caveats;
 

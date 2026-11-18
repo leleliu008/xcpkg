@@ -2409,18 +2409,18 @@ static int generate_shell_script_file(
         {"PACKAGE_SYMLINK", formula->symlink},
         {"PACKAGE_BUILD_IN_PARALLEL", formula->support_build_in_parallel},
         {"PACKAGE_BUILD_IN_BSCRIPT_DIR", formula->binbstd},
-        {"PACKAGE_USE_BSYSTEM_AUTOGENSH", formula->useBuildSystemAutogen},
-        {"PACKAGE_USE_BSYSTEM_AUTOTOOLS", formula->useBuildSystemAutotools},
-        {"PACKAGE_USE_BSYSTEM_CONFIGURE", formula->useBuildSystemConfigure},
-        {"PACKAGE_USE_BSYSTEM_CMAKE", formula->useBuildSystemCmake},
-        {"PACKAGE_USE_BSYSTEM_XMAKE", formula->useBuildSystemXmake},
-        {"PACKAGE_USE_BSYSTEM_GMAKE", formula->useBuildSystemGmake},
-        {"PACKAGE_USE_BSYSTEM_NINJA", formula->useBuildSystemNinja},
-        {"PACKAGE_USE_BSYSTEM_MESON", formula->useBuildSystemMeson},
-        {"PACKAGE_USE_BSYSTEM_CARGO", formula->useBuildSystemCargo},
-        {"PACKAGE_USE_BSYSTEM_GO", formula->useBuildSystemGolang},
-        {"PACKAGE_USE_BSYSTEM_GN", formula->useBuildSystemGN},
-        {"PACKAGE_USE_BSYSTEM_ZIG", formula->useBuildSystemZIG},
+        {"PACKAGE_USE_AUTOGENSH", formula->useBuildSystemAutogen},
+        {"PACKAGE_USE_AUTOTOOLS", formula->useBuildSystemAutotools},
+        {"PACKAGE_USE_CONFIGURE", formula->useBuildSystemConfigure},
+        {"PACKAGE_USE_CMAKE", formula->useBuildSystemCmake},
+        {"PACKAGE_USE_XMAKE", formula->useBuildSystemXmake},
+        {"PACKAGE_USE_GMAKE", formula->useBuildSystemGmake},
+        {"PACKAGE_USE_NINJA", formula->useBuildSystemNinja},
+        {"PACKAGE_USE_MESON", formula->useBuildSystemMeson},
+        {"PACKAGE_USE_CARGO", formula->useBuildSystemCargo},
+        {"PACKAGE_USE_GO", formula->useBuildSystemGolang},
+        {"PACKAGE_USE_GN", formula->useBuildSystemGN},
+        {"PACKAGE_USE_ZIG", formula->useBuildSystemZIG},
         {NULL,false}
     };
 
@@ -2521,6 +2521,8 @@ static int generate_shell_script_file(
 
         {"PACKAGE_BSYSTEM", formula->bsystem},
         {"PACKAGE_BSCRIPT", formula->bscript},
+
+        {"PACKAGE_CPFILES", formula->cpfiles},
 
         {"PACKAGE_PPFLAGS", formula->ppflags},
         {"PACKAGE_CCFLAGS", formula->ccflags},

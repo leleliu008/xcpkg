@@ -127,6 +127,7 @@ int xcpkg_dump_available_info(const char * packageName, const char * targetPlatf
             {"install", formula->install},
             {"dotweak", formula->dotweak},
 
+            {"cpfiles", formula->cpfiles},
             {"bindenv", formula->bindenv},
             {"caveats", formula->caveats},
 
@@ -280,6 +281,7 @@ int xcpkg_dump_available_info(const char * packageName, const char * targetPlatf
         json_object_set_new(root, "install", json_string(formula->install));
         json_object_set_new(root, "dotweak", json_string(formula->dotweak));
 
+        json_object_set_new(root, "cpfiles", json_string(formula->cpfiles));
         json_object_set_new(root, "bindenv", json_string(formula->bindenv));
         json_object_set_new(root, "caveats", json_string(formula->caveats));
         json_object_set_new(root, "patches", json_string(formula->patches));
@@ -525,6 +527,10 @@ int xcpkg_dump_available_info(const char * packageName, const char * targetPlatf
     } else if (strcmp(key, "dotweak") == 0) {
         if (formula->dotweak != NULL) {
             printf("%s\n", formula->dotweak);
+        }
+    } else if (strcmp(key, "cpfiles") == 0) {
+        if (formula->cpfiles != NULL) {
+            printf("%s\n", formula->cpfiles);
         }
     } else if (strcmp(key, "patches") == 0) {
         if (formula->patches != NULL) {

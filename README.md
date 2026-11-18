@@ -662,6 +662,8 @@ A xcpkg formula's file content only has one level mapping and shall/might have t
 |`install`|`CODE`|POSIX shell code to be run when user run `xcpkg install <PKG>`.<br>If this mapping is not present, `xcpkg` will run default install code according to `bsystem`.<br>`PWD` is `$PACKAGE_BSCRIPT_DIR` if `binbstd` is `0`, otherwise it is `$PACKAGE_BCACHED_DIR`|
 |`dotweak`|`CODE`|POSIX shell code to be run to do some tweaks immediately after installing.<br>`PWD` is `$PACKAGE_INSTALL_DIR`|
 ||||
+|`cpfiles`|`LIST`|A list of files to be installed, which are not installed by build system. <br>`PWD` is same as `install`|
+||||
 |`bindenv`|`LIST`|A LF-delimited list of formatted TEXTs. each TEXT has format: `<ENV>=<VALUE>`. `%s` in `<VALUE>` represents the install directory.<br>`xcpkg` will bind these environment variables to executables while you are running `xcpkg bundle`.|
 ||||
 |`wrapper`|`LIST`|A LF-delimited list of formatted TEXTs. each TEXT has format:  `<SRC>\|<DST>`. e.g. `bear.c\|bin/` means that `xcpkg` will fetch `bear.c` from <https://raw.githubusercontent.com/leleliu008/xcpkg-formula-repository-official-core/refs/heads/master/wrappers/bear.c> then install it to `$PACKAGE_INSTALL_DIR/bin/` directory.<br>`xcpkg` will use these C source files to build the corresponding wrappers rather than a generic one while you are running `xcpkg bundle`.|

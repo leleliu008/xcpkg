@@ -78,6 +78,7 @@ typedef enum {
     FORMULA_KEY_CODE_prepare,
     FORMULA_KEY_CODE_install,
     FORMULA_KEY_CODE_dotweak,
+    FORMULA_KEY_CODE_cpfiles,
     FORMULA_KEY_CODE_bindenv,
     FORMULA_KEY_CODE_caveats,
 
@@ -151,6 +152,7 @@ void xcpkg_formula_dump(XCPKGFormula * formula) {
     printf("install: %s\n", formula->install);
     printf("dotweak: %s\n", formula->dotweak);
 
+    printf("cpfiles: %s\n", formula->cpfiles);
     printf("bindenv: %s\n", formula->bindenv);
     printf("caveats: %s\n", formula->caveats);
 
@@ -388,6 +390,11 @@ void xcpkg_formula_free(XCPKGFormula * formula) {
         formula->dotweak = NULL;
     }
 
+    if (formula->cpfiles != NULL) {
+        free(formula->cpfiles);
+        formula->cpfiles = NULL;
+    }
+
     if (formula->bindenv != NULL) {
         free(formula->bindenv);
         formula->bindenv = NULL;
@@ -491,6 +498,8 @@ static inline XCPKGFormulaKeyCode xcpkg_formula_key_code_from_key_name(char * ke
         return FORMULA_KEY_CODE_install;
     } else if (strcmp(key, "dotweak") == 0) {
         return FORMULA_KEY_CODE_dotweak;
+    } else if (strcmp(key, "cpfiles") == 0) {
+        return FORMULA_KEY_CODE_cpfiles;
     } else if (strcmp(key, "bindenv") == 0) {
         return FORMULA_KEY_CODE_bindenv;
     } else if (strcmp(key, "caveats") == 0) {
@@ -584,6 +593,7 @@ static inline int xcpkg_formula_set_value(XCPKGFormulaKeyCode keyCode, char * va
         case FORMULA_KEY_CODE_prepare: if (formula->prepare != NULL) free(formula->prepare); formula->prepare = strdup(value); break;
         case FORMULA_KEY_CODE_install: if (formula->install != NULL) free(formula->install); formula->install = strdup(value); break;
         case FORMULA_KEY_CODE_dotweak: if (formula->dotweak != NULL) free(formula->dotweak); formula->dotweak = strdup(value); break;
+        case FORMULA_KEY_CODE_cpfiles: if (formula->cpfiles != NULL) free(formula->cpfiles); formula->cpfiles = strdup(value); break;
         case FORMULA_KEY_CODE_bindenv: if (formula->bindenv != NULL) free(formula->bindenv); formula->bindenv = strdup(value); break;
         case FORMULA_KEY_CODE_caveats: if (formula->caveats != NULL) free(formula->caveats); formula->caveats = strdup(value); break;
         case FORMULA_KEY_CODE_patches: if (formula->patches != NULL) free(formula->patches); formula->patches = strdup(value); break;
@@ -1569,24 +1579,26 @@ check_version:
 
     if (formula->bsystem == NULL) {
         if (formula->install == NULL) {
-            fprintf(stderr, "scheme error in formula file: %s : neither bsystem nor install mapping is found.\n", formula->path);
-            return XCPKG_ERROR_FORMULA_SCHEME;
-        }
-
-        const char * bsystem = xcpkg_extract_bsystem_from_install_commands(formula);
-
-        if (bsystem != NULL) {
-            char * p = strdup(bsystem);
-
-            if (p == NULL) {
-                return XCPKG_ERROR_MEMORY_ALLOCATE;
+            if (formula->cpfiles == NULL) {
+                fprintf(stderr, "scheme error in formula file: %s : none of bsystem, install, cpfiles mapping is found.\n", formula->path);
+                return XCPKG_ERROR_FORMULA_SCHEME;
             }
+        } else {
+            const char * bsystem = xcpkg_extract_bsystem_from_install_commands(formula);
 
-            formula->bsystem = p;
-            formula->bsystem_is_calculated = true;
+            if (bsystem != NULL) {
+                char * p = strdup(bsystem);
 
-            if (formula->useBuildSystemZIG) {
-                string_buffer_append(dep_upp_extra_buf, &dep_upp_extra_buf_len, "zig");
+                if (p == NULL) {
+                    return XCPKG_ERROR_MEMORY_ALLOCATE;
+                }
+
+                formula->bsystem = p;
+                formula->bsystem_is_calculated = true;
+
+                if (formula->useBuildSystemZIG) {
+                    string_buffer_append(dep_upp_extra_buf, &dep_upp_extra_buf_len, "zig");
+                }
             }
         }
     } else {
