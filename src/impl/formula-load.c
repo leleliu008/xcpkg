@@ -1574,16 +1574,18 @@ check_version:
 
     ///////////////////////////////////
 
+    if (formula->bsystem == NULL && formula->install == NULL && formula->cpfiles == NULL) {
+        fprintf(stderr, "scheme error in formula file: %s : none of bsystem, install, cpfiles mapping is found.\n", formula->path);
+        return XCPKG_ERROR_FORMULA_SCHEME;
+    }
+
+    ///////////////////////////////////
+
     char   dep_upp_extra_buf[256]; dep_upp_extra_buf[0] = '\0';
     size_t dep_upp_extra_buf_len = 0U;
 
     if (formula->bsystem == NULL) {
-        if (formula->install == NULL) {
-            if (formula->cpfiles == NULL) {
-                fprintf(stderr, "scheme error in formula file: %s : none of bsystem, install, cpfiles mapping is found.\n", formula->path);
-                return XCPKG_ERROR_FORMULA_SCHEME;
-            }
-        } else {
+        if (formula->install != NULL) {
             const char * bsystem = xcpkg_extract_bsystem_from_install_commands(formula);
 
             if (bsystem != NULL) {
@@ -1605,18 +1607,15 @@ check_version:
         if (formula->install == NULL) {
             const char * dobuildActions = xcpkg_determine_default_install_commands_from_bsystem(formula->bsystem);
 
-            if (dobuildActions == NULL) {
-                fprintf(stderr, "scheme error in formula file: %s : install mapping not found.\n", formula->path);
-                return XCPKG_ERROR_FORMULA_SCHEME;
+            if (dobuildActions != NULL) {
+                char * p = strdup(dobuildActions);
+
+                if (p == NULL) {
+                    return XCPKG_ERROR_MEMORY_ALLOCATE;
+                }
+
+                formula->install = p;
             }
-
-            char * p = strdup(dobuildActions);
-
-            if (p == NULL) {
-                return XCPKG_ERROR_MEMORY_ALLOCATE;
-            }
-
-            formula->install = p;
         }
 
         ret = xcpkg_parse_bsystem(formula, dep_upp_extra_buf, &dep_upp_extra_buf_len);
